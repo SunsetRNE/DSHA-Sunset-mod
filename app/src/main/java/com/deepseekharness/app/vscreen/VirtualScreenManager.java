@@ -2180,6 +2180,20 @@ public final class VirtualScreenManager {
                     return VirtualScreenManager.this.node(gen, seq, id, action, text, scope);
                   }
 
+                  @Override
+                  public JSONObject node(
+                      com.deepseekharness.app.util.VscreenActionEvidence.Node evidence,
+                      String action,
+                      String text) {
+                    return VirtualScreenManager.this.node(
+                        evidence.generation(),
+                        evidence.frameSeq() == null ? -1 : evidence.frameSeq(),
+                        evidence.nodeId(),
+                        action,
+                        text,
+                        scope);
+                  }
+
                   public JSONObject editor(
                       String gen, String mode, String id, String text, int start, int end) {
                     try {
@@ -2197,9 +2211,42 @@ public final class VirtualScreenManager {
                     }
                   }
 
+                  @Override
+                  public JSONObject editor(
+                      com.deepseekharness.app.util.VscreenActionEvidence.Editor evidence,
+                      String mode,
+                      String text,
+                      int start,
+                      int end) {
+                    try {
+                      return VirtualScreenManager.this.editor(
+                          evidence.generation(),
+                          mode,
+                          new JSONObject()
+                              .put("editorId", evidence.editorId())
+                              .put("text", text)
+                              .put("start", start)
+                              .put("end", end),
+                          scope);
+                    } catch (org.json.JSONException invalid) {
+                      return failure("INVALID_EDITOR_ARGUMENTS");
+                    }
+                  }
+
                   public JSONObject touch(
                       String gen, long seq, String stroke, int action, float x, float y) {
                     return VirtualScreenManager.this.touch(gen, seq, stroke, action, x, y, scope);
+                  }
+
+                  @Override
+                  public JSONObject touch(
+                      com.deepseekharness.app.util.VscreenActionEvidence.RawFrame evidence,
+                      String stroke,
+                      int action,
+                      float x,
+                      float y) {
+                    return VirtualScreenManager.this.touch(
+                        evidence.generation(), evidence.frameSeq(), stroke, action, x, y, scope);
                   }
 
                   public JSONObject preview() {
@@ -2218,16 +2265,61 @@ public final class VirtualScreenManager {
                     return observed("anchor", gen, frame, observation, x, y, scope);
                   }
 
+                  @Override
+                  public JSONObject anchor(
+                      com.deepseekharness.app.util.VscreenActionEvidence.ObservedAnchor evidence,
+                      int x,
+                      int y) {
+                    return observed(
+                        "anchor",
+                        evidence.generation(),
+                        evidence.frameSeq(),
+                        evidence.observationId(),
+                        x,
+                        y,
+                        scope);
+                  }
+
                   public JSONObject anchoredClick(String gen, long frame, String anchor) {
                     return observed("anchored-click", gen, frame, anchor, -1, -1, scope);
+                  }
+
+                  @Override
+                  public JSONObject anchoredClick(
+                      com.deepseekharness.app.util.VscreenActionEvidence.AnchoredClick evidence) {
+                    return observed(
+                        "anchored-click",
+                        evidence.generation(),
+                        evidence.frameSeq(),
+                        evidence.anchorId(),
+                        -1,
+                        -1,
+                        scope);
                   }
 
                   public JSONObject action(String mode, String gen, long seq, String query) {
                     return VirtualScreenManager.this.action(mode, gen, seq, query, scope);
                   }
 
+                  @Override
+                  public JSONObject action(
+                      String mode,
+                      com.deepseekharness.app.util.VscreenActionEvidence.RawFrame evidence,
+                      String query) {
+                    return VirtualScreenManager.this.action(
+                        mode, evidence.generation(), evidence.frameSeq(), query, scope);
+                  }
+
                   public JSONObject type(String gen, long seq, String text) {
                     return VirtualScreenManager.this.type(gen, seq, text, scope);
+                  }
+
+                  @Override
+                  public JSONObject type(
+                      com.deepseekharness.app.util.VscreenActionEvidence.RawFrame evidence,
+                      String text) {
+                    return VirtualScreenManager.this.type(
+                        evidence.generation(), evidence.frameSeq(), text, scope);
                   }
 
                   public JSONObject close() {

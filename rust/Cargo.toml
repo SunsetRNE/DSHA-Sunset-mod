@@ -2,13 +2,10 @@
 members = ["crates/dsha-core"]
 resolver = "2"
 
-# R0 冻结首期依赖集与 vendor 字节；R1 已真实使用 sha2/sha1（flate2 仍留给 R3 gzip）。
-# Cargo 1.100 的 manifest lint 会把“已声明未使用”当警告；flate2 在 R3 前仍未被调用，
-# 因此暂时保留 allow 并记录理由，而不是删掉依赖让 Cargo.lock/vendor 与冻结清单漂移。
-# R3 接入 archive_pack/unpack 后应移除本 allow，让未使用依赖重新成为硬告警。
-[workspace.lints.cargo]
-unused_dependencies = "allow"
-
+# R0 冻结首期依赖集与 vendor 字节；R3 起 flate2/sha2/sha1 均在真实实现中使用，
+# 未使用依赖恢复为硬告警（不再需要 R0/R2 期间的临时 allow）。空表保留，供 crate
+# 的 `[lints] workspace = true` 继承（不引入任何放宽）。
+[workspace.lints]
 [workspace.package]
 edition = "2021"
 rust-version = "1.100.0"

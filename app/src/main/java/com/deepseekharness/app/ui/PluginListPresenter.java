@@ -54,6 +54,7 @@ public final class PluginListPresenter {
 
   public static final class Operation {
     public final String operationId, targetKey, phase, message;
+    public final String errorCode, stage, application, restartReason;
     public final Boolean desired;
     public final int percent;
     public final boolean pending;
@@ -66,6 +67,21 @@ public final class PluginListPresenter {
         String message,
         int percent,
         boolean pending) {
+      this(operationId, targetKey, desired, phase, message, percent, pending, "", "", "", "");
+    }
+
+    public Operation(
+        String operationId,
+        String targetKey,
+        Boolean desired,
+        String phase,
+        String message,
+        int percent,
+        boolean pending,
+        String errorCode,
+        String stage,
+        String application,
+        String restartReason) {
       this.operationId = operationId;
       this.targetKey = targetKey;
       this.desired = desired;
@@ -73,6 +89,10 @@ public final class PluginListPresenter {
       this.message = message;
       this.percent = percent;
       this.pending = pending;
+      this.errorCode = errorCode;
+      this.stage = stage;
+      this.application = application;
+      this.restartReason = restartReason;
     }
 
     @Override
@@ -83,13 +103,28 @@ public final class PluginListPresenter {
           && Objects.equals(desired, value.desired)
           && Objects.equals(phase, value.phase)
           && Objects.equals(message, value.message)
+          && Objects.equals(errorCode, value.errorCode)
+          && Objects.equals(stage, value.stage)
+          && Objects.equals(application, value.application)
+          && Objects.equals(restartReason, value.restartReason)
           && percent == value.percent
           && pending == value.pending;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(operationId, targetKey, desired, phase, message, percent, pending);
+      return Objects.hash(
+          operationId,
+          targetKey,
+          desired,
+          phase,
+          message,
+          percent,
+          pending,
+          errorCode,
+          stage,
+          application,
+          restartReason);
     }
   }
 
@@ -249,6 +284,8 @@ public final class PluginListPresenter {
     // 队列顺序为 active、等待 FIFO、最新历史在前。最后一个待处理意图优先；
     // 终态历史不能覆盖它，没有 pending 时仅保留最新一条历史。
     for (Operation operation : operations) {
+      Operation retained = latest.get(operation.targetKey);
+      if (retained != null && "UNCONFIRMED".equals(retained.phase)) continue;
       if (operation.pending) latest.put(operation.targetKey, operation);
       else latest.putIfAbsent(operation.targetKey, operation);
     }

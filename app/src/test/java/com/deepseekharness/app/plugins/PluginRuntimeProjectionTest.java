@@ -31,7 +31,10 @@ public final class PluginRuntimeProjectionTest {
             .put("version", "1.0.0")
             .put("enabled", true)
             .put("available", true)
-            .put("loadState", "loaded"));
+            .put("loadState", "loaded")
+            .put("contentFingerprint", "a".repeat(64))
+            .put("contentAlgorithm", "dependency-graph-sha256-v1")
+            .put("entries", entries(false)));
   }
 
   private JSONObject row(String name, String state) throws Exception {
@@ -39,7 +42,30 @@ public final class PluginRuntimeProjectionTest {
         .put("name", name)
         .put("version", "1.0.0")
         .put("profile", "web")
-        .put("state", state);
+        .put("state", state)
+        .put("contentFingerprint", "a".repeat(64))
+        .put("contentAlgorithm", "dependency-graph-sha256-v1")
+        .put(
+            "identity",
+            new JSONObject()
+                .put("identitySource", "OBSERVER_SESSION")
+                .put("startupId", "unknown")
+                .put("generation", Long.toString(GENERATION))
+                .put("instance", INSTANCE)
+                .put("observedAt", NOW))
+        .put("entries", entries(true));
+  }
+
+  private JSONArray entries(boolean observed) throws Exception {
+    JSONObject entry =
+        new JSONObject()
+            .put("entryId", "sample-entry")
+            .put("moduleHash", "b".repeat(64))
+            .put("parentId", "")
+            .put("group", false)
+            .put("patchReason", "PROFILE_UNSET");
+    if (observed) entry.put("phase", "active").put("diagnostic", "");
+    return new JSONArray().put(entry);
   }
 
   private JSONObject snapshot(JSONObject... rows) throws Exception {
@@ -224,7 +250,7 @@ public final class PluginRuntimeProjectionTest {
   }
 
   @Test
-  public void canonicalCardAcceptsLegacyShimEvidenceRegardlessOfVersion() throws Exception {
+  public void legacyShimVersionAloneCannotProveCurrentDeployment() throws Exception {
     Item card =
         new Item(
             new JSONObject()
@@ -238,9 +264,9 @@ public final class PluginRuntimeProjectionTest {
                 List.of(card),
                 snapshot(row(PluginIdentity.AUTO_REVIEW_ALIAS, "loaded").put("version", "0.1.0")))
             .get(0);
-    assertEquals("loaded", value.runtimeState);
-    assertFalse(value.runtimeStale);
-    assertFalse(value.restartRequired);
+    assertEquals("unknown", value.runtimeState);
+    assertTrue(value.runtimeStale);
+    assertTrue(value.restartRequired);
   }
 
   @Test
@@ -317,6 +343,231 @@ public final class PluginRuntimeProjectionTest {
     rows.put(row("sample", "loaded"));
     for (int i = 0; i < 512; i++) rows.put(row("other-" + i, "loaded"));
     assertEquals("unknown", project(List.of(installed("sample")), evidence).get(0).runtimeState);
+  }
+
+  @Test
+  public void contentIdentityAndEntryOwnershipCannotBeBorrowedFromSameVersion() throws Exception {
+    for (JSONObject invalid :
+        List.of(
+            row("sample", "loaded").put("contentFingerprint", ""),
+            row("sample", "loaded").put("contentAlgorithm", "module-name-sha256"),
+            row("sample", "loaded").put("contentFingerprint", "c".repeat(64)),
+            row("sample", "loaded").put("entries", new JSONArray()),
+            row("sample", "loaded")
+                .put("entries", entries(true).put(entries(true).getJSONObject(0))),
+            row("sample", "loaded")
+                .put(
+                    "entries",
+                    new JSONArray()
+                        .put(entries(true).getJSONObject(0).put("parentId", "other"))))) {
+      Item value = project(List.of(installed("sample")), snapshot(invalid)).get(0);
+      assertTrue(value.runtimeStale);
+      assertFalse(value.runtimeReason.isEmpty());
+    }
+    Item oldProducer =
+        project(
+                List.of(installed("sample")),
+                snapshot(row("sample", "loaded").put("identity", JSONObject.NULL)))
+            .get(0);
+    assertEquals("LEGACY_EVIDENCE", oldProducer.runtimeReason);
+    assertTrue(oldProducer.runtimeStale);
+  }
+
+  @Test
+  public void absentOrUnknownFiberCannotAppearAsAnObservedUnloadedEntry() throws Exception {
+    for (String diagnostic :
+        List.of("ENTRY_ABSENT", "ENTRY_PHASE_UNKNOWN", "ENTRY_NO_FIBER", "LOADER_UNAVAILABLE")) {
+      JSONObject value = row("sample", "unknown");
+      value
+          .getJSONArray("entries")
+          .getJSONObject(0)
+          .put("phase", JSONObject.NULL)
+          .put("diagnostic", diagnostic);
+      Item item = project(List.of(installed("sample")), snapshot(value)).get(0);
+      assertFalse(item.entries.get(0).runtimeObserved);
+      assertEquals("unknown", item.entries.get(0).runtimePhase);
+    }
+  }
+
+  @Test
+  public void observedEntryStateAndIntentAreIndependentAndExpiryInvalidatesBoth() throws Exception {
+    JSONObject unloading = row("sample", "unloading");
+    unloading.getJSONArray("entries").getJSONObject(0).put("phase", "unloading");
+    Item value = project(List.of(installed("sample")), snapshot(unloading)).get(0);
+    assertEquals("unloading", value.entries.get(0).runtimePhase);
+    assertTrue(value.entries.get(0).runtimeVerified());
+    assertNull(value.entries.get(0).patchDisabled);
+    assertFalse(value.runtimeStale);
+    Item expired = project(List.of(value), snapshot(unloading).put("at", NOW - 30_001)).get(0);
+    assertTrue(expired.runtimeStale);
+    assertFalse(expired.entries.get(0).runtimeVerified());
+  }
+
+  @Test
+  public void unavailableManagementDoesNotEraseInstalledInventoryOrProvePatchHealth()
+      throws Exception {
+    JSONObject activity =
+        snapshot(row("sample", "loaded"))
+            .put(
+                "management",
+                new JSONObject()
+                    .put("state", "unavailable")
+                    .put("reasonCode", "MANAGEMENT_SERVICE_ABSENT")
+                    .put("evidence", "SERVICE_PRESENCE"))
+            .put(
+                "patchChain",
+                new JSONObject()
+                    .put("state", "present-unverified")
+                    .put("reasonCode", "PATCH_PROVENANCE_UNVERIFIED")
+                    .put("evidence", "STARTUP_METADATA"))
+            .put(
+                "coverage", new JSONObject().put("limited", false).put("reasons", new JSONArray()));
+    var management = PluginRuntimeProjection.management(activity, GENERATION, INSTANCE, NOW);
+    assertEquals("unavailable", management.managementState);
+    assertEquals("present-unverified", management.patchState);
+    assertEquals(1, project(List.of(installed("sample")), activity).size());
+    assertTrue(project(List.of(installed("sample")), activity).get(0).enabled);
+    assertEquals(
+        "unknown",
+        PluginRuntimeProjection.management(activity, GENERATION + 1, INSTANCE, NOW)
+            .managementState);
+    assertEquals(
+        "unknown",
+        PluginRuntimeProjection.management(snapshot(), GENERATION, INSTANCE, NOW).managementState);
+  }
+
+  @Test
+  public void staticPreflightAndManagementProtectionNeverRewriteRuntimeOrNativeDisable()
+      throws Exception {
+    Item original =
+        new Item(
+            new JSONObject()
+                .put("name", "sample")
+                .put("version", "1.0.0")
+                .put("enabled", true)
+                .put("entries", entries(false))
+                .put("installedDsh", "0.2.2-rc.1")
+                .put("runtimePlatform", "linux")
+                .put("contentAlgorithm", "dependency-graph-sha256-v1")
+                .put("contentFingerprint", "a".repeat(64)));
+    JSONObject evidence =
+        row("sample", "loaded")
+            .put("managementReadOnly", true)
+            .put("managementReadOnlyReason", "MANAGEMENT_REQUIRED")
+            .put(
+                "eligibility",
+                new JSONObject()
+                    .put("state", "incompatible")
+                    .put("reasonCode", "PLUGIN_INCOMPATIBLE")
+                    .put("evidence", "PREFLIGHT")
+                    .put("name", "sample")
+                    .put("version", "1.0.0")
+                    .put("profile", "web")
+                    .put("generation", Long.toString(GENERATION))
+                    .put("instance", INSTANCE)
+                    .put("observedAt", NOW - 60_000)
+                    .put("runtimeVersion", "0.2.2-rc.1")
+                    .put("runtimePlatform", "linux"));
+    evidence
+        .getJSONArray("entries")
+        .getJSONObject(0)
+        .put("managementReadOnly", true)
+        .put("managementReadOnlyReason", "MANAGEMENT_REQUIRED");
+    Item projected = project(List.of(original), snapshot(evidence)).get(0);
+    assertEquals("loaded", projected.runtimeState);
+    assertEquals("incompatible", projected.eligibilityState);
+    assertEquals(Boolean.TRUE, projected.managementReadOnly);
+    assertEquals(Boolean.TRUE, projected.entries.get(0).managementReadOnly);
+    assertFalse(projected.withIntent(false).enabled);
+    evidence.getJSONObject("eligibility").put("instance", "older");
+    assertEquals("unknown", project(List.of(original), snapshot(evidence)).get(0).eligibilityState);
+    Item expired = project(List.of(projected), null).get(0);
+    assertNull(expired.managementReadOnly);
+    assertNull(expired.entries.get(0).managementReadOnly);
+    assertEquals("unknown", expired.eligibilityState);
+  }
+
+  @Test
+  public void wrongEntryModuleParentOrGroupCannotReceiveManagementProtection() throws Exception {
+    for (String field : List.of("moduleHash", "parentId", "group")) {
+      JSONObject evidence = row("sample", "loaded");
+      JSONObject raw =
+          evidence
+              .getJSONArray("entries")
+              .getJSONObject(0)
+              .put("managementReadOnly", true)
+              .put("managementReadOnlyReason", "MANAGEMENT_REQUIRED");
+      if ("group".equals(field)) raw.put(field, true);
+      else raw.put(field, "moduleHash".equals(field) ? "c".repeat(64) : "other");
+      Item item = project(List.of(installed("sample")), snapshot(evidence)).get(0);
+      assertNull(item.entries.get(0).managementReadOnly);
+      assertFalse(item.entries.get(0).runtimeObserved);
+    }
+    for (String reason : List.of("", "unknown", "PROTECTION_UNVERIFIED")) {
+      Item item =
+          new Item(
+              new JSONObject()
+                  .put("name", "sample")
+                  .put("managementReadOnly", true)
+                  .put("managementReadOnlyReason", reason));
+      assertNull(item.managementReadOnly);
+      assertNull(
+          new com.deepseekharness.app.util.PluginEntryView(
+                  "entry", "a".repeat(64), "", false, null, "PROFILE_UNSET")
+              .withManagement(true, reason)
+              .managementReadOnly);
+    }
+  }
+
+  @Test
+  public void oneBadEntryCannotPoisonTheFollowingMatchedSiblingReason() throws Exception {
+    for (boolean wrongFirst : new boolean[] {true, false}) {
+      JSONArray expected = new JSONArray();
+      JSONArray observed = new JSONArray();
+      for (int index = 0; index < 2; index++) {
+        String id = (index == 0) == wrongFirst ? "bad-entry" : "good-entry";
+        expected.put(
+            new JSONObject()
+                .put("entryId", id)
+                .put("moduleHash", "b".repeat(64))
+                .put("parentId", "")
+                .put("group", false)
+                .put("patchReason", "PROFILE_UNSET"));
+        observed.put(
+            new JSONObject()
+                .put("entryId", id)
+                .put("moduleHash", "bad-entry".equals(id) ? "c".repeat(64) : "b".repeat(64))
+                .put("parentId", "")
+                .put("group", false)
+                .put("phase", "active")
+                .put("diagnostic", "ENTRY_ACTIVE"));
+      }
+      Item base =
+          new Item(
+              new JSONObject()
+                  .put("name", "sample")
+                  .put("version", "1.0.0")
+                  .put("contentFingerprint", "a".repeat(64))
+                  .put("contentAlgorithm", "dependency-graph-sha256-v1")
+                  .put("entries", expected));
+      Item result =
+          project(List.of(base), snapshot(row("sample", "loaded").put("entries", observed))).get(0);
+      var good =
+          result.entries.stream()
+              .filter(entry -> "good-entry".equals(entry.entryId))
+              .findFirst()
+              .orElseThrow();
+      var bad =
+          result.entries.stream()
+              .filter(entry -> "bad-entry".equals(entry.entryId))
+              .findFirst()
+              .orElseThrow();
+      assertTrue(result.runtimeStale);
+      assertEquals("ENTRY_MODULE", result.runtimeReason);
+      assertEquals("ENTRY_MODULE", bad.runtimeReason);
+      assertEquals("", good.runtimeReason);
+      assertTrue(good.runtimeVerified());
+    }
   }
 
   @Test

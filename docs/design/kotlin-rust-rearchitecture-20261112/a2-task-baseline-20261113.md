@@ -1,9 +1,9 @@
 # A2 任务基线（G2）：存储与文件（SAF 授权簿 + 文件工作台）
 
-> 版本：v0.4　日期：2026-11-13　基线：`3a8204fe`（build361 验收回执 + Rust R0 已合入；A1 已合入）
-> 状态：**slice 1+2 已完成并 rebase 到 3a8204fe（Source checks 43332430587 / Doc 43332430557 绿）**；**非实现者复审 APPROVE（P1+5×P2）**；**复审新增 N1/N2 已修，N3/N4 记为已知窗口延后 slice3/4**；slice 3–4 未开始。
+> 版本：v0.6　日期：2026-11-14　slice 3/4 集成基线：`1d675b3b`（初始实现来自 278a446a；P2 修复后按 Lead 新要求 rebase，无冲突）
+> 状态：slice 1/2 已合入；slice 3/4 完成 P2-1..8 增量复核及接管追加修复，两份非实现者逐行审查均为 **APPROVE**（代码头 `e1b20ab1`）。十类定向 JUnit **147/0/0/0**，本地静态门禁通过；完整证据及限制见 §13.2。**A2 整轮仍不可合并/未验收：合并树 descriptor、固定输入完整 CI、真机/布局与发版待 Lead；N3/N4 已知窗口保留。**
 > 依据：[迭代路径](iteration-roadmap-20261112.md) §4 跨轮不变式 + §5 A2、[A1 任务基线](a1-task-baseline-20261113.md) 模板与已知 P2、[A1 契约草案](a1-contract-draft-20261112.md)（形状内部冻结）、[安全模型](../../security-model.md) SAF 一节。
-> 注意：分支已 rebase 到 `3a8204fe`；main 的 Kotlin/Rust 新增与 ShellQuote 删除保持不动，合入由 Lead 处理。
+> 历史：slice 1/2 曾 rebase 到 `3a8204fe`（Source checks 43332430587 / Doc 43332430557 绿）；当前轮不继承旧 CI 作为新实现通过证明。main 的 Kotlin/Rust 改动保持，合入与 descriptor 由 Lead 处理。
 
 ## 1. 范围
 
@@ -27,8 +27,11 @@
 | 首提交（A1 P2） | `app/src/main/java/com/deepseekharness/app/contract/ModuleRegistry.java`、`app/src/test/java/com/deepseekharness/app/contract/ModuleRegistryTest.java`、`app/src/test/java/com/deepseekharness/app/ui/AboutFragmentTest.java` | 只做 §7 三条 P2 修复，不改契约形状 |
 | slice 2 | `app/src/main/java/com/deepseekharness/app/saf/SafGrants.java`（迁移到账本；旧 `saf_grants` 只读兼容）、`SafTree.java`（限额常量单一来源），以及 slice 1 账本的扩展（`Previous`/`RELEASING`/metadata；仍在上述 7 个文件内）；`app/src/test/.../saf/SafGrantsTest.java` / `SafBridgeTest.java` | 接入与迁移 |
 | slice 2 | `HttpShellService.java` / `util/BridgeRoutes.java` **本轮未改**：`/app/saf/*` 端点与协议号保持；桥只消费新的 `SafGrants.lookup/listLight` 语义 | 桥面（行为保持） |
-| slice 3 | `app/src/main/java/com/deepseekharness/app/ui/SafAccessFragment.java` / `SafBrowseFragment.java` / `WorkspaceFilesActivity.java`、必要的新增 UI 类与 `app/src/main/res/layout/` 布局；文案走 `UiText`（不新增 raw changelog） | 工作台/授权页 |
-| slice 4 | 本文件、`app/src/main/assets/runtime-descriptor.json`（最终重算）、必要的文档与验收证据（新文档索引入口报告 Lead，由 Lead 统一加） | 收口 |
+| slice 3 | `app/src/main/java/com/deepseekharness/app/ui/SafAccessFragment.java` / `SafBrowseFragment.java` / `WorkspaceFilesActivity.java`、新增 `SafWorkbenchModel.java` / `SafWorkbenchUi.java` 与两份 SAF 布局；文案走 `UiText` | 工作台/授权页、旋转期间的传输状态与只读记录视图 |
+| slice 3/4 | `saf/SafWorkbench.java` / `SafTransferHistory.java` / `SafTransferGate.java` / `SafTransferJob.java` / `SafLocalFiles.java`；`SafGrants.capabilitySnapshot` / `SafCapabilityHandles.discard`；`SafPaths` / `HttpShellService` 的 SAF 限额引用 | 复用授权簿/短期句柄、固定身份本地 IO 与 `SafTree` 流；桥与工作台共用两个槽位，不新增桥凭据字段；接管复审 P1 最小扩展 `SafLocalFiles` 受控发布 helper（§13.2） |
+| slice 3/4 | `SafTransferHistoryTest` / `SafTransferJobTest` / `SafWorkbenchTest`；既有 `SafCapabilityHandlesTest` / `SafPathsTest` / `SafBridgeTest` / `SafTestOs` / `SafTreeTest` / `util/BridgePathPolicyTest` | 记录、撤销/重授权/系统撤销、未登记树、软链接、临时对象替换/发布前失效与端点凭据区反例 |
+| slice 3/4 | `tools/i18n/messages-extra.json` 与八份 `translations-extra`；`tools/check-source-hygiene.py` 的 ar/fr/ja/ko/pt/ru 六条语言 SHA；Java 格式清单 | 初始 29 条、P2 后 32 条、接管后 33 条×10语；六条 SHA 经 Lead 2026-11-14 批准同步，不改校验逻辑或豁免 |
+| slice 4 | 本文件及必要文档；`app/src/main/assets/runtime-descriptor.json` 仅由 Lead 在合并树按固定输入重算 | 实现者不改 descriptor，A2 出口证据由下文区分 |
 
 **禁止触碰**：`app/build.gradle`、`ci/**`、`CHANGELOG.md`、`README*`、`AGENTS*`、`BUILD*`、`CONTRIBUTING*`、`docs/releases/**`、`app/src/main/res/raw*/changelog.md`、`docs/documentation-index.md`（与 build361 冲突，统一由 Lead 处理）。
 
@@ -63,7 +66,7 @@
 ## 5. 回退点
 
 - **代码回退**：slice 1 全是新增文件 + 一个生成描述符；删除新包与描述符重算即可回到 build360 行为，无数据格式变化。
-- **开关**：能力层在 slice 2 才接线；未接线时没有运行时行为，可单独回退。workbench 入口可用设置项/路由回退（slice 3 定义）。
+- **开关**：设置 → 设备能力授权 → 跨应用文件访问 →「文件工作台（导入与导出）」；独立 `saf_workbench_ui.enabled`，默认 false。关闭隐藏导入/导出入口，保留授权管理与只读浏览，不更改任何系统授权或助手写入偏好。作品文件页有同一原生授权/浏览路由与记录入口。
 - **发布回退**：tag/Release；回退不需要清数据（本任务不升级任何数据格式）。
 - **旧授权兼容**：slice 2 迁移只读旧 `saf_grants`，失败时保持旧记录并回退到旧路径，不静默丢授权。
 
@@ -72,9 +75,11 @@
 | 角色 | owner |
 |---|---|
 | slice 1 能力层 + A1 P2 | `a2-storage`（本会话） |
-| slice 2 接入 / slice 3 工作台 / slice 4 收口 | `a2-storage`（待 Lead 排期） |
+| slice 2 接入 | `a2-storage`（已合入） |
+| slice 3 工作台 / slice 4 初始实现 | `a2-workbench`（session-26229003；原基线 278a446a；已交还写入权） |
+| slice 3/4 接管修复、验证与交接 | session-0af6b30a（用户指定接手；集成基线 1d675b3b；§13.2） |
 | 集成、descriptor、CI、发布、文档索引 | Lead |
-| A2 出口非实现者评审 | 待指定（不得为实现者） |
+| A2 出口非实现者评审 | 子代理 71a7590c（SAF/测试，累计 16 路径）+ e41b9400（UI/文案）；其未参与实现，均逐行审阅且最终 APPROVE；桥/工具/文档由接管者复核 |
 | 真机验收 | 用户/Lead |
 
 ## 7. A1 已知 P2（首提交修复）
@@ -108,8 +113,8 @@
 |---|---|---|---|
 | 1 | 授权簿能力层（账本/编解码/存储/句柄/限额/边界）+ 单测；A1 P2 | — | ✅ 已推送，CI 全绿（run 43322817926） |
 | 2 | `SafGrants` 迁移到账本（旧 `saf_grants` 只读兼容、迁移失败回退旧路径）；桥 lookup 走账本；撤销后旧 id/URI 失效；`SafTree` 常量单一来源；反例测试 | 1 | ✅ 已推送，CI 全绿（run 43328387842） |
-| 3 | 跨应用文件工作台：授权页状态、浏览/导入/导出、传输记录（复用 `transfer/`，不重写下载引擎）；长生命周期能力句柄在 workspace 操作层接入 | 2 | 待排期 |
-| 4 | 受控流/限额收口、端点与凭据区反例、descriptor 重算、真机与出口证据 | 2、3 | 待排期 |
+| 3 | 跨应用文件工作台：授权页状态、浏览/导入/导出、记录；复用 `transfer/` 状态/文件名判据及现有 SAF 流，不重写下载引擎；workspace 操作层接入 60 秒内存能力票据 | 2 | 已实现，非实现者 APPROVE；十类定向 147/0/0/0，完整 CI 与真机布局待补（§13.2） |
+| 4 | 共享传输槽位、限额来源、端点与凭据区反例、出口证据 | 2、3 | 本地修复/定向回归/静态/独立复审完成；descriptor/固定输入 full CI/真机未完成，整轮不可合并（§13.2） |
 
 **slice 2 接入语义（已实现）**
 
@@ -137,9 +142,93 @@
 | 顺手 | `SafGrants.lookup` | 补 `documentsTree(uri)` 过滤，与 legacyLookup 一致 | 现有 bridge 反例覆盖 |
 | N1（复审新增，已修） | `SafGrants.add` RELEASING 分支 | 分支前统一取一次 `persisted` 并判空，系统券 API 抛异常→`PERMISSION_STATE_UNAVAILABLE`，不再 NPE | `SafGrantsTest.addOnReleasingWithUnreadablePersistedStateReturnsTypedFailure` |
 | N2（复审新增，已修） | `SafGrants.forget` PENDING 分支 | 先按 `flags ∩ ~pendingBefore ∩ pendingIntent` 释放新增位；persisted 不可读/释放失败保留 PENDING 等 cleanup；成功后才 abort，恢复旧 ACTIVE 且用户仍要移除时继续正常 forget | `forgetOnPendingWithUnreadableStateKeepsPendingForCleanup`、`forgetOnPendingWithReleaseFailureKeepsPendingForCleanup`、`forgetAfterCrashPendingReleasesDeltaAndRemovesRestoredGrant` |
-| 延后 | `SafPaths.MAX_SEGMENTS`、`HttpShellService` SAF Semaphore(2) 单一来源 | 留给 slice 4 受控流收口；当前不改变行为 | 基线 §10 记录 |
+| slice 4 已实现 | `SafPaths.MAX_SEGMENTS`、`HttpShellService` SAF 槽位与文本上限 | 路径 32 段、文本 16 KiB 仍引用 `SafCapabilityLimits` 原数值；桥与工作台共用 `SafTransferGate` 的两个传输槽位 | `SafPathsTest.lastAllowedPathSegmentWorksInBothPathAndCapabilityLayer`、`SafWorkbenchTest.bridgeAndWorkbenchShareTheSameTwoTransferSlots` |
 
-**已知窗口（复审 N3/N4，延后到 slice3/4，不在本轮改）**
+**已知窗口（N3/N4 保留，未在本轮关闭）**
 
-- **N3 install vs close**：`ModuleRegistry.install` 持 registry 锁执行 factory/contributions，`close` 需等待；不会状态错乱，但无法取消进行中的 install，且慢 factory 会阻塞 close。计划 slice3/4 宿主工程化时引入显式 `INSTALLING` 状态机/取消令牌。
-- **N4 ledgerReady→legacy split-brain**：`ledgerReady(context)` 返回 false 后、调用 legacy 路径前，另一线程可能完成迁移并切到账本，导致同一时刻一条写走旧命名空间、一条读走账本。当前仅首次迁移失败（存储不可写）时出现，且无并发生产调用者触发；计划 slice3/4 把迁移/回退收敛为单次 start-up 会话（或 `ledgerReady` 结果携带代次，legacy 写前复核）。
+- **N3 install vs close**：`ModuleRegistry.install` 的慢 factory 仍可能阻塞 close；修复需要修改冻结的 `contract/` 生命周期，本轮遵守禁止改动，交 Lead 另定窗口。现有 `ModuleRegistryTest` 仅作回归，不能用它声称 N3 已解决。
+- **N4 ledgerReady→legacy split-brain**：首次迁移保存失败后，既有读写的模式切换窗口仍在。本轮不改变旧桥/迁移回退语义；工作台在同一授权锁内读取 `lookup` 与账本代次/现场系统位，迁移未就绪时拒绝签发工作台能力，不能把这一局部失败关闭写成 N4 全局修复。
+
+## 13. Slice 3/4 本地交付与出口证据（2026-11-14）
+
+> §13/13.1 保留原实现阶段的历史回执；接管后的最新代码、实际执行结果、独立复审与未跑范围统一见 §13.2，不把后续结果追溯写成此前已通过。
+
+- 入口：授权页新增默认关闭的工作台开关，作品文件页新增同一原生授权/浏览路由和记录入口。授权列表后台消费 `list`（保留带截止的 Provider 缺失标签补查）；写偏好与移除在后台执行，完成后按当前状态重新渲染。
+- 操作：浏览/预览/传输均按授权短 id 重新验证；面板票据绑定树/操作/路径/epoch，沿用 60 秒 TTL 和现有限额，只在内存保留，不放入 Bundle、Intent、桥协议或传输记录。关闭面板只释放对应票据；传输消费票据，失败不自动重放。
+- 流与边界：复用 `SafTree.read/writeStream`、`SafLocalFiles` 的 NOFOLLOW/fd 真实路径复核与原子发布；容器侧凭据和 rootfs 越界拒绝。传输中检查当前系统位、epoch、线程取消与总截止。Provider 仍是信任边界，外部原地覆盖失败可能留下不完整文件，未承诺内容级防复制。
+- 记录：独立 `saf_workbench_transfers` 命名空间，最多 40 项；复用 `DownloadTask.Status` 与 `TransferArtifact.safeName`，只保存文件名/方向/时间/字节/结果短码。活跃记录不被轮换；进程重启后在途项显示中断，不自动续传；不保存 URI、完整路径、文件内容或凭据。
+- 实际纯 JVM 回归：JDK 17 `javac` + `JUnitCore`，11 类 **106 项通过**，包括五类能力层、路径、传输记录、桥路径/快照、`ModuleRegistryTest` 与 `TransferProtocolTest`。初始五类能力层 58 项及中间九类 78 项是子集，不重复累加。
+- 源码编译：`python3 /tmp/a2-compile.py <本工作树>`，缓存依赖 + JDK 17/现有 Kotlin 2.2.10，按真实 XML 与 Gradle 生成项构造临时 R/BuildConfig 符号；**1021 个生产/生成 Java 源与现有 ShellQuote Kotlin、14 个 SAF 测试源编译通过**。临时编译器类路径及 `app_name` 符号缺失已修正；这不等于 AAPT、APK 或 Robolectric 执行通过。
+- 门禁：`python3 tools/run-host-tests.py --check-manifest` **254**；`check-source-hygiene.py` PASS（仅同步获准的六条语言 SHA）；`generate-changelog.py --check` PASS；`check-ui-i18n.py` **newFindings=0**；`check-document-links.py` **56 文档 / 1309 有效 / 0 警告 / 0 错误**；`test-core-boundaries.py` **25/25**，未扩大基线；`format-java-tree.py --check --offline --jobs 1` **1783 文件 / 0 待格式化**；`git diff --check` PASS。
+- 固定输入检查：运行 `prepare-runtime-descriptor.py --check`，在 `RUNTIME_INPUT_MISSING_OR_OUTSIDE: app/src/main/assets/dsh-runtime.bin` 停止；本工作树未还原大体积固定输入。descriptor 完全未修改，runtimeId/输入摘要待 Lead 在合并树按固定输入重算，不能沿用本分支旧 pin。
+- 未跑：依照既有 AAPT2 限制与 Lead 暂停本机 Robolectric/全量的要求，未启动 Gradle 全量、Robolectric 执行、Lint、APK、LayoutAuditInstrumentation 或任何手机操作；本轮未改 Kotlin 文件。新增 10 个 `SafWorkbenchTest` 与两项 `SafBridgeTest` 反例已编译，行为执行待 CI。
+- 出口映射：§9.1 的纯逻辑/文件系统反例有本地执行证据，Android 接入部分待 CI；§9.2 已补端点与工作台反例且桥协议仍 3，但不继承旧 CI；§9.3 无新增权限、默认值或全局数据格式变化；§9.4 只有本地门禁部分完成，固定输入 full/0 skipped 与覆盖安装证据待补；§9.5 初次代码层非实现者逐行评审已获 **APPROVE（8×P2）**，P2 修复见本节后续回执，增量复核仍待 Lead。**A2 整轮出口未完成；切片集成与整轮验收分开。**
+
+### 13.1 独立审查 P2 修复（2026-11-14）
+
+- **P2-1**：浏览页后台按 `lookup().grant` 的 valid/readable/writable 判定导出入口；无写能力隐藏导出按钮。写能力拒绝的 `HANDLE_NOT_PERMITTED` 映射为只读说明；读能力丢失单独返回 `PERMISSION_DENIED`，不把正常只读误报成授权过期。
+- **P2-2（选择明确失败关闭）**：迁移失败时桥保留 legacy 回退，原生工作台浏览/预览/传输都要求可验证 epoch，统一 `STATE_UNAVAILABLE`。已纠正 `SafGrants.capabilitySnapshot` 注释；专用文案提示检查存储后重试，不要求移除仍有效的系统券。新增回退/工作台两类语义的反例。
+- **P2-3**：只在已锚定目录下清理超过一小时、符合 `.saf-workbench-<UUID>.part` 命名的普通单链接文件，不递归、不跟随符号链接，不动新临时文件和其它名字。导入发布前读取既有普通目标 mode，并像桥 pull 一样把权限位复制到临时文件；失败保持安全默认权限。已补旧/新/其它前缀/链接清理及 mode 复制反例。
+- **P2-4**：Provider 夹具新增单次读/写打开钩子；首次读取时分别 forget、系统 release、推进总截止、线程 interrupt，断言旧目标字节保留、未 rename 发布且本次临时文件清理。模型调用的真实流程抽到纯逻辑 `SafTransferJob`；8 项单测覆盖 retarget、记录 begin/finish、失败收尾、短码映射与不重放。
+- **P2-5**：授权页恢复后台 executor 中的 `SafGrants.list(ctx)`，保留既有 Provider 缺失名称补查及 15 秒单查询截止，没有把显示降级成只读缓存。
+- **P2-6（静态核查，非设备验收）**：导出/记录合并同一横行、等权 wrap_content 高度、无固定行高与单行截断，工作台关闭时隐藏整行。继续使用共用 ShellTextButton（13sp、最小触控尺寸、无额外字体 padding）；列表保留 weight=1，输入表单和记录弹窗可滚动。按 320dp 短屏、1.3× 字号核对约束，没有以静态检查冒充 LayoutAudit；十语长文案实际几何与日夜/短屏/字体仪器验收仍未跑。
+- **P2-7**：push 对本层输入流守卫抛出的 `HANDLE_REVOKED` / `TIMEOUT` / `CANCELLED` / `PERMISSION_DENIED` 保留原码，不被 SafTree 的通用 IO_ERROR 包装遮蔽；只在 `RuntimeWorkPort.begin` 的 IllegalStateException 处映射 `MAINTENANCE_BUSY`，另有维护态专用文案和传输槽位释放反例。
+- **P2-8**：文本 16 KiB 引用 `SafCapabilityLimits.MAX_TEXT_BYTES` 保持（Lead 已追认）；删除未使用的 Toast import。新增只读/账本/维护三条文案×10 语，同步获准的六份语言 pin，不改检查逻辑。
+- 第一轮修复验证：新增模型纯逻辑 8/8；生产与生成 Java **1022**、SAF 测试源 **15** 编译通过，未执行 Android/Robolectric。基线同步后最终门禁见后续集成回执；descriptor/CI/真机与 N3/N4 的未跑、未关闭范围仍按上述声明保留。
+
+### 13.2 接管、独立复核与出口交接（2026-11-14）
+
+**结论：代码层 APPROVE；A2 整轮出口未完成、不可合并/未验收。** 接管者为 `session-0af6b30a-6f78-4d04-9d98-516e260732b5`，按用户指定接手 session-26229003。首次只读发现原会话仍运行，已由原会话及 Lead 确认其停止全部写入；保留并以 `a9946fc7` 提交原有两行基线说明，未覆盖未提交工作。
+
+- 集成基线 `1d675b3b59a0ef68b25e46a582a4a36579d4204b`；原切片为 `00cb8061` + `f9bf0b02`。接管只追加 `a9946fc7`、`d5c309ab`、`e1b20ab1`；本节另以文档提交交付，未 amend/rebase/force-push。
+- 最终代码头 `e1b20ab1f674c58508f7297582afce98c39e050e`。相对基线 37 路径（原 36 + 最小安全修复 `SafLocalFiles`）；无 `contract/`、Kotlin、Manifest、版本、数据格式、CI、descriptor 或 launcher 清单改动，协议仍为 `3`。
+- 两名非实现者分别逐行审阅分配范围的**全部** diff 及必要上下文：`71a7590c-b99e-4d81-a9e4-7264ec724295` 累计 16 个 SAF 生产/测试路径，`e41b9400-571b-4562-83a7-ac049e78c2ba` 审阅 5 个 UI 类、2 份布局、文案及八语；接管者核对桥/凭据反例/工具/基线。每个修复提交均交原审查者增量复审，最终固定上述代码头，两份结论均为 **APPROVE**，无未解决新增 P0/P1/P2。审查者未写实现、未 push/merge/安装/操作手机。
+
+**原 P2-1..8 的逐项核对**（位置为最终代码头）：
+
+| 项 / 级别 | 复核位置 | 问题与落实的修法 |
+|---|---|---|
+| P2-1 | [浏览页:186](../../../app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java#L186)、[工作台:95](../../../app/src/main/java/com/deepseekharness/app/saf/SafWorkbench.java#L95) | 只读授权误显示导出、读权限丢失误报只读；导出须 valid/readable/writable，READ 拒绝用 PERMISSION_DENIED，写拒绝用只读提示 |
+| P2-2 | [授权簿:415](../../../app/src/main/java/com/deepseekharness/app/saf/SafGrants.java#L415)、[提示:123](../../../app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java#L123) | 迁移未就绪无法验证 epoch；工作台同 LOCK 快照并 STATE_UNAVAILABLE 失败关闭，桥 legacy 保持；提示检查存储而不移除有效系统券，N4 未关闭 |
+| P2-3 | [工作台:278](../../../app/src/main/java/com/deepseekharness/app/saf/SafWorkbench.java#L278)、[受控发布:201](../../../app/src/main/java/com/deepseekharness/app/saf/SafLocalFiles.java#L201) | 旧临时文件与目标 mode；仅清理旧 UUID 普通单链接 part，权限复制改为原/验证 fd 及命名对象身份核验后 fchmod，拒绝替换对象 |
+| P2-4 | [行为反例:234](../../../app/src/test/java/com/deepseekharness/app/saf/SafWorkbenchTest.java#L234) | 中途撤销/超时/取消与真实模型流程缺反例；真实 Provider 首次读钩子、发布前 afterFchmod 钩子、共用 SafTransferJob 均有负控，不重放 |
+| P2-5 | [授权页:135](../../../app/src/main/java/com/deepseekharness/app/ui/SafAccessFragment.java#L135) | 名称退化为只读缓存；后台仍调用 SafGrants.list，保留缺标签 Provider 补查及原查询截止 |
+| P2-6 | [布局:46](../../../app/src/main/res/layout/fragment_saf_browse.xml#L46)、[状态:191](../../../app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java#L191) | 短屏/大字体约束；等权 wrap_content 动作、weight 列表、滚动表单/记录，状态短摘要 + InfoHint + 共用表面/150ms 过渡，48dp 仅最小触控高度；几何验收仍未跑 |
+| P2-7 | [流守卫:184](../../../app/src/main/java/com/deepseekharness/app/saf/SafWorkbench.java#L184) | push 的守卫码被通用 IO_ERROR 遮蔽；保留 HANDLE_REVOKED/TIMEOUT/CANCELLED/PERMISSION_DENIED，维护拒绝仅在 beginWork 映射，槽位 finally 释放 |
+| P2-8 | [桥:3945](../../../app/src/main/java/com/deepseekharness/app/HttpShellService.java#L3945)、[hygiene:33](../../../tools/check-source-hygiene.py#L33) | 16 KiB 与 pin 同步；常量值不变，移除死 import；AST 对比证明 hygiene 仅六条 SHA 不同，全部旧翻译键值保持，累计 33 条新增文案 ×10 语 |
+
+**接管复审另发现并修复的项：**
+
+1. **P1，原工作台:255 的路径 chmod/末级临时名替换。** `d5c309ab` 改为持有受控 verification fd，与原 fd / lstat 命名对象核对 REG、单链接、dev/ino、readlink，权限只用 fchmod；输出 close 先于 rename。新增换软链、换普通文件、fchmod 后换链与 close 失败四条反例。
+2. **P1，原浏览页:151 的长状态直接 setText。** `d5c309ab` 改为显式短摘要、InfoHint 明细、共用状态表面及 UiMotion；同时修复三个 P2：系统授权状态未知独立刷新提示、旋转后只读补目录、在途记录显示“正在传输”。
+3. **P1，`d5c309ab` 发布 helper 在 close/fchmod 后缺末次业务守卫。** `e1b20ab1` 在 close/fchmod 完成后、末次 inode 核验与 rename 之前调用 [PublishGuard:243](../../../app/src/main/java/com/deepseekharness/app/saf/SafLocalFiles.java#L243)，实际回调为 running(epoch/系统位/取消/总截止)；另补四类 afterFchmod 中止反例，保留原码、原目标、临时清理与 fd/槽位归还。
+4. **P2，补读失败覆盖已确认传输终态。** `e1b20ab1` 给终态补读独立代次，旧读回调作废；刷新失败只追加详情，不把已完成的文件显示成传输失败，不重复写入。
+
+**实际执行与失败记录：**
+
+- Gradle 仅一次、单 worker/1 GiB，通过 `dsha-gradle --offline --no-daemon --max-workers=1 :app:testStandardDebugUnitTest` 带十类 `--tests`：在 `:app:prepareBackupAssets` 因缺 `app/src/main/assets/dsh-runtime.bin` 停止，exit 1，**尚未执行 JUnit**。未绕固定输入、未再次启动 Gradle、未运行 descriptor `--check`，未手改生成物。
+- 本地补充编译：`python3 /tmp/a2-compile.py <工作树>`；JDK17 + 现有 Kotlin2.2.10、真实 XML 符号构造的临时 R/BuildConfig，**1025 个生产/生成 Java + 15 个 SAF 测试源编译通过**。这不是 AAPT/APK 构建。
+- 实际定向命令：`/opt/jdk17/bin/java @/tmp/a2-exit-junit-0af6b30a-kvfq_d12/targeted-junit.args`，runner 调用 JUnitCore；十类为 SafWorkbenchTest、SafTransferJobTest、SafTransferHistoryTest、SafBridgeTest、SafGrantsTest、SafCapabilityHandlesTest、SafPathsTest、SafTreeTest、ModuleRegistryTest、BridgePathPolicyTest。**147 运行 / 0 失败 / 0 ignored / 0 assumptions，exit 0**。
+- 另执行 `java @.../pure-jvm.args`，12 类纯逻辑 **114/0/0/0**；与上述集合重叠，不能相加。本机 Robolectric 使用缓存 SDK34、conscrypt OFF、`--add-opens=java.base/java.io=ALL-UNNAMED`、离线依赖目录；只证明此配置的定向行为，不等于默认 CI/full。
+- 第一遍 143 项曾有 4 个新增断言失败：把 SharedPreferences 合法 chmod 也计入全表 empty。已精确约束本次临时/凭据目标，仍检查凭据内容/mode、原目标、不发布、清理、fd/槽位；失败日志保留，未覆盖为成功。第一次格式检查缺 JAVA_HOME，指定 `/opt/jdk17` 后才通过。
+- 串行最终批次 `python3 -u /tmp/a2-exit-0af6b30a-final.py` 的分项命令/退出码/代码头保存在工作树忽略目录 `app/build/a2-exit-0af6b30a/final-r2/receipt.json`；对应 `compile.log`、`targeted-junit.log`、`pure-jvm.log` 与各门禁日志。第一遍失败在 `final/`，最初 Gradle 失败在同父目录 `targeted-gradle.log`。这些为本机回执，不入公开仓库。
+
+| 本地门禁实际命令 | 结果 |
+|---|---|
+| `python3 tools/run-host-tests.py --check-manifest` | PASS，**255**；旧预期 254 来自 278a446a；1d675b3b 已新增 tools/test-pty-birth-handshake.py，本分支清单与 1d675b3b 完全相同 |
+| `python3 tools/check-source-hygiene.py` | PASS；额外 AST 核验仅六条语言 SHA 同步，无逻辑/豁免放松 |
+| `python3 tools/generate-changelog.py --check` | PASS，未改 CHANGELOG 或版本 |
+| `python3 tools/check-ui-i18n.py` | PASS，newFindings=0 |
+| `python3 tools/check-document-links.py` | PASS；最终回执 56 文档 / 1315 有效 / 0 警告 / 0 错误 |
+| `python3 tools/test-core-boundaries.py` | 25/25 PASS，未扩基线 |
+| `JAVA_HOME=/opt/jdk17 python3 tools/format-java-tree.py --check --offline --jobs 1` | 1790 文件 / 0 待格式化 |
+| `JAVA_HOME=/opt/jdk17 python3 tools/format-kotlin-tree.py --check` | 2 文件 / 0 待格式化；本分支未改 Kotlin |
+| `python3 tools/test-ui-language-catalog.py` / `git diff --check` | 11/11 PASS / PASS |
+
+**交给 Lead 的出口事项：**
+
+1. 合并树核查四个新主类 SafWorkbench / SafTransferGate / SafTransferHistory / SafTransferJob 纳管，并由 Lead 按固定输入 `--write` 重算 descriptor/runtimeId。本机只读枚举已确认四个键均由既有 launcherTrees 的 saf 树覆盖，现有启动输入 **495（基线491+4）**；本会话未改 launcherSources/descriptor。runtimeId 必变，预期 build366 覆盖进一次维护页，未执行构建或发布。
+2. 固定输入完整 CI：full 单测 0 skipped、默认 Robolectric 行为、Lint、APK、host runtime；不得把本机 147 项或旧 slice1/2 CI 代替全量出口。
+3. 取得当次用户批准后做 365→366 覆盖：一次维护页、数据完好、无白屏；浏览/导入/导出/记录、只读无导出、中途撤销/超时/取消、撤销后旧 URI 立即失效；LayoutAuditInstrumentation 十语/日夜/320dp短屏/1.3×。本会话没有手机/安装动作。
+4. **N3（ModuleRegistry.install 慢 factory 阻塞 close）、N4（ledgerReady→legacy 分裂窗口）均为“已知窗口保留”。** 工作台局部失败关闭不等于 N4 全局修复。末次 inode 校验与 rename 非原子，不承诺同 UID 隔离；旧桥 pull 的路径 chmod/三参发布为存量路径，本轮未修，不把工作台修复扩写成桥完整防竞态。
+5. Lead 统一合并、CHANGELOG/版本、路线图 A2 过时行、完整出口和 build366 发版；push/merge/tag/Release/安装/手机仍需当次用户明确批准。本会话交还代码和回执，不代替完成这些动作。

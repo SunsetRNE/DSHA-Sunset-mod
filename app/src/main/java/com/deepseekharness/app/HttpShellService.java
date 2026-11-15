@@ -77,7 +77,7 @@ public final class HttpShellService {
 
   /** 同时最多两个 SAF 大文件传输：每个请求都有 32 MiB 上限，避免 4 个 worker 一起放大内存。 */
   private static final java.util.concurrent.Semaphore SAF_TRANSFERS =
-      new java.util.concurrent.Semaphore(2);
+      com.deepseekharness.app.saf.SafTransferGate.TRANSFERS;
 
   /** 已发布的 IPv4 监听端口；未就绪时为 0。 */
   private volatile int bridgePort;
@@ -1199,19 +1199,16 @@ public final class HttpShellService {
             .put("reason", blockedHost)
             .put("argv", new org.json.JSONArray())
             .toString();
-      com.deepseekharness.app.util.DeviceShellPolicy.Mode mode =
-          new com.deepseekharness.app.core.ConfigStore(ctx).rootPolicyMode();
-      // 放宽档只对真实可用的 root 通道生效；Shizuku/ADB 通用执行器继续按严格档取计划。
-      boolean relaxedRoot =
-          mode != com.deepseekharness.app.util.DeviceShellPolicy.Mode.STRICT
-              && RootShell.enabled(ctx)
+      var authorization = com.deepseekharness.app.core.ConfigStore.deviceAuthorization(ctx);
+      if (!authorization.readable()) return "[POLICY_BLOCKED] DEVICE_AUTHORIZATION_CHANGING";
+      // 候选存在只影响原有选档，不当作已取得实际 Root 身份。
+      boolean rootPresent =
+          authorization.rootMode() != com.deepseekharness.app.util.DeviceShellPolicy.Mode.STRICT
+              && authorization.rootAllowed()
               && RootShell.present();
       com.deepseekharness.app.util.DeviceShellPolicy.Plan plan =
           com.deepseekharness.app.util.DeviceShellPolicy.inspect(
-              command,
-              root || relaxedRoot
-                  ? mode
-                  : com.deepseekharness.app.util.DeviceShellPolicy.Mode.STRICT);
+              command, authorization.planningMode(root, rootPresent));
       org.json.JSONObject value =
           new org.json.JSONObject()
               .put("version", 1)
@@ -1235,9 +1232,7 @@ public final class HttpShellService {
           .put("selfPackage", ctx.getPackageName())
           .put("selfUid", ctx.getApplicationInfo().uid)
           .put("sourceApk", source);
-      if (root
-          && !ctx.getSharedPreferences(Constants.PREFS, 0)
-              .getBoolean(Constants.KEY_ALLOW_ROOT_SHELL, false))
+      if (root && !authorization.rootAllowed())
         return value
             .put("kind", "DENY")
             .put("argv", new org.json.JSONArray())
@@ -1282,6 +1277,8 @@ public final class HttpShellService {
         // 实际 ADB/Shizuku 执行器必须用自己的身份现场取得完整 pm/ps 清单才能停止。
         value.put("requiresAppInventory", true);
       }
+      if (!com.deepseekharness.app.util.DeviceAuthorization.shared().current(authorization))
+        return "[POLICY_BLOCKED] DEVICE_AUTHORIZATION_CHANGED";
       return value.toString();
     } catch (Exception error) {
       return "[POLICY_BLOCKED] " + safeError(error);
@@ -3942,7 +3939,7 @@ public final class HttpShellService {
       if (text == null) return "ERROR: NO_CONTENT (text= 写小文件；大文件用 /app/saf/push?src=)";
       byte[] data = text.getBytes(java.nio.charset.StandardCharsets.UTF_8);
       // 查询串有界（BRIDGE firstLine 96 KiB，最坏百分号编码约 3 倍），因此文本直写按 16 KiB 兜底。
-      if (data.length > 16 * 1024)
+      if (data.length > com.deepseekharness.app.saf.SafCapabilityLimits.MAX_TEXT_BYTES)
         return "ERROR: TOO_LARGE (text 上限 16 KiB；更大的内容用 /app/saf/push?src=)";
       boolean create = !"0".equals(getParam(request.query, "create", "1"));
       long written = tree.write(path, data, create);

@@ -1,10 +1,10 @@
 # 构建、验证与提交
 
-> 当前发布身份：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261113.1340-dsh0.2.2-rc.1` / versionCode 364 / 单一 Standard；使用 Mod 自有发布证书。完整身份与签名入口见 [README](README.md)、[AGENTS](AGENTS.md) 与 [ci/release-identity.json](ci/release-identity.json)。
+> 当前发布身份：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261114.1717-dsh0.2.2-rc.1` / versionCode 366 / 单一 Standard；使用 Mod 自有发布证书。完整身份与签名入口见 [README](README.md)、[AGENTS](AGENTS.md) 与 [ci/release-identity.json](ci/release-identity.json)。
 
 先读 [README](README.md)、[AGENTS](AGENTS.md)、[BUILD](BUILD.md) 与[文档总索引](docs/documentation-index.md)。F10–F13、build190 等记录只描述各自当时的源码、APK、测试与设备状态，不能覆盖当前要求，也不能当作本版证据。
 
-当前固定输入由 [ci/sunset-inputs.lock.json](ci/sunset-inputs.lock.json) 锁定：公开预发布资产 `fixed-inputs-20261105e`，716,787,167 B，SHA-256 `be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5`，由 `tools/ci-assets.py` 还原。大归档与离线 rootfs 不入 Git；只有源码的检出不能构建完整 APK。
+当前固定输入由 [ci/sunset-inputs.lock.json](ci/sunset-inputs.lock.json) 锁定：公开预发布资产 `fixed-inputs-20261113`，716,787,167 B，SHA-256 `2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad`，由 `tools/ci-assets.py` 还原。大归档与离线 rootfs 不入 Git；只有源码的检出不能构建完整 APK。
 
 项目特有操作见[接手指南](docs/接手指南.md)，职责见[模块图](docs/module-map.md)，约束见[工程规范](docs/engineering-standard.md)与[ADR 0001](docs/adr/0001-build154-boundaries.md)。`tools/history` 只保留退休工具与原件，不进入 APK 或自动测试。
 
@@ -24,7 +24,7 @@ Java 17，单模块 `:app`。单一 Standard：系统 WebView、最低 API 30、
 
 ## 准备输入
 
-Release 完整源码 ZIP 额外包含固定输入包 `locked-current-build-inputs.zip` 中的原始文件，按项目路径直接展开，不嵌套该 ZIP。当前固定输入为 `fixed-inputs-20261105e`，716,787,167 B，SHA-256 `be97d9f0a45f408d3a7de83ae55a00a85a5154343589571c6d159a0fe58f08f5`，由 `tools/ci-assets.py --pack` 逐 SHA 核对；该大小不是完整源码 ZIP 大小。配置工具链后按当前 recipe 构建，无需独立 bundle；Git clone 可做 source-only 检查，完整打包仍需固定原始输入。APK 中的变换层不能逆还原全部原始 rootfs。
+Release 完整源码 ZIP 额外包含固定输入包 `locked-current-build-inputs.zip` 中的原始文件，按项目路径直接展开，不嵌套该 ZIP。当前固定输入为 `fixed-inputs-20261113`，716,787,167 B，SHA-256 `2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad`，由 `tools/ci-assets.py --pack` 逐 SHA 核对；该大小不是完整源码 ZIP 大小。配置工具链后按当前 recipe 构建，无需独立 bundle；Git clone 可做 source-only 检查，完整打包仍需固定原始输入。APK 中的变换层不能逆还原全部原始 rootfs。
 
 build190 的 F13 冻结统计、旧 738,101,893 B 输入包与 F10/F11 记录属于历史；它们不能代替当前输入身份，也不能把旧软件或设备结论转记为本版结果。当前软件、APK 与发布结果由本轮 CI run 与 Release 回执绑定。
 
@@ -93,7 +93,7 @@ python3 tools/run-host-tests.py --stage runtime
 ./gradlew :app:assembleStandardRelease
 ```
 
-当前只发布 Standard，实际包必须核对 `io.github.sunsetrne.dsha`、versionCode 219、`debuggable=false`、minSdk 30、arm64、资产、许可、ELF、插件与独立应急门禁。Low 已删除，不再构建、发布或声明 Android 10 及以下可用。
+当前只发布 Standard，实际包必须核对 `io.github.sunsetrne.dsha`、versionCode 366、`debuggable=false`、minSdk 30、arm64、资产、许可、ELF、插件与独立应急门禁。Low 已删除，不再构建、发布或声明 Android 10 及以下可用。
 
 正式 CI 发布走 [`.github/workflows/release-production.yml`](.github/workflows/release-production.yml)：`workflow_dispatch` 绑定精确 commit，从公开预发布资产还原固定输入，跑完整单测 / Java 格式 / Lint / 文档门禁，用仓库 Secrets 中的证书签名，并创建 tag + prerelease、上传 APK、证据 zip、`build-info.json` 与 `SHA256SUMS`；默认同 run 另附 `.debug` / `.dev` 共存测试包与公开测试证书（`test_packages=none` 时不附），`dry_run=true` 只构建校验、不建 tag/Release。触发参数与核验见 [CI 构建与发布](docs/ci-release.md)。
 

@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.view.accessibility.AccessibilityNodeInfo;
 import com.deepseekharness.app.capabilities.CapabilityResult;
 import com.deepseekharness.app.util.AccessibilityTreeBudget;
+import com.deepseekharness.app.util.PhysicalActionRequest;
 import com.deepseekharness.app.util.ScreenNodeLeaseStore;
 import com.deepseekharness.app.util.ScreenObservationLedger;
 import java.util.concurrent.CountDownLatch;
@@ -32,18 +33,19 @@ public final class ScreenActionExecutor {
   public JSONObject execute(ScreenRequestContext context, String operation, JSONObject args)
       throws Exception {
     context.validateCurrentTarget();
-    if (operation.equals("tap") || operation.equals("swipe"))
-      return coordinate(context, operation, args);
-    if (operation.equals("key")) {
+    PhysicalActionRequest request = PhysicalActionRequest.parse(operation, fields(args));
+    if (request instanceof PhysicalActionRequest.Pixel pixel)
+      return coordinate(context, pixel, args);
+    if (request instanceof PhysicalActionRequest.Key requestedKey) {
       int key =
-          args.has("keycode")
-              ? switch (args.optInt("keycode", -1)) {
+          requestedKey.hasKeycode()
+              ? switch (requestedKey.keycode()) {
                 case 3 -> AccessibilityService.GLOBAL_ACTION_HOME;
                 case 4 -> AccessibilityService.GLOBAL_ACTION_BACK;
                 case 187 -> AccessibilityService.GLOBAL_ACTION_RECENTS;
                 default -> -1;
               }
-              : key(args.optString("name"));
+              : key(requestedKey.name());
       if (key < 0) return ScreenReply.refused("INVALID_KEY");
       if (!context.claimDispatch()) return ScreenReply.refused("SCREEN_RUN_CHANGED");
       ScreenActivityRecorder.beginDispatch();
@@ -63,11 +65,12 @@ public final class ScreenActionExecutor {
       try {
         int action;
         Bundle bundle = null;
-        if (operation.equals("node")) {
+        if (request instanceof PhysicalActionRequest.Node node
+            && node.operation() == PhysicalActionRequest.Operation.NODE) {
           leased =
               nodes.consume(
-                  args.optString("treeId"),
-                  args.optString("nodeId"),
+                  node.treeId(),
+                  node.nodeId(),
                   root.target,
                   context.serviceEpoch(),
                   context.ownerIdentity());
@@ -76,13 +79,14 @@ public final class ScreenActionExecutor {
           action = ScreenNodeActions.action(args.optString("action"));
           if (action < 0) return ScreenReply.refused("INVALID_NODE_ACTION");
           if (action == AccessibilityNodeInfo.ACTION_SET_TEXT) bundle = text(args);
-        } else if (operation.equals("tapText")) {
+        } else if (request instanceof PhysicalActionRequest.Node node
+            && node.operation() == PhysicalActionRequest.Operation.TAP_TEXT) {
           String query = args.optString("text");
           if (query.isEmpty() || query.length() > 2000) return ScreenReply.refused("INVALID_TEXT");
           target = find(root.root, query, 0, new AccessibilityTreeBudget());
           if (target == null) return ScreenReply.refused("NODE_NOT_FOUND");
           action = AccessibilityNodeInfo.ACTION_CLICK;
-        } else if (operation.equals("input")) {
+        } else if (request instanceof PhysicalActionRequest.FocusedInput) {
           target = root.root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
           if (target == null || !target.isEditable() || !target.isEnabled())
             return ScreenReply.refused("INPUT_NOT_FOCUSED");
@@ -149,24 +153,55 @@ public final class ScreenActionExecutor {
     }
   }
 
+  private static PhysicalActionRequest.Fields fields(JSONObject args) {
+    return new PhysicalActionRequest.Fields() {
+      @Override
+      public String string(String name) {
+        return args.optString(name);
+      }
+
+      @Override
+      public boolean has(String name) {
+        return args.has(name);
+      }
+
+      @Override
+      public int integer(String name, int fallback) {
+        return args.optInt(name, fallback);
+      }
+    };
+  }
+
+  /** 保留既有私有入口，供旧平台边界夹具核验；实际处理仍委托同一 Pixel 支路。 */
   private JSONObject coordinate(ScreenRequestContext context, String operation, JSONObject args)
       throws Exception {
+    return coordinate(
+        context,
+        new PhysicalActionRequest.Pixel(
+            PhysicalActionRequest.Operation.fromWire(operation), args.optString("observationId")),
+        args);
+  }
+
+  private JSONObject coordinate(
+      ScreenRequestContext context, PhysicalActionRequest.Pixel request, JSONObject args)
+      throws Exception {
     if (android.os.Build.VERSION.SDK_INT < 24) return ScreenReply.refused("GESTURE_UNSUPPORTED");
-    return coordinateSupported(context, operation, args);
+    return coordinateSupported(context, request, args);
   }
 
   @androidx.annotation.RequiresApi(24)
   private JSONObject coordinateSupported(
-      ScreenRequestContext context, String operation, JSONObject args) throws Exception {
+      ScreenRequestContext context, PhysicalActionRequest.Pixel request, JSONObject args)
+      throws Exception {
     ScreenObservationLedger.Observation seen =
         observations.consume(
-            args.optString("observationId"),
+            request.observationId(),
             context.target(),
             context.serviceEpoch(),
             context.ownerIdentity());
     if (seen == null)
       return frameRefusal("FRAME_NOT_OBSERVED", "SCREENSHOT_OBSERVATION_ID_REQUIRED_OR_EXPIRED");
-    boolean tap = operation.equals("tap");
+    boolean tap = request.operation() == PhysicalActionRequest.Operation.TAP;
     String gesture = tap ? args.optString("gesture", "tap") : "swipe";
     if (tap && !java.util.Set.of("tap", "long_press", "double_tap").contains(gesture))
       return ScreenReply.refused("INVALID_GESTURE");

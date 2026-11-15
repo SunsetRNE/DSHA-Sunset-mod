@@ -719,6 +719,38 @@ public final class PlanViewValidator {
 | v0.1 | 2026-11-13 | 初稿：A3 现状核对（逐条 `file:line`）、PlanView v1 契约冻结（补齐 type 码/枚举/`selectedMask`/`targetMappingKind`/摘要口径/原因码去重）、JVM 校验器与差分设计、R2 范围与验收、A3 切片与写域、5 项待裁决问题 |
 | v0.2 | 2026-11-13 | Lead 评审通过并裁决 Q1–Q5（全部按推荐 A，见 §7.1）；按裁决定稿 §3.3/§3.4/§3.5/§3.6/§3.10；rebase 到 `origin/main`=`2729112e`（齿轮单实例修复），`runtimeId` 基线更新为 `5fd17eac…`；R2 已解锁 |
 | v0.3 | 2026-11-13 | R2 非实现者评审修复轮（P1 nowMs 双口径 → 唯一来源=视图内嵌值，删除 Java override 重载；§3.1/§4.3/§6.1 同步为「重新编码」）；§3.7 补硬前置例外、§3.3 补多原因叠加示例；§2.10 appVersion 更正为 38 字符并指向 `ci/release-identity*.json`；基线更新为 `origin/main`=`c2e7aec1` |
+| v0.4 | 2026-11-14 | A3 slice2/3 接线非实现者评审（HEAD `8de004a1`，REQUEST_CHANGES）后的运行时口径澄清：新增 §10（`sensitivePolicy` 闭集判断只归校验器、`verify_plan` Rust 单侧失败禁止 JVM 重做、`verify` 异常类型化中止、“不投影继续”封闭清单、回执 `submission` 事实）；不改 ABI/数据格式 |
+
+---
+
+## 10. 2026-11-14 澄清：PlanView 运行时接线口径（A3 非实现者评审 v2）
+
+> 背景：A3 非实现者评审（HEAD `8de004a1`，REQUEST_CHANGES）对 slice2/3 接线提出 1×P1 + 5×P2。
+> 本节把评审确认的运行时口径写进契约，**不新增 ABI 字段、不升 `policyVersion`、不改数据格式**。
+
+1. **`sensitivePolicy` 闭集只由校验实现裁决**：投影器只做编码约束（非空、合法 UTF-8、≤64
+   字节、无 NUL），**不得**预判闭集后降级为“不投影继续”。未知/越界但可编码的值 →
+   JVM/Rust `PLAN_FIELD_RANGE` → `INVALID` → 提交期 `PLAN_VIEW_INVALID` 中止（Q2-A 的落地
+   口径；评审 P1-1）。当前 5 个生产写者都在闭集内，已知归档不受影响；这是对未来/未知写者的
+   fail-closed 保证。
+2. **`verify_plan` 的 Rust 单侧失败不得 JVM 重做**：Rust 返回负码、原因缓冲契约不符、
+   JNI pending/panic 一律 → `PLAN_VIEW_UNVERIFIED`，**提交期中止**。R1 §5.4 的“Rust 返回
+   内部错误/panic → JVM 重做一次”只适用于 `digest` 等可重算纯函数，**不适用于
+   `verify_plan`**；不得在后续实现里改成 fallback（评审边界 2）。库加载失败/ABI 不符仍按
+   §5.4 回退矩阵留在 JVM-only，并记录 `planSelection()` 的选择原因。
+3. **校验阶段未预期异常**：投影器的 `verify` 阶段抛 `RuntimeException` 时，预览不整体失败，
+   但回执必须是 `PLAN_VIEW_VERIFY_FAILED` / `UNVERIFIED`（`projected=false` 也必须中止），
+   提交期同样 fail-closed（评审 P2-1）。
+4. **“不投影继续”的封闭清单**：仅 `rootCount>64`（Q1-A）与 §3.3 已明确要求“不投影”的字段
+   失败（`formatVersion` 值不符、字符串超字段上限/含 NUL/非法 UTF-8、类型不符、
+   `pluginCount>4096`、数值越界、u64 为负）记 `SKIPPED` 继续；可编码但语义非法的取值必须
+   编码进视图并判 `INVALID` 中止。`sensitivePolicy` 是唯一“闭集判断必须留给校验器”的字符串
+   字段（评审 P1-1、P2-2）。
+5. **回执事实**：`preview.json` 的 `planView` 与 `plan-view.json` 只含固定短码、计数与摘要；
+   新增 `submission=ALLOWED|BLOCKED`，让诊断可以区分“跳过继续”与“中止”，不写路径/正文/异常
+   消息。
+
+本节不改变 §3.7 原因码集合与 §3.10 的 ABI 冻结项，属运行时接线口径澄清。
 
 ---
 

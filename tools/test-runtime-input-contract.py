@@ -13,7 +13,9 @@ module_spec.loader.exec_module(descriptor)
 
 class RuntimeInputContractTest(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix='runtime-input-test-', dir=ROOT / 'app/build')
+        # 系统临时目录：门禁必须在干净工作树可跑（app/build 是 Gradle 输出，不是前置条件），
+        # 同时不把测试夹具写进仓库。
+        self.temp = tempfile.TemporaryDirectory(prefix='runtime-input-test-')
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.spec = {'schema': 1, 'installs': [{'asset': 'plugin.py', 'target': 'root/.dsh/plugin.py', 'executable': False}], 'assetFiles': ['offline-rootfs.version'], 'assetTrees': ['web'], 'launcherSources': ['util/Policy.java'], 'launcherTrees': [JAVA + '/runtime', 'app/src/main/jniLibs']}

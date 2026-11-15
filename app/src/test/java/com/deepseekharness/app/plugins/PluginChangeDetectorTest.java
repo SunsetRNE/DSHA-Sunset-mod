@@ -210,6 +210,7 @@ public final class PluginChangeDetectorTest {
     nativeObservers.replaceDuringStart = plugins;
     bind(path(plugins, PluginChangeDetector.Kind.CONTENT, true));
     assertTrue(detector.coverageLimited());
+    assertTrue(detector.coverageReasons().contains("WATCH_PATH_CHANGED"));
     assertNull(nativeObservers.latest(plugins));
     assertTrue(worker.pending() > 0);
     worker.advance(750);
@@ -294,6 +295,8 @@ public final class PluginChangeDetectorTest {
     bind(path(plugins, PluginChangeDetector.Kind.CONTENT, true));
     FakeWatch old = nativeObservers.latest(plugins);
     detector.foreground(false);
+    assertTrue(detector.coverageLimited());
+    assertEquals(List.of("WATCH_NOT_OBSERVING"), detector.coverageReasons());
     old.emit(FileObserver.MODIFY, "late.js");
     worker.runDue();
     assertEquals(0, nativeObservers.active());
@@ -348,6 +351,7 @@ public final class PluginChangeDetectorTest {
     bind(path(root.resolve("alias/plugins"), PluginChangeDetector.Kind.CONTENT, true));
     assertEquals(1, nativeObservers.active());
     assertTrue(detector.coverageLimited());
+    assertTrue(detector.coverageReasons().contains("WATCH_UNSAFE_PATH"));
   }
 
   @Test
@@ -376,6 +380,7 @@ public final class PluginChangeDetectorTest {
     nativeObservers.failure = plugins;
     bind(path(plugins, PluginChangeDetector.Kind.CONTENT, true));
     assertTrue(detector.coverageLimited());
+    assertEquals(List.of("WATCH_OBSERVER_FAILED"), detector.coverageReasons());
     detector.foreground(false);
     worker.runDue();
     nativeObservers.failure = null;

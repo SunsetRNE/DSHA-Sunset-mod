@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import tempfile
 import tarfile
+import time
 import unittest
 import uuid
 from unittest.mock import patch
@@ -28,6 +29,12 @@ class ReviewTest(unittest.TestCase):
         self.put(self.package/'cordis.patch.yml','[]\n');self.put(self.package/'index.js',"throw Error('metadata inspection must never execute this');")
         self.manifest=self.package.parents[1]/'package.json'
         self.put(self.manifest,{'dependencies':{'test-plugin':'^1.0.0'},'dsh':{'profile':{'bundles':[]}}})
+        runtime=self.root/'usr/local/lib/node_modules/@deepseek-ai/dsh'
+        self.put(runtime/'package.json',{'name':'@deepseek-ai/dsh','version':'0.2.2-rc.1'})
+        boot=runtime/'node_modules/@deepseek-ai/dsh-app-boot'
+        self.put(boot/'package.json',{'name':'@deepseek-ai/dsh-app-boot','version':'0.2.2-rc.1','main':'lib/index.js'})
+        self.put(boot/'lib/index.js',"throw Error('compatibility must never import app-boot');")
+
 
     def tearDown(self):
         self.environment.stop();self.temporary.cleanup()
@@ -87,18 +94,29 @@ class ReviewTest(unittest.TestCase):
         bundles=json.loads(self.manifest.read_text())['dsh']['profile']['bundles']
         self.assertIn('legacy-plugin',bundles);self.assertNotIn('user-disabled',bundles)
 
-    def test_real_failure_disables_but_incomplete_browser_start_can_retry(self):
+    def test_unattributed_failure_preserves_enabled_intent_until_new_startup(self):
         self.enable();first=str(uuid.uuid4())
         with contextlib.redirect_stdout(io.StringIO()):
-            self.life.loading('begin',first);self.life.loading('failed',first)
-            self.assertFalse(self.enabled());self.life.loading('begin',str(uuid.uuid4()));self.assertFalse(self.enabled())
-        self.assertEqual('failed',self.life.activation_state()['entries']['test-plugin']['status'])
-        self.enable();first=str(uuid.uuid4());second=str(uuid.uuid4())
+            self.life.loading('begin',first)
+            with patch.object(self.manager,'result') as result:
+                self.life.loading('failed',first)
+        entry=self.life.activation_state()['entries']['test-plugin']
+        self.assertTrue(self.enabled());self.assertEqual('unknown',entry['status'])
+        self.assertEqual('STARTUP_FAILURE_UNATTRIBUTED',entry['reason'])
+        self.assertEqual('NO_HOST_BINDING',entry['evidenceReason']);self.assertEqual('CONTENT_UNVERIFIED',entry['contentReason'])
+        self.assertEqual('unattributed',entry['attribution']);self.assertNotIn('loadedAt',entry)
+        self.assertEqual([],result.call_args.kwargs['failedPlugins'])
+        self.assertEqual('unknown',result.call_args.kwargs['loadOutcome'])
+        self.assertEqual(['test-plugin'],[row['name'] for row in result.call_args.kwargs['unattributedPlugins']])
         with contextlib.redirect_stdout(io.StringIO()):
-            self.life.loading('begin',first);self.life.loading('begin',second)
-        self.assertTrue(self.enabled())
-        self.assertEqual('attempted',self.life.activation_state()['entries']['test-plugin']['status'])
-        self.assertEqual(second,self.life.activation_state()['entries']['test-plugin']['startup'])
+            self.life.loading('complete',first);self.life.loading('begin',first)
+        self.assertEqual(entry,self.life.activation_state()['entries']['test-plugin'])
+        second=str(uuid.uuid4())
+        with contextlib.redirect_stdout(io.StringIO()):self.life.loading('begin',second)
+        current=self.life.activation_state()['entries']['test-plugin']
+        self.assertTrue(self.enabled());self.assertEqual('attempted',current['status']);self.assertEqual(second,current['startup'])
+        for field in ('reason','evidenceReason','contentReason','attribution','observedAt','loadedAt'):
+            self.assertNotIn(field,current)
 
     def test_same_startup_compatibility_retry_retains_approval_but_rechecks_content(self):
         self.enable();startup=str(uuid.uuid4())
@@ -183,11 +201,116 @@ class ReviewTest(unittest.TestCase):
         self.assertEqual(actual, entry['fingerprint']);self.assertEqual('0.2.0-rc.2',entry['version'])
         self.assertEqual('shadowed user edit to preserve',(self.package/'index.js').read_text())
 
-    def test_confirmed_health_event_preserves_activation(self):
+    def test_browser_health_only_is_not_plugin_load_evidence(self):
         self.enable();startup=str(uuid.uuid4())
         with contextlib.redirect_stdout(io.StringIO()):
-            self.life.loading('begin',startup);self.life.loading('complete',startup);self.life.loading('begin',str(uuid.uuid4()))
-        self.assertTrue(self.enabled());self.assertEqual('loaded',self.life.activation_state()['entries']['test-plugin']['status'])
+            self.life.loading('begin',startup);self.life.loading('complete',startup)
+        entry=self.life.activation_state()['entries']['test-plugin']
+        self.assertTrue(self.enabled());self.assertEqual('unknown',entry['status'])
+        self.assertEqual('BROWSER_READY_UNVERIFIED',entry['reason']);self.assertEqual('NO_HOST_BINDING',entry['evidenceReason'])
+        self.assertNotIn('loadedAt',entry)
+        second=str(uuid.uuid4())
+        with contextlib.redirect_stdout(io.StringIO()):self.life.loading('begin',second)
+        self.assertEqual('attempted',self.life.activation_state()['entries']['test-plugin']['status'])
+        self.assertEqual(second,self.life.activation_state()['entries']['test-plugin']['startup'])
+
+    def test_historical_loaded_receipt_is_not_rewritten_by_unrelated_startup(self):
+        self.enable();state=self.life.activation_state()
+        state['entries']['test-plugin'].update(status='loaded',startup=str(uuid.uuid4()),loadedAt=1)
+        self.life.write(self.life.path('plugin-activations.json'),state)
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.life.loading('begin',str(uuid.uuid4()));self.life.loading('failed',str(uuid.uuid4()))
+        self.assertEqual(state,self.life.activation_state());self.assertTrue(self.enabled())
+
+    def test_unknown_same_startup_still_rechecks_source_changes(self):
+        self.enable();startup=str(uuid.uuid4())
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.life.loading('begin',startup);self.life.loading('failed',startup)
+            self.put(self.package/'index.js','changed after unconfirmed failure')
+            self.life.loading('begin',startup)
+        entry=self.life.activation_state()['entries']['test-plugin']
+        self.assertEqual('changed',entry['status']);self.assertEqual('CONTENT_CHANGED_DURING_LOAD',entry['reason'])
+        self.assertFalse(self.enabled());self.assertEqual('changed after unconfirmed failure',(self.package/'index.js').read_text())
+
+    def test_unknown_new_startup_preserves_later_user_disable(self):
+        self.enable();startup=str(uuid.uuid4())
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.life.loading('begin',startup);self.life.loading('failed',startup)
+            self.assertEqual(0,self.manager.builtin.disable_plugin('test-plugin'))
+            marker=Path(self.manager.builtin.marker_path('test-plugin'));before=marker.read_bytes()
+            self.life.loading('begin',str(uuid.uuid4()))
+        self.assertFalse(self.enabled());self.assertEqual(before,marker.read_bytes())
+        self.assertEqual('disabled',self.life.activation_state()['entries']['test-plugin']['status'])
+
+    def test_global_failure_does_not_disable_healthy_sibling(self):
+        self.enable();sibling=self.package.parent/'sibling-plugin'
+        self.put(sibling/'package.json',{'name':'sibling-plugin','version':'1.0.0','dsh':{'bundle':{'patch':'cordis.patch.yml'}}})
+        self.put(sibling/'cordis.patch.yml','[]\n');self.put(sibling/'index.js','export {};')
+        self.life.queue_activation('sibling-plugin',self.manager.dependencies().current(str(sibling))['sha256'],'1.0.0')
+        doc=json.loads(self.manifest.read_text());doc['dependencies']['sibling-plugin']='^1.0.0'
+        doc['dsh']['profile']['bundles'].append('sibling-plugin');self.put(self.manifest,doc)
+        startup=str(uuid.uuid4())
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.life.loading('begin',startup)
+            with patch.object(self.manager,'result') as result:
+                self.life.loading('failed',startup)
+        self.assertEqual(['test-plugin','sibling-plugin'],json.loads(self.manifest.read_text())['dsh']['profile']['bundles'])
+        for name,entry in self.life.activation_state()['entries'].items():
+            self.assertEqual('unknown',entry['status']);self.assertEqual('STARTUP_FAILURE_UNATTRIBUTED',entry['reason'])
+            self.assertFalse(Path(self.manager.builtin.marker_path(name)).exists())
+        self.assertEqual([],result.call_args.kwargs['failedPlugins'])
+        self.assertEqual({'test-plugin','sibling-plugin'},{row['name'] for row in result.call_args.kwargs['unattributedPlugins']})
+
+    def test_runtime_result_does_not_rescan_or_execute_plugin(self):
+        self.enable();startup=str(uuid.uuid4())
+        with contextlib.redirect_stdout(io.StringIO()):self.life.loading('begin',startup)
+        with patch.object(self.manager,'resolve_plugin_dir',side_effect=AssertionError('runtime result must not scan disk')), \
+             patch.object(self.manager.dependencies(),'current',side_effect=AssertionError('runtime result must not hash code')), \
+             contextlib.redirect_stdout(io.StringIO()):
+            self.life.loading('complete',startup)
+        self.assertTrue(self.enabled());self.assertEqual('unknown',self.life.activation_state()['entries']['test-plugin']['status'])
+
+    def test_sidecar_self_report_never_creates_host_authority(self):
+        # 这些都是可写观察数据；包括看似完整的 HOST 字段也不是 A5 的可信绑定，不能造正向部署证明。
+        cases=['observer','unattributed','self-reported-host','missing-startup','old-startup','missing-generation',
+               'old-generation','missing-instance','old-instance','expired','future','different-version',
+               'changed-content','duplicate-entry','different-module','different-parent','truncated']
+        for action in ('failed','complete'):
+            for case in cases:
+                with self.subTest(action=action,case=case):
+                    self.enable();startup=str(uuid.uuid4())
+                    with contextlib.redirect_stdout(io.StringIO()):self.life.loading('begin',startup)
+                    content=self.manager.dependencies().current(str(self.package))['sha256']
+                    identity={'identitySource':'HOST_START_TICKET','startupId':startup,'generation':'7',
+                              'instance':str(uuid.uuid4()),'observedAt':int(time.time()*1000)}
+                    row={'name':'test-plugin','version':'1.0.0','profile':'web','state':'failed' if action=='failed' else 'loaded',
+                         'entries':[{'entryId':'fixture-entry','moduleHash':'a'*64,'parentId':'','group':False,
+                                     'phase':'failed' if action=='failed' else 'active','diagnostic':''}],
+                         'identity':identity,'contentFingerprint':content,'contentReason':'CONTENT_MATCHED'}
+                    evidence={'schema':1,'profile':'web',**identity,'installedPlugins':[row],'truncated':False}
+                    if case=='observer':identity.update(identitySource='OBSERVER_SESSION',startupId='unknown')
+                    elif case=='unattributed':identity.update(identitySource='UNATTRIBUTED',startupId='unknown',generation='',instance='')
+                    elif case=='missing-startup':identity['startupId']=''
+                    elif case=='old-startup':identity['startupId']=str(uuid.uuid4())
+                    elif case=='missing-generation':identity['generation']=''
+                    elif case=='old-generation':identity['generation']='6'
+                    elif case=='missing-instance':identity['instance']=''
+                    elif case=='old-instance':identity['instance']=str(uuid.uuid4())
+                    elif case=='expired':identity['observedAt']-=60000
+                    elif case=='future':identity['observedAt']+=60000
+                    elif case=='different-version':row['version']='2.0.0'
+                    elif case=='changed-content':self.put(self.package/'index.js','same-version changed content')
+                    elif case=='duplicate-entry':row['entries'].append(dict(row['entries'][0]))
+                    elif case=='different-module':row['entries'][0]['moduleHash']='b'*64
+                    elif case=='different-parent':row['entries'][0]['parentId']='other-group'
+                    elif case=='truncated':evidence['truncated']=True
+                    evidence.update(identity)
+                    self.put(self.root/'root/.dsha-plugin-startup-evidence.json',evidence)
+                    with contextlib.redirect_stdout(io.StringIO()):self.life.loading(action,startup)
+                    entry=self.life.activation_state()['entries']['test-plugin']
+                    self.assertTrue(self.enabled());self.assertEqual('unknown',entry['status'])
+                    self.assertEqual('NO_HOST_BINDING',entry['evidenceReason']);self.assertNotIn('loadedAt',entry)
+                    self.assertEqual('CONTENT_UNVERIFIED',entry['contentReason'])
 
     def test_safe_mode_restores_only_unchanged_previously_enabled_source(self):
         self.enable()

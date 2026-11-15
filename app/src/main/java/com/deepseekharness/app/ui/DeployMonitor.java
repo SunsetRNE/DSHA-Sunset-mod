@@ -218,9 +218,12 @@ final class DeployMonitor implements DefaultLifecycleObserver {
           boolean isPending = false, isInstalled = false;
           try {
             HarnessController controller = HarnessController.get(context);
-            isReady = controller.isEnvironmentReady();
-            isPending = com.deepseekharness.app.core.MaintenanceCoordinator.pending(controller);
-            isInstalled = controller.proot().isEnvironmentInstalled();
+            var facts =
+                com.deepseekharness.app.util.EnvironmentUiFacts.deployment(
+                    new EnvironmentUiReader(context, controller));
+            isReady = facts.runnable();
+            isPending = facts.hostPending();
+            isInstalled = facts.installed();
           } catch (RuntimeException unavailable) {
             isReady = false;
           }

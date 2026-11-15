@@ -26,9 +26,10 @@ use std::ffi::c_void;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use crate::abi::{
-    silence_panic_output, ERR_INVALID_ARGUMENT, ERR_JNI_PENDING, ERR_NOT_IMPLEMENTED, ERR_OK,
+    silence_panic_output, ERR_INPUT_BOUND, ERR_INVALID_ARGUMENT, ERR_JNI_PENDING, ERR_OK,
     ERR_OUTPUT_BOUND, ERR_PANIC,
 };
+use crate::gzip;
 
 // 只使用 JNI 类型的最小投影，不引入 jni-rs（方案 §4.7 注）。
 type JniEnv = *mut c_void;
@@ -219,43 +220,137 @@ pub extern "system" fn Java_com_deepseekharness_app_util_RustNative_digest(
     )
 }
 
+/// `archive_pack_update` 的真实实现：direct 缓冲契约 + 有界 gzip 编码会话。
+fn archive_pack_update_inner(
+    env: JniEnv,
+    session: i64,
+    input: JObject,
+    out: JObject,
+) -> Result<i64, i32> {
+    let table = jni_table(env).ok_or(ERR_INVALID_ARGUMENT)?;
+    let (input_address, input_capacity) = direct_buffer(table, env, input)?;
+    let (output_address, output_capacity) = direct_buffer(table, env, out)?;
+    if input_capacity < 1 {
+        return Err(ERR_INVALID_ARGUMENT);
+    }
+    if input_capacity > gzip::MAX_INPUT_CHUNK as i64 {
+        return Err(ERR_INPUT_BOUND);
+    }
+    let input_length = input_capacity as usize;
+    // 只按上界映射输出区域：超过 pack_bound(MAX_INPUT_CHUNK) 的容量不参与切片，
+    // 避免用 JVM 声明的巨大容量构造超长切片。
+    let output_length = output_capacity.min(gzip::MAX_PACK_OUTPUT as i64) as usize;
+    // SAFETY: direct_buffer 已核验地址非空；输入容量 = input_length（≤256 KiB），
+    // 输出容量 ≤ MAX_PACK_OUTPUT；JVM 在本次 native 调用期间保持 ByteBuffer 强引用、
+    // 不做并发修改；切片只在本调用内使用，不跨调用保存。
+    let input_bytes: &[u8] = unsafe { core::slice::from_raw_parts(input_address, input_length) };
+    let output_bytes: &mut [u8] = if output_length == 0 {
+        &mut []
+    } else {
+        // SAFETY: 同上；地址与容量来自 direct_buffer。
+        unsafe { core::slice::from_raw_parts_mut(output_address, output_length) }
+    };
+    gzip::pack_update(session as u64, input_bytes, output_bytes)
+}
+
+/// `archive_pack_finish` 的真实实现：结束后会话从表中移除。
+fn archive_pack_finish_inner(env: JniEnv, session: i64, out: JObject) -> Result<i64, i32> {
+    let table = jni_table(env).ok_or(ERR_INVALID_ARGUMENT)?;
+    let (output_address, output_capacity) = direct_buffer(table, env, out)?;
+    if output_capacity < gzip::FINISH_BOUND as i64 {
+        return Err(ERR_OUTPUT_BOUND);
+    }
+    let output_length = gzip::FINISH_BOUND;
+    // SAFETY: direct_buffer 已核验地址非空；只映射固定 FINISH_BOUND 字节（JVM 容量
+    // 已核验 ≥ 该值），调用期间保持强引用、不做并发修改。
+    let output_bytes: &mut [u8] =
+        unsafe { core::slice::from_raw_parts_mut(output_address, output_length) };
+    gzip::pack_finish(session as u64, output_bytes)
+}
+
+/// `archive_unpack_write` 的真实实现：有界压缩输入喂入会话。
+fn archive_unpack_write_inner(env: JniEnv, session: i64, input: JObject) -> Result<i64, i32> {
+    let table = jni_table(env).ok_or(ERR_INVALID_ARGUMENT)?;
+    let (input_address, input_capacity) = direct_buffer(table, env, input)?;
+    if input_capacity < 1 {
+        return Err(ERR_INVALID_ARGUMENT);
+    }
+    if input_capacity > gzip::MAX_INPUT_CHUNK as i64 {
+        return Err(ERR_INPUT_BOUND);
+    }
+    let input_length = input_capacity as usize;
+    // SAFETY: direct_buffer 已核验地址非空；容量 = input_length（≤256 KiB）；调用期间
+    // JVM 保持强引用、不做并发修改；切片只在本调用内使用。
+    let input_bytes: &[u8] = unsafe { core::slice::from_raw_parts(input_address, input_length) };
+    gzip::unpack_write(session as u64, input_bytes)
+}
+
+/// `archive_unpack_read` 的真实实现：返回 `(produced << 32) | flags`。
+fn archive_unpack_read_inner(env: JniEnv, session: i64, out: JObject) -> Result<i64, i32> {
+    let table = jni_table(env).ok_or(ERR_INVALID_ARGUMENT)?;
+    let (output_address, output_capacity) = direct_buffer(table, env, out)?;
+    if output_capacity < 1 || output_capacity > gzip::MAX_OUTPUT_CHUNK as i64 {
+        return Err(ERR_INVALID_ARGUMENT);
+    }
+    let output_length = output_capacity as usize;
+    // SAFETY: direct_buffer 已核验地址非空；容量已核验在 1..=256 KiB；调用期间 JVM
+    // 保持强引用、不做并发修改；切片只在本调用内使用。
+    let output_bytes: &mut [u8] =
+        unsafe { core::slice::from_raw_parts_mut(output_address, output_length) };
+    gzip::unpack_read(session as u64, output_bytes)
+}
+
 #[no_mangle]
 pub extern "system" fn Java_com_deepseekharness_app_util_RustNative_archivePackCreate(
     _env: JniEnv,
     _class: JClass,
-    _level: i32,
+    level: i32,
 ) -> i64 {
-    ffi_guard(|| i64::from(ERR_NOT_IMPLEMENTED))
+    ffi_guard(|| match gzip::pack_create(level) {
+        Ok(handle) => handle as i64,
+        Err(code) => i64::from(code),
+    })
 }
 
 #[no_mangle]
 pub extern "system" fn Java_com_deepseekharness_app_util_RustNative_archivePackUpdate(
-    _env: JniEnv,
+    env: JniEnv,
     _class: JClass,
-    _session: i64,
-    _input: JObject,
-    _out: JObject,
+    session: i64,
+    input: JObject,
+    out: JObject,
 ) -> i64 {
-    ffi_guard(|| i64::from(ERR_NOT_IMPLEMENTED))
+    ffi_guard(
+        || match archive_pack_update_inner(env, session, input, out) {
+            Ok(value) => value,
+            Err(code) => i64::from(code),
+        },
+    )
 }
 
 #[no_mangle]
 pub extern "system" fn Java_com_deepseekharness_app_util_RustNative_archivePackFinish(
-    _env: JniEnv,
+    env: JniEnv,
     _class: JClass,
-    _session: i64,
-    _out: JObject,
+    session: i64,
+    out: JObject,
 ) -> i64 {
-    ffi_guard(|| i64::from(ERR_NOT_IMPLEMENTED))
+    ffi_guard(|| match archive_pack_finish_inner(env, session, out) {
+        Ok(value) => value,
+        Err(code) => i64::from(code),
+    })
 }
 
 #[no_mangle]
 pub extern "system" fn Java_com_deepseekharness_app_util_RustNative_archivePackAbort(
     _env: JniEnv,
     _class: JClass,
-    _session: i64,
+    session: i64,
 ) -> i32 {
-    ffi_guard(|| i64::from(ERR_NOT_IMPLEMENTED)) as i32
+    ffi_guard(|| match gzip::pack_abort(session as u64) {
+        Ok(value) => i64::from(value),
+        Err(code) => i64::from(code),
+    }) as i32
 }
 
 #[no_mangle]
@@ -263,36 +358,48 @@ pub extern "system" fn Java_com_deepseekharness_app_util_RustNative_archiveUnpac
     _env: JniEnv,
     _class: JClass,
 ) -> i64 {
-    ffi_guard(|| i64::from(ERR_NOT_IMPLEMENTED))
+    ffi_guard(|| match gzip::unpack_create() {
+        Ok(handle) => handle as i64,
+        Err(code) => i64::from(code),
+    })
 }
 
 #[no_mangle]
 pub extern "system" fn Java_com_deepseekharness_app_util_RustNative_archiveUnpackWrite(
-    _env: JniEnv,
+    env: JniEnv,
     _class: JClass,
-    _session: i64,
-    _input: JObject,
+    session: i64,
+    input: JObject,
 ) -> i64 {
-    ffi_guard(|| i64::from(ERR_NOT_IMPLEMENTED))
+    ffi_guard(|| match archive_unpack_write_inner(env, session, input) {
+        Ok(value) => value,
+        Err(code) => i64::from(code),
+    })
 }
 
 #[no_mangle]
 pub extern "system" fn Java_com_deepseekharness_app_util_RustNative_archiveUnpackRead(
-    _env: JniEnv,
+    env: JniEnv,
     _class: JClass,
-    _session: i64,
-    _out: JObject,
+    session: i64,
+    out: JObject,
 ) -> i64 {
-    ffi_guard(|| i64::from(ERR_NOT_IMPLEMENTED))
+    ffi_guard(|| match archive_unpack_read_inner(env, session, out) {
+        Ok(value) => value,
+        Err(code) => i64::from(code),
+    })
 }
 
 #[no_mangle]
 pub extern "system" fn Java_com_deepseekharness_app_util_RustNative_archiveUnpackAbort(
     _env: JniEnv,
     _class: JClass,
-    _session: i64,
+    session: i64,
 ) -> i32 {
-    ffi_guard(|| i64::from(ERR_NOT_IMPLEMENTED)) as i32
+    ffi_guard(|| match gzip::unpack_abort(session as u64) {
+        Ok(value) => i64::from(value),
+        Err(code) => i64::from(code),
+    }) as i32
 }
 
 /// `verify_plan` 的真实实现（A3 §3.8）：结构/范围/策略版本/有效期只读校验。

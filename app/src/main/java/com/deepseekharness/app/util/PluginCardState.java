@@ -54,15 +54,11 @@ public final class PluginCardState {
 
   /** 已确认的当前运行结论；待核验（stale）或未知不算已加载，也不算失败。 */
   public static boolean runtimeLoaded(String runtimeState, boolean stale) {
-    if (stale || runtimeState == null) return false;
-    return switch (runtimeState) {
-      case "loaded", "running", "active" -> true;
-      default -> false;
-    };
+    return PluginStateView.runtimePhase(runtimeState, stale) == PluginStateView.RuntimePhase.ACTIVE;
   }
 
   public static boolean runtimeFailed(String runtimeState, boolean stale) {
-    return !stale && "failed".equals(runtimeState);
+    return PluginStateView.runtimePhase(runtimeState, stale) == PluginStateView.RuntimePhase.FAILED;
   }
 
   /**
@@ -107,28 +103,33 @@ public final class PluginCardState {
    * <p>这里只根据既有结论着色；待核验与未知不会被当成已加载，也不会被当成失败。
    */
   public static Tone runtimeTone(String runtimeState, boolean stale) {
-    if (stale) return Tone.WARN;
     if (runtimeState == null) return Tone.WARN;
-    return switch (runtimeState) {
-      case "loaded", "running", "active" -> Tone.GOOD;
-      case "failed" -> Tone.BAD;
-      case "pending", "waiting", "loading" -> Tone.ACCENT;
-      case "stopped", "unloaded", "disabled", "inactive" -> Tone.MUTED;
-      default -> Tone.WARN;
+    return switch (PluginStateView.runtimePhase(runtimeState, stale)) {
+      case ACTIVE -> Tone.GOOD;
+      case FAILED -> Tone.BAD;
+      case PENDING, LOADING, UNLOADING -> Tone.ACCENT;
+      case ABSENT -> Tone.MUTED;
+      case UNKNOWN -> Tone.WARN;
     };
   }
 
-  /**
-   * 提示条按「需要用户处理的程度」排序：重启生效 → 可更新 → 最近一次操作消息。
-   *
-   * <p>排队中不提示更新，避免与正在执行的任务并列出现两个可点的变更入口。
-   */
+  /** 普通提示保持既有顺序；关键操作结果必须先于重启和可更新提示。 */
   public static List<Note> notes(
       boolean restartRequired, boolean updateAvailable, boolean pending, boolean hasMessage) {
+    return notes(restartRequired, updateAvailable, pending, hasMessage, false);
+  }
+
+  public static List<Note> notes(
+      boolean restartRequired,
+      boolean updateAvailable,
+      boolean pending,
+      boolean hasMessage,
+      boolean prominentMessage) {
     List<Note> notes = new ArrayList<>();
+    if (hasMessage && prominentMessage) notes.add(Note.MESSAGE);
     if (restartRequired) notes.add(Note.RESTART);
     if (updateAvailable && !pending) notes.add(Note.UPDATE);
-    if (hasMessage) notes.add(Note.MESSAGE);
+    if (hasMessage && !prominentMessage) notes.add(Note.MESSAGE);
     return notes;
   }
 }

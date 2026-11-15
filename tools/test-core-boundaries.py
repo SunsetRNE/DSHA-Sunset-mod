@@ -42,8 +42,34 @@ def source_files(package=None):
     return sorted(path for path in base.rglob("*") if path.suffix in SOURCE_SUFFIXES)
 
 
+def literal_end(text, at):
+    """返回从引号 at 起的字面量结束位置（结束引号之后）；不跨行猜测未闭合字面量。"""
+    quote = text[at]
+    if text.startswith(quote * 3, at):
+        # Java text block / Kotlin raw string：内容不处理转义，按三引号闭合。
+        end = text.find(quote * 3, at + 3)
+        return len(text) if end < 0 else end + 3
+    end = at + 1
+    while end < len(text):
+        if text[end] == "\\":
+            end += 2
+            continue
+        if text[end] == quote:
+            return end + 1
+        if text[end] == "\n":
+            # 未闭合的普通字面量按行末截断，后续行仍须可扫描。
+            return end
+        end += 1
+    return len(text)
+
+
 def without_comments(text, kotlin=False):
-    """删除注释；Kotlin 允许嵌套块注释，Java 不允许。字符串字面量保持原样。"""
+    """删除注释；Kotlin 允许嵌套块注释，Java 不允许。
+
+    字符串/字符/raw string 字面量按原样复制，内部的 `//` 与 `/*` 不算注释起点：
+    否则 `"**/*.kt"` 这类字面量会把后续源码静默当成注释吞掉，边界门禁出现假阴性。
+    未闭合字面量只截断到行末，宁可多报也不静默放行。
+    """
     out = []
     at = 0
     size = len(text)
@@ -64,6 +90,11 @@ def without_comments(text, kotlin=False):
                 continue
             out.append("\n" if char == "\n" else " ")
             at += 1
+            continue
+        if char in "\"'":
+            end = literal_end(text, at)
+            out.append(text[at:end])
+            at = end
             continue
         if char == "/" and following == "/":
             while at < size and text[at] != "\n":
@@ -171,6 +202,11 @@ def construction_count(text, name, kotlin):
     return count
 
 
+def construction_keyword(kotlin):
+    """Java 构造必须带 `new`；Kotlin 构造语法没有 new。两种语言不能共用宽松正则。"""
+    return "" if kotlin else r"new\s+"
+
+
 def constructor_references(text, name, kotlin):
     clean = without_comments(text, kotlin=kotlin)
     if kotlin:
@@ -180,9 +216,6 @@ def constructor_references(text, name, kotlin):
 
 # ---------------- Kotlin 声明扫描 ----------------
 
-CLASS_DECL = re.compile(
-    r"^(?P<mods>(?:(?:public|internal|private|protected|open|abstract|sealed|data|value|"
-    r"inline|final|enum|annotation|expect|actual)\s+)*)class\s+(?P<name>[A-Za-z_]\w*)\b")
 PROPERTY_DECL = re.compile(
     r"^(?P<anns>(?:@\w+(?:\([^)]*\))?\s+)*)"
     r"(?P<mods>(?:(?:public|private|protected|internal|lateinit|const|override|final|open|"
@@ -348,13 +381,15 @@ def mutable_static_fields(text):
 
 class CoreBoundariesTest(unittest.TestCase):
     def test_harness_facade_does_not_execute_split_concerns(self):
-        facade = source("core/HarnessController")
+        facade_path = source_path("core/HarnessController")
+        facade = facade_path.read_text(encoding="utf-8")
+        keyword = construction_keyword(facade_path.suffix == ".kt")
         for execution in ("DshAuthSession.exchange", "LanProxyService.",
                           "NativeConfigurationReset.reset", "BackupManager.recoverInterrupted",
                           "PluginActivationHooks.", "lifecycle.beginStart", "lifecycle.beginStop"):
             self.assertNotIn(execution, facade)
-        self.assertRegex(facade, r"(?:new\s+)?WebLifecycleController\s*\(\s*this\s*,\s*session\s*\)")
-        self.assertRegex(facade, r"(?:new\s+)?HostConfigService\s*\(\s*(?:this\.)?context\s*,\s*config\s*\)")
+        self.assertRegex(facade, keyword + r"WebLifecycleController\s*\(\s*this\s*,\s*session\s*\)")
+        self.assertRegex(facade, keyword + r"HostConfigService\s*\(\s*(?:this\.)?context\s*,\s*config\s*\)")
         self.assertLessEqual(len(facade.splitlines()), 300)
 
     def test_one_application_owns_the_runtime_ports_and_web_state(self):
@@ -469,7 +504,8 @@ class CoreBoundariesTest(unittest.TestCase):
             self.assertIn("DshaApp.from(", locator.group(1))
             self.assertIn(".virtualScreenManager()", locator.group(1))
         self.assertRegex(application,
-                         r"throw\s+(?:new\s+)?IllegalStateException\s*\(\s*"
+                         r"throw\s+" + construction_keyword(application_path.suffix == ".kt")
+                         + r"IllegalStateException\s*\(\s*"
                          r"\"DSHA_APPLICATION_SCOPE_UNAVAILABLE\"\s*\)")
         for name in ("VirtualScreenManager", "VirtualScreenPreviews", "VirtualScreenForeground",
                      "VirtualScreenOverlayController", "VirtualScreenAccessibility", "VirtualScreenInput"):
@@ -505,9 +541,11 @@ class CoreBoundariesTest(unittest.TestCase):
         else:
             self.assertEqual([], mutable_shared_state(settings))
         self.assertRegex(settings, r"application\s+(?:instanceof|is)\s+Owner")
+        keyword = construction_keyword(settings_path.suffix == ".kt")
         for code in ("PORTABLE_SETTINGS_OWNER_UNAVAILABLE", "PORTABLE_SETTINGS_UNAVAILABLE"):
             self.assertRegex(settings,
-                             r"throw\s+(?:new\s+)?IllegalStateException\s*\(\s*\"" + code + r"\"\s*\)")
+                             r"throw\s+" + keyword + r"IllegalStateException\s*\(\s*\""
+                             + code + r"\"\s*\)")
         self.assertNotIn("DshaApp.current()", settings)
         for path in source_files():
             text = path.read_text(encoding="utf-8")
@@ -630,6 +668,48 @@ class KotlinBoundaryRulesTest(unittest.TestCase):
                                                    "runtime/Other.java"]))
         self.assertEqual({}, parallel_implementations(["runtime/Runner.java",
                                                        "runtime/Other.kt"]))
+
+    def test_string_literals_never_start_comments(self):
+        # `"**/*.kt"` 里的 `/*` 不是块注释起点；否则后续 import 会被静默吞掉。
+        kotlin = ('package p\n'
+                  'val glob = "**/*.kt"\n'
+                  'import com.deepseekharness.app.ui.MainActivity\n')
+        self.assertEqual([("runtime/Runner.kt", "com.deepseekharness.app.ui.")],
+                         layer_violations([("runtime/Runner.kt", kotlin)], UI_LAYER))
+        java = ('class Runner {\n'
+                '  String glob = "**/*.java";\n'
+                '  void f() { com.deepseekharness.app.ui.MainActivity page = null; }\n'
+                '}\n')
+        self.assertEqual([("runtime/Runner.java", "com.deepseekharness.app.ui.")],
+                         layer_violations([("runtime/Runner.java", java)], UI_LAYER))
+
+    def test_urls_and_quotes_in_comments_do_not_hide_following_lines(self):
+        url = ('package p\n'
+               'val base = "http://127.0.0.1:3080"\n'
+               'import com.deepseekharness.app.core.WebLifecycleController\n')
+        self.assertEqual([("ui/Page.kt", "WebLifecycleController")],
+                         ui_collaborator_references([("ui/Page.kt", url)],
+                                                    ("WebLifecycleController",)))
+        quoted = ('package p\n'
+                  '// "未闭合引号只属于注释\n'
+                  'import com.deepseekharness.app.ui.MainActivity\n')
+        self.assertEqual([("runtime/Runner.kt", "com.deepseekharness.app.ui.")],
+                         layer_violations([("runtime/Runner.kt", quoted)], UI_LAYER))
+
+    def test_nested_kotlin_block_comment_is_still_removed(self):
+        nested = ('package p\n'
+                  '/* outer /* inner */ still comment */\n'
+                  'import com.deepseekharness.app.ui.MainActivity\n')
+        self.assertEqual([("runtime/Runner.kt", "com.deepseekharness.app.ui.")],
+                         layer_violations([("runtime/Runner.kt", nested)], UI_LAYER))
+        cleaned = without_comments("package p\n/* a /* b */ c */\n", kotlin=True)
+        self.assertFalse(any(char.isalpha() for char in cleaned.split("\n")[1]))
+
+    def test_java_construction_requires_new_but_kotlin_does_not(self):
+        call = "WebLifecycleController(this, session)"
+        self.assertRegex("new " + call, construction_keyword(False) + r"WebLifecycleController\s*\(")
+        self.assertNotRegex(call, construction_keyword(False) + r"WebLifecycleController\s*\(")
+        self.assertRegex(call, construction_keyword(True) + r"WebLifecycleController\s*\(")
 
 
 if __name__ == "__main__":

@@ -98,8 +98,10 @@ public final class RootShellMain {
       boolean externalAdbSession = operation.equals("external-adb-session");
       boolean externalAdbSteps = operation.equals("external-adb-steps");
       boolean rawShell = operation.equals("root-unrestricted");
+      boolean rootModuleRead = operation.equals("root-module-list");
       boolean identityRequired =
-          externalArgv
+          rootModuleRead
+              || externalArgv
               || externalAdbSession
               || externalAdbSteps
               || smsUser >= 0
@@ -119,7 +121,17 @@ public final class RootShellMain {
         shell =
             new ShellService(); // Historical ordinary reads do not require a guessed app identity.
       active = shell;
-      if (externalAdbSteps) {
+      if (rootModuleRead) {
+        if (!command.isEmpty()
+            || smsUser >= 0
+            || request.has("argv")
+            || request.has("path")
+            || request.has("steps")) throw new SecurityException("ROOT_MODULE_READ_ARGUMENTS");
+        output =
+            com.deepseekharness.app.device.RootModuleReadCore.read(
+                com.deepseekharness.app.runtime.PrivilegedPackageContext.launchIdentity(
+                    request.getString("selfPackage"), request.getInt("selfUid")));
+      } else if (externalAdbSteps) {
         if (android.os.Process.myUid() != 0) throw new SecurityException("外接命令需要 root");
         String expectedRoot = request.optString("expectedRoot", "");
         String importRoot = request.optString("importRoot", "");

@@ -1,6 +1,6 @@
 # Kotlin 工具链（ADR-0004 决定一）
 
-状态：**已接入，批次待 lead 复核与非实现者评审**（2026-11-12）。
+状态：**已接入并随 build364 合入**（2026-11-12 工具链接入；2026-11-14 K1 评审 P2 清理）。
 依据：[ADR-0004 决定一](adr/0004-kotlin-rust-direction.md#决定一重切--增量-kotlin-化不做全量重写)
 与[工程规范](engineering-standard.md)。本页记录**当前实际可运行的版本、依赖校验、格式门禁、迁移规则与回退**；
 不把「能编译」写成「已完成 Kotlin 化」——语言切换按模块推进，旧文件在被改动前保持 Java。
@@ -159,12 +159,30 @@ dsha-gradle :app:assembleStandardDebug          # 若 aarch64/aapt2 受限则见
   未知源码根现在直接失败（`RUNTIME_LAUNCHER_SOURCE_ROOT_UNSUPPORTED`），不会被当作 `.so` 静默漏掉。
 - 架构边界门禁 `tools/test-core-boundaries.py` 对 `.java`/`.kt` 共用规则：tree 级依赖、
   共享 owner、可变静态状态与引用扫描同时覆盖两种后缀；Kotlin 以 `internal` 作为最接近
-  package-private 的可见性，真正阻止 `ui` 访问 core 协作者的仍是引用扫描。Kotlin 语法检查
-  是保守近似，拿不准的共享可变状态按违规报告，不用格式通过代替边界通过。
+  package-private 的可见性，真正阻止 `ui` 访问 core 协作者的仍是引用扫描。注释剥离按
+  语言语法保护字符串/字符/raw string 字面量（`"**/*.kt"`、`"http://…"` 不再被当成注释吞掉
+  后续源码），Kotlin 嵌套块注释按深度处理；拿不准的共享可变状态一律按违规报告，不用格式
+  通过代替边界通过。Java 的构造断言强制 `new`，Kotlin 按无 `new` 语法单独匹配。
 - Kotlin 格式门禁首版没有独立 token 指纹；若将来要得到与 Java 同等级的「格式前后 token 完全一致」
   证明，需要补一个基于 Kotlin 编译器的 lexer 指纹工具并单独评审。
 - 本机 aarch64 的完整 `assemble` / aapt2 能力有限；APK 体积影响（stdlib）与真机行为需在可运行
   环境或 CI 上补测，本页不把未跑项写成通过。
+
+## 8. K1 评审 P2 清理（2026-11-14）
+
+非实现者评审对 K0/S0 批次留下 7 项 P2（固定 bundle 项已由 lead 先行完成）。K1 只清理
+`tools/`、测试、文档与 CI，**不改 `launcherInputs` 内的产品行为**，因此 `runtimeId` 不变、
+不需要维护页：
+
+| 评审项 | 结论 | 落点 |
+|---|---|---|
+| Kotlin 扫描启发式 | 已修：注释剥离保护字符串/字符/raw string 字面量，删除未使用的 `CLASS_DECL` 正则，补 3 项扫描正反回归 | `tools/test-core-boundaries.py` |
+| Java `new` 放宽 | 已修：构造/抛出断言按源文件后缀分支，Java 强制 `new`，Kotlin 保持无 `new` 语法（另补 1 项 helper 反例） | `tools/test-core-boundaries.py` |
+| Kotlin 形状断言 | 已修：不再断言 Gradle 列表字面量，改为解析 `include sourceRoot ? [...] : '**/*.so'` 的实际后缀集合与源根条件 | `tools/test-runtime-descriptor-inputs.py` |
+| native 无参委派 | 已修：恰好一个 native 实现（Consumer 重载），无参入口必须 `ensureRuntimeFiles(null)` 委派，另加负控 | `tools/test-proot-runtime-libs.py` |
+| `nodeToAuthMs` 起点 | 维持实现：零点为启动器进程创建（`execRootfs` 返回，不含 `prepareTools` 与启动准备流水线），重试取最后一次，接回活实例不输出；真实 Node 内起点需改 launcher 身份并触发维护页，另立 | `docs/startup-and-diagnostics.md` |
+| 文档精度 | 已修：本页状态与启发式表述、K1 结论与验证回执；启动诊断页补 `nodeToAuthMs` 口径 | 本页、`docs/startup-and-diagnostics.md` |
+| Gradle 端到端 | 已修：契约测试改用系统临时目录（干净工作树可跑）；新增 Gradle 声明输入与 `launcher_paths` 身份集合对等检查，由 `verifyRuntimeDescriptorInputs` 任务自身执行 | `tools/test-runtime-input-contract.py`、`tools/test-runtime-descriptor-inputs.py` |
 
 ## 验证回执
 
@@ -186,3 +204,22 @@ dsha-gradle :app:assembleStandardDebug          # 若 aarch64/aapt2 受限则见
 
 未运行 / 未覆盖：Gradle 完整单测、Robolectric 测试、Lint、APK 打包与安装、真机行为；这些需要
 x86_64 CI 或真机环境，不写成本批次通过。
+
+2026-11-14 K1（本机 aarch64，JDK 17.0.21，Gradle 9.3.1；固定输入资产由
+fixed-inputs-20261113 还原，不入库）：
+
+| 项 | 命令 | 结果 |
+|---|---|---|
+| 边界门禁 | `python3 tools/test-core-boundaries.py` | **PASS 25 tests**（K0 时 21，新增 4 项正反回归） |
+| 运行时输入契约 | `python3 tools/test-runtime-input-contract.py` | **PASS 18 tests**（干净工作树独立运行，不再要求 `app/build` 先存在） |
+| 单源输入 + Gradle 契约 | `python3 tools/test-runtime-descriptor-inputs.py` | **PASS**：103 安装项 / 205 资产 / 489 启动输入；Gradle launcherTree 输入与运行时身份一致 250 文件 |
+| native 结构门禁 | `python3 tools/test-proot-runtime-libs.py` | **PASS**（含空转发 / 双实现 / 无参即实现 / 顺序反转负控） |
+| Gradle 端到端（正控） | `dsha-gradle :app:verifyRuntimeDescriptorInputs :app:prepareRuntimeDescriptor` | **BUILD SUCCESSFUL 1m38s**；`runtime descriptor: bd0016c3…` 与已提交描述符一致 |
+| Gradle 端到端（负控） | launcherTrees 内临时新增一个 `.kt` 后重跑上一条 | **BUILD FAILED**（`verifyRuntimeDescriptorInputs` 报 `DESCRIPTOR_LAUNCHER_MEMBER_SET`，证明 Kotlin 文件进入身份门禁）；删除后恢复 BUILD SUCCESSFUL |
+| runtimeId | `python3 tools/prepare-runtime-descriptor.py --check` | **bd0016c3…**，与 build364 一致（K1 未改 launcherInputs，零维护） |
+| Kotlin 格式 | `JAVA_HOME=/opt/jdk17 python3 tools/format-kotlin-tree.py --check` | **PASS**：2 files / 0 need |
+| Java 格式 | `JAVA_HOME=/opt/jdk17 python3 tools/format-java-tree.py --check` | **PASS**：1767 files / 0 need |
+| 静态门禁 | `python3 tools/test-ci-workflows.py` / `check-source-hygiene.py` / `test-runtime-descriptor-source.py` / `check-document-links.py` | **PASS**：57 tests / hygiene PASS / 4 tests / 56 文档 1309 链接 0 error |
+
+K1 未跑项：Gradle 全量单测、Robolectric、Lint、APK 打包与安装、真机行为——本机 aarch64 的
+aapt2 限制同上，以 x86_64 CI 与真机验收为准。

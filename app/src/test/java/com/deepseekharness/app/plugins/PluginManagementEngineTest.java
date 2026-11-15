@@ -772,6 +772,44 @@ public final class PluginManagementEngineTest {
     assertFalse(value.accept("new-completed-while-background", false));
   }
 
+  @Test
+  public void coverageChangesNeverQueryProbeOrRenewCatalog() {
+    World w = new World();
+    w.known("A");
+    Cache before = w.backend.cache;
+    for (int i = 0; i < 100; i++) w.engine.watchCoverageChanged();
+    w.pump();
+    assertEquals(100, w.backend.coverageUpdates);
+    assertSame(before, w.backend.cache);
+    assertEquals(0, w.backend.probes);
+    assertEquals(0, w.backend.queries);
+    assertEquals(0, w.backend.projections);
+    assertEquals(0, w.liveJobs());
+    w.advance(60_000);
+    w.engine.ensureLoaded();
+    w.pump();
+    assertEquals(1, w.backend.queries);
+  }
+
+  @Test
+  public void backgroundCoverageCanPublishWithoutWorkAndCloseDropsIt() {
+    World w = new World();
+    w.known("A");
+    w.engine.foreground(true);
+    w.pump();
+    w.engine.foreground(false);
+    int probes = w.backend.probes, queries = w.backend.queries;
+    w.engine.watchCoverageChanged();
+    w.advance(300_000);
+    assertEquals(1, w.backend.coverageUpdates);
+    assertEquals(probes, w.backend.probes);
+    assertEquals(queries, w.backend.queries);
+    assertEquals(0, w.liveJobs());
+    w.engine.close();
+    w.engine.watchCoverageChanged();
+    assertEquals(1, w.backend.coverageUpdates);
+  }
+
   private static final class World
       implements PluginManagementEngine.Clock, PluginManagementEngine.Scheduler {
     long now, wallOffset = 1_000_000, serial;
@@ -899,7 +937,7 @@ public final class PluginManagementEngineTest {
     Cache cache = new Cache(0, null, false, true, 0, "");
     String source = "A";
     Exception failure;
-    int probes, queries, projections, cancelledQueries;
+    int probes, queries, projections, cancelledQueries, coverageUpdates;
     boolean observing, autoQueries = true;
     final List<String> bindings = new ArrayList<>();
     final List<Long> queryTimes = new ArrayList<>();
@@ -964,6 +1002,12 @@ public final class PluginManagementEngineTest {
               cache.stale,
               cache.verifiedAtMillis,
               cache.error);
+    }
+
+    @Override
+    public void watchCoverage() {
+      assertFalse(world.background);
+      coverageUpdates++;
     }
 
     @Override

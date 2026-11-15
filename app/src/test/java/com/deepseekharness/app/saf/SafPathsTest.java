@@ -42,6 +42,22 @@ public final class SafPathsTest {
   }
 
   @Test
+  public void lastAllowedPathSegmentWorksInBothPathAndCapabilityLayer() {
+    String path =
+        String.join(
+            "/", java.util.Collections.nCopies(SafCapabilityLimits.MAX_PATH_SEGMENTS, "folder"));
+    assertEquals(path, SafPaths.normalize(path));
+    SafCapabilityHandles handles = SafTestSupport.fixedHandles();
+    SafGrantLedger ledger = SafTestSupport.single(SafTestSupport.DOWNLOADS, SafGrantRecord.READ);
+    String id = SafGrantRecord.idOf(SafTestSupport.DOWNLOADS);
+    assertTrue(handles.issue(ledger, id, SafCapabilityHandles.Operation.READ, path, 1_000).ok());
+    assertEquals(
+        SafCapabilityHandles.Result.BAD_PATH,
+        handles.issue(ledger, id, SafCapabilityHandles.Operation.READ, path + "/overflow", 1_000)
+            .result);
+  }
+
+  @Test
   public void mimeOfGuessesCommonTypes() {
     assertEquals("text/plain", SafPaths.mimeOf("a.txt"));
     assertEquals("application/json", SafPaths.mimeOf("x.JSON"));

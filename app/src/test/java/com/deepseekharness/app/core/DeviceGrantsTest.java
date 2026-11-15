@@ -176,6 +176,56 @@ public final class DeviceGrantsTest {
     assertFalse(grants.smsReadAllowed());
   }
 
+  @Test
+  public void smsMutationFencesDeviceSnapshotBeforeItsExistingInvalidatorAndWrite() {
+    var authority = com.deepseekharness.app.util.DeviceAuthorization.shared();
+    var old =
+        authority.snapshot(
+            () ->
+                new com.deepseekharness.app.util.DeviceAuthorization.Values(
+                    true, com.deepseekharness.app.util.DeviceShellPolicy.Mode.FULL, true));
+    var values = new HashMap<String, Object>();
+    var prefs = preferences(values);
+    var called = new java.util.concurrent.atomic.AtomicBoolean();
+    var grants =
+        new DeviceGrants(
+            prefs,
+            () -> {},
+            () -> {
+              assertFalse(authority.current(old));
+              var during =
+                  authority.snapshot(
+                      () -> {
+                        throw new AssertionError("must not read source during mutation");
+                      });
+              assertEquals(
+                  com.deepseekharness.app.util.DeviceAuthorization.ReadState.CHANGING,
+                  during.state);
+              assertFalse(values.containsKey("sms_read"));
+              called.set(true);
+            });
+    assertTrue(grants.setSmsReadAllowed(true));
+    assertTrue(called.get());
+    assertEquals(Boolean.TRUE, values.get("sms_read"));
+    assertEquals(1, values.size());
+    assertTrue(grants.smsReadAllowed());
+    assertFalse(authority.current(old));
+  }
+
+  @Test
+  public void failedSmsCommitKeepsOriginalReturnAndDoesNotPublishASecondGrant() {
+    var values = new HashMap<String, Object>();
+    var commitsFail = new java.util.concurrent.atomic.AtomicBoolean(true);
+    var grants =
+        new DeviceGrants(
+            preferences(values, new java.util.concurrent.atomic.AtomicBoolean(), commitsFail),
+            () -> {});
+    assertFalse(grants.setSmsReadAllowed(true));
+    // 与既有 SharedPreferences 行为一致：commit 可已更新内存但返回磁盘写入失败。
+    assertEquals(Map.of("sms_read", true), values);
+    assertTrue(grants.smsReadConfigured());
+  }
+
   private static SharedPreferences preferences(Map<String, Object> values) {
     return preferences(
         values,

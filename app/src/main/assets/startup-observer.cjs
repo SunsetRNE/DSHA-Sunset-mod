@@ -32,9 +32,22 @@ const installation = process.env.DSHA_OBSERVER_INSTALL || '/usr/local/lib/node_m
 const plugins = [];
 const moduleOwners = new Map();
 const installedBundles = [];
+const startupManifests = new Map();
+const startupObservedAt = Date.now();
+const startupGeneration = process.env.DSHA_WEB_GENERATION || '';
+const startupInstance = process.env.DSH_TASK_INSTANCE || '';
+let startupManifestBytes = 0;
 const initAttempts = new WeakMap();
 const changedGroups = new Set();
+let observedEntryCount = 0, evidenceTruncated = false;
+// moduleHash 只绑定模块名称；读取 patch 不能证明整个部署的源码内容。
 const moduleHash = name => createHash('sha256').update(name).digest('hex');
+const validEntryId = id => typeof id === 'string' && /^[A-Za-z0-9_$@][A-Za-z0-9_.$:@-]{0,255}$/.test(id);
+const opaqueDisabledOption = Symbol('opaque-disabled-option');
+function disabledOption(entry) {
+  const field = Object.getOwnPropertyDescriptor(entry.options || {}, 'disabled');
+  return !field ? undefined : Object.hasOwn(field, 'value') ? field.value : opaqueDisabledOption;
+}
 const requireAnchors = new Map();
 function requireFrom(anchor) {
   // 固定 anchor 的 require 工厂不随 bundle 改变；仍逐次检查磁盘上的包与补丁。
@@ -63,9 +76,9 @@ function bundleEntries(patches, patchFile, output) {
   const visit = (rows, parentId = '', depth = 0) => {
     if (!Array.isArray(rows) || depth > 32) throw new Error('插件入口结构无法确认');
     for (const row of rows) {
-      if (!row || typeof row !== 'object' || Array.isArray(row) || output.entries.length >= 2048)
-        throw new Error('插件入口结构无法确认');
-      if (typeof row.id !== 'string' || !row.id || row.id.length > 256
+      if (observedEntryCount >= 2048) { evidenceTruncated = true; throw new Error('插件入口结构无法确认'); }
+      if (!row || typeof row !== 'object' || Array.isArray(row)) throw new Error('插件入口结构无法确认');
+      if (!validEntryId(row.id)
           || typeof row.name !== 'string' || !row.name || row.name.length > 4096) {
         output.ambiguous = true; continue;
       }
@@ -73,6 +86,7 @@ function bundleEntries(patches, patchFile, output) {
         ? pathToFileURL(path.resolve(path.dirname(patchFile), row.name)).href : row.name;
       const group = row.group === true || name === 'cordis:group' || name === '@deepseek-ai/cordis-plugin-group';
       output.entries.push({ id: row.id, moduleHash: moduleHash(name), parentId, group });
+      observedEntryCount++;
       // include 的子树不能由该入口 active 推定；未知 group/config 也不做乐观归属。
       if (name === 'cordis:include' || name === '@deepseek-ai/cordis-plugin-include'
           || (row.group != null && typeof row.group !== 'boolean')) output.ambiguous = true;
@@ -82,7 +96,7 @@ function bundleEntries(patches, patchFile, output) {
   for (const patch of parsed) {
     if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new Error('插件补丁结构无法确认');
     if (patch.insert != null) {
-      if (patch.id != null && (typeof patch.id !== 'string' || !patch.id)) output.ambiguous = true;
+      if (patch.id != null && !validEntryId(patch.id)) output.ambiguous = true;
       else visit(patch.insert, patch.id || '');
     } else if (typeof patch.id === 'string' && ('config' in patch || 'group' in patch)) {
       changedGroups.add(patch.id);
@@ -139,15 +153,19 @@ try {
   const doc = readJson(path.join(directory, 'package.json'));
   const bundles = doc.dsh?.profile?.bundles;
   if (!Array.isArray(bundles)) throw new Error('dsh.profile.bundles 必须是插件名称数组');
+  if (bundles.length > 500) evidenceTruncated = true;
   for (const name of bundles.slice(0, 500)) {
     // Upstream skips an unresolvable optional bundle. This metadata observer must not
     // turn that warning into a fatal result before the actual loader can decide.
     if (!validName(name)) { emit('issue', '', '插件清单含无效名称', { fatal: false }); continue; }
-    const evidence = { name, version: '', profile, entries: [], ambiguous: false };
+    const evidence = { name, version: '', profile, entries: [], ambiguous: false,
+      contentFingerprint: '', contentAlgorithm: '', contentReason: 'CONTENT_UNVERIFIED' };
     installedBundles.push(evidence);
     try {
       const resolved = locate(name), root = fs.realpathSync(resolved);
       const pkg = readJson(path.join(root, 'package.json'));
+      startupManifestBytes += Buffer.byteLength(JSON.stringify(pkg));
+      if (startupManifestBytes <= 8 * 1024 * 1024) startupManifests.set(evidence, pkg);
       evidence.version = typeof pkg.version === 'string' && pkg.version.length <= 128 ? pkg.version : '';
       const info = { name, directory: root, url: pathToFileURL(root).href };
       plugins.push(info);
@@ -181,20 +199,104 @@ try {
   emit('stage', '', '加载 DSH 和已启用插件');
 } catch (error) { emit('issue', '', '启动配置检查失败：' + error.message); }
 
+// 只在本次初始化读取小型普通 JSON；不随心跳重读，不导入插件或解释 patch。
+function staticJson(file, optional = false) {
+  let fd;
+  try {
+    fd = fs.openSync(file, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+    const before = fs.fstatSync(fd, { bigint: true });
+    if (!before.isFile() || before.size > 1048576n) throw new Error('METADATA_LIMIT');
+    const text = fs.readFileSync(fd, 'utf8');
+    const after = fs.fstatSync(fd, { bigint: true });
+    const current = fs.lstatSync(file, { bigint: true });
+    if (current.isSymbolicLink() || [after, current].some(row => row.dev !== before.dev || row.ino !== before.ino
+        || row.size !== before.size || row.mtimeNs !== before.mtimeNs || row.ctimeNs !== before.ctimeNs))
+      throw new Error('METADATA_CHANGED');
+    const value = JSON.parse(text);
+    return { value, text };
+  } catch (error) {
+    if (optional && error.code === 'ENOENT') return { value: {}, text: '{}' };
+    throw error;
+  } finally { if (fd !== undefined) fs.closeSync(fd); }
+}
+function unavailableEligibility(bundle, reasonCode = 'PREFLIGHT_UNAVAILABLE') {
+  return { state: 'unknown', reasonCode, evidence: 'UNAVAILABLE', name: bundle.name, version: bundle.version,
+    profile, generation: startupGeneration, instance: startupInstance, observedAt: startupObservedAt,
+    runtimeVersion: '', runtimePlatform: '', versionExempted: false };
+}
+for (const bundle of installedBundles) bundle.eligibility = unavailableEligibility(bundle);
+try {
+  const checker = require(path.join(__dirname, 'plugin-semver.cjs')).dshaCompatibilityReports;
+  const current = installedBundles.filter(bundle => startupManifests.has(bundle));
+  if (typeof checker !== 'function' || startupManifestBytes > 8 * 1024 * 1024) throw new Error('PREFLIGHT_UNAVAILABLE');
+  const stored = staticJson(path.join(directory, 'compatibility.json'), true);
+  // JSON.parse 不拒绝重复键；固定 YAML 的 JSON schema 仅检查普通数据，默认拒绝重复键。
+  if (!yaml) {
+    const boot = requireFrom(path.join(installation, 'package.json')).resolve('@deepseek-ai/dsh-app-boot');
+    yaml = requireFrom(boot)('js-yaml');
+  }
+  yaml.load(stored.text, { schema: yaml.JSON_SCHEMA });
+  const reports = checker({ manifests: current.map(bundle => startupManifests.get(bundle)), exemptions: stored.value,
+    anchors: [path.join(installation, 'package.json'), '/root/dsh-src/package.json'] });
+  if (!Array.isArray(reports) || reports.length !== current.length) throw new Error('PREFLIGHT_CHECK_FAILED');
+  for (let index = 0; index < current.length; index++) {
+    const bundle = current[index], pkg = startupManifests.get(bundle), report = reports[index];
+    if (pkg.name !== bundle.name || pkg.version !== bundle.version || !EXACT_VERSION.test(bundle.version)
+        || !startupGeneration || !startupInstance || report?.runtimePlatform !== process.platform
+        || !EXACT_VERSION.test(report?.installedDsh || '')) {
+      bundle.eligibility = unavailableEligibility(bundle, 'PREFLIGHT_IDENTITY_MISMATCH'); continue;
+    }
+    const codes = { compatible: 'PREFLIGHT_COMPATIBLE', unconstrained: 'PREFLIGHT_UNCONSTRAINED', exempted: 'PREFLIGHT_EXEMPTED',
+      incompatible: 'PLUGIN_INCOMPATIBLE', 'unsupported-platform': 'PLUGIN_UNSUPPORTED_PLATFORM' };
+    if (!Object.hasOwn(codes, report.compatibility)) {
+      bundle.eligibility = unavailableEligibility(bundle, 'PREFLIGHT_CHECK_FAILED'); continue;
+    }
+    bundle.eligibility = { ...unavailableEligibility(bundle), state: report.compatibility,
+      reasonCode: codes[report.compatibility], evidence: 'PREFLIGHT', runtimeVersion: report.installedDsh,
+      runtimePlatform: report.runtimePlatform, versionExempted: report.versionExempted === true };
+  }
+} catch { /* 预检失败只有 unknown，不改变 Loader 或既有启动失败/禁用行为。 */ }
+startupManifests.clear();
+
+let patchChain = { state: 'unavailable', reasonCode: 'PATCH_REGISTRY_UNAVAILABLE', evidence: 'STARTUP_METADATA' };
+try {
+  const registry = staticJson(path.join(__dirname, 'runtime-patches.json')).value;
+  if (!registry || registry.schema !== 1 || !EXACT_VERSION.test(registry.dshVersion || '')
+      || !Array.isArray(registry.active) || registry.active.length > 512
+      || registry.active.some(row => !row || typeof row.asset !== 'string')) {
+    patchChain.reasonCode = 'PATCH_REGISTRY_INVALID';
+  } else {
+    let runtimeVersion = '';
+    try { runtimeVersion = staticJson(path.join(installation, 'package.json')).value.version; } catch {}
+    const required = ['plugin-inventory-entries-patch.json', 'plugin-manager-entries-patch.json',
+      'plugin-inventory-management-patch.json', 'plugin-inventory-management-host-codec-patch.json',
+      'plugin-inventory-management-remote-codec-patch.json', 'plugin-inventory-management-api-codec-patch.json',
+      'plugin-manager-management-probe-patch.json'];
+    if (!EXACT_VERSION.test(runtimeVersion || '')) patchChain.reasonCode = 'PATCH_RUNTIME_UNAVAILABLE';
+    else if (registry.dshVersion !== runtimeVersion)
+      patchChain = { ...patchChain, state: 'mismatch', reasonCode: 'PATCH_VERSION_MISMATCH' };
+    else if (required.some(name => registry.active.filter(row => row.asset === name).length !== 1))
+      patchChain = { ...patchChain, state: 'mismatch', reasonCode: 'PATCH_RECIPE_MISSING' };
+    else patchChain = { ...patchChain, state: 'present-unverified', reasonCode: 'PATCH_PROVENANCE_UNVERIFIED' };
+  }
+} catch { /* 清单不是签名来源证明；缺失、坏类型均不宣称链健康。 */ }
+Object.freeze(patchChain);
+
 // 心跳仅消费这些当前进程元数据；路径、源码、配置和错误正文均不导出。
 // 版本固定在启动时，磁盘升级不能把仍运行的旧 fiber 冒认为新部署版本。
 for (const bundle of installedBundles) {
   if (bundle.entries.some(entry => entry.group && changedGroups.has(entry.id))) bundle.ambiguous = true;
+  Object.freeze(bundle.eligibility);
   bundle.entries.forEach(Object.freeze);
   Object.freeze(bundle.entries); Object.freeze(bundle);
 }
 Object.defineProperty(globalThis, Symbol.for('dsha.installed-plugin-evidence'), { value: Object.freeze({
-  generation: process.env.DSHA_WEB_GENERATION || '', instance: process.env.DSH_TASK_INSTANCE || '',
-  profile, bundles: Object.freeze(installedBundles),
+  generation: startupGeneration, instance: startupInstance,
+  profile, bundles: Object.freeze(installedBundles), truncated: evidenceTruncated, patchChain,
   initState(entry) {
     const attempt = initAttempts.get(entry);
     return attempt && attempt.options === entry.options && attempt.name === entry.options?.name
-      && attempt.disabled === entry.options?.disabled ? attempt.state : '';
+      && attempt.disabled === disabledOption(entry) ? attempt.state : '';
   },
 }) });
 
@@ -212,7 +314,7 @@ try {
   const original = Entry.prototype.init;
   const required = new Set(['agent-loop','webserver','web-runtime','modules','connection','headless-runner','acp','sdk-jsonrpc-server']);
   Entry.prototype.init = function () {
-    const attempt = { options: this.options, name: this.options?.name, disabled: this.options?.disabled,
+    const attempt = { options: this.options, name: this.options?.name, disabled: disabledOption(this),
       fiber: this.fiber, state: 'loading' };
     initAttempts.set(this, attempt);
     const name = entryOwner(this), id = this.options?.name || this.options?.id || '';

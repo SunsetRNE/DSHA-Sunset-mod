@@ -3761,5 +3761,19 @@
   "m9027": "Ocultado dos recentes; a notificação permanente e o serviço em segundo plano não são afetados.",
   "m9028": "Guardado; a ocultação aplica-se no próximo arranque",
   "build335_ui_b8303dd168ef": "Descartar o Web da versão anterior e forçar a parada?",
-  "build335_ui_e74a6f26bca8": "A paragem normal não confirmou a saída da versão anterior. A paragem forçada pode interromper escritas.\\n\\nConfirmar termina primeiro o processo antigo; mudanças de identidade são recusadas; cancelar mantém o estado atual."
+  "build335_ui_e74a6f26bca8": "A paragem normal não confirmou a saída da versão anterior. A paragem forçada pode interromper escritas.\\n\\nConfirmar termina primeiro o processo antigo; mudanças de identidade são recusadas; cancelar mantém o estado atual.",
+  "m9503": "Módulos Root",
+  "m9504": "O Root deste dispositivo só é solicitado após tocar em Ler inventário, para ler os metadados dos módulos dos gerenciadores compatíveis. Versões desconhecidas ou não verificáveis ficam indisponíveis; esta página não altera módulos.",
+  "m9505": "Ler inventário",
+  "m9506": "Ainda não lido",
+  "m9507": "Permita o Root Shell primeiro",
+  "m9508": "A autorização mudou. Verifique novamente.",
+  "m9509": "Versão do gerenciador não compatível ou não verificada",
+  "m9510": "Pasta de módulos ilegível",
+  "m9511": "Resultado desconhecido ou indisponível",
+  "m9512": "Inventário completo",
+  "m9513": "Inventário incompleto",
+  "m9514": "Nenhum módulo",
+  "m9515": "Remoção pendente",
+  "m9516": "Desativado"
 }

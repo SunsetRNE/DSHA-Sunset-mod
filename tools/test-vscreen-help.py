@@ -132,7 +132,7 @@ class VscreenHelpContractTest(unittest.TestCase):
             (work / 'VscreenHelpProbe.java').write_text(PROBE, encoding='utf-8')
             sources = [JAVA / name for name in [
                 'util/HttpProtocol.java', 'util/Ids.java', 'util/VirtualScreenRoutes.java',
-                'util/VscreenBridgeRequest.java', 'util/UiText.java',
+                'util/VscreenBridgeRequest.java', 'util/VscreenActionEvidence.java', 'util/UiText.java',
                 'util/UiLanguagePreference.java', 'util/SystemLanguage.java',
                 'backup/BackupJson.java', 'backup/BackupLimits.java',
             ]]

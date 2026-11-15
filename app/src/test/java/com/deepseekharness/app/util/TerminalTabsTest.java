@@ -5,6 +5,53 @@ import static org.junit.Assert.*;
 
 public class TerminalTabsTest {
   @Test
+  public void finalIdentityCanBePublishedAfterExhaustionButNeverAllocatedAgain() throws Exception {
+    TerminalTabs<String> tabs = new TerminalTabs<>();
+    var next = TerminalTabs.class.getDeclaredField("next");
+    next.setAccessible(true);
+    next.setLong(tabs, Long.MAX_VALUE);
+    var reserved = tabs.reserveIdentity();
+    assertThrows(IllegalStateException.class, () -> tabs.add("must not allocate"));
+    var last = tabs.publish(reserved, "last pending process");
+    assertEquals(Long.MAX_VALUE, last.id);
+    assertEquals(1, last.number);
+    assertThrows(IllegalArgumentException.class, () -> tabs.publish(reserved, "duplicate"));
+    tabs.remove(last.id);
+    assertThrows(IllegalStateException.class, tabs::reserveIdentity);
+    assertTrue(tabs.snapshot().isEmpty());
+    assertEquals(Long.MAX_VALUE, next.getLong(tabs));
+  }
+
+  @Test
+  public void cancelledOrForeignReservationsNeverPublishOrReuseIdentity() {
+    TerminalTabs<String> first = new TerminalTabs<>();
+    TerminalTabs<String> second = new TerminalTabs<>();
+    var cancelled = first.reserveIdentity();
+    first.cancelIdentity(cancelled);
+    assertThrows(IllegalArgumentException.class, () -> first.publish(cancelled, "cancelled"));
+    var pending = first.reserveIdentity();
+    assertThrows(IllegalArgumentException.class, () -> second.publish(pending, "wrong owner"));
+    var real = first.publish(pending, "real");
+    assertEquals(2, real.id);
+    assertEquals(1, real.number);
+    assertEquals(1, second.add("separate type").id);
+  }
+
+  @Test
+  public void concurrentCreationReservationsHaveDistinctIdentityAndPublishNumbersIndependently() {
+    TerminalTabs<String> tabs = new TerminalTabs<>();
+    var older = tabs.reserveIdentity();
+    var newer = tabs.reserveIdentity();
+    var publishedFirst = tabs.publish(newer, "faster start");
+    var publishedSecond = tabs.publish(older, "slower start");
+    assertEquals(2, publishedFirst.id);
+    assertEquals(1, publishedFirst.number);
+    assertEquals(1, publishedSecond.id);
+    assertEquals(2, publishedSecond.number);
+    assertEquals(3, tabs.add("later").id);
+  }
+
+  @Test
   public void visibleNumbersReuseVacanciesWithoutReusingSessionIdentity() {
     TerminalTabs<String> tabs = new TerminalTabs<>();
     var first = tabs.add("one");

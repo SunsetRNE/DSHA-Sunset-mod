@@ -158,6 +158,9 @@ jobs:
             args+=(--require-fixtures)
           fi
           python3 tools/verify-unit-results.py "${args[@]}"
+      - name: Annotate failing unit tests
+        if: failure()
+        run: python3 tools/annotate-junit-failures.py app/build/test-results/testStandardDebugUnitTest
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:

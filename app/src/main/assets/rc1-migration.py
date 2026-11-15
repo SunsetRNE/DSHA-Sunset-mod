@@ -3,6 +3,11 @@
 """rc1 分代保护；宿主状态与用户可导入数据分离，失败不启动有副作用的导入。"""
 import argparse, hashlib, json, os, re, shutil, stat, tempfile, time, traceback, uuid
 from pathlib import Path
+from collections import namedtuple
+
+# 验证与发布共用同一次读取的不可变投影；不携带可再次解释的原始账本正文。
+LedgerEvidence = namedtuple('LedgerEvidence',
+    'state reason generation source_sha startup_id expected expected_source', defaults=(None,) * 5)
 
 # The deployed patch registry supplies the runtime version for new records.
 # Existing migration generations keep their original version and settings ledger.
@@ -114,48 +119,89 @@ def startup_context(generation, startup_id, input_digest, settings_sha, mode):
                 proofDigest=context_proof(generation, input_digest, settings_sha))
 
 
-def ledger_state(folder, doc, startup_id=None):
-    """读取 settings 分节账本，绑定 generation+sourceSha256+逐节终态。
+def reuse_checkpoint(folder):
+    """读取 publish_reuse 写下的宿主小 checkpoint；缺失或损坏一律 None，不新建。"""
+    path = folder / 'reuse.json'
+    try:
+        if not path.is_file() or path.is_symlink(): return None
+        value = read_json(path)
+    except (OSError, ValueError, UnicodeError):
+        return None
+    return value if isinstance(value, dict) else None
 
-    返回 (state, reason)；state ∈ verified / pending / unknown / not-required。
-    startup_id 非空且与账本 startupId 相同时，verified 才能标注为本次写入。
+
+def trusted_expected_sections(names):
+    """期望分节集合的结构校验；非法返回 None，不能当完成证据。"""
+    if not isinstance(names, list): return None
+    if not all(isinstance(name, str) for name in names): return None
+    if len(set(names)) != len(names): return None
+    return set(names)
+
+
+def checkpoint_expected_sections(checkpoint, doc, sha):
+    """checkpoint 只有带 provenance、同代次、同 settings 摘要时才是独立期望集合。
+
+    旧版本曾把 ledger.sections 的当前键回填进 settingsSections；那种无 provenance 的
+    集合只是账本自证，不能当完成证据。
+    """
+    if not isinstance(checkpoint, dict) or not isinstance(sha, str): return None
+    if checkpoint.get('settingsSectionsSource') != 'ledger-expected': return None
+    if checkpoint.get('generation') != doc.get('generation'): return None
+    if checkpoint.get('settingsSha256') != sha: return None
+    return trusted_expected_sections(checkpoint.get('settingsSections'))
+
+
+def ledger_state(folder, doc, startup_id=None, checkpoint=None):
+    """兼容只读调用：状态与发布证据均来自同一投影规则。"""
+    evidence = ledger_evidence(folder, doc, checkpoint)
+    return evidence.state, evidence.reason
+
+
+def ledger_evidence(folder, doc, checkpoint=None):
+    """一次读取并绑定 generation/sourceSha、期望集合、终态与写入启动身份。
+
+    缺失或矛盾只返回 unknown，不给 publisher 可转存的集合；fallback 只使用已验证
+    的同代同来源 checkpoint，不从现存 sections 猜期望集合。
     """
     sha = settings_sha256(doc)
+    generation = doc.get('generation')
     if sha is None and not any(row.get('kind') == 'settings' for row in doc.get('sources', [])):
-        return 'not-required', None
+        return LedgerEvidence('not-required', None, generation, sha)
     path = folder / 'settings-result.json'
     if not path.is_file():
-        return 'unknown', 'SETTINGS_LEDGER_MISSING'
+        return LedgerEvidence('unknown', 'SETTINGS_LEDGER_MISSING')
     try:
         result = read_json(path)
     except (OSError, ValueError, UnicodeError):
-        return 'unknown', 'SETTINGS_LEDGER_UNREADABLE'
+        return LedgerEvidence('unknown', 'SETTINGS_LEDGER_UNREADABLE')
     if not isinstance(result, dict):
-        return 'unknown', 'SETTINGS_LEDGER_FORMAT'
-    if result.get('generation') != doc.get('generation') or result.get('sourceSha256') != sha:
-        return 'unknown', 'SETTINGS_LEDGER_IDENTITY'
+        return LedgerEvidence('unknown', 'SETTINGS_LEDGER_FORMAT')
+    if result.get('generation') != generation or result.get('sourceSha256') != sha:
+        return LedgerEvidence('unknown', 'SETTINGS_LEDGER_IDENTITY')
     sections = result.get('sections')
     if not isinstance(sections, dict):
-        return 'unknown', 'SETTINGS_LEDGER_FORMAT'
+        return LedgerEvidence('unknown', 'SETTINGS_LEDGER_FORMAT')
     states = []
     for value in sections.values():
         state = value.get('status') if isinstance(value, dict) else None
-        if state not in SECTION_STATES: return 'unknown', 'SETTINGS_LEDGER_SECTION'
+        if state not in SECTION_STATES: return LedgerEvidence('unknown', 'SETTINGS_LEDGER_SECTION')
         states.append(state)
     overall = result.get('status')
     if 'unknown' in states or 'writing' in states or overall in ('unknown', 'writing'):
-        return 'unknown', 'SETTINGS_WRITE_OUTCOME_UNKNOWN'
-    expected = result.get('expectedSections')
-    if isinstance(expected, list):
-        # 新账本记录期望分节集合；部分 verified 但集合不全时不能判 verified。
-        if (not all(isinstance(name, str) for name in expected)
-                or len(set(expected)) != len(expected)):
-            return 'unknown', 'SETTINGS_LEDGER_SECTION'
-        if set(sections) != set(expected):
-            return 'unknown', 'SETTINGS_SECTION_MISSING'
-    if overall == 'verified' and all(state == 'verified' for state in states):
-        return 'verified', None
-    return 'pending', None
+        return LedgerEvidence('unknown', 'SETTINGS_WRITE_OUTCOME_UNKNOWN')
+    if 'expectedSections' in result:
+        expected = trusted_expected_sections(result.get('expectedSections'))
+        if expected is None: return LedgerEvidence('unknown', 'SETTINGS_LEDGER_SECTION')
+        expected_source = 'ledger-expected'
+    else:
+        expected = checkpoint_expected_sections(checkpoint, doc, sha)
+        if expected is None: return LedgerEvidence('unknown', 'SETTINGS_EXPECTED_SECTIONS_MISSING')
+        expected_source = 'checkpoint'
+    if set(sections) != expected:
+        return LedgerEvidence('unknown', 'SETTINGS_SECTION_MISSING')
+    state = 'verified' if overall == 'verified' and all(state == 'verified' for state in states) else 'pending'
+    return LedgerEvidence(state, None, generation, sha, result.get('startupId'),
+                          frozenset(expected), expected_source)
 
 
 def import_status(state, scope, ledger_startup_id=None, startup_id=None):
@@ -413,7 +459,7 @@ def prepare(root, state_root=None, startup_id='manual', approved=()):
             return 1
         if prepared.get('protectionComplete') is True and prepared.get('status') == 'prepared':
             # 历史完成的普通启动：只重读小输入与账本身份，不重扫或重新复制历史来源。
-            settings_state, settings_reason = ledger_state(folder, prepared)
+            settings_state, settings_reason = ledger_state(folder, prepared, checkpoint=reuse_checkpoint(folder))
             sha = settings_sha256(prepared)
             # 无论本次是否完成，都把 durable 交接降为 history-only：崩溃残留的
             # write-allowed 票据不能在下一次普通启动继续写配置。
@@ -569,7 +615,7 @@ def prepare(root, state_root=None, startup_id='manual', approved=()):
         return 1
 
 
-def publish_reuse(folder, prepared, current, receipt, active_version):
+def publish_reuse(folder, prepared, current, receipt, active_version, evidence):
     """Bounded host checkpoint; legacy or damaged receipts grant no fast path.
 
     返回诊断字符串（不输出协议回执）；调用方把诊断并入唯一最终结果的 warnings。
@@ -581,19 +627,18 @@ def publish_reuse(folder, prepared, current, receipt, active_version):
     if prepared.get('status') != 'prepared' or prepared.get('protectionComplete') is not True or not same_input(prepared,current): return None
     if receipt.get('status') != 'committed' or any(receipt.get(key) is not True for key in ('sourcePreserved','settingsImported','protectionComplete')): return None
     sha = settings_sha256(prepared)
+    # 只能消费同次验证得到的绑定快照；未知/未完成状态不覆盖任何已有 checkpoint。
+    if not isinstance(evidence, LedgerEvidence) or evidence.state not in ('verified', 'not-required'): return None
+    if evidence.generation != generation or evidence.source_sha != sha: return None
+    if evidence.state == 'verified':
+        # fallback 已验证的旧 checkpoint 就是证据；没有新 ledger.expected 时保持它原样。
+        if evidence.expected_source == 'checkpoint': return None
+        if evidence.expected_source != 'ledger-expected' or evidence.expected is None: return None
     checkpoint = {key:prepared[key] for key in ('version','generation','dshVersion','dshHome','dataRoot','inputs','status','protectionComplete','inputDigest')}
-    # 只读核对 Java 缓存需要的最小业务绑定：账本 generation/sourceSha256 与期望分节集合。
     checkpoint['settingsSha256'] = sha
-    try:
-        ledger = read_json(folder/'settings-result.json') if (folder/'settings-result.json').is_file() else None
-    except (OSError, ValueError, UnicodeError):
-        ledger = None
-    if isinstance(ledger, dict):
-        expected = ledger.get('expectedSections')
-        if isinstance(expected, list) and all(isinstance(name, str) for name in expected):
-            checkpoint['settingsSections'] = sorted(expected)
-        elif isinstance(ledger.get('sections'), dict):
-            checkpoint['settingsSections'] = sorted(ledger['sections'])
+    if evidence.state == 'verified':
+        checkpoint['settingsSections'] = sorted(evidence.expected)
+        checkpoint['settingsSectionsSource'] = 'ledger-expected'
     target = folder/'reuse.json'
     if os.path.lexists(target):
         if target.is_symlink() or not target.is_file(): raise ValueError('REUSE_CHECKPOINT_TYPE')
@@ -632,8 +677,11 @@ def finalize(root, state_root=None, startup_id='manual', approved=()):
     if (isinstance(old, dict) and old.get('status')=='committed' and old.get('version')==2
             and old.get('generation')==current['generation']
             and all(old.get(key) is True for key in ('sourcePreserved','settingsImported','protectionComplete'))):
-        note = publish_reuse(folder,doc,current,old,active_version)
-        settings_state, settings_reason = ledger_state(folder, doc, startup_id)
+        # 先按旧 checkpoint 读账本状态，再发布新 checkpoint：同一次调用里 publish_reuse
+        # 写下的期望集合不能反过来证明本次账本已完成（自证）。
+        evidence = ledger_evidence(folder, doc, reuse_checkpoint(folder))
+        settings_state, settings_reason = evidence.state, evidence.reason
+        note = publish_reuse(folder,doc,current,old,active_version,evidence)
         warnings = ([note] if note else []) + ([settings_reason] if settings_reason else [])
         extra = {'warnings': warnings} if warnings else {}
         emit('finalize', 'historical-complete', generation=current['generation'], cached=True,
@@ -661,14 +709,12 @@ def finalize(root, state_root=None, startup_id='manual', approved=()):
                 warnings.append('SOURCE_IDENTITY_CHANGED:'+row['path']); continue
             if digest(actual)!=row['sha256']: warnings.append('SOURCE_CHANGED:'+row['path'])
         except (OSError,ValueError): warnings.append('SOURCE_MISSING_OR_CHANGED:'+row['path'])
-    settings_state, settings_reason = ledger_state(folder, doc, startup_id)
-    ledger = None
-    try: ledger = read_json(folder/'settings-result.json') if (folder/'settings-result.json').is_file() else None
-    except (OSError, ValueError, UnicodeError): ledger = None
+    evidence = ledger_evidence(folder, doc, reuse_checkpoint(folder))
+    settings_state, settings_reason = evidence.state, evidence.reason
     settings_scope = 'current'
     if settings_state == 'verified':
-        # 账本由本启动的 CJS 导入器写入时，才算本次写后读回；否则只是历史已完成导入。
-        same_startup = isinstance(ledger, dict) and ledger.get('startupId') == startup_id
+        # 写入身份也使用同次账本快照，避免再次读入另一份账本后错标 current。
+        same_startup = evidence.startup_id == startup_id
         import_status_value = 'verified-current' if same_startup else 'verified-historical'
         settings_scope = 'current' if same_startup else 'historical'
     else:
@@ -683,7 +729,7 @@ def finalize(root, state_root=None, startup_id='manual', approved=()):
     receipt=dict(version=2,dshVersion=doc.get('dshVersion'),runtimeDshVersion=active_version,generation=current['generation'],startupId=startup_id,status=status,sourcePreserved=preserved,protectionComplete=preserved,settingsImported=imported,settingsStatus='verified' if imported else settings_state,settingsScope=settings_scope,verificationScope='current',sourceObjectIdentity='unknown',sessionsStatus='preserved-awaiting-runtime-open' if old_sessions else 'no-legacy-input',sessionCompatibilityVerified=False if old_sessions else None,presets=len(doc['presets']),sessions=len(doc['sessions']),warnings=warnings,verifiedAt=int(time.time()))
     write_json(folder/'receipt.json',receipt); write_json(dsh/'.dsha-rc1-migration/receipt.json',receipt)
     if status == 'committed':
-        note = publish_reuse(folder,doc,current,receipt,active_version)
+        note = publish_reuse(folder,doc,current,receipt,active_version,evidence)
         if note and note not in warnings: warnings.append(note)
     emit('finalize', status, generation=current['generation'], cached=False,
          verificationScope='current', contentCopyStatus='verified' if preserved else 'failed',
@@ -727,7 +773,7 @@ def verify_existing(root, state_root=None, startup_id='manual', approved=()):
         stamp = quick(dsh, Resolver(dsh, approved))
         if not same_input(current, stamp): warnings.append('CURRENT_INPUTS_CHANGED')
     except (OSError, ValueError): warnings.append('CURRENT_INPUTS_UNREADABLE')
-    settings_state, settings_reason = ledger_state(folder, doc, startup_id)
+    settings_state, settings_reason = ledger_state(folder, doc, startup_id, reuse_checkpoint(folder))
     if settings_reason and settings_reason not in warnings: warnings.append(settings_reason)
     status = 'historical-complete' if failed == 0 and unknown == 0 and doc.get('protectionComplete') is True else 'unknown'
     copy = 'verified' if status == 'historical-complete' else ('failed' if failed else ('unknown' if unknown else 'unknown'))

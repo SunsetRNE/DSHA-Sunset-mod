@@ -49,7 +49,8 @@ public final class PluginManagementEngine implements AutoCloseable {
         new PluginChangeDetector(
             () -> dispatch(this.repository::invalidateInstalledState),
             this::runtimeChanged,
-            this::readyChanged);
+            this::readyChanged,
+            this::watchCoverageChanged);
     coordinator =
         new Coordinator<>(
             new Backend<PluginBackendAdapter.ResolvedSource>() {
@@ -79,6 +80,7 @@ public final class PluginManagementEngine implements AutoCloseable {
               public void bind(PluginBackendAdapter.ResolvedSource value) {
                 if (repository.registry().updateSource(value.identity)) publishSourceChange();
                 detector.bind(value.observedPaths, value.identity);
+                watchCoverageChanged();
               }
 
               @Override
@@ -99,12 +101,20 @@ public final class PluginManagementEngine implements AutoCloseable {
 
               @Override
               public void projection() {
+                watchCoverageChanged();
                 repository.refreshRuntimeProjection();
+              }
+
+              @Override
+              public void watchCoverage() {
+                var current = detector.coverage();
+                repository.updateWatchCoverage(current.limited, current.reasons);
               }
 
               @Override
               public void observing(boolean value) {
                 detector.foreground(value);
+                watchCoverageChanged();
               }
 
               @Override
@@ -169,9 +179,11 @@ public final class PluginManagementEngine implements AutoCloseable {
   private void readyChanged() {
     dispatch(
         () -> {
-          if (signalController != null
-              && repository.registry().updateWebGeneration(signalController.getWebGeneration()))
-            publishSourceChange();
+          if (signalController != null) {
+            repository.observeMutationIdentity(signalController);
+            if (repository.registry().updateWebGeneration(signalController.getWebGeneration()))
+              publishSourceChange();
+          }
           coordinator.reconcile();
         });
   }
@@ -183,6 +195,10 @@ public final class PluginManagementEngine implements AutoCloseable {
       PluginRepository.State shown = repository.state().getValue();
       repository.publishCatalog(shown == null ? "" : shown.message);
     }
+  }
+
+  private void watchCoverageChanged() {
+    dispatch(() -> coordinator.watchCoverageChanged());
   }
 
   private void runtimeChanged() {
@@ -312,6 +328,8 @@ public final class PluginManagementEngine implements AutoCloseable {
           foreground = false;
           detachSignals();
           repository.setListener(null);
+          detector.foreground(false);
+          watchCoverageChanged();
           coordinator.close();
           detector.close();
           closed = true;
@@ -517,6 +535,8 @@ public final class PluginManagementEngine implements AutoCloseable {
 
     void observing(boolean foreground);
 
+    default void watchCoverage() {}
+
     void unavailable(Exception error);
   }
 
@@ -545,6 +565,11 @@ public final class PluginManagementEngine implements AutoCloseable {
       this.clock = clock;
       this.worker = worker;
       this.main = main;
+    }
+
+    /** 覆盖提示不修改缓存新鲜度，也不成为查询、probe 或运行投影的调度事件。 */
+    void watchCoverageChanged() {
+      if (!closed) backend.watchCoverage();
     }
 
     void ensureLoaded() {

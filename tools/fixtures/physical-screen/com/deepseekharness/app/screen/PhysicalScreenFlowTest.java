@@ -204,7 +204,20 @@ public final class PhysicalScreenFlowTest {
     ownRoot.setPackageName(service.getPackageName());
     com.deepseekharness.app.control.OwnedScreenOverlay.publish("physical-fixture",77,
         new com.deepseekharness.app.util.ScreenWindowRegion.Bounds(5,4,7,5),true);
-    assertFalse(shot().getBoolean("coordinatesAvailable"));
+    // #210 的自有非焦点窗口按实际整窗排除；expanded 标记本身不消除剩余可点面积。
+    JSONObject partialExpanded = shot();
+    assertTrue(partialExpanded.getBoolean("coordinatesAvailable"));
+    assertEquals(3, partialExpanded.getJSONArray("excludedRegions").getJSONObject(0)
+        .getJSONObject("bounds").getInt("left"));
+    // 真实展开面板覆盖完整目标，才会因没有未排除面积而不签发坐标凭据。
+    ((ShadowAccessibilityWindowInfo)Shadow.extract(overlay)).setBoundsInScreen(new Rect(0,0,8,12));
+    com.deepseekharness.app.control.OwnedScreenOverlay.publish("physical-fixture",77,
+        new com.deepseekharness.app.util.ScreenWindowRegion.Bounds(0,0,8,12),true);
+    JSONObject covered = shot();
+    assertFalse(covered.getBoolean("coordinatesAvailable"));
+    assertFalse(covered.has("observationId"));
+    assertEquals("OWNED_CONTROL_COVERS_TARGET", covered.getString("reason"));
+    assertEquals(0,Platform.sends.get());
   }
 
   @Test
@@ -625,6 +638,108 @@ public final class PhysicalScreenFlowTest {
   }
 
   @Test
+  public void treeNodeFrameAndAnchorIdsCannotImpersonatePhysicalPixelObservation() throws Exception {
+    AtomicInteger semanticActions = new AtomicInteger();
+    AccessibilityNodeInfo button = semanticButton(new Rect(2, 4, 6, 8));
+    ((ShadowAccessibilityNodeInfo) Shadow.extract(button)).setOnPerformActionListener(
+        (action, bundle) -> { semanticActions.incrementAndGet(); return true; });
+    for (int kind = 0; kind < 4; kind++) {
+      JSONObject tree = call("tree", new JSONObject(), 2000);
+      String treeId = tree.getString("treeId");
+      String nodeId = tree.getJSONArray("nodes").getJSONObject(0).getString("nodeId");
+      String realPixel = shot().getString("observationId");
+      String foreign = switch (kind) {
+        case 0 -> treeId;
+        case 1 -> nodeId;
+        case 2 -> "17";
+        default -> "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+      };
+      assertNotEquals(realPixel, foreign);
+      JSONObject reply = call("tap", point(foreign)
+          .put("treeId", treeId).put("nodeId", nodeId)
+          .put("frameSeq", 17).put("anchorId", "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), 2000);
+      assertEquals("NOT_SENT", reply.getString("state"));
+      assertEquals("FRAME_NOT_OBSERVED", reply.getString("code"));
+      assertEquals(0, Platform.sends.get());
+      assertEquals(0, Platform.globalActions.get());
+      assertEquals(0, semanticActions.get());
+    }
+  }
+
+  @Test
+  public void missingPixelObservationNeverBorrowsForeignFieldsOrTheLatestStoredScreenshot()
+      throws Exception {
+    AtomicInteger semanticActions = new AtomicInteger();
+    AccessibilityNodeInfo button = semanticButton(new Rect(2, 4, 6, 8));
+    ((ShadowAccessibilityNodeInfo) Shadow.extract(button)).setOnPerformActionListener(
+        (action, bundle) -> { semanticActions.incrementAndGet(); return true; });
+    JSONObject tree = call("tree", new JSONObject(), 2000);
+    assertTrue(shot().has("observationId"));
+    JSONObject reply = call("tap", new JSONObject().put("x", 4).put("y", 6)
+        .put("treeId", tree.getString("treeId"))
+        .put("nodeId", tree.getJSONArray("nodes").getJSONObject(0).getString("nodeId"))
+        .put("coreInstance", "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+        .put("generation", "virtual-generation").put("frameSeq", 17)
+        .put("anchorId", "11111111-2222-3333-4444-555555555555"), 2000);
+    assertEquals("NOT_SENT", reply.getString("state"));
+    assertEquals("FRAME_NOT_OBSERVED", reply.getString("code"));
+    assertEquals(0, Platform.sends.get());
+    assertEquals(0, Platform.globalActions.get());
+    assertEquals(0, semanticActions.get());
+  }
+
+  @Test
+  public void physicalPixelObservationCannotSupplyEitherPartOfANodeLease() throws Exception {
+    AtomicInteger semanticActions = new AtomicInteger();
+    AccessibilityNodeInfo button = semanticButton(new Rect(2, 4, 6, 8));
+    ((ShadowAccessibilityNodeInfo) Shadow.extract(button)).setOnPerformActionListener(
+        (action, bundle) -> { semanticActions.incrementAndGet(); return true; });
+    for (int kind = 0; kind < 3; kind++) {
+      JSONObject tree = call("tree", new JSONObject(), 2000);
+      String treeId = tree.getString("treeId");
+      String nodeId = tree.getJSONArray("nodes").getJSONObject(0).getString("nodeId");
+      String pixelId = shot().getString("observationId");
+      JSONObject args = new JSONObject().put("action", "click").put("observationId", pixelId);
+      if (kind < 2) {
+        args.put("treeId", kind == 0 ? pixelId : treeId);
+        args.put("nodeId", kind == 1 ? pixelId : nodeId);
+      }
+      JSONObject reply = call("node", args, 2000);
+      assertEquals("NOT_SENT", reply.getString("state"));
+      assertEquals("STALE_NODE", reply.getString("code"));
+      assertEquals(0, Platform.sends.get());
+      assertEquals(0, Platform.globalActions.get());
+      assertEquals(0, semanticActions.get());
+    }
+  }
+
+  @Test
+  public void unusedForeignCredentialFieldsDoNotChangeValidPhysicalRequests() throws Exception {
+    AtomicInteger semanticActions = new AtomicInteger();
+    AccessibilityNodeInfo button = semanticButton(new Rect(2, 4, 6, 8));
+    ((ShadowAccessibilityNodeInfo) Shadow.extract(button)).setOnPerformActionListener(
+        (action, bundle) -> { semanticActions.incrementAndGet(); return true; });
+    JSONObject tree = call("tree", new JSONObject(), 2000);
+    JSONObject nodeReply = call("node", new JSONObject()
+        .put("treeId", tree.getString("treeId"))
+        .put("nodeId", tree.getJSONArray("nodes").getJSONObject(0).getString("nodeId"))
+        .put("action", "click").put("observationId", "unused-pixel")
+        .put("frameSeq", 17).put("anchorId", "unused-anchor"), 2000);
+    assertEquals("SCREEN_ACTION_SUBMITTED", nodeReply.getString("code"));
+    assertFalse(nodeReply.getBoolean("effectVerified"));
+    assertEquals(1, semanticActions.get());
+    assertEquals(0, Platform.sends.get());
+    JSONObject pixelReply = call("tap", point(shot().getString("observationId"))
+        .put("treeId", "unused-tree").put("nodeId", "unused-node")
+        .put("frameSeq", 17).put("anchorId", "unused-anchor"), 2000);
+    assertEquals("COMPLETED", pixelReply.getString("state"));
+    assertFalse(pixelReply.getBoolean("automaticRetry"));
+    assertEquals(1, Platform.sends.get());
+    assertEquals(0, Platform.globalActions.get());
+    assertEquals(1, semanticActions.get());
+  }
+
+  @Test
   public void observationCannotCrossPolicyRuntimeWindowOrPackageIdentity() throws Exception {
     String policy = shot().getString("observationId");
     policyRevision++;
@@ -677,6 +792,7 @@ public final class PhysicalScreenFlowTest {
     button.setBoundsInScreen(bounds);
     button.setEnabled(true);
     button.setClickable(true);
+    button.addAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_CLICK);
     ((ShadowAccessibilityNodeInfo) Shadow.extract(button)).setAccessibilityWindowInfo(app);
     ((ShadowAccessibilityNodeInfo) Shadow.extract(root)).addChild(button);
     return button;

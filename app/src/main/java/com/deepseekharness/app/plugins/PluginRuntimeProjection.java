@@ -1,6 +1,8 @@
 package com.deepseekharness.app.plugins;
 
 import com.deepseekharness.app.core.PluginRepository.Item;
+import com.deepseekharness.app.util.PluginEntryView;
+import com.deepseekharness.app.util.PluginRuntimeEvidence;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -61,26 +63,15 @@ public final class PluginRuntimeProjection {
           result.add(item.withRuntime(item.runtimeState, generation, true));
         continue;
       }
-      Item next = stale(item, generation);
+      Item next =
+          stale(
+              item,
+              generation,
+              fresh ? "NO_EVIDENCE" : rejection(activity, generation, instance, now));
       String key = PluginIdentity.key(item.profile, item.name);
       JSONObject observed = ambiguous.contains(key) ? null : installed.get(key);
-      if (observed != null && "application".equals(item.scope)) {
-        String version = observed.optString("version"), state = observed.optString("state");
-        // 历史包装壳只由 patch 插入官方包：快照里的壳版本永远对不上官方包版本，不能据此判旧模块冒充。
-        boolean legacyShim = PluginIdentity.legacyShim(item.name, observed.optString("name"));
-        if (!version.isEmpty()
-            && (legacyShim || version.equals(item.version))
-            && confirmedState(state)) {
-          next = item.withRuntime(state, generation, false);
-          if (!"queued".equals(item.loadState)
-              && ((item.enabled && "loaded".equals(state))
-                  || (!item.enabled && ("unloaded".equals(state) || "disabled".equals(state)))))
-            next = next.withRestartRequired(false);
-        } else if (!version.isEmpty() && !legacyShim && !version.equals(item.version)) {
-          // 当前进程仍持有前一版模块；不能让相同名字替新版领取加载成功。
-          next = item.withRuntime("unknown", generation, true).withRestartRequired(true);
-        }
-      }
+      if (observed != null && "application".equals(item.scope))
+        next = observed(item, observed, generation, instance, now);
       result.add(next);
     }
     if (dynamicKnown) {
@@ -116,21 +107,258 @@ public final class PluginRuntimeProjection {
     return Collections.unmodifiableList(result);
   }
 
+  public static com.deepseekharness.app.util.PluginManagementView management(
+      JSONObject activity, long generation, String instance, long now) {
+    String rejected = rejection(activity, generation, instance, now);
+    if (!rejected.isEmpty())
+      return com.deepseekharness.app.util.PluginManagementView.unknown(rejected);
+    JSONObject service = activity.optJSONObject("management"),
+        patch = activity.optJSONObject("patchChain"),
+        coverage = activity.optJSONObject("coverage");
+    if (service == null && patch == null && coverage == null)
+      return com.deepseekharness.app.util.PluginManagementView.unknown("LEGACY_PROTOCOL");
+    List<String> reasons = null;
+    if (coverage != null && coverage.opt("reasons") instanceof JSONArray values) {
+      reasons = new ArrayList<>();
+      for (int index = 0; index < Math.min(9, values.length()); index++) {
+        Object value = values.opt(index);
+        reasons.add(value instanceof String ? (String) value : "RUNTIME_COVERAGE_UNKNOWN");
+      }
+    }
+    Object limited = coverage == null ? null : coverage.opt("limited");
+    return new com.deepseekharness.app.util.PluginManagementView(
+        service == null ? "unknown" : service.optString("state"),
+        service == null ? "LEGACY_PROTOCOL" : service.optString("reasonCode"),
+        service == null ? "" : service.optString("evidence"),
+        patch == null ? "unknown" : patch.optString("state"),
+        patch == null ? "LEGACY_PROTOCOL" : patch.optString("reasonCode"),
+        patch == null ? "" : patch.optString("evidence"),
+        limited instanceof Boolean ? (Boolean) limited : null,
+        reasons,
+        activity.optLong("at", 0));
+  }
+
+  private static Item observed(
+      Item item, JSONObject row, long generation, String instance, long now) throws Exception {
+    String state = row.optString("state", "unknown");
+    String version = row.optString("version");
+    String reason = "";
+    JSONObject identity = row.optJSONObject("identity");
+    long at = identity == null ? 0 : identity.optLong("observedAt", 0);
+    if (version.isEmpty() || !version.equals(item.version)) reason = "VERSION";
+    else if (identity == null) reason = "LEGACY_EVIDENCE";
+    else
+      reason =
+          PluginRuntimeEvidence.identityRejection(
+              identity.optString("identitySource"),
+              identity.optString("startupId"),
+              identity.optString("generation"),
+              identity.optString("instance"),
+              Long.toString(generation),
+              instance,
+              at,
+              now,
+              MAX_AGE_MILLIS);
+    boolean identityBound = reason.isEmpty();
+    String content =
+        PluginRuntimeEvidence.contentRejection(
+            item.contentAlgorithm,
+            item.contentFingerprint,
+            row.optString("contentAlgorithm"),
+            row.optString("contentFingerprint"));
+    if (reason.isEmpty()) reason = content;
+    JSONArray values = row.optJSONArray("entries");
+    Map<String, JSONObject> entries = new HashMap<>();
+    boolean complete = values != null && values.length() <= 2048 && !row.optBoolean("truncated");
+    if (complete)
+      for (int index = 0; index < values.length(); index++) {
+        JSONObject entry = values.optJSONObject(index);
+        if (entry == null
+            || !(entry.opt("entryId") instanceof String)
+            || entries.put(entry.optString("entryId"), entry) != null) complete = false;
+      }
+    if (!item.entryReadError.isEmpty()
+        || item.entries.isEmpty()
+        || entries.size() != item.entries.size()) complete = false;
+    if (!complete && reason.isEmpty()) reason = "ENTRY_COVERAGE";
+    // 身份/内容属于 bundle 级公共原因；某个 sibling 的条目故障不得传播到其它条目。
+    String bundleReason = reason;
+    List<PluginEntryView> projected = new ArrayList<>();
+    for (PluginEntryView expected : item.entries) {
+      JSONObject entry = complete ? entries.get(expected.entryId) : null;
+      String entryReason = complete ? "" : "ENTRY_COVERAGE";
+      boolean entryIdentityBound = false;
+      String phase = "unknown", diagnostic = "";
+      if (entry != null) {
+        if (!(entry.opt("moduleHash") instanceof String)
+            || !(entry.opt("parentId") instanceof String)
+            || !(entry.opt("group") instanceof Boolean)) entryReason = "ENTRY_WIRE_INVALID";
+        else
+          entryReason =
+              PluginRuntimeEvidence.entryRejection(
+                  expected,
+                  entry.optString("entryId"),
+                  entry.optString("moduleHash"),
+                  entry.optString("parentId"),
+                  entry.optBoolean("group"));
+        entryIdentityBound = entryReason.isEmpty();
+        diagnostic = entry.optString("diagnostic");
+        if (!diagnostic.isEmpty() && !diagnostic.matches("[A-Z0-9_]{1,64}"))
+          diagnostic = "EVIDENCE_INVALID";
+        if (entry.has("phase") && (entry.isNull("phase") || entry.opt("phase") instanceof String)) {
+          phase = entry.isNull("phase") ? null : entry.optString("phase");
+          if (!PluginRuntimeEvidence.knownPhase(phase)) entryReason = "ENTRY_PHASE_UNKNOWN";
+          // null 只表达没有活根；没有匹配的 Loader 或入口缺席不证明已卸载。
+          if (phase == null
+              && !java.util.Set.of("NO_LIVE_ROOT", "ENTRY_DISABLED", "ENTRY_DISPOSED")
+                  .contains(diagnostic)) {
+            entryReason = diagnostic.isEmpty() ? "ENTRY_PHASE_UNKNOWN" : diagnostic;
+            phase = "unknown";
+          }
+        } else entryReason = "ENTRY_PHASE_UNKNOWN";
+      } else if (complete) entryReason = "ENTRY_MISSING";
+      if (!entryReason.isEmpty() || !identityBound) phase = "unknown";
+      if (entryReason.isEmpty()) entryReason = bundleReason;
+      if (reason.isEmpty() && !entryReason.isEmpty()) reason = entryReason;
+      projected.add(
+          expected
+              .withRuntime(phase, diagnostic, entryReason, at)
+              .withManagement(
+                  identityBound
+                          && entryIdentityBound
+                          && entry != null
+                          && Boolean.TRUE.equals(entry.opt("managementReadOnly"))
+                      ? Boolean.TRUE
+                      : null,
+                  identityBound && entryIdentityBound && entry != null
+                      ? entry.optString("managementReadOnlyReason")
+                      : "PROTECTION_UNVERIFIED"));
+    }
+    if (reason.isEmpty() && !confirmedState(state)) reason = "ENTRY_PHASE_UNKNOWN";
+    // 保留原始观察供详情解释；未核验内容/身份时卡片仍显示待核验。
+    String observedState = identityBound && confirmedState(state) ? state : item.runtimeState;
+    Item next =
+        item.withRuntimeEvidence(
+            observedState, generation, !reason.isEmpty(), reason, instance, at, projected);
+    next =
+        next.withManagementEvidence(
+            identityBound && Boolean.TRUE.equals(row.opt("managementReadOnly"))
+                ? Boolean.TRUE
+                : null,
+            identityBound ? row.optString("managementReadOnlyReason") : "PROTECTION_UNVERIFIED",
+            eligibility(
+                item,
+                identityBound ? row.optJSONObject("eligibility") : null,
+                generation,
+                instance,
+                now));
+    if ("VERSION".equals(reason) || "CONTENT_CHANGED".equals(reason))
+      return next.withRuntime("unknown", generation, true).withRestartRequired(true);
+    if (reason.isEmpty()
+        && !"queued".equals(item.loadState)
+        && ((item.enabled && ("loaded".equals(state) || "active".equals(state)))
+            || (!item.enabled && ("unloaded".equals(state) || "disabled".equals(state)))))
+      next = next.withRestartRequired(false);
+    return next;
+  }
+
+  private static JSONObject eligibility(
+      Item item, JSONObject value, long generation, String instance, long now) throws Exception {
+    JSONObject result =
+        new JSONObject().put("state", "unknown").put("reasonCode", "PREFLIGHT_UNAVAILABLE");
+    if (value == null) return result;
+    long observedAt = value.optLong("observedAt", 0);
+    if (!"PREFLIGHT".equals(value.optString("evidence"))
+        || !item.name.equals(value.optString("name"))
+        || !item.version.equals(value.optString("version"))
+        || !item.profile.equals(value.optString("profile"))
+        || !Long.toString(generation).equals(value.optString("generation"))
+        || !instance.equals(value.optString("instance"))
+        || observedAt <= 0
+        || observedAt > now
+        || item.installedDsh.isEmpty()
+        || !item.installedDsh.equals(value.optString("runtimeVersion"))
+        || item.runtimePlatform.isEmpty()
+        || !item.runtimePlatform.equals(value.optString("runtimePlatform")))
+      return result.put("reasonCode", "PREFLIGHT_IDENTITY_MISMATCH");
+    String state = value.optString("state");
+    if (!java.util.Set.of(
+            "unknown",
+            "compatible",
+            "unconstrained",
+            "exempted",
+            "incompatible",
+            "unsupported-platform")
+        .contains(state)) return result;
+    if ("exempted".equals(state) && !Boolean.TRUE.equals(value.opt("versionExempted")))
+      return result;
+    String code = value.optString("reasonCode");
+    return result
+        .put("state", state)
+        .put("reasonCode", code.matches("[A-Z0-9_]{1,64}") ? code : "PREFLIGHT_UNAVAILABLE")
+        .put("observedAt", observedAt);
+  }
+
   /** 同版本同代目录刷新只更新安装事实，不能抹掉上次实际运行证据。 */
   public static Item retainRuntime(Item fresh, Item previous, long generation) throws Exception {
     if (previous == null
         || !fresh.stableKey.equals(previous.stableKey)
         || !fresh.version.equals(previous.version)
         || !fresh.origin.equals(previous.origin)
+        || !fresh.source.equals(previous.source)
+        || !fresh.installedDsh.equals(previous.installedDsh)
+        || !fresh.runtimePlatform.equals(previous.runtimePlatform)
+        || !fresh.patchRevision.equals(previous.patchRevision)
+        || !fresh.contentFingerprint.equals(previous.contentFingerprint)
+        || !fresh.contentAlgorithm.equals(previous.contentAlgorithm)
         || previous.runtimeGeneration != generation)
       return fresh.withRuntime("unknown", generation, true);
-    return fresh.withRuntime(previous.runtimeState, generation, previous.runtimeStale);
+    if (fresh.entries.size() != previous.entries.size())
+      return fresh.withRuntime("unknown", generation, true);
+    for (int index = 0; index < fresh.entries.size(); index++) {
+      PluginEntryView before = previous.entries.get(index);
+      PluginEntryView configuration =
+          new PluginEntryView(
+              before.entryId,
+              before.moduleHash,
+              before.parentId,
+              before.group,
+              before.patchDisabled,
+              before.patchReason);
+      if (!fresh.entries.get(index).contentKey.equals(configuration.contentKey))
+        return fresh.withRuntime("unknown", generation, true);
+    }
+    return fresh.withRuntimeEvidence(
+        previous.runtimeState,
+        generation,
+        previous.runtimeStale,
+        previous.runtimeReason,
+        previous.runtimeInstance,
+        previous.runtimeObservedAt,
+        previous.entries);
   }
 
-  private static Item stale(Item item, long generation) throws Exception {
-    if (item.runtimeGeneration != generation)
-      return item.withRuntime("unknown", generation, true).withRestartRequired(false);
-    return item.withRuntime(item.runtimeState, generation, true);
+  private static Item stale(Item item, long generation, String reason) throws Exception {
+    List<PluginEntryView> entries = new ArrayList<>();
+    for (var entry : item.entries)
+      entries.add(
+          entry
+              .withRuntime(
+                  item.runtimeGeneration == generation ? entry.runtimePhase : "unknown",
+                  entry.runtimeDiagnostic,
+                  reason,
+                  entry.runtimeObservedAt)
+              .withManagement(null, "PROTECTION_UNVERIFIED"));
+    return item.withRuntimeEvidence(
+            item.runtimeGeneration == generation ? item.runtimeState : "unknown",
+            generation,
+            true,
+            reason,
+            item.runtimeInstance,
+            item.runtimeObservedAt,
+            entries)
+        .withRestartRequired(item.runtimeGeneration == generation && item.restartRequired)
+        .withManagementEvidence(null, "PROTECTION_UNVERIFIED", null);
   }
 
   private static boolean valid(JSONObject activity, long generation, String instance, long now) {
@@ -156,7 +384,16 @@ public final class PluginRuntimeProjection {
 
   private static boolean confirmedState(String value) {
     return switch (value) {
-      case "loaded", "failed", "loading", "pending", "waiting", "unloaded", "disabled" -> true;
+      case "loaded",
+              "active",
+              "failed",
+              "loading",
+              "unloading",
+              "pending",
+              "waiting",
+              "unloaded",
+              "disabled" ->
+          true;
       default -> false;
     };
   }

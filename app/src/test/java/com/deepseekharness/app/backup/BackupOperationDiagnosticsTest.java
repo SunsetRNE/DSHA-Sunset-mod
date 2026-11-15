@@ -115,6 +115,19 @@ public final class BackupOperationDiagnosticsTest {
   }
 
   @Test
+  public void planViewReceiptIsReportedAsMarkerAndGateErrorsStayWhitelisted() throws Exception {
+    File files = temporary.newFolder();
+    File job = job(files, false, ID, "FAILED_RETAINED", "PLAN_VIEW_DIVERGENT", 1000);
+    Files.writeString(new File(job, "plan-view.json").toPath(), SECRET);
+    String report = BackupOperationDiagnostics.describe(new ReadOnlyFs(), files);
+    // A3 slice3：闸门错误码与回执标记都是加法；回执内容仍不进入报告。
+    assertTrue(report.contains("error=PLAN_VIEW_DIVERGENT"));
+    assertTrue(report.contains("stage=FAILED_RETAINED"));
+    assertTrue(report.contains("planView=FILE:" + SECRET.length()));
+    assertFalse(report.contains(SECRET));
+  }
+
+  @Test
   public void malformedPreviousDoesNotHideCurrentFactsOrReadOtherFiles() throws Exception {
     File files = temporary.newFolder();
     File job = job(files, true, ID, "FAILED", "IO_FAILURE", 1);

@@ -2,6 +2,7 @@ package com.deepseekharness.app.plugins;
 
 import com.deepseekharness.app.core.PluginRepository.Item;
 import com.deepseekharness.app.core.PluginRepository.PendingReview;
+import com.deepseekharness.app.util.PluginMutationTickets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -58,6 +59,8 @@ public final class PluginRegistry {
   }
 
   private long sourceEpoch, nextQueryId;
+  private final PluginMutationTickets<PluginSourceIdentity> mutations =
+      new PluginMutationTickets<>();
   private Query activeQuery;
   private volatile Snapshot current =
       new Snapshot(
@@ -105,6 +108,7 @@ public final class PluginRegistry {
             retained,
             sameData ? old.pendingReviews : Collections.emptyList(),
             sameData && old.safeMode);
+    mutations.observeSource(source, sourceEpoch);
     return true;
   }
 
@@ -122,6 +126,82 @@ public final class PluginRegistry {
             source.rootfsDevice,
             source.runtimeMarkerSha256,
             generation));
+  }
+
+  /** 入队时只使用已观察来源；停止过渡中不为其他请求补发凭据。 */
+  public synchronized PluginMutationTickets.Ticket<PluginSourceIdentity> issueMutation(
+      PluginMutationTickets.Web web) {
+    mutations.observeWeb(web);
+    if (mutations.stopping()) return null;
+    if (current.source == null || current.source.webGeneration != web.generation) return null;
+    return mutations.issue();
+  }
+
+  public synchronized void observeMutationWeb(PluginMutationTickets.Web web) {
+    mutations.observeWeb(web);
+  }
+
+  public synchronized void observeMutationWebEvent(PluginMutationTickets.Web web) {
+    mutations.observeWebEvent(web);
+  }
+
+  public synchronized boolean claimMutation(
+      PluginMutationTickets.Ticket<PluginSourceIdentity> ticket,
+      PluginSourceIdentity source,
+      PluginMutationTickets.Web web) {
+    mutations.observeWeb(web);
+    return source != null
+        && Objects.equals(current.source, source)
+        && source.webGeneration == web.generation
+        && mutations.claim(ticket);
+  }
+
+  public synchronized boolean validateMutation(
+      PluginMutationTickets.Ticket<PluginSourceIdentity> ticket,
+      PluginSourceIdentity source,
+      PluginMutationTickets.Web web) {
+    mutations.observeWeb(web);
+    return source != null
+        && Objects.equals(current.source, source)
+        && source.webGeneration == web.generation
+        && mutations.active(ticket);
+  }
+
+  public synchronized PluginMutationTickets.Stop<PluginSourceIdentity> armMutationStop(
+      PluginMutationTickets.Ticket<PluginSourceIdentity> ticket,
+      PluginSourceIdentity source,
+      PluginMutationTickets.Web web,
+      long cancellationRevision,
+      boolean ownsExclusive) {
+    if (!validateMutation(ticket, source, web) || source.webGeneration == Long.MAX_VALUE)
+      return null;
+    return mutations.armStop(
+        ticket,
+        source.withWebGeneration(source.webGeneration + 1),
+        cancellationRevision,
+        ownsExclusive);
+  }
+
+  public synchronized PluginMutationTickets.Ticket<PluginSourceIdentity> finishMutationStop(
+      PluginMutationTickets.Stop<PluginSourceIdentity> stop,
+      PluginSourceIdentity source,
+      PluginMutationTickets.Web web,
+      long cancellationRevision,
+      boolean maintenanceOwner) {
+    if (!mutations.canFinish(stop, source, web, cancellationRevision, maintenanceOwner))
+      return null;
+    updateSource(source);
+    return mutations.finishStop(stop, source, web, cancellationRevision, maintenanceOwner);
+  }
+
+  public synchronized void abortMutationStop(
+      PluginMutationTickets.Stop<PluginSourceIdentity> stop) {
+    mutations.abortStop(stop);
+  }
+
+  public synchronized void closeMutation(
+      PluginMutationTickets.Ticket<PluginSourceIdentity> ticket) {
+    mutations.close(ticket);
   }
 
   public synchronized long invalidate() {
@@ -292,7 +372,15 @@ public final class PluginRegistry {
       if (runtime != null) {
         if (runtime.runtimeGeneration != -1 && runtime.runtimeGeneration != source.webGeneration)
           return false;
-        if (!item.version.equals(runtime.version) || !item.origin.equals(runtime.origin)) {
+        if (!item.version.equals(runtime.version)
+            || !item.origin.equals(runtime.origin)
+            || !item.source.equals(runtime.source)
+            || !item.patchRevision.equals(runtime.patchRevision)
+            || !item.contentFingerprint.equals(runtime.contentFingerprint)
+            || !item.contentAlgorithm.equals(runtime.contentAlgorithm)
+            || !item.installedDsh.equals(runtime.installedDsh)
+            || !item.runtimePlatform.equals(runtime.runtimePlatform)
+            || !item.sameEntryConfiguration(runtime)) {
           next.add(item);
           continue;
         }
@@ -306,13 +394,7 @@ public final class PluginRegistry {
                       && ("unloaded".equals(runtime.runtimeState)
                           || "disabled".equals(runtime.runtimeState)))) restartRequired = false;
         }
-        next.add(
-            withRuntime(
-                item,
-                runtime.runtimeState,
-                runtime.runtimeGeneration,
-                runtime.runtimeStale,
-                restartRequired));
+        next.add(withRuntimeEvidence(item, runtime, restartRequired));
       } else next.add(item);
     }
     // 心跳不能凭空发现新的持久安装；仍须完整目录查询确认。
@@ -335,12 +417,36 @@ public final class PluginRegistry {
     return true;
   }
 
+  private static Item withRuntimeEvidence(Item item, Item runtime, boolean restartRequired) {
+    try {
+      return item.withRuntimeEvidence(
+              runtime.runtimeState,
+              runtime.runtimeGeneration,
+              runtime.runtimeStale,
+              runtime.runtimeReason,
+              runtime.runtimeInstance,
+              runtime.runtimeObservedAt,
+              runtime.entries)
+          .withRestartRequired(restartRequired)
+          .withManagementEvidence(
+              runtime.managementReadOnly,
+              runtime.managementReadOnlyReason,
+              runtime.startupEligibilitySnapshot());
+    } catch (Exception invalid) {
+      throw new IllegalStateException("PLUGIN_RUNTIME_PROJECTION", invalid);
+    }
+  }
+
   private static Item withRuntime(
       Item item, String state, long generation, boolean stale, boolean restartRequired) {
     if (state.equals(item.runtimeState)
         && generation == item.runtimeGeneration
         && stale == item.runtimeStale
-        && restartRequired == item.restartRequired) return item;
+        && restartRequired == item.restartRequired
+        && item.managementReadOnly == null
+        && item.eligibilityObservedAt == 0
+        && item.entries.stream().noneMatch(entry -> Boolean.TRUE.equals(entry.managementReadOnly)))
+      return item;
     try {
       return item.withRuntime(state, generation, stale).withRestartRequired(restartRequired);
     } catch (Exception invalid) {

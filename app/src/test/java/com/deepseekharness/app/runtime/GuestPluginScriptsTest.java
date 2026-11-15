@@ -381,6 +381,10 @@ public class GuestPluginScriptsTest {
             calls.add("assets");
           }
 
+          public void bindMigrationHistory(Rc1MigrationCache.Reuse reuse, String startupId) {
+            assertEquals("startup", startupId);
+          }
+
           public Rc1MigrationCache.Reuse reusableMigration() {
             return Rc1MigrationCache.Reuse.history(
                 generation,
@@ -428,7 +432,15 @@ public class GuestPluginScriptsTest {
 
   private static final class MutablePreparation implements GuestPluginScripts.Preparation {
     Rc1MigrationCache.Reuse reuse = Rc1MigrationCache.Reuse.absent();
+    String boundStartup;
+    boolean handoffFails;
     final List<String> calls = new ArrayList<>();
+
+    public void bindMigrationHistory(Rc1MigrationCache.Reuse value, String startupId)
+        throws IOException {
+      if (handoffFails) throw new IOException("READBACK_FAILED");
+      boundStartup = startupId;
+    }
 
     public boolean environmentReady() {
       return true;
@@ -477,6 +489,7 @@ public class GuestPluginScriptsTest {
               return null;
             });
     assertEquals(0, scripts.migration("prepare", "startup").exitCode);
+    assertEquals("startup", preparation.boundStartup);
     preparation.reuse = Rc1MigrationCache.Reuse.unavailable("SETTINGS_LEDGER_MISSING");
     var unknown = scripts.migration("finalize", "startup");
     var receipt = com.deepseekharness.app.util.Rc1MigrationResult.parse(unknown.output);
@@ -486,6 +499,34 @@ public class GuestPluginScriptsTest {
     assertFalse(com.deepseekharness.app.util.Rc1MigrationResult.allowsStart(receipt));
     assertFalse(com.deepseekharness.app.util.Rc1MigrationResult.isRoutineReceipt(receipt));
     assertTrue(calls.isEmpty());
+    assertTrue(preparation.calls.isEmpty());
+  }
+
+  @Test
+  public void cacheHandoffFailureCannotAllowStartOrDispatchGuest() throws Exception {
+    var preparation = new MutablePreparation();
+    preparation.reuse =
+        Rc1MigrationCache.Reuse.history(
+            java.util.UUID.randomUUID().toString(),
+            "verified-historical",
+            "a".repeat(64),
+            "d".repeat(64),
+            null,
+            "0.2.2-rc.1",
+            java.util.Map.of("settings.yaml", "a".repeat(64)));
+    preparation.handoffFails = true;
+    var scripts =
+        new GuestPluginScripts(
+            preparation,
+            (command, timeout) -> {
+              throw new AssertionError("交接失败不可重派 guest");
+            });
+    var result =
+        com.deepseekharness.app.util.Rc1MigrationResult.parse(
+            scripts.migration("prepare", "second-startup").output);
+    assertEquals("unknown", result.get("status"));
+    assertEquals("MIGRATION_HISTORY_HANDOFF_UNVERIFIED", result.get("reason"));
+    assertFalse(com.deepseekharness.app.util.Rc1MigrationResult.allowsStart(result));
     assertTrue(preparation.calls.isEmpty());
   }
 

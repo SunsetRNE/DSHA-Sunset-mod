@@ -39,7 +39,8 @@ public class DeviceBridgeService extends Service {
 
   /** Fence delayed ADB probes and accessibility repair before an off/on change is published. */
   public static void adbIntentChanging() {
-    ADB_INTENT_EPOCH.incrementAndGet();
+    long epoch = ADB_INTENT_EPOCH.incrementAndGet();
+    CONNECTION_FACTS.invalidate(epoch);
     com.deepseekharness.app.screen.AccessibilityRepairOwner.cancel(
         com.deepseekharness.app.util.AccessibilityRepairState.CancelCause.ADB_INTENT_CHANGED);
   }
@@ -109,14 +110,62 @@ public class DeviceBridgeService extends Service {
   public static volatile String adbState = "unknown";
   public static volatile String adbDetail = "";
 
+  private static final com.deepseekharness.app.util.DeviceChannelFacts.ConnectionLedger
+      CONNECTION_FACTS = new com.deepseekharness.app.util.DeviceChannelFacts.ConnectionLedger();
+
+  /** 状态页只读消费同实例探活记录；文案 connected 不构成鉴权或实际 UID 证据。 */
+  public static com.deepseekharness.app.util.DeviceChannelFacts channelFacts(Context ctx) {
+    var authority = com.deepseekharness.app.core.ConfigStore.deviceAuthorization(ctx);
+    DeviceBridgeService owner = current;
+    long intentEpoch = ADB_INTENT_EPOCH.get();
+    var proof =
+        owner == null ? null : CONNECTION_FACTS.observe(owner.serviceInstanceId, intentEpoch);
+    boolean authorityCurrent =
+        com.deepseekharness.app.util.DeviceAuthorization.shared().current(authority);
+    boolean currentProof =
+        owner != null
+            && owner == current
+            && owner.running
+            && intentEpoch == ADB_INTENT_EPOCH.get()
+            && authorityCurrent
+            && CONNECTION_FACTS.current(proof);
+    var evidence =
+        currentProof
+            ? proof.evidence()
+            : com.deepseekharness.app.util.DeviceChannelFacts.ConnectionEvidence.UNVERIFIED;
+    boolean connected = currentProof && proof.connected();
+    return new com.deepseekharness.app.util.DeviceChannelFacts(
+        com.deepseekharness.app.util.DeviceChannelFacts.Channel.ADB,
+        authorityCurrent && authority.adbAllowed(),
+        connected,
+        currentProof
+            && evidence
+                == com.deepseekharness.app.util.DeviceChannelFacts.ConnectionEvidence.AUTHENTICATED,
+        false,
+        connected,
+        evidence,
+        false,
+        com.deepseekharness.app.util.DeviceChannelFacts.UNKNOWN_UID,
+        false,
+        currentProof
+            ? proof.observedAtMillis()
+            : com.deepseekharness.app.util.DeviceChannelFacts.UNKNOWN_OBSERVED_AT_MILLIS,
+        authority.revision);
+  }
+
   public static boolean isAdbEnabled(Context ctx) {
-    return ctx.getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE)
-        .getBoolean("adb_enabled", false);
+    return com.deepseekharness.app.core.ConfigStore.deviceAuthorization(ctx).adbAllowed();
+  }
+
+  private static void unverifyCurrentFacts() {
+    DeviceBridgeService owner = current;
+    if (owner != null) CONNECTION_FACTS.disconnect(owner.serviceInstanceId);
   }
 
   public static boolean apply(Context ctx) {
     if (!isAdbEnabled(ctx)) return false;
     if (!com.deepseekharness.app.bridge.LocalNetworkAccess.granted(ctx)) {
+      unverifyCurrentFacts();
       adbState = "permission_required";
       adbDetail = com.deepseekharness.app.util.UiText.text("ADB 等待局域网授权：请到设备能力授权页开启并授权");
       return false;
@@ -132,12 +181,14 @@ public class DeviceBridgeService extends Service {
       return true;
     } catch (IllegalStateException e) {
       // Android 12+ 后台启动限制也属于此类；等用户回到前台再恢复。
+      unverifyCurrentFacts();
       adbState = com.deepseekharness.app.util.UiText.text("ADB 保活待恢复：请回到 DSHA");
       Log.w(
           "DSHA",
           com.deepseekharness.app.util.UiText.format(
               "后台暂不能启动 ADB 保活: %s", e.getClass().getSimpleName()));
     } catch (RuntimeException e) {
+      unverifyCurrentFacts();
       adbState = com.deepseekharness.app.util.UiText.text("ADB 保活启动失败：请在设备能力授权页重试");
       Log.w(
           "DSHA",
@@ -163,6 +214,8 @@ public class DeviceBridgeService extends Service {
 
   /** 配对页的验证结果与设备能力授权页使用同一状态命名。 */
   public static void recordPairResult(Context ctx, AdbResult.PairState result, String output) {
+    // 配对页没有本服务的原 probe 身份；无论文案结果如何，都不能沿用旧 proof。
+    unverifyCurrentFacts();
     adbState =
         result == AdbResult.PairState.CONNECTED
             ? "connected"
@@ -186,6 +239,7 @@ public class DeviceBridgeService extends Service {
     super.onCreate();
     current = this;
     running = true;
+    CONNECTION_FACTS.activate(serviceInstanceId, ADB_INTENT_EPOCH.get());
     createChannel();
     try {
       if (android.os.Build.VERSION.SDK_INT >= 34)
@@ -198,6 +252,7 @@ public class DeviceBridgeService extends Service {
             WATCH_NOTIF_ID,
             buildNotification(com.deepseekharness.app.util.UiText.text("ADB 通道保活中")));
     } catch (RuntimeException error) {
+      CONNECTION_FACTS.disconnect(serviceInstanceId);
       adbState = com.deepseekharness.app.util.UiText.text("ADB 保活未获系统允许，请回到 DSHA 重试");
       stopSelf();
       return;
@@ -231,6 +286,7 @@ public class DeviceBridgeService extends Service {
   @Override
   public void onDestroy() {
     running = false;
+    CONNECTION_FACTS.retire(serviceInstanceId);
     com.deepseekharness.app.screen.AccessibilityRepairOwner.deviceStopped(serviceInstanceId);
     releaseBridge();
     if (probeThread != null) probeThread.interrupt();
@@ -570,9 +626,17 @@ public class DeviceBridgeService extends Service {
       String detail, String authenticatedProbe, long probeIntentEpoch, long repairIntentEpoch) {
     if (!probeCurrent(probeIntentEpoch)) return;
     consecutiveFailures = 0;
+    boolean authenticated = authenticatedProbe != null && AdbResult.shellReady(authenticatedProbe);
+    if (!CONNECTION_FACTS.publish(
+        serviceInstanceId,
+        probeIntentEpoch,
+        authenticated
+            ? com.deepseekharness.app.util.DeviceChannelFacts.ConnectionEvidence.AUTHENTICATED
+            : com.deepseekharness.app.util.DeviceChannelFacts.ConnectionEvidence.TCP_REACHABLE,
+        android.os.SystemClock.elapsedRealtime())) return;
     setAdbState("connected", detail);
     // TCP reachability is never accepted as authenticated permission to alter system settings.
-    if (authenticatedProbe != null && AdbResult.shellReady(authenticatedProbe)) {
+    if (authenticated) {
       com.deepseekharness.app.screen.AccessibilityRepairOwner.afterAuthenticatedProbe(
           this,
           serviceInstanceId,
@@ -652,6 +716,7 @@ public class DeviceBridgeService extends Service {
 
   private void setAdbState(String state, String detail) {
     if (!running || current != this) return; // 服务停止后的迟到回调不能覆盖新实例状态。
+    if (!"connected".equals(state)) CONNECTION_FACTS.disconnect(serviceInstanceId);
     adbState = state;
     adbDetail = detail == null ? "" : detail;
     // 连续失败后自动留证（限频），卡死后重启手机也能看到当时的通道与进程状态。

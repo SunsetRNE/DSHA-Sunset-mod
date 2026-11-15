@@ -257,6 +257,192 @@ public class RetainedCatalogueTest {
     assertNotNull(catalog.sources(entry));
   }
 
+  @Test
+  public void missingExpectedEvidenceIsUnknownWithReasonAndStillReadOnlyExportable()
+      throws Exception {
+    Map<String, Object> ledger = retainedLedger();
+    var entry = retainedMigration(ledger, null);
+    assertUnknown(entry, "SETTINGS_EXPECTED_SECTIONS_MISSING");
+    assertEquals("READ_ONLY_RESCUE_NO_AUTOMATIC_DELETION", entry.protection);
+    File original =
+        new File(entry.directory, "generations/" + RETAINED_GENERATION + "/settings-result.json");
+    byte[] before = Files.readAllBytes(original.toPath());
+    var catalog = new RetainedCatalogue(fs, temp.getRoot(), new File(temp.getRoot(), "home"));
+    var source = catalog.sources(catalog.resolve(entry.key())).get(0);
+    assertEquals("settings", source.scope());
+    assertEquals("migration-record", source.description().get("logicalKind"));
+    List<String> names = new ArrayList<>();
+    source.walk(
+        item -> {
+          names.add(item.path);
+          if (item.kind.equals("FILE"))
+            try (InputStream input = source.open(item)) {
+              assertTrue(input.readAllBytes().length > 0);
+            }
+        },
+        new BackupControl(null));
+    assertTrue(names.contains("generations/" + RETAINED_GENERATION + "/settings-result.json"));
+    assertArrayEquals(before, Files.readAllBytes(original.toPath()));
+    put("home/.dsha-rc1-migration/receipt.json", "{\"status\":\"committed\"}");
+    assertEquals("HISTORICAL_COMMITTED", migration(catalog, ".dsha-rc1-migration").status);
+    assertUnknown(migration(catalog, "rc1-migration-state"), "SETTINGS_EXPECTED_SECTIONS_MISSING");
+  }
+
+  @Test
+  public void checkpointWithoutProvenanceCannotClaimHistoricalCompletion() throws Exception {
+    var checkpoint = retainedCheckpoint();
+    checkpoint.remove("settingsSectionsSource");
+    assertUnknown(
+        retainedMigration(retainedLedger(), checkpoint), "SETTINGS_EXPECTED_SECTIONS_MISSING");
+  }
+
+  @Test
+  public void checkpointMustBindBothGenerationAndSourceSha() throws Exception {
+    for (var change :
+        Map.of("generation", UUID.randomUUID().toString(), "settingsSha256", "b".repeat(64))
+            .entrySet()) {
+      var checkpoint = retainedCheckpoint();
+      checkpoint.put(change.getKey(), change.getValue());
+      assertUnknown(
+          retainedMigration(retainedLedger(), checkpoint), "SETTINGS_EXPECTED_SECTIONS_MISSING");
+    }
+  }
+
+  @Test
+  public void malformedExpectedSectionsCannotUseOtherwiseTrustedCheckpoint() throws Exception {
+    for (Object malformed :
+        new Object[] {
+          null, "first", List.of("first", "first"), List.of("first", 1), Map.of("first", true)
+        }) {
+      var ledger = retainedLedger();
+      ledger.put("expectedSections", malformed);
+      assertUnknown(retainedMigration(ledger, retainedCheckpoint()), "SETTINGS_LEDGER_SECTION");
+    }
+  }
+
+  @Test
+  public void expectedCollectionMustMatchAllLedgerSections() throws Exception {
+    for (List<String> expected : List.of(List.of("first", "second"), List.<String>of())) {
+      var ledger = retainedLedger();
+      ledger.put("expectedSections", expected);
+      assertUnknown(retainedMigration(ledger, retainedCheckpoint()), "SETTINGS_LEDGER_INCOMPLETE");
+    }
+  }
+
+  @Test
+  public void validLedgerExpectedCollectionDoesNotRequireCheckpoint() throws Exception {
+    var ledger = retainedLedger();
+    ledger.put("expectedSections", List.of("first"));
+    assertEquals("HISTORICAL_COMMITTED", retainedMigration(ledger, null).status);
+  }
+
+  @Test
+  public void matchingProvenanceCheckpointSuppliesLegacyExpectedCollection() throws Exception {
+    var checkpoint = retainedCheckpoint();
+    var entry = retainedMigration(retainedLedger(), checkpoint);
+    assertEquals("HISTORICAL_COMMITTED", entry.status);
+    assertEquals(
+        checkpoint,
+        backupJson(
+            new File(entry.directory, "generations/" + RETAINED_GENERATION + "/reuse.json")));
+  }
+
+  @Test
+  public void ledgerIdentityAndUnknownSectionStateHaveReasons() throws Exception {
+    for (var change :
+        Map.of("generation", UUID.randomUUID().toString(), "sourceSha256", "b".repeat(64))
+            .entrySet()) {
+      var ledger = retainedLedger();
+      ledger.put("expectedSections", List.of("first"));
+      ledger.put(change.getKey(), change.getValue());
+      assertUnknown(retainedMigration(ledger, retainedCheckpoint()), "SETTINGS_LEDGER_IDENTITY");
+    }
+    for (String state : List.of("writing", "unknown", "unexpected")) {
+      var ledger = retainedLedger();
+      ledger.put("expectedSections", List.of("first"));
+      ledger.put("sections", Map.of("first", Map.of("status", state)));
+      assertUnknown(retainedMigration(ledger, retainedCheckpoint()), "SETTINGS_LEDGER_UNKNOWN");
+    }
+  }
+
+  @Test
+  public void fullPendingOrConflictLedgerRemainsPendingRetry() throws Exception {
+    for (String state : List.of("pending", "conflict")) {
+      var ledger = retainedLedger();
+      ledger.put("expectedSections", List.of("first"));
+      ledger.put("sections", Map.of("first", Map.of("status", state)));
+      assertEquals("PENDING_RETRY", retainedMigration(ledger, retainedCheckpoint()).status);
+    }
+  }
+
+  @Test
+  public void noSettingsInputDoesNotRequireLedgerEvidence() throws Exception {
+    var entry = retainedMigration(retainedLedger(), null);
+    put(
+        "rc1-migration-state/current.json",
+        json(Map.of("version", 2L, "generation", RETAINED_GENERATION, "inputs", Map.of())));
+    var catalog = new RetainedCatalogue(fs, temp.getRoot(), new File(temp.getRoot(), "home"));
+    assertEquals("HISTORICAL_COMMITTED", migration(catalog, "rc1-migration-state").status);
+    assertNotNull(catalog.sources(entry));
+  }
+
+  private static final String RETAINED_GENERATION = "01234567-89ab-cdef-0123-456789abcdef";
+  private static final String RETAINED_SHA = "a".repeat(64);
+
+  private static Map<String, Object> retainedLedger() {
+    return new LinkedHashMap<>(
+        Map.of(
+            "generation",
+            RETAINED_GENERATION,
+            "sourceSha256",
+            RETAINED_SHA,
+            "status",
+            "verified",
+            "sections",
+            Map.of("first", Map.of("status", "verified"))));
+  }
+
+  private static Map<String, Object> retainedCheckpoint() {
+    return new LinkedHashMap<>(
+        Map.of(
+            "generation",
+            RETAINED_GENERATION,
+            "settingsSha256",
+            RETAINED_SHA,
+            "settingsSectionsSource",
+            "ledger-expected",
+            "settingsSections",
+            List.of("first")));
+  }
+
+  private RetainedCatalogue.Entry retainedMigration(
+      Map<String, Object> ledger, Map<String, Object> checkpoint) throws Exception {
+    put(
+        "rc1-migration-state/current.json",
+        json(
+            Map.of(
+                "version",
+                2L,
+                "generation",
+                RETAINED_GENERATION,
+                "inputs",
+                Map.of("settings.yaml", RETAINED_SHA))));
+    String folder = "rc1-migration-state/generations/" + RETAINED_GENERATION + "/";
+    put(
+        folder + "receipt.json",
+        json(Map.of("version", 2L, "generation", RETAINED_GENERATION, "status", "committed")));
+    put(folder + "settings-result.json", json(ledger));
+    if (checkpoint != null) put(folder + "reuse.json", json(checkpoint));
+    return migration(
+        new RetainedCatalogue(fs, temp.getRoot(), new File(temp.getRoot(), "home")),
+        "rc1-migration-state");
+  }
+
+  private static void assertUnknown(RetainedCatalogue.Entry entry, String reason) {
+    assertEquals(reason, "UNKNOWN", entry.status);
+    assertTrue(entry.displayName, entry.displayName.contains(reason));
+  }
+
   private static RetainedCatalogue.Entry migration(RetainedCatalogue catalog, String directory)
       throws Exception {
     return catalog.list().stream()
@@ -308,7 +494,7 @@ public class RetainedCatalogueTest {
               + sha
               + "\",\"startupId\":\""
               + current.get("startupId")
-              + "\",\"status\":\"verified\",\"sections\":{\"first\":{\"status\":\"verified\"}}}");
+              + "\",\"status\":\"verified\",\"expectedSections\":[\"llm\"],\"sections\":{\"llm\":{\"status\":\"verified\"}}}");
       runPython(scripts, root, state, "finalize");
     }
     return fixture;

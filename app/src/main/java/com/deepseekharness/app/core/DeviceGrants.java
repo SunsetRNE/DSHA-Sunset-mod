@@ -407,8 +407,8 @@ public final class DeviceGrants {
   }
 
   public boolean setSmsReadAllowed(boolean allowed) {
-    invalidateSms.run();
-    return preferences.edit().putBoolean("sms_read", allowed).commit();
+    return com.deepseekharness.app.util.DeviceAuthorization.shared()
+        .change(invalidateSms, () -> preferences.edit().putBoolean("sms_read", allowed).commit());
   }
 
   public com.deepseekharness.app.util.ClipboardReadPolicy.Mode clipboardReadMode() {

@@ -70,6 +70,8 @@ app/src/main/assets/plugin-manager.py -text -eol
 /tools/i18n/translations-extra/ko.json -text -eol
 /tools/i18n/translations-extra/pt.json -text -eol
 /tools/i18n/translations-extra/ru.json -text -eol
+/tools/i18n/translations-extra/la.json -text -eol
+/tools/i18n/translations-extra/zh-Hant.json -text -eol
 /tools/i18n/translations/ar.json -text -eol
 /tools/i18n/translations/fr.json -text -eol
 /tools/i18n/translations/ja.json -text -eol

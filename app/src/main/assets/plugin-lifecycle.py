@@ -10,6 +10,7 @@ import os
 import re
 import shlex
 import shutil
+import stat
 import subprocess
 import time
 import urllib.parse
@@ -22,7 +23,8 @@ def semver_request(action, left, right):
     try:
         request = {'action': action, 'left': left, 'right': right, 'version': left, 'range': right}
         process = subprocess.run(['node', os.path.join(os.path.dirname(__file__), 'plugin-semver.cjs')],
-                                 input=json.dumps(request), text=True, capture_output=True, timeout=15)
+                                 input=json.dumps(request), text=True, capture_output=True, timeout=15,
+                                 env={key: value for key, value in os.environ.items() if key not in ('NODE_OPTIONS', 'NODE_PATH')})
         return json.loads(process.stdout) if process.returncode == 0 else None
     except (OSError, ValueError, subprocess.TimeoutExpired):
         return None
@@ -88,7 +90,7 @@ class Lifecycle:
         def migrate():
             doc = self.builtin.read_manifest() or {}
             references = doc.get('dependencies') or {}
-            activated, skipped = [], []
+            activated, skipped, blocked = [], [], []
             for name, reference in references.items():
                 if not self.builtin.valid_name(name) or name in self.builtin.OFFICIAL_BUNDLES or name in self.builtin.builtin_names():
                     continue
@@ -109,12 +111,19 @@ class Lifecycle:
                     content = self.g['dependencies']().current(directory)
                     if package['name'] != name or content['missing']:
                         skipped.append(name); continue
+                    self.require_compatible(package, stage='enable')
                     self.queue_activation(name, content['sha256'], package['version'])
                     if self.builtin.enable_plugin(name):
                         skipped.append(name); continue
                     activated.append(name)
+                except self.g['PluginPolicyError'] as error:
+                    skipped.append(name); blocked.append({'name': name, 'errorCode': error.code, 'message': str(error)})
                 except (OSError, ValueError):
                     skipped.append(name)
+            if blocked:
+                self.g['result']('partial', blocked[0]['message'], activated=activated, skipped=skipped,
+                                 blockedPlugins=blocked, errorCode=blocked[0]['errorCode'], application='failed', stage='enable')
+                return 1
             self.g['result']('ok', '已启用 %d 个旧版待审阅插件%s' %
                              (len(activated), ('；%d 个原件不完整，保持停用' % len(skipped)) if skipped else ''),
                              activated=activated, skipped=skipped)
@@ -158,26 +167,185 @@ class Lifecycle:
         report['runtimeDsh'] = self.dsh_version()
         return report
 
-    def package_metadata(self, pkg):
+    COMPATIBILITY_MESSAGES = {
+        'compatible': '插件兼容性已核验',
+        'unconstrained': '作者未声明 dsh 兼容范围',
+        'exempted': '此插件版本的精确兼容豁免已生效',
+        'incompatible': '插件与当前 dsh 版本不兼容',
+        'unsupported-platform': '插件不支持当前运行平台',
+        'check-failed': '插件兼容性检查失败，未执行操作',
+    }
+
+    def policy_error(self, code, message, stage='preflight', **detail):
+        return self.g['PluginPolicyError'](code, message, stage=stage, **detail)
+
+    def compatibility_reports(self, packages):
+        """一次只读进程检查整批；固定脚本不继承预加载，不导入 app-boot/插件入口。"""
+        if not isinstance(packages, list) or len(packages) > 512:
+            raise self.policy_error('PLUGIN_COMPATIBILITY_CHECK_FAILED', self.COMPATIBILITY_MESSAGES['check-failed'])
+        warnings = []
+        def exemption_snapshot():
+            filename = self.local(os.path.join(self.builtin.PROFILE, 'compatibility.json'))
+            try: raw, evidence = self.file_evidence(filename)
+            except FileNotFoundError: return None, {'missing': True}
+            # 没有豁免文件从不授权；本操作创建原本缺失的 profile 父目录不等于授权记录变化。
+            return raw, {'missing': True} if raw is None else evidence
+        try:
+            raw, exemption_evidence = exemption_snapshot()
+            def unique(pairs):
+                value = {}
+                for key, item in pairs:
+                    if key in value: raise ValueError('EXEMPTION_DUPLICATE_KEY')
+                    value[key] = item
+                return value
+            exemptions = json.loads(raw, object_pairs_hook=unique) if raw is not None else {}
+        except (OSError, ValueError, TypeError):
+            exemptions = {}; warnings = ['EXEMPTION_UNREADABLE']; exemption_evidence = None
+        request = {'action': 'compatibility', 'manifests': packages, 'exemptions': exemptions,
+                   'exemptionWarnings': warnings,
+                   'anchors': [self.local('/usr/local/lib/node_modules/@deepseek-ai/dsh/package.json'),
+                               self.local('/root/dsh-src/package.json')]}
+        environment = {key: value for key, value in os.environ.items() if key not in ('NODE_OPTIONS', 'NODE_PATH')}
+        reports = None
+        try:
+            self.g['check_cancel']()
+            encoded = json.dumps(request, ensure_ascii=True)
+            if len(encoded) > 8 * 1024 * 1024: raise ValueError('COMPATIBILITY_INPUT_LIMIT')
+            process = subprocess.run(['node', os.path.join(os.path.dirname(__file__), 'plugin-semver.cjs')],
+                                     input=encoded, text=True, capture_output=True, timeout=15, env=environment)
+            if process.returncode == 0 and len(process.stdout) <= 8 * 1024 * 1024:
+                reports = json.loads(process.stdout)
+            self.g['check_cancel']()
+            if exemption_evidence is not None:
+                _, after_exemptions = exemption_snapshot()
+                if after_exemptions != exemption_evidence: reports = None
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            reports = None
+        if not isinstance(reports, list) or len(reports) != len(packages):
+            reports = [{'compatibility': 'check-failed', 'compatibilityCode': 'PLUGIN_COMPATIBILITY_CHECK_FAILED',
+                        'requirements': {}, 'unmetRequirements': {}, 'installedDsh': '', 'runtimePlatform': '',
+                        'versionExempted': False, 'exemptionWarnings': warnings} for _ in packages]
+        for package, report in zip(packages, reports):
+            if not isinstance(report, dict) or report.get('compatibility') not in self.COMPATIBILITY_MESSAGES:
+                raise self.policy_error('PLUGIN_COMPATIBILITY_CHECK_FAILED', self.COMPATIBILITY_MESSAGES['check-failed'])
+            report['compatibilityMessage'] = self.COMPATIBILITY_MESSAGES[report['compatibility']]
+            report['requiredDsh'] = '; '.join(key + ': ' + value for key, value in report['requirements'].items())
+            proof = {'manifest': package, 'runtime': report.pop('runtimeEvidence', ''),
+                     'exemptionFile': exemption_evidence if exemption_evidence is not None else 'unreadable',
+                     'requirements': report['requirements'], 'state': report['compatibility'],
+                     'exempted': report['versionExempted'], 'platform': report['runtimePlatform']}
+            report['compatibilityEvidence'] = self.review_digest(proof)
+        return reports
+
+    def require_compatible(self, package, expected=None, stage='preflight', report=None):
+        report = report or self.compatibility_reports([package])[0]
+        if report['compatibility'] not in ('compatible', 'unconstrained', 'exempted'):
+            raise self.policy_error(report['compatibilityCode'], report['compatibilityMessage'], stage,
+                                    compatibility=report['compatibility'], versionExempted=report['versionExempted'])
+        if expected is not None and expected != report['compatibilityEvidence']:
+            raise self.policy_error('PLUGIN_COMPATIBILITY_CHANGED', '插件兼容证据在准备后变化，请重新检查', stage)
+        return report
+
+    def package_metadata(self, pkg, compatibility=None):
         author = pkg.get('author', '')
-        if isinstance(author, dict):
-            author = author.get('name', '')
-        requirement = (pkg.get('peerDependencies') or {}).get('@deepseek-ai/dsh') or (pkg.get('engines') or {}).get('dsh') or ''
-        if not isinstance(requirement, str):
-            requirement = ''
-        installed = self.dsh_version()
-        accepted = accepts_version(installed, requirement) if installed and requirement else None
-        state = 'compatible' if accepted is True else 'incompatible' if accepted is False else 'unknown'
-        text = ('适用 dsh：' + requirement if requirement else '作者未声明 dsh 兼容范围')
-        text += '；当前：' + (installed or '版本未知')
-        if accepted is False:
-            text += '。版本不匹配，安装前请确认作者说明'
-        elif accepted is None:
-            text += '。兼容性需要确认'
-        return {'name': pkg['name'], 'version': str(pkg.get('version', '')), 'author': str(author)[:200] or '未注明',
-                'description': str(pkg.get('description', ''))[:1500], 'requiredDsh': requirement,
-                'installedDsh': installed, 'compatibility': state, 'compatibilityMessage': text,
-                'repository': self.g['repository_url'](pkg)}
+        if isinstance(author, dict): author = author.get('name', '')
+        report = compatibility or self.compatibility_reports([pkg])[0]
+        return dict({'name': pkg['name'], 'version': str(pkg.get('version', '')), 'author': str(author)[:200] or '未注明',
+                     'description': str(pkg.get('description', ''))[:1500], 'repository': self.g['repository_url'](pkg)}, **report)
+
+    @staticmethod
+    def _node_evidence(node):
+        return [node.st_dev, node.st_ino, node.st_mode, node.st_size, node.st_mtime_ns, node.st_ctime_ns]
+
+    def file_evidence(self, filename):
+        """有界 NOFOLLOW 读；正文相同但 inode/ctime 换过也不是同一份来源。"""
+        filename = os.path.abspath(filename)
+        parent = os.path.dirname(filename)
+        # 不跟随来源父链中的符号链接；合法包链接由 resolve_plugin_dir 先明确解析。
+        chain = []; current = parent
+        while True:
+            node = os.lstat(current)
+            if not stat.S_ISDIR(node.st_mode): raise ValueError('PLUGIN_EVIDENCE_PARENT')
+            chain.append([current, node.st_dev, node.st_ino])
+            if current == os.path.dirname(current): break
+            current = os.path.dirname(current)
+        try:
+            fd = os.open(filename, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0))
+        except FileNotFoundError:
+            return None, {'path': filename, 'parents': chain, 'missing': True}
+        with os.fdopen(fd, 'rb') as stream:
+            before = os.fstat(stream.fileno())
+            if not stat.S_ISREG(before.st_mode) or before.st_size > 1024 * 1024:
+                raise ValueError('PLUGIN_EVIDENCE_TYPE_OR_LIMIT')
+            data = stream.read(1024 * 1024 + 1)
+            after = os.fstat(stream.fileno())
+        if len(data) > 1024 * 1024 or self._node_evidence(before) != self._node_evidence(after) \
+                or self._node_evidence(before) != self._node_evidence(os.lstat(filename)):
+            raise ValueError('PLUGIN_EVIDENCE_CHANGED')
+        for path, device, inode in chain:
+            node = os.lstat(path)
+            if not stat.S_ISDIR(node.st_mode) or (node.st_dev, node.st_ino) != (device, inode):
+                raise ValueError('PLUGIN_EVIDENCE_PARENT_CHANGED')
+        return data, {'path': filename, 'parents': chain, 'node': self._node_evidence(before),
+                      'sha256': hashlib.sha256(data).hexdigest()}
+
+    def target_snapshot(self, name):
+        try:
+            raw, source = self.file_evidence(self.local(self.g['SOURCES']))
+            sources = json.loads(raw) if raw is not None else {}
+            if not isinstance(sources, dict) or not isinstance(sources.get(name, ''), str):
+                raise ValueError('PLUGIN_SOURCE_FORMAT')
+            directory = self.g['resolve_plugin_dir'](name)
+            installed = None
+            if directory:
+                raw, installed = self.file_evidence(os.path.join(os.path.realpath(directory), 'package.json'))
+                package = json.loads(raw)
+                if package.get('name') != name: raise ValueError('PLUGIN_TARGET_IDENTITY')
+            else: package = {}
+            return {'name': name, 'source': sources.get(name, ''), 'sourceFile': source,
+                    'installedManifest': installed, 'version': package.get('version', '')}
+        except (OSError, ValueError, TypeError, AttributeError):
+            raise self.policy_error('PLUGIN_SOURCE_CHANGED', '插件来源或版本在准备后变化，请重新检查')
+
+    def require_target(self, expected, stage='commit'):
+        if not isinstance(expected, dict) or self.target_snapshot(expected.get('name', '')) != expected:
+            raise self.policy_error('PLUGIN_SOURCE_CHANGED', '插件来源或版本在准备后变化，请重新检查', stage)
+
+    def candidate_fingerprint(self, directory):
+        # current() 的账本摘要包含安装绝对路径；候选搬到事务槽位时只归一化该候选内部节点。
+        # 外部实际依赖路径仍保留，不能把不同共享依赖误当同一份字节。
+        current = self.g['dependencies']().current(directory)
+        root = os.path.realpath(directory)
+        def location(value):
+            return '@candidate' + value[len(root):] if value == root or value.startswith(root + os.sep) else value
+        nodes = {}
+        for path, row in current['nodes'].items():
+            dependencies = {name: dict(edge, **({'target': location(edge['target'])} if 'target' in edge else {}))
+                            for name, edge in row['dependencies'].items()}
+            nodes[location(path)] = dict(row, dependencies=dependencies)
+        return self.review_digest({'nodes': nodes, 'missing': current['missing']})
+
+    def require_candidate(self, directory, item, fingerprint=None, stage='commit'):
+        try:
+            package = self.g['plugin_package'](directory)
+            if package['name'] != item['name'] or package['version'] != item['version']:
+                raise self.policy_error('PLUGIN_TARGET_VERSION_CHANGED', '下载包与指定的插件版本不一致', stage)
+            if fingerprint is not None and self.candidate_fingerprint(directory) != fingerprint:
+                raise self.policy_error('PLUGIN_CANDIDATE_CHANGED', '插件候选内容在准备后变化，请重新解析', stage)
+            self.require_compatible(package, item.get('compatibilityEvidence'), stage)
+            return package
+        except self.g['PluginPolicyError']:
+            raise
+        except (OSError, ValueError, TypeError, KeyError):
+            raise self.policy_error('PLUGIN_CANDIDATE_CHANGED', '插件候选内容在准备后变化，请重新解析', stage)
+
+    def pending_guard(self):
+        if self.g['transactions']().pending():
+            raise self.g['PluginInstallPending']('插件事务尚未提交；未执行新操作，请先完成维护')
+
+    @staticmethod
+    def committed(stage):
+        return {'application': 'restart-required', 'restartReason': 'no-hmr', 'stage': stage}
 
     @staticmethod
     def digest(path):
@@ -232,14 +400,23 @@ class Lifecycle:
             staging = os.path.join(path, 'contents')
             self.g['extract_archive'](destination, staging)
             roots = self.g['find_plugin_roots'](staging, subdir)
-            items = [self.metadata(root) for root in roots]
+            packages = [self.g['plugin_package'](root) for root in roots]
+            reports = self.compatibility_reports(packages)
+            # 首个 pnpm/生命周期脚本之前核验全部根，第二个包不兼容不能留下第一个包的脚本效果。
+            for package, report in zip(packages, reports): self.require_compatible(package, report=report)
+            items = [self.package_metadata(package, report) for package, report in zip(packages, reports)]
             names = [item['name'] for item in items]
             if len(set(names)) != len(names):
                 raise ValueError('归档中包含同名插件')
             if request.get('name') and (len(items) != 1 or items[0]['name'] != request['name']):
                 raise ValueError('下载包的名称与选中的插件不一致')
             if request.get('version') and (len(items) != 1 or items[0]['version'] != request['version']):
-                raise ValueError('下载包版本与网页说明不一致')
+                raise self.policy_error('PLUGIN_TARGET_VERSION_CHANGED', '下载包与指定的插件版本不一致')
+            if request.get('updateFor') and (len(items) != 1 or items[0]['name'] != request['updateFor']
+                    or compare_versions(items[0]['version'], request.get('fromVersion', '')) != 1):
+                raise self.policy_error('PLUGIN_UPDATE_VERSION_INVALID', '更新目标必须是更高的精确版本')
+            expected_target = request.get('targetSnapshot')
+            if expected_target is not None: self.require_target(expected_target, 'preflight')
             reviewed = []
             for plugin_root, item in zip(roots, items):
                 excluded = {'node_modules'}
@@ -248,6 +425,7 @@ class Lifecycle:
                 code_before = self.g['dependencies']().tree(plugin_root, self.g['check_cancel'], excluded)[0]
                 snapshot = self.g['prepare_dependencies'](plugin_root, self.g['plugin_package'](plugin_root), digest, bool(request.get('offline', False)))
                 actual = self.metadata(plugin_root)
+                self.require_compatible(self.g['plugin_package'](plugin_root), item['compatibilityEvidence'])
                 if actual['name'] != item['name'] or actual['version'] != item['version'] or self.g['dependencies']().tree(plugin_root, self.g['check_cancel'], excluded)[0] != code_before:
                     raise ValueError('插件源码在依赖准备期间变化，未进入安装')
                 item['dependencyState'] = snapshot['state']
@@ -255,11 +433,17 @@ class Lifecycle:
                 item['dependencyCount'] = len(snapshot.get('resolved', []))
                 item['dependencyLockSha256'] = snapshot.get('lockSha256', '')
                 item['packageManagerVersion'] = snapshot.get('managerVersion', 'not-executed')
+                item['dependencyPreparation'] = 'package-manager-completed' if item['packageManagerVersion'] != 'not-executed' else 'existing-tree-verified'
+                # 仅说明真实准备路径；不能由 pnpm 成功推导每个包的脚本都执行过。
+                item['lifecycleScriptEvidence'] = 'not-observed'
                 if snapshot.get('authorClaims'):
                     item['authorDependencyClaims'] = snapshot['authorClaims']
                 reviewed.append({'path': os.path.relpath(plugin_root, path).replace(os.sep, '/'),
+                                 'fingerprint': self.candidate_fingerprint(plugin_root),
                                  'snapshotSha256': self.digest(os.path.join(plugin_root, '.dsha-dependencies.json'))})
-            prepared = {'previewId': key, 'source': self.g['dependencies']().source_label(request.get('source') or source), 'commandKind': parts[0], 'sha256': digest,
+            if expected_target is not None: self.require_target(expected_target, 'preflight')
+            targets = {name: (expected_target if expected_target and expected_target['name'] == name else self.target_snapshot(name)) for name in names}
+            prepared = {'targetSnapshots': targets, 'previewId': key, 'source': self.g['dependencies']().source_label(request.get('source') or source), 'commandKind': parts[0], 'sha256': digest,
                         'items': items, 'createdAt': int(time.time()), 'subdir': subdir,
                         'updateFor': request.get('updateFor', ''), 'fromVersion': request.get('fromVersion', ''), 'reviewedRoots': reviewed,
                         'contentsSha256': self.g['dependencies']().tree(staging, self.g['check_cancel'])[0]}
@@ -282,8 +466,11 @@ class Lifecycle:
             if prepared is None:
                 raise ValueError('未获得可安装的插件包')
             self.g['check_cancel']()
-        except Exception:
-            shutil.rmtree(path); raise
+        except Exception as error:
+            # 未闭合的包管理进程可能仍写候选；不得清理或改名其输入。
+            if not isinstance(error, self.g['PackageCommandUnknown']) and not (isinstance(error, self.g['PackageCommandTimeout']) and not error.confirmed_exit):
+                shutil.rmtree(path)
+            raise
         if emit:
             self.g['result']('ok', '插件包已解析，正在提交安装', preview=prepared)
             return 0
@@ -334,6 +521,8 @@ class Lifecycle:
             raise ValueError('找不到插件实体，请重新导入：' + name)
         current = self.g['dependencies']().current(directory)
         item = self.metadata(directory)
+        self.require_compatible(self.g['plugin_package'](directory), report=item)
+        target = self.target_snapshot(name)
         try:
             snapshot = self.g['dependencies']().inspect(directory)
             item['dependencyState'] = snapshot.get('state', 'legacy-unknown')
@@ -344,7 +533,8 @@ class Lifecycle:
         self.prune_previews(); key = uuid.uuid4().hex; path = self.preview_path(key); os.makedirs(path)
         source = self.read(self.g['local'](self.g['SOURCES']), {}).get(name, '')
         preview = {'previewId': key, 'action': action, 'name': name, 'items': [item], 'sha256': current['sha256'],
-                   'source': self.g['dependencies']().source_label(source), 'createdAt': int(time.time())}
+                   'candidateFingerprint': self.candidate_fingerprint(directory),
+                   'source': self.g['dependencies']().source_label(source), 'createdAt': int(time.time()), 'targetSnapshots': {name: target}}
         if restored is not None:
             preview.update(restoredGroup=restored['group'],restoredNode=restored['node'],source='恢复隔离区')
             item['existingConflict'] = bool(self.g['resolve_plugin_dir'](name))
@@ -388,6 +578,9 @@ class Lifecycle:
             raise ValueError('预览记录不可读取或已变化，原件已保留')
         if not re.fullmatch('[a-f0-9]{64}', confirmation) or preview.get('confirmationSha256') != confirmation or self.review_digest(preview) != confirmation:
             raise ValueError('插件准备内容已变化，请重新解析')
+        targets = preview.get('targetSnapshots')
+        if not isinstance(targets, dict):
+            raise self.policy_error('PLUGIN_SOURCE_CHANGED', '插件来源或版本在准备后变化，请重新检查')
         if preview.get('action') in ('enable', 'rollback', 'restored'):
             name = preview['name']
             directory = self.restored_directory(preview['restoredGroup'],preview['restoredNode']) if preview['action']=='restored' else os.path.join(self.history_path(name), 'package') if preview['action'] == 'rollback' else self.g['resolve_plugin_dir'](name)
@@ -399,6 +592,11 @@ class Lifecycle:
                 if self.g['resolve_plugin_dir'](name):
                     raise ValueError('已存在同名插件，当前版本保持不变，请先处理冲突')
                 with self.builtin.operation_lock(self.g['check_cancel']), self.g['transactions']().workspace() as work, self.g['committing']('正在启用恢复的插件…'):
+                    self.pending_guard()
+                    self.require_target(targets.get(name))
+                    self.require_candidate(directory, preview['items'][0], preview.get('candidateFingerprint'))
+                    if self.g['resolve_plugin_dir'](name):
+                        raise self.policy_error('PLUGIN_SOURCE_CHANGED', '插件来源或版本在准备后变化，请重新检查', 'commit')
                     doc = self.builtin.read_manifest()
                     if doc is None:
                         raise ValueError('请先准备正常 Web 配置，再启用恢复的插件')
@@ -416,15 +614,19 @@ class Lifecycle:
                         tx.apply_file(work,'marker',plan);tx.apply_file(work,'sources',plan);tx.apply_file(work,'manifest',plan);tx.mark(work,'committed')
                     except Exception:
                         tx.recover(work);raise
-                self.g['result']('ok','恢复的插件已启用，原隔离副本保留；重启 Web 后确认加载')
+                self.g['result']('ok','恢复的插件已启用，原隔离副本保留；重启 Web 后确认加载', **self.committed('enable'))
             elif preview['action'] == 'rollback':
-                self.rollback(name, preview['items'][0]['version'], prepared=True)
+                self.rollback(name, preview['items'][0]['version'], prepared=True, expected_target=targets.get(name), expected_item=preview['items'][0], fingerprint=preview.get('candidateFingerprint'))
             else:
                 with self.builtin.operation_lock(self.g['check_cancel']), self.g['committing']('正在启用插件…'):
+                    self.pending_guard()
+                    self.require_target(targets.get(name))
+                    directory = self.g['resolve_plugin_dir'](name)
+                    self.require_candidate(directory, preview['items'][0], preview.get('candidateFingerprint'))
                     self.queue_activation(name, preview['sha256'], preview['items'][0]['version'])
                     if self.builtin.enable_plugin(name):
                         raise ValueError('插件启用未完成，原件已保留')
-                self.g['result']('ok', '插件已启用；重启 Web 后加载')
+                self.g['result']('ok', '插件已启用；重启 Web 后加载', **self.committed('enable'))
             shutil.rmtree(path)
             return 0
         if set(os.listdir(path)) - {'archive', 'contents', 'preview.json'}:
@@ -436,25 +638,35 @@ class Lifecycle:
             directory = self.g['resolve_plugin_dir'](preview['updateFor'])
             current = self.read(os.path.join(directory, 'package.json'), {}) if directory else {}
             if current.get('version') != preview.get('fromVersion'):
-                raise ValueError('插件已被其他操作更新，请重新检查版本')
+                raise self.policy_error('PLUGIN_TARGET_VERSION_CHANGED', '插件来源或版本在准备后变化，请重新检查')
         if self.g['dependencies']().tree(os.path.join(path, 'contents'), self.g['check_cancel'])[0] != preview.get('contentsSha256'):
             raise ValueError('准备内容已变化，请重新解析')
         roots = preview.get('reviewedRoots', [])
         if not roots or len(roots) != len(preview.get('items', [])) or len(roots) > 30:
             raise ValueError('安装预览缺少冻结依赖，请重新解析')
         installed = []
-        for root in roots:
+        for root, item in zip(roots, preview['items']):
             target = self.g['safe_target'](path, root['path'])
+            self.require_target(targets.get(item['name']), 'preflight')
+            self.require_candidate(target, item, root.get('fingerprint'), 'preflight')
             if self.digest(os.path.join(target, '.dsha-dependencies.json')) != root['snapshotSha256']:
                 raise ValueError('插件依赖确认对象已变化')
             self.g['dependencies']().inspect(target)
-        for root in roots:
+        for root, item in zip(roots, preview['items']):
             target = self.g['safe_target'](path, root['path'])
             name = self.g['plugin_package'](target)['name']
             expected = preview.get('fromVersion') if name == preview.get('updateFor') else None
-            installed.append(self.g['register_plugin'](target, preview.get('source', ''), expected_version=expected))
+            try:
+                installed.append(self.g['register_plugin'](target, preview.get('source', ''), expected_version=expected,
+                                 expected_target=targets.get(name), expected_item=item, fingerprint=root.get('fingerprint'),
+                                 related_targets={key: value for key, value in targets.items() if key not in installed and key != name}))
+            except self.g['PluginPolicyError'] as error:
+                if not installed: raise
+                self.g['result']('partial', str(error), installed=installed, errorCode=error.code,
+                                 application='failed', stage=error.stage, exitUnknown=False, executionUnknown=False)
+                return 1
         shutil.rmtree(path)
-        self.g['result']('ok', '插件已安装并启用；启动 Web 后即可使用', installed=installed)
+        self.g['result']('ok', '插件已安装并启用；启动 Web 后即可使用', installed=installed, **self.committed('install'))
         return 0
 
     def activation_state(self):
@@ -481,7 +693,7 @@ class Lifecycle:
     def loading(self, action, startup):
         if str(uuid.UUID(startup)) != startup or action not in ('begin', 'complete', 'failed'):
             raise ValueError('插件启动记录标识无效')
-        failures = []
+        failures, unattributed = [], []
         with self.builtin.operation_lock(self.g['check_cancel']):
             value = self.activation_state()
             doc = self.builtin.read_manifest() or {}
@@ -489,6 +701,8 @@ class Lifecycle:
             def failed(name, entry, reason, status='failed', missing=None, message=''):
                 if self.builtin.disable_plugin(name):
                     raise ValueError('无法保留插件停用状态，请先完成恢复：' + name)
+                for field in ('evidenceReason', 'contentReason', 'attribution', 'observedAt', 'loadedAt'):
+                    entry.pop(field, None)
                 entry.update(status=status, reason=reason)
                 if missing is not None: entry['missing'] = missing[:50]
                 if message: entry['message'] = message[:400]
@@ -497,7 +711,7 @@ class Lifecycle:
                 for name, entry in value['entries'].items():
                     self.g['check_cancel']()
                     status = entry.get('status')
-                    if action == 'begin' and status in ('queued', 'attempted'):
+                    if action == 'begin' and status in ('queued', 'attempted', 'unknown'):
                         if name not in enabled:
                             entry['status'] = 'disabled'; continue
                         directory = self.g['resolve_plugin_dir'](name)
@@ -516,18 +730,30 @@ class Lifecycle:
                         if entry.get('startup') == startup and fingerprint != entry.get('fingerprint'):
                             failed(name, entry, 'CONTENT_CHANGED_DURING_LOAD', 'changed'); continue
                         edited = bool(entry.get('fingerprint') and fingerprint != entry['fingerprint'])
+                        # 同一次启动的未归因结果不因兼容重试变回已核验；真正的新启动才重新排入尝试。
+                        if status == 'unknown' and entry.get('startup') == startup:
+                            continue
+                        for field in ('reason', 'evidenceReason', 'contentReason', 'attribution', 'observedAt', 'loadedAt'):
+                            entry.pop(field, None)
                         entry.update(status='attempted', startup=startup, fingerprint=fingerprint,
                                      version=package['version'], locallyEdited=edited)
                     elif entry.get('startup') == startup and status == 'attempted':
-                        if action == 'complete':
-                            entry.update(status='loaded', loadedAt=int(time.time()))
-                        elif action == 'failed':
-                            failed(name, entry, 'LOADER_OR_BROWSER_FAILED')
+                        # A5 尚未提供可信启动身份与部署内容绑定。浏览器 ready 不是所有 entry active，
+                        # 整轮失败也不是每个 attempted 插件失败；sidecar 的 HOST 字符串本身不能授权停用。
+                        reason = 'STARTUP_FAILURE_UNATTRIBUTED' if action == 'failed' else 'BROWSER_READY_UNVERIFIED'
+                        entry.update(status='unknown', reason=reason, evidenceReason='NO_HOST_BINDING',
+                                     contentReason='CONTENT_UNVERIFIED', attribution='unattributed',
+                                     observedAt=int(time.time() * 1000))
+                        entry.pop('loadedAt', None)
+                        unattributed.append({'name': name, 'reason': reason, 'evidenceReason': 'NO_HOST_BINDING',
+                                             'contentReason': 'CONTENT_UNVERIFIED'})
             finally:
                 # Even a later plugin/disable failure must not discard earlier
                 # receipts. Failure to persist still blocks this Web launch.
                 self.write(self.path('plugin-activations.json'), value)
-        self.g['result']('ok', '插件加载状态已更新' + ('；部分插件待修复：' + '、'.join(row['name'] for row in failures) if failures else ''), failedPlugins=failures)
+        self.g['result']('ok', '插件加载状态已更新' + ('；部分插件待修复：' + '、'.join(row['name'] for row in failures) if failures else ''),
+                         failedPlugins=failures, unattributedPlugins=unattributed,
+                         loadOutcome='unknown' if unattributed else 'recorded', stage='load-evidence')
         return 0
 
     def source_command(self, name):
@@ -578,15 +804,22 @@ class Lifecycle:
         self.g['check_cancel']()
         return json.loads(data)
 
-    def update_metadata(self, name):
+    def update_metadata(self, name, exact_version=''):
         command = self.source_command(name)
         parts = shlex.split(command)
+        if exact_version and parts[0] != 'npm':
+            raise self.policy_error('PLUGIN_UPDATE_SOURCE_UNSUPPORTED', '精确版本更新仅适用于 npm 来源')
         if parts[0] == 'npm':
             package = parts[1].removesuffix('@latest')
-            pkg = self.remote_json('https://registry.npmjs.org/' + urllib.parse.quote(package, safe='') + '/latest')
+            if package != name:
+                raise self.policy_error('PLUGIN_SOURCE_CHANGED', '插件来源或版本在准备后变化，请重新检查')
+            pkg = self.remote_json('https://registry.npmjs.org/' + urllib.parse.quote(package, safe='') + '/' + urllib.parse.quote(exact_version or 'latest', safe=''))
             if pkg.get('name') != name:
                 raise ValueError('来源返回的包名不一致')
+            if exact_version and pkg.get('version') != exact_version:
+                raise self.policy_error('PLUGIN_TARGET_VERSION_CHANGED', '下载包与指定的插件版本不一致')
             latest = self.package_metadata(pkg)
+            self.require_compatible(pkg, report=latest)
             # 固定到已检查的版本；安装预览再次核对包名、版本与兼容声明。
             request = {'command': 'npm ' + shlex.quote(package + '@' + latest['version']),
                        'name': name, 'version': latest['version']}
@@ -619,28 +852,42 @@ class Lifecycle:
             if pkg.get('name') != name or not (pkg.get('dsh') or {}).get('bundle'):
                 raise ValueError('仓库目录不是此插件，请使用具体插件目录链接')
             latest = self.package_metadata(pkg)
+            self.require_compatible(pkg, report=latest)
             pinned = 'github ' + shlex.join([owner, repo, revision + ('/' + subdir if subdir else '')])
             source = 'https://github.com/%s/%s' % (owner, repo) + ('/tree/' + parts[3] if len(parts) == 4 else '')
             return latest, {'command': pinned, 'name': name, 'version': latest['version'], 'source': source}
         raise ValueError('此来源是固定归档，没有版本查询接口；请从作者页面取得新包后导入')
 
-    def prepare_update(self, name):
+    def prepare_update(self, name, exact_version=''):
         if not self.builtin.valid_name(name):
             raise ValueError('无效插件名')
-        state = self.read(self.path('plugin-updates.json'), {}).get(name, {})
-        if not state.get('available') or not state.get('request') or time.time() - state.get('checkedAt', 0) > 3600:
-            self.check_updates(name, emit=False)
+        target = self.target_snapshot(name)
+        if exact_version:
+            if semver_request('exact', exact_version, '') is not True or compare_versions(exact_version, target['version']) not in (1,):
+                raise self.policy_error('PLUGIN_UPDATE_VERSION_INVALID', '更新目标必须是更高的精确版本')
+            latest, request = self.update_metadata(name, exact_version)
+            state = {'installedVersion': target['version'], 'request': request, 'targetSnapshot': target}
+        else:
             state = self.read(self.path('plugin-updates.json'), {}).get(name, {})
-        if not state.get('available') or not state.get('request'):
-            raise ValueError(state.get('message', '请重新检查插件更新'))
-        request = dict(state['request'], updateFor=name, fromVersion=state['installedVersion'])
+            if not state.get('available') or not state.get('request') or not state.get('targetSnapshot') or time.time() - state.get('checkedAt', 0) > 3600:
+                self.check_updates(name, emit=False)
+                state = self.read(self.path('plugin-updates.json'), {}).get(name, {})
+            if not state.get('available') or not state.get('request'):
+                raise self.policy_error(state.get('errorCode') or 'PLUGIN_UPDATE_VERSION_INVALID',
+                                        state.get('message') or '更新目标必须是更高的精确版本')
+            self.require_target(state.get('targetSnapshot'), 'preflight')
+            target = state['targetSnapshot']
+        self.require_target(target, 'preflight')
+        request = dict(state['request'], updateFor=name, fromVersion=state['installedVersion'], targetSnapshot=target)
         preview = self.inspect(request, False)
         actual = preview['items'][0]['version']
         comparison = compare_versions(actual, state['installedVersion'])
-        if comparison is None or comparison <= 0:
-            shutil.rmtree(self.preview_path(preview['previewId']))
-            raise ValueError('归档中的实际插件版本没有更新，请向作者核对 Release 内容')
-        self.g['result']('ok', '更新包已解析，正在安装并启用', preview=preview)
+        if comparison != 1 or exact_version and actual != exact_version:
+            # inspect 已成功闭合；只清本次编号预览，原下载归档与其它候选不受影响。
+            preview_directory = self.preview_path(preview['previewId'])
+            shutil.rmtree(preview_directory)
+            raise self.policy_error('PLUGIN_UPDATE_VERSION_INVALID', '更新目标必须是更高的精确版本')
+        self.g['result']('ok', '更新包已解析，正在安装并启用', preview=preview, stage='prepared')
         return 0
 
     def check_updates(self, name='', emit=True):
@@ -670,16 +917,19 @@ class Lifecycle:
             self.g['check_cancel']()
             status = {'name': item, 'installedVersion': installed, 'checkedAt': int(time.time()), 'available': False}
             try:
+                target = self.target_snapshot(item)
                 latest, request = self.update_metadata(item)
+                self.require_target(target, 'check')
                 comparison = compare_versions(latest['version'], status['installedVersion'])
                 status.update(latestVersion=latest['version'], request=request,
                               available=comparison is not None and comparison > 0,
-                              compatibility=latest['compatibilityMessage'], source=self.source_command(item))
+                              compatibility=latest['compatibilityMessage'], source=self.source_command(item), targetSnapshot=target)
                 status['message'] = '有新版本' if status['available'] else '来源未提供更高版本' if comparison is not None else '版本格式不同，请手动核对'
             except self.g['PluginCancelled']:
                 raise
             except Exception as error:
                 status['message'] = str(error)
+                if isinstance(error, self.g['PluginPolicyError']): status['errorCode'] = error.code
             return status
 
         completed = {}
@@ -697,6 +947,12 @@ class Lifecycle:
                     future.cancel()
         checked = [completed[item] for item, _ in targets]
         with self.builtin.operation_lock(self.g['check_cancel']), self.g['committing']('正在保存版本检查结果…'):
+            self.pending_guard()
+            for checked_item in checked:
+                if checked_item.get('available'):
+                    try: self.require_target(checked_item.get('targetSnapshot'), 'check')
+                    except self.g['PluginPolicyError'] as error:
+                        checked_item.update(available=False, errorCode=error.code, message=str(error))
             latest_states = self.read(self.path('plugin-updates.json'), {})
             latest_states.update({item['name']: item for item in checked})
             self.write(self.path('plugin-updates.json'), latest_states)
@@ -705,7 +961,7 @@ class Lifecycle:
             self.g['result']('ok', '已检查 %d 个第三方插件，%d 个可更新；详情见插件卡片' % (len(checked), updates), updates=checked)
         return 0
 
-    def rollback(self, name, expected='', prepared=False):
+    def rollback(self, name, expected='', prepared=False, expected_target=None, expected_item=None, fingerprint=None):
         if not prepared:
             return self.review_existing(name, 'rollback')
         if name in self.builtin.OFFICIAL_BUNDLES or name in self.builtin.builtin_names():
@@ -715,8 +971,9 @@ class Lifecycle:
             raise ValueError('没有可回退的上一版')
         if expected and previous.get('version') != expected:
             raise ValueError('上一版已发生变化，请刷新后重新确认')
-        self.g['register_plugin'](os.path.join(self.history_path(name), 'package'), previous.get('source', ''), restoring=True)
-        self.g['result']('ok', '已回退 ' + name + ' 至 ' + str(previous.get('version', '')) + '；启用状态保留，重启 Web 生效')
+        self.g['register_plugin'](os.path.join(self.history_path(name), 'package'), previous.get('source', ''), restoring=True,
+                                 expected_target=expected_target, expected_item=expected_item, fingerprint=fingerprint)
+        self.g['result']('ok', '已回退 ' + name + ' 至 ' + str(previous.get('version', '')) + '；启用状态保留，重启 Web 生效', **self.committed('rollback'))
         return 0
 
     def safe_mode(self, action):
@@ -743,11 +1000,12 @@ class Lifecycle:
                     except (ValueError, OSError):
                         fingerprints[name] = ''
                 self.write(path, {'active': True, 'names': remembered, 'fingerprints': fingerprints})
-                self.g['result']('ok', '安全模式已启用，第三方插件暂时停用，数据保留；可重启 Web', safeMode=True, count=len(remembered))
+                self.g['result']('ok', '安全模式已启用，第三方插件暂时停用，数据保留；可重启 Web', safeMode=True, count=len(remembered), **self.committed('safe-mode'))
                 return 0
             if action == 'off':
                 restored = []
                 remaining = []
+                blocked = []
                 for name in state.get('names', []):
                     if not self.builtin.valid_name(name):
                         continue
@@ -762,13 +1020,22 @@ class Lifecycle:
                             current = self.g['dependencies']().current(self.g['resolve_plugin_dir'](name))['sha256']
                             if current != (state.get('fingerprints') or {}).get(name):
                                 remaining.append(name); continue
+                            self.require_compatible(self.g['plugin_package'](self.g['resolve_plugin_dir'](name)), stage='enable')
                             if self.builtin.enable_plugin(name): remaining.append(name)
                             else: restored.append(name)
+                        except self.g['PluginPolicyError'] as error:
+                            remaining.append(name); blocked.append({'name': name, 'errorCode': error.code, 'message': str(error)})
                         except (ValueError, OSError):
                             remaining.append(name)
                 self.write(path, {'active': bool(remaining), 'names': remaining, 'fingerprints': state.get('fingerprints', {})})
+                if blocked:
+                    self.g['result']('partial', blocked[0]['message'], safeMode=bool(remaining), restored=restored,
+                                     blockedPlugins=blocked, errorCode=blocked[0]['errorCode'], application='failed', stage='safe-mode')
+                    return 1
                 self.g['result']('partial' if remaining else 'ok', '已恢复 %d 个插件的启用状态；重启 Web 生效%s' %
-                                 (len(restored), ('；仍需修复：' + '、'.join(remaining)) if remaining else ''), safeMode=bool(remaining))
+                                 (len(restored), ('；仍需修复：' + '、'.join(remaining)) if remaining else ''), safeMode=bool(remaining),
+                                 application='failed' if remaining else 'restart-required', stage='safe-mode',
+                                 **({} if remaining else {'restartReason': 'no-hmr'}))
                 return 1 if remaining else 0
             if action == 'status':
                 self.g['result']('ok', '安全模式已启用' if state.get('active') else '正常启动模式', safeMode=bool(state.get('active')))

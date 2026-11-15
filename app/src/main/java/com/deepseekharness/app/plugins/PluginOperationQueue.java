@@ -41,6 +41,7 @@ public final class PluginOperationQueue {
     COMMITTING,
     SUCCEEDED,
     FAILED,
+    TIMEOUT,
     CANCELLED,
     SUPERSEDED,
     INVALIDATED,
@@ -64,6 +65,7 @@ public final class PluginOperationQueue {
 
     public final String transactionId;
     public final String backendTaskId;
+    public final PluginOperationResult.Detail outcome;
 
     private Operation(
         String operationId,
@@ -77,6 +79,34 @@ public final class PluginOperationQueue {
         int percent,
         String transactionId,
         String backendTaskId) {
+      this(
+          operationId,
+          type,
+          targetKey,
+          desired,
+          expectedVersion,
+          source,
+          phase,
+          message,
+          percent,
+          transactionId,
+          backendTaskId,
+          PluginOperationResult.Detail.EMPTY);
+    }
+
+    private Operation(
+        String operationId,
+        Type type,
+        String targetKey,
+        Boolean desired,
+        String expectedVersion,
+        PluginSourceIdentity source,
+        Phase phase,
+        String message,
+        int percent,
+        String transactionId,
+        String backendTaskId,
+        PluginOperationResult.Detail outcome) {
       this.operationId = operationId;
       this.type = type;
       this.targetKey = targetKey;
@@ -88,6 +118,23 @@ public final class PluginOperationQueue {
       this.percent = Math.max(-1, Math.min(100, percent));
       this.transactionId = transactionId;
       this.backendTaskId = backendTaskId;
+      this.outcome = Objects.requireNonNull(outcome);
+    }
+
+    private Operation withOutcome(PluginOperationResult.Detail detail) {
+      return new Operation(
+          operationId,
+          type,
+          targetKey,
+          desired,
+          expectedVersion,
+          source,
+          phase,
+          message,
+          percent,
+          transactionId,
+          backendTaskId,
+          detail);
     }
 
     public boolean pending() {
@@ -106,7 +153,8 @@ public final class PluginOperationQueue {
           message,
           percent,
           transactionId,
-          backendTaskId);
+          backendTaskId,
+          outcome);
     }
 
     private Operation withState(
@@ -122,7 +170,8 @@ public final class PluginOperationQueue {
           message,
           percent,
           transactionId,
-          backendTaskId);
+          backendTaskId,
+          outcome);
     }
   }
 
@@ -183,7 +232,8 @@ public final class PluginOperationQueue {
 
       Entry<W> superseded =
           type == Type.SET_ENABLED ? lastQueuedToggle(targetKey, expectedVersion, source) : null;
-      boolean rejected = waiting.size() >= waitingCapacity && superseded == null;
+      boolean blocked = active != null && active.operation.phase == Phase.UNCONFIRMED;
+      boolean rejected = blocked || waiting.size() >= waitingCapacity && superseded == null;
       Operation operation =
           new Operation(
               UUID.randomUUID().toString(),
@@ -193,7 +243,9 @@ public final class PluginOperationQueue {
               expectedVersion,
               source,
               rejected ? Phase.REJECTED : Phase.QUEUED,
-              rejected ? "PLUGIN_QUEUE_FULL" : "",
+              blocked
+                  ? "PLUGIN_OPERATION_BLOCKED_UNCONFIRMED"
+                  : rejected ? "PLUGIN_QUEUE_FULL" : "",
               -1,
               null,
               null);
@@ -271,6 +323,7 @@ public final class PluginOperationQueue {
       if (!isActive(operationId) || (phase != Phase.RUNNING && phase != Phase.COMMITTING))
         return false;
       Operation before = active.operation;
+      if (before.phase != Phase.RUNNING && before.phase != Phase.COMMITTING) return false;
       if (before.phase == Phase.COMMITTING && phase == Phase.RUNNING) return false;
       active.operation =
           before.withState(
@@ -279,6 +332,29 @@ public final class PluginOperationQueue {
               percent,
               transactionId == null ? before.transactionId : transactionId,
               backendTaskId == null ? before.backendTaskId : backendTaskId);
+      return true;
+    }
+
+    /** 仅附加到精确 active；阶段变化和终态历史仍保留同一份结构化回执。 */
+    public synchronized boolean recordResultDetail(
+        String operationId, PluginOperationResult.Detail detail) {
+      if (!isActive(operationId) || detail == null || active.operation.phase == Phase.UNCONFIRMED)
+        return false;
+      active.operation = active.operation.withOutcome(detail);
+      return true;
+    }
+
+    /** 清理未确认时保留执行槽；绝不 poll 后继或用迟到进度覆盖未知态。 */
+    public synchronized boolean retainUnconfirmed(String operationId, String message) {
+      if (!isActive(operationId)) return false;
+      Operation before = active.operation;
+      active.operation =
+          before.withState(
+              Phase.UNCONFIRMED,
+              message,
+              before.percent,
+              before.transactionId,
+              before.backendTaskId);
       return true;
     }
 

@@ -6,7 +6,7 @@ import java.io.*;
 import java.util.concurrent.*;
 import org.json.JSONObject;
 
-/** 使用真实启动/网页结果收敛本轮已批准插件；文件和聊天不随加载失败回退。 */
+/** 记录本次启动的插件核验状态；整轮网页结果不替代 entry 归因或部署内容证明。 */
 public final class PluginActivationHooks {
   private PluginActivationHooks() {}
 
@@ -42,7 +42,7 @@ public final class PluginActivationHooks {
       Object state = row.get("status");
       if (!(state instanceof String)) throw new IOException("PLUGIN_ACTIVATION_RECORD");
       if (startup == null
-          ? ("queued".equals(state) || "attempted".equals(state))
+          ? ("queued".equals(state) || "attempted".equals(state) || "unknown".equals(state))
           : ("attempted".equals(state) && startup.equals(row.get("startup")))) return true;
     }
     return false;

@@ -11,7 +11,7 @@ import java.util.Locale;
  */
 public final class SafPaths {
   /** 路径段数上限，防止病态路径把解析拖成 O(n²)。 */
-  public static final int MAX_SEGMENTS = 32;
+  public static final int MAX_SEGMENTS = SafCapabilityLimits.MAX_PATH_SEGMENTS;
 
   private SafPaths() {}
 

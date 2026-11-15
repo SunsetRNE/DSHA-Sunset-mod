@@ -53,8 +53,7 @@ public final class RootShell {
   private RootShell() {}
 
   public static boolean enabled(Context ctx) {
-    return ctx.getSharedPreferences(Constants.PREFS, 0)
-        .getBoolean(Constants.KEY_ALLOW_ROOT_SHELL, false);
+    return com.deepseekharness.app.core.ConfigStore.deviceAuthorization(ctx).rootAllowed();
   }
 
   private static String executable() {
@@ -80,6 +79,25 @@ public final class RootShell {
     return executable() != null;
   }
 
+  /** 只采样配置与候选；普通历史响应不提供当前执行身份或业务许可。 */
+  public static com.deepseekharness.app.util.DeviceChannelFacts channelFacts(Context ctx) {
+    var authority = com.deepseekharness.app.core.ConfigStore.deviceAuthorization(ctx);
+    boolean visible = present();
+    return new com.deepseekharness.app.util.DeviceChannelFacts(
+        com.deepseekharness.app.util.DeviceChannelFacts.Channel.ROOT,
+        authority.rootAllowed(),
+        visible,
+        false,
+        false,
+        false,
+        com.deepseekharness.app.util.DeviceChannelFacts.ConnectionEvidence.UNVERIFIED,
+        false,
+        com.deepseekharness.app.util.DeviceChannelFacts.UNKNOWN_UID,
+        false,
+        android.os.SystemClock.elapsedRealtime(),
+        authority.revision);
+  }
+
   public static String status(Context ctx) {
     if (!enabled(ctx)) return com.deepseekharness.app.util.UiText.text("未启用 · 开启后可直接申请 root 授权");
     String su = executable();
@@ -99,20 +117,51 @@ public final class RootShell {
     };
   }
 
+  private static final java.util.concurrent.atomic.AtomicBoolean MODULE_READ_ACTIVE =
+      new java.util.concurrent.atomic.AtomicBoolean();
+
+  /** 仅用户显式刷新调用；固定 operation，无任意路径/命令、无通道降级或自动重试。 */
+  public static String readRootModules(Context ctx) {
+    var authorization = com.deepseekharness.app.core.ConfigStore.deviceAuthorization(ctx);
+    if (!authorization.rootAllowed())
+      return com.deepseekharness.app.device.RootModuleReadCore.unavailable("ROOT_DISABLED");
+    if (!MODULE_READ_ACTIVE.compareAndSet(false, true))
+      return com.deepseekharness.app.device.RootModuleReadCore.unavailable("ROOT_MODULE_READ_BUSY");
+    try {
+      for (String label : SLOTS.snapshot(now()).labels)
+        if (label.startsWith("root-module-list"))
+          return com.deepseekharness.app.device.RootModuleReadCore.unavailable("UNKNOWN");
+      if (!com.deepseekharness.app.util.DeviceAuthorization.shared().current(authorization))
+        return com.deepseekharness.app.device.RootModuleReadCore.unavailable(
+            "DEVICE_AUTHORIZATION_CHANGED");
+      String output = runPrivileged(ctx, "", -1, "root-module-list");
+      if (!com.deepseekharness.app.util.DeviceAuthorization.shared().current(authorization))
+        return com.deepseekharness.app.device.RootModuleReadCore.unavailable(
+            "DEVICE_AUTHORIZATION_CHANGED");
+      if (output.startsWith("{")) return output;
+      return com.deepseekharness.app.device.RootModuleReadCore.unavailable(
+          output.startsWith("[ROOT_UNAVAILABLE]") ? "SU_UNAVAILABLE" : "UNKNOWN");
+    } finally {
+      MODULE_READ_ACTIVE.set(false);
+    }
+  }
+
   public static String exec(Context ctx, String command, int authorizedSmsUser) {
-    if (!enabled(ctx))
+    var authorization = com.deepseekharness.app.core.ConfigStore.deviceAuthorization(ctx);
+    if (!authorization.rootAllowed())
       return com.deepseekharness.app.util.UiText.text(
           "[POLICY_BLOCKED] 未允许 root shell\n[EXIT=126]");
     String hostBlocked = com.deepseekharness.app.util.HostDeviceCommandGuard.rejection(command);
     if (hostBlocked != null) return hostBlocked + "\n[EXIT=126]";
-    DeviceShellPolicy.Mode mode =
-        new com.deepseekharness.app.core.ConfigStore(ctx).rootPolicyMode();
+    DeviceShellPolicy.Mode mode = authorization.rootMode();
     DeviceShellPolicy.Plan plan = DeviceShellPolicy.inspect(command, mode);
     if (!plan.allowed()) return plan.reason + "\n[EXIT=126]";
     if (plan.kind == DeviceShellPolicy.Kind.SENSITIVE_READ
         && (authorizedSmsUser < 0
             || !new com.deepseekharness.app.core.DeviceGrants(ctx).smsReadAllowed()))
       return com.deepseekharness.app.util.UiText.text("[POLICY_BLOCKED] 短信读取尚未经过原生授权\n[EXIT=126]");
+    if (!com.deepseekharness.app.util.DeviceAuthorization.shared().current(authorization))
+      return "[POLICY_BLOCKED] DEVICE_AUTHORIZATION_CHANGED\n[EXIT=126]";
     if (plan.kind == DeviceShellPolicy.Kind.SHELL) {
       // 原始 shell 只能经 root 通道执行；Shizuku/ADB 的通用执行器仍走严格档，不识别此计划。
       if (mode == DeviceShellPolicy.Mode.STRICT || plan.shell == null)

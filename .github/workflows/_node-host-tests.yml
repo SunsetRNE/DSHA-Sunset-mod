@@ -133,6 +133,9 @@ jobs:
             args+=(--raw "$(python3 -c "import json;print(json.load(open('app/build/test-runtimes/current.json'))['raw'])")")
           fi
           python3 tools/run-host-tests.py "${args[@]}"
+      - name: Annotate failing host tests
+        if: failure()
+        run: python3 tools/annotate-host-failures.py app/build/host-tests
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:

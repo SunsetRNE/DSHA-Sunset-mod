@@ -138,6 +138,9 @@ public final class DeviceChannelDiagnostics {
     state.put(
         "adb.detail", SensitiveData.redact(com.deepseekharness.app.DeviceBridgeService.adbDetail));
     state.put("adb.pairing", String.valueOf(com.deepseekharness.app.bridge.AdbBridge.isPairing()));
+    appendFacts(state, "root", com.deepseekharness.app.RootShell.channelFacts(ctx));
+    appendFacts(state, "shizuku", com.deepseekharness.app.ShizukuShell.channelFacts(ctx));
+    appendFacts(state, "adb", com.deepseekharness.app.DeviceBridgeService.channelFacts(ctx));
     state.put(
         "environment.exclusive", com.deepseekharness.app.util.EnvironmentTaskGate.activeKind());
     state.put(
@@ -179,6 +182,17 @@ public final class DeviceChannelDiagnostics {
               new ArrayList<>(Arrays.asList(names)), DeviceChannelSnapshot.KEEP))
         new File(dir, name).delete();
     Log.i(TAG, "snapshot " + target.getName() + " trigger=" + SensitiveData.redact(trigger));
+  }
+
+  private static void appendFacts(
+      Map<String, String> state,
+      String prefix,
+      com.deepseekharness.app.util.DeviceChannelFacts facts) {
+    state.put(prefix + ".evidence", facts.connectionEvidence().name());
+    state.put(prefix + ".channelAuthorized", String.valueOf(facts.channelAuthorized()));
+    state.put(prefix + ".executionUidKnown", String.valueOf(facts.executionUidKnown()));
+    state.put(prefix + ".businessGranted", String.valueOf(facts.businessGranted()));
+    state.put(prefix + ".authorityRevision", String.valueOf(facts.authorizationRevision()));
   }
 
   /** Shizuku 的 Binder 调用没有客户端超时；放到独立线程，等不到就放弃，不阻塞取证。 */

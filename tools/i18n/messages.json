@@ -30800,5 +30800,118 @@
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java"
     ]
+  },
+  {
+    "id": "m9503",
+    "zh": "Root 模块清单",
+    "en": "Root module inventory",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RootModulesFragment.java",
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceChannelsFragment.java"
+    ]
+  },
+  {
+    "id": "m9504",
+    "zh": "仅在点击读取后申请本机 Root，读取已支持管理器的模块元数据。未知版本或无法核验时显示不可用；此页没有模块写操作。",
+    "en": "Root is requested only after you tap Read. This page reads module metadata for supported managers; unverified versions remain unavailable. It has no module write actions.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RootModulesFragment.java"
+    ]
+  },
+  {
+    "id": "m9505",
+    "zh": "读取清单",
+    "en": "Read inventory",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RootModulesFragment.java"
+    ]
+  },
+  {
+    "id": "m9506",
+    "zh": "尚未读取",
+    "en": "Not read yet",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RootModulesFragment.java"
+    ]
+  },
+  {
+    "id": "m9507",
+    "zh": "请先允许 Root Shell",
+    "en": "Enable Root shell first",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RootModulesFragment.java"
+    ]
+  },
+  {
+    "id": "m9508",
+    "zh": "授权已变化，请重新核对",
+    "en": "Authorization changed. Check it again.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RootModulesFragment.java"
+    ]
+  },
+  {
+    "id": "m9509",
+    "zh": "管理器版本尚不支持或无法核验",
+    "en": "Manager version unsupported or unverified",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RootModulesFragment.java"
+    ]
+  },
+  {
+    "id": "m9510",
+    "zh": "无法读取模块目录",
+    "en": "Module directory is unreadable",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RootModulesFragment.java"
+    ]
+  },
+  {
+    "id": "m9511",
+    "zh": "读取结果未知或不可用",
+    "en": "Inventory result unknown or unavailable",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RootModulesFragment.java"
+    ]
+  },
+  {
+    "id": "m9512",
+    "zh": "清单读取完整",
+    "en": "Inventory complete",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RootModulesFragment.java"
+    ]
+  },
+  {
+    "id": "m9513",
+    "zh": "清单不完整",
+    "en": "Inventory incomplete",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RootModulesFragment.java"
+    ]
+  },
+  {
+    "id": "m9514",
+    "zh": "没有模块",
+    "en": "No modules",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RootModulesFragment.java"
+    ]
+  },
+  {
+    "id": "m9515",
+    "zh": "等待移除",
+    "en": "Removal pending",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RootModulesFragment.java"
+    ]
+  },
+  {
+    "id": "m9516",
+    "zh": "已停用",
+    "en": "Disabled",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/RootModulesFragment.java"
+    ]
   }
 ]

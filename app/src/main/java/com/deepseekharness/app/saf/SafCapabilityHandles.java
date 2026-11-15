@@ -159,6 +159,11 @@ public final class SafCapabilityHandles {
     return result;
   }
 
+  /** 界面关闭操作面板或短请求结束时主动释放；不把其它待确认操作的句柄一起撤销。 */
+  public synchronized void discard(String token) {
+    if (token != null) tokens.remove(token);
+  }
+
   /** 撤销一棵树的全部句柄（撤销授权时调用；代次检查是第二道保险）。 */
   public synchronized int revokeTree(String treeId) {
     if (treeId == null) return 0;

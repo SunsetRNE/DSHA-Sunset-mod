@@ -77,6 +77,27 @@ public final class ShizukuShell {
     return hasPermission() && current != null && current.asBinder().pingBinder();
   }
 
+  /** 只读事实，不触发绑定或授权；真实 UID 与本次业务许可仍需独立回执。 */
+  public static com.deepseekharness.app.util.DeviceChannelFacts channelFacts(Context ctx) {
+    var authority = com.deepseekharness.app.core.ConfigStore.deviceAuthorization(ctx);
+    boolean visible = isAvailable();
+    boolean permitted = visible && hasPermission();
+    boolean bound = permitted && isReady();
+    return new com.deepseekharness.app.util.DeviceChannelFacts(
+        com.deepseekharness.app.util.DeviceChannelFacts.Channel.SHIZUKU,
+        permitted,
+        visible,
+        permitted,
+        bound,
+        bound,
+        com.deepseekharness.app.util.DeviceChannelFacts.ConnectionEvidence.UNVERIFIED,
+        false,
+        com.deepseekharness.app.util.DeviceChannelFacts.UNKNOWN_UID,
+        false,
+        SystemClock.elapsedRealtime(),
+        authority.revision);
+  }
+
   public static String status() {
     return "binder="
         + isAvailable()

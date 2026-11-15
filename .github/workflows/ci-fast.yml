@@ -5,7 +5,7 @@ name: Source checks
 #   java-format┤  （互不依赖，立即并行）
 #   kotlin-format┤
 #   rust-check ┤
-#   rust-differential ┤  主机 .so + JDK17 JVM 真实对拍 digest（-Xcheck:jni）
+#   rust-differential ┤  主机 .so + JDK17 JVM 真实对拍 digest/PlanView/gzip（-Xcheck:jni）
 #   inputs ────┼─► unit-source（源码模式单测，最多五个外部夹具跳过）
 #              └─► host-fast（fast 阶段宿主回归，含 raw 夹具与 toolchains）
 on:

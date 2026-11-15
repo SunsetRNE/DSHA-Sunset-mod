@@ -277,27 +277,77 @@ public class ConfigStore {
     prefs.edit().putBoolean(Constants.KEY_CONFIRM_SHELL, v).apply();
   }
 
+  /** 原偏好仍是唯一存储；组合读取与意图变更由同一进程内围栏核验。 */
+  public static com.deepseekharness.app.util.DeviceAuthorization.Snapshot deviceAuthorization(
+      Context context) {
+    return authorizationSnapshot(
+        context.getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE));
+  }
+
+  private static com.deepseekharness.app.util.DeviceAuthorization.Snapshot authorizationSnapshot(
+      SharedPreferences preferences) {
+    return com.deepseekharness.app.util.DeviceAuthorization.shared()
+        .snapshot(
+            () ->
+                com.deepseekharness.app.util.DeviceAuthorization.Values.fromPreferences(
+                    preferences.getAll()));
+  }
+
   public boolean isRootShellAllowed() {
-    return flag(Constants.KEY_ALLOW_ROOT_SHELL, false);
+    return authorizationSnapshot(prefs).rootAllowed();
   }
 
   public void setRootShellAllowed(boolean v) {
-    prefs.edit().putBoolean(Constants.KEY_ALLOW_ROOT_SHELL, v).apply();
+    com.deepseekharness.app.util.DeviceAuthorization.shared()
+        .change(
+            () -> {},
+            () -> {
+              prefs.edit().putBoolean(Constants.KEY_ALLOW_ROOT_SHELL, v).apply();
+              return true;
+            });
   }
 
   /** root 命令拦截档位；非法或缺失一律回落严格档（fail-closed）。 */
   public com.deepseekharness.app.util.DeviceShellPolicy.Mode rootPolicyMode() {
-    return com.deepseekharness.app.util.DeviceShellPolicy.Mode.parse(
-        text(Constants.KEY_ROOT_POLICY_MODE, "strict"));
+    return authorizationSnapshot(prefs).rootMode();
   }
 
   public void setRootPolicyMode(com.deepseekharness.app.util.DeviceShellPolicy.Mode mode) {
-    prefs
-        .edit()
-        .putString(
-            Constants.KEY_ROOT_POLICY_MODE,
-            (mode == null ? com.deepseekharness.app.util.DeviceShellPolicy.Mode.STRICT : mode).id)
-        .apply();
+    com.deepseekharness.app.util.DeviceAuthorization.shared()
+        .change(
+            () -> {},
+            () -> {
+              prefs
+                  .edit()
+                  .putString(
+                      Constants.KEY_ROOT_POLICY_MODE,
+                      (mode == null
+                              ? com.deepseekharness.app.util.DeviceShellPolicy.Mode.STRICT
+                              : mode)
+                          .id)
+                  .apply();
+              return true;
+            });
+  }
+
+  /** ADB 意图的原生唯一写接缝；先取消旧探活/短信请求，再发布原键值。 */
+  public static boolean setAdbEnabled(Context context, boolean enabled, boolean synchronous) {
+    return com.deepseekharness.app.util.DeviceAuthorization.shared()
+        .change(
+            () -> {
+              com.deepseekharness.app.DeviceBridgeService.adbIntentChanging();
+              com.deepseekharness.app.HttpShellService.smsPolicyChanged(context);
+            },
+            () -> {
+              var edit =
+                  context
+                      .getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE)
+                      .edit()
+                      .putBoolean("adb_enabled", enabled);
+              if (synchronous) return edit.commit();
+              edit.apply();
+              return true;
+            });
   }
 
   public boolean isCheckUpdate() {

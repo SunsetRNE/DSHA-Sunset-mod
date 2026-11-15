@@ -238,10 +238,21 @@ public final class ThemeInstrumentation extends Instrumentation {
   @Override
   public void onStart() {
     Bundle output = new Bundle();
+    if ("lifecycle".equals(args == null ? null : args.getString("mode"))) {
+      output.putString(
+          "result",
+          "FAIL: 旧终端 lifecycle 审计已退役；请使用 MultiTerminalLanguageAudit 核验进程级 owner。未创建或关闭终端。");
+      finish(Activity.RESULT_CANCELED, output);
+      return;
+    }
     ConfigStore config = new ConfigStore(getTargetContext());
     String original = config.getUiTheme();
     try {
-      shell("am start -W -n com.dsh.client/com.deepseekharness.app.ui.MainActivity");
+      shell(
+          "am start -W -n "
+              + getTargetContext().getPackageName()
+              + "/"
+              + MainActivity.class.getName());
       page =
           startActivitySync(
               new Intent(getTargetContext(), MainActivity.class)
@@ -252,58 +263,6 @@ public final class ThemeInstrumentation extends Instrumentation {
         backupPreference();
         runOnMainSync(() -> ThemeController.select(page, "system"));
         output.putString("result", "PASS: 新进程应用已保存的黑夜主题；独立设置备份/恢复/回滚通过；已恢复跟随系统");
-      } else if ("lifecycle".equals(args.getString("mode"))) {
-        require("dark".equals(config.getUiTheme()) && ThemeController.isDark(page), "重新启动丢失主题选择");
-        MainActivity current = MainActivity.active();
-        runOnMainSync(
-            () ->
-                ((com.google.android.material.bottomnavigation.BottomNavigationView)
-                        current.findViewById(R.id.bottom_nav))
-                    .setSelectedItemId(R.id.nav_settings));
-        until(() -> MainActivity.active().findViewById(R.id.settings_tabs) != null, "设置页未加载");
-        runOnMainSync(
-            () ->
-                audit(MainActivity.active().findViewById(android.R.id.content), "actual-settings"));
-        screenshot("dark-settings");
-        java.lang.reflect.Field field = PtyTerminalFragment.class.getDeclaredField("session");
-        field.setAccessible(true);
-        require(field.get(null) == null, "已有用户终端，不能覆盖验收");
-        require(PtyTerminalFragment.preferred(getTargetContext()), "当前选择简易终端，需使用独立 PTY 验收");
-        runOnMainSync(
-            () ->
-                ((com.google.android.material.bottomnavigation.BottomNavigationView)
-                        MainActivity.active().findViewById(R.id.bottom_nav))
-                    .setSelectedItemId(R.id.nav_terminal));
-        until(
-            () -> {
-              try {
-                return field.get(null) != null
-                    && ((com.deepseekharness.app.PtySession) field.get(null)).isRunning();
-              } catch (Exception e) {
-                return false;
-              }
-            },
-            "终端未启动");
-        com.deepseekharness.app.PtySession terminal =
-            (com.deepseekharness.app.PtySession) field.get(null);
-        MainActivity old = MainActivity.active();
-        // 顶栏主题按钮已移到设置 › 主题与外观；重建路径相同，直接切到白天。
-        runOnMainSync(() -> ThemeController.select(old, "light"));
-        until(
-            () ->
-                MainActivity.active() != null
-                    && MainActivity.active() != old
-                    && !ThemeController.isDark(MainActivity.active()),
-            "终端页主题未切换");
-        require(field.get(null) == terminal && terminal.isRunning(), "主题切换中断了终端");
-        runOnMainSync(() -> ThemeController.select(MainActivity.active(), "dark"));
-        until(
-            () -> MainActivity.active() != null && ThemeController.isDark(MainActivity.active()),
-            "黑夜主题未恢复");
-        require(field.get(null) == terminal && terminal.isRunning(), "再次切换中断了终端");
-        runOnMainSync(PtyTerminalFragment::shutdown);
-        require(failures.isEmpty(), String.join("\n", failures));
-        output.putString("result", "PASS: 主题进程持久化、真实设置页文字、主题切换两次保持同一运行中 PTY");
       } else {
         for (boolean dark : new boolean[] {false, true}) {
           until(

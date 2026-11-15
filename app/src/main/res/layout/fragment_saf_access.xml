@@ -35,6 +35,31 @@
             android:paddingStart="@dimen/config_page_pad_h"
             android:paddingEnd="@dimen/config_page_pad_h">
 
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/saf_workbench_enabled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:layout_marginTop="8dp" />
+
+            <TextView
+                android:id="@+id/saf_workbench_note"
+                style="@style/ShellStatusText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <Button
+                android:id="@+id/saf_transfer_history"
+                style="@style/ShellTextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <Button
+                android:id="@+id/saf_workspace_files"
+                style="@style/ShellTextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
             <Button
                 android:id="@+id/saf_add"
                 style="@style/ShellPrimaryButton"

@@ -3761,5 +3761,19 @@
   "m9027": "Masqué des applications récentes ; la notification permanente et le service en arrière-plan ne changent pas.",
   "m9028": "Enregistré ; le masquage s’appliquera au prochain lancement",
   "build335_ui_b8303dd168ef": "Abandonner le Web de la version précédente et forcer l’arrêt ?",
-  "build335_ui_e74a6f26bca8": "L’arrêt normal n’a pas confirmé la sortie de la version précédente. L’arrêt forcé peut interrompre des écritures.\\n\\nConfirmer termine d’abord l’ancien processus ; un changement d’identité est refusé ; annuler conserve l’état actuel."
+  "build335_ui_e74a6f26bca8": "L’arrêt normal n’a pas confirmé la sortie de la version précédente. L’arrêt forcé peut interrompre des écritures.\\n\\nConfirmer termine d’abord l’ancien processus ; un changement d’identité est refusé ; annuler conserve l’état actuel.",
+  "m9503": "Modules Root",
+  "m9504": "Les droits Root de cet appareil ne sont demandés qu’après avoir touché « Lire la liste », pour lire les métadonnées des modules des gestionnaires pris en charge. Les versions inconnues ou non vérifiables restent indisponibles. Cette page ne permet aucune écriture sur les modules.",
+  "m9505": "Lire la liste",
+  "m9506": "Pas encore lu",
+  "m9507": "Autorisez d’abord Root Shell",
+  "m9508": "L’autorisation a changé. Vérifiez-la à nouveau.",
+  "m9509": "Version du gestionnaire non prise en charge ou non vérifiée",
+  "m9510": "Dossier modules illisible",
+  "m9511": "Résultat de lecture inconnu ou indisponible",
+  "m9512": "Liste complète",
+  "m9513": "Liste incomplète",
+  "m9514": "Aucun module",
+  "m9515": "Suppression en attente",
+  "m9516": "Désactivé"
 }

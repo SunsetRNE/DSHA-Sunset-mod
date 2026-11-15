@@ -277,6 +277,26 @@ public class SafCapabilityHandlesTest {
   }
 
   @Test
+  public void closingOnePanelDoesNotRevokeAnotherTicketOnTheSameTree() {
+    SafCapabilityHandles handles = SafTestSupport.fixedHandles();
+    SafGrantLedger ledger = ledger(SafGrantRecord.READ | SafGrantRecord.WRITE);
+    String panel =
+        handles.issue(ledger, ID, SafCapabilityHandles.Operation.WRITE, "report.md", 1_000).token;
+    String preview =
+        handles.issue(ledger, ID, SafCapabilityHandles.Operation.READ, "notes.md", 1_000).token;
+    handles.discard(preview);
+    handles.discard(preview);
+    handles.discard(null);
+    assertEquals(1, handles.size());
+    assertEquals(
+        SafCapabilityHandles.Result.OK,
+        handles.check(ledger, panel, SafCapabilityHandles.Operation.WRITE, "report.md", 1_001));
+    assertEquals(
+        SafCapabilityHandles.Result.UNKNOWN,
+        handles.check(ledger, preview, SafCapabilityHandles.Operation.READ, "notes.md", 1_001));
+  }
+
+  @Test
   public void defaultTokensAreRandomHexAndUnique() {
     SafCapabilityHandles handles = new SafCapabilityHandles();
     SafGrantLedger ledger = ledger(SafGrantRecord.READ);

@@ -4,9 +4,9 @@ name: "Node: Rust toolchain and native artifact"
 #   check        源码只读：工具链锁/vendor/格式/clippy/单测/边界 + 主机 .so 符号（无 NDK）
 #   repro        有网：cargo vendor --locked 重生成比对 + 不同目录字节复现 + 依赖白名单
 #   native       安装 NDK 26.3：交叉编译 arm64 .so，本 run 内两次构建字节比对 + ELF/16K/体积/receipt
-#   differential 主机 .so + JDK17 JVM 探针（-Xcheck:jni；R1 起真实对拍 digest 全部路径）
-# 全部模式只读源码、没有 Secrets、不写仓库；R1 的 .so 仍只作为 artifact，不接 build-unsigned
-# （APK 内成员门禁与 build-unsigned 接线属 R3/A3，见方案 §2.5）。
+#   differential 主机 .so + JDK17 JVM 探针（-Xcheck:jni；R1/R2/R3 真实对拍 digest、PlanView、gzip archive）
+# 全部模式只读源码、没有 Secrets、不写仓库；R3 的 .so 仍只作为 artifact，不接 build-unsigned
+# （APK 内成员门禁与生产接线属 A3 slice4，见方案 §2.5）。
 on:
   workflow_call:
     inputs:
@@ -98,7 +98,7 @@ jobs:
         if: inputs.mode == 'differential'
         with:
           gradle-cache: 'false'
-      - name: Host JVM digest differential (JDK17, -Xcheck:jni)
+      - name: Host JVM differential (digest, PlanView, gzip; JDK17, -Xcheck:jni)
         if: inputs.mode == 'differential'
         run: |
           set -eu

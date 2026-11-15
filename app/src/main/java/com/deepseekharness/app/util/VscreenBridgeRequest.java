@@ -35,12 +35,50 @@ public final class VscreenBridgeRequest {
 
   public final Operation operation;
   public final Map<String, String> parameters;
+  private final VscreenActionEvidence evidence;
 
   private VscreenBridgeRequest(Operation operation, Map<String, String> parameters)
       throws HttpProtocol.Failure {
     this.operation = operation;
     this.parameters = Collections.unmodifiableMap(new LinkedHashMap<>(parameters));
     validate();
+    evidence = parseEvidence();
+  }
+
+  /** 只返回原请求的凭据载体；无凭据的观察/生命周期端点返回 null。 */
+  public VscreenActionEvidence actionEvidence() {
+    return evidence;
+  }
+
+  private VscreenActionEvidence parseEvidence() {
+    String core = value("coreInstance", ""), gen = value("generation", "");
+    switch (operation) {
+      case TAP:
+      case SWIPE:
+      case KEY:
+      case TYPE:
+      case TOUCH:
+        return new VscreenActionEvidence.RawFrame(core, gen, number("frameSeq", -1));
+      case NODE:
+        return new VscreenActionEvidence.Node(
+            core,
+            gen,
+            parameters.containsKey("frameSeq") ? Long.valueOf(number("frameSeq", -1)) : null,
+            value("nodeId", ""));
+      case EDITOR:
+      case EDIT:
+      case SUBMIT:
+        return new VscreenActionEvidence.Editor(
+            core, gen, operation == Operation.EDITOR ? "" : value("editorId", ""));
+      case ANCHOR:
+        return new VscreenActionEvidence.ObservedAnchor(
+            core, gen, number("frameSeq", -1), value("observationId", ""));
+      case ANCHORED_CLICK:
+        return new VscreenActionEvidence.AnchoredClick(
+            core, gen, number("frameSeq", -1), value("anchorId", ""));
+      default:
+        return null;
+    }
   }
 
   public interface Actions<T> {
@@ -76,12 +114,47 @@ public final class VscreenBridgeRequest {
 
     T type(String generation, long frame, String text);
 
+    /** 旧适配器保留原签名；生产 Manager 显式消费这些独立类型。 */
+    default T node(VscreenActionEvidence.Node evidence, String action, String text) {
+      return node(
+          evidence.generation(),
+          evidence.frameSeq() == null ? -1 : evidence.frameSeq(),
+          evidence.nodeId(),
+          action,
+          text);
+    }
+
+    default T editor(
+        VscreenActionEvidence.Editor evidence, String mode, String text, int start, int end) {
+      return editor(evidence.generation(), mode, evidence.editorId(), text, start, end);
+    }
+
+    default T touch(
+        VscreenActionEvidence.RawFrame evidence, String stroke, int action, float x, float y) {
+      return touch(evidence.generation(), evidence.frameSeq(), stroke, action, x, y);
+    }
+
+    default T anchor(VscreenActionEvidence.ObservedAnchor evidence, int x, int y) {
+      return anchor(evidence.generation(), evidence.frameSeq(), evidence.observationId(), x, y);
+    }
+
+    default T anchoredClick(VscreenActionEvidence.AnchoredClick evidence) {
+      return anchoredClick(evidence.generation(), evidence.frameSeq(), evidence.anchorId());
+    }
+
+    default T action(String mode, VscreenActionEvidence.RawFrame evidence, String query) {
+      return action(mode, evidence.generation(), evidence.frameSeq(), query);
+    }
+
+    default T type(VscreenActionEvidence.RawFrame evidence, String text) {
+      return type(evidence.generation(), evidence.frameSeq(), text);
+    }
+
     T close();
   }
 
   public <T> T execute(Actions<T> actions) {
-    String gen = value("generation", ""), text = value("text", "");
-    long frame = number("frameSeq", -1);
+    String text = value("text", "");
     switch (operation) {
       case CREATE:
         return actions.create(value("orientation", "portrait"));
@@ -92,23 +165,21 @@ public final class VscreenBridgeRequest {
       case TREE:
         return actions.tree();
       case NODE:
-        return actions.node(gen, frame, value("nodeId", ""), value("action", ""), text);
+        return actions.node((VscreenActionEvidence.Node) evidence, value("action", ""), text);
       case EDITOR:
-        return actions.editor(gen, "editor", "", "", 0, 0);
+        return actions.editor((VscreenActionEvidence.Editor) evidence, "editor", "", 0, 0);
       case EDIT:
         return actions.editor(
-            gen,
+            (VscreenActionEvidence.Editor) evidence,
             "edit",
-            value("editorId", ""),
             text,
             (int) number("start", text.length()),
             (int) number("end", number("start", text.length())));
       case SUBMIT:
-        return actions.editor(gen, "submit", value("editorId", ""), "", 0, 0);
+        return actions.editor((VscreenActionEvidence.Editor) evidence, "submit", "", 0, 0);
       case TOUCH:
         return actions.touch(
-            gen,
-            frame,
+            (VscreenActionEvidence.RawFrame) evidence,
             value("stroke", ""),
             (int) number("action", -1),
             Float.parseFloat(value("x", "0")),
@@ -119,15 +190,20 @@ public final class VscreenBridgeRequest {
         return actions.see();
       case ANCHOR:
         return actions.anchor(
-            gen, frame, value("observationId", ""), (int) number("x", -1), (int) number("y", -1));
+            (VscreenActionEvidence.ObservedAnchor) evidence,
+            (int) number("x", -1),
+            (int) number("y", -1));
       case ANCHORED_CLICK:
-        return actions.anchoredClick(gen, frame, value("anchorId", ""));
+        return actions.anchoredClick((VscreenActionEvidence.AnchoredClick) evidence);
       case TAP:
       case SWIPE:
       case KEY:
-        return actions.action(operation.name().toLowerCase(Locale.ROOT), gen, frame, query());
+        return actions.action(
+            operation.name().toLowerCase(Locale.ROOT),
+            (VscreenActionEvidence.RawFrame) evidence,
+            query());
       case TYPE:
-        return actions.type(gen, frame, text);
+        return actions.type((VscreenActionEvidence.RawFrame) evidence, text);
       case CLOSE:
         return actions.close();
       default:

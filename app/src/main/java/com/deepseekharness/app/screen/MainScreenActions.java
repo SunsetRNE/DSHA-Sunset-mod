@@ -300,13 +300,11 @@ public final class MainScreenActions {
 
   private JSONObject run(ScreenRequestContext context, String operation, JSONObject args)
       throws Exception {
-    boolean senseState = operation.equals("senseState");
-    boolean observing =
-        senseState
-            || operation.equals("dump")
-            || operation.equals("tree")
-            || operation.equals("screenshot");
-    boolean mutating = !observing;
+    var requested =
+        com.deepseekharness.app.util.PhysicalActionRequest.Operation.fromWire(operation);
+    boolean senseState =
+        requested == com.deepseekharness.app.util.PhysicalActionRequest.Operation.SENSE_STATE;
+    boolean mutating = !requested.observing();
     // 动作即观察：调用方显式要求时，动作成功后在同一次请求里等界面稳定并生成新树；旧调用方不传
     // observe，行为与本改动前完全一致（动作回执、租约清理、请求预算都不变）。
     boolean observeAfterAction = mutating && events != null && flag(args, "observe");

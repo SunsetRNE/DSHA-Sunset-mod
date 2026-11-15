@@ -144,10 +144,7 @@ public class AdbPairActivity extends androidx.appcompat.app.AppCompatActivity {
     root.findViewById(com.deepseekharness.app.R.id.adb_pair_disconnect)
         .setOnClickListener(
             v -> {
-              getSharedPreferences(com.deepseekharness.app.util.Constants.PREFS, 0)
-                  .edit()
-                  .putBoolean("adb_enabled", false)
-                  .apply();
+              com.deepseekharness.app.core.ConfigStore.setAdbEnabled(this, false, false);
               stopService(new Intent(this, DeviceBridgeService.class));
               model.message(
                   com.deepseekharness.app.util.UiText.choose(

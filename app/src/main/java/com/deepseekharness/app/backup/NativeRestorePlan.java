@@ -52,6 +52,29 @@ public final class NativeRestorePlan {
     this.manifest = manifest;
   }
 
+  /**
+   * A3 slice2：投影所需的只读事实快照（清单 + 本次计划实际写入根数）。
+   *
+   * <p>返回不可变浅拷贝，投影器不再直接读可变计划字段；{@code rootCount} 与
+   * {@code preview.restoreRoots} 同为 {@code groups.keySet()} 的计数（A3 基线 §3.3、P-6），
+   * 但这里只给计数，不暴露根 id 或写入目标。
+   */
+  public ProjectionFacts projectionFacts() {
+    return new ProjectionFacts(
+        Collections.unmodifiableMap(new LinkedHashMap<>(manifest)), groups.size());
+  }
+
+  /** 投影只读事实：清单快照 + 计划实际写入根数。 */
+  public static final class ProjectionFacts {
+    public final Map<String, Object> manifest;
+    public final int rootCount;
+
+    private ProjectionFacts(Map<String, Object> manifest, int rootCount) {
+      this.manifest = manifest;
+      this.rootCount = rootCount;
+    }
+  }
+
   public static NativeRestorePlan inspect(
       BackupFileSystem fs,
       File task,

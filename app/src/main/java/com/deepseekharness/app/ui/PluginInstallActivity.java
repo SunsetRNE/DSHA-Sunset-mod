@@ -46,6 +46,7 @@ public final class PluginInstallActivity extends AppCompatActivity {
       return;
     }
     repository = com.deepseekharness.app.plugins.PluginManagementEngine.get(this);
+    repository.ensureLoaded();
     repository.state().observe(this, ignored -> renderOperation());
     install.setOnClickListener(
         v -> {
@@ -74,6 +75,8 @@ public final class PluginInstallActivity extends AppCompatActivity {
   }
 
   private void inspect() {
+    // 来源为空的旧请求不补票；先请求只读观察，后续显式重试才使用新票据。
+    repository.ensureLoaded();
     PluginOperationQueue.Operation previous = repository.operation(operationId);
     if (previous != null && previous.pending()) return;
     operationId =

@@ -64,7 +64,7 @@ public class PluginFragment extends Fragment {
                   item.description,
                   item.builtin || item.official || item.runtimeProvided,
                   item.enabled,
-                  item.available,
+                  item.hasReadableInstallation(),
                   item.dynamic,
                   item.updateAvailable));
   private long renderedSelectionVersion = -1;
@@ -557,11 +557,11 @@ public class PluginFragment extends Fragment {
   }
 
   private void showPluginStatus() {
-    if (current == null || current.message.isEmpty()) return;
+    if (current == null || stateMessage(current).isEmpty()) return;
     var dialog =
         new com.deepseekharness.app.ui.DshaDialogBuilder(requireContext())
             .setTitle(com.deepseekharness.app.util.UiText.text("插件操作结果"))
-            .setMessage(com.deepseekharness.app.util.UiStateText.render(current.message));
+            .setMessage(stateMessage(current));
     if (!repository.isBusy() && repository.preview().getValue() != null) {
       dialog
           .setPositiveButton(
@@ -795,7 +795,11 @@ public class PluginFragment extends Fragment {
               String.valueOf(operation.phase),
               operation.message,
               operation.percent,
-              operation.pending()));
+              operation.pending(),
+              operation.outcome.errorCode(),
+              operation.outcome.stage(),
+              operation.outcome.application(),
+              operation.outcome.restartReason()));
     List<PluginListPresenter.Row<PluginRepository.Item>> rows =
         listProjection.project(
             current.items,
@@ -868,6 +872,58 @@ public class PluginFragment extends Fragment {
     renderDetail();
   }
 
+  static String managementNotice(com.deepseekharness.app.util.PluginManagementView view) {
+    if (view == null) return "";
+    List<String> messages = new ArrayList<>();
+    for (var notice : view.notices())
+      messages.add(
+          switch (notice) {
+            case MANAGEMENT_UNAVAILABLE -> com.deepseekharness.app.util.UiText.text("Web 插件管理面不可用");
+            case MANAGEMENT_UNKNOWN -> com.deepseekharness.app.util.UiText.text("Web 插件管理面尚未核验");
+            case PATCH_UNVERIFIED -> com.deepseekharness.app.util.UiText.text("插件补丁链尚未核验");
+            case PATCH_UNAVAILABLE -> com.deepseekharness.app.util.UiText.text("插件补丁链状态不可读");
+            case PATCH_MISMATCH -> com.deepseekharness.app.util.UiText.text("插件补丁链声明不匹配");
+            case COVERAGE_LIMITED -> com.deepseekharness.app.util.UiText.text("插件观察覆盖受限");
+            case COVERAGE_UNKNOWN -> com.deepseekharness.app.util.UiText.text("插件观察覆盖尚未核验");
+          });
+    java.util.Set<String> reasons = new java.util.LinkedHashSet<>(view.runtimeReasons);
+    reasons.addAll(view.watchReasons);
+    for (String reason : reasons) {
+      String text =
+          switch (reason) {
+            case "WATCH_PATH_LIMIT" -> com.deepseekharness.app.util.UiText.text("观察路径超过上限");
+            case "WATCH_DIRECTORY_LIMIT" -> com.deepseekharness.app.util.UiText.text("观察目录超过上限");
+            case "WATCH_ENTRY_LIMIT", "LOADER_LIMIT", "METADATA_LIMIT" ->
+                com.deepseekharness.app.util.UiText.text("观察条目超过上限");
+            case "WATCH_DEPTH_LIMIT" -> com.deepseekharness.app.util.UiText.text("观察深度超过上限");
+            case "WATCH_TIME_LIMIT" -> com.deepseekharness.app.util.UiText.text("观察时间预算已耗尽");
+            case "WATCH_OBSERVER_FAILED" -> com.deepseekharness.app.util.UiText.text("观察器暂不可用");
+            case "WATCH_PATH_UNREADABLE", "WATCH_PATH_CHANGED", "WATCH_UNSAFE_PATH" ->
+                com.deepseekharness.app.util.UiText.text("部分观察路径不可读");
+            case "WATCH_EVENT_OVERFLOW", "WATCH_INVALIDATED" ->
+                com.deepseekharness.app.util.UiText.text("观察事件已丢失，正在重新核对");
+            case "FRAME_BYTE_LIMIT", "DYNAMIC_BYTE_LIMIT" ->
+                com.deepseekharness.app.util.UiText.text("运行证据已截断");
+            case "ENTRY_UNADDRESSABLE", "LOADER_UNAVAILABLE" ->
+                com.deepseekharness.app.util.UiText.text("Loader 条目无法完整归属");
+            default -> "";
+          };
+      if (!text.isEmpty() && !messages.contains(text)) messages.add(text);
+    }
+    return String.join("\n", messages);
+  }
+
+  static String stateMessage(PluginRepository.State value) {
+    if (value == null) return "";
+    String operation = com.deepseekharness.app.util.UiStateText.render(value.message);
+    String management = managementNotice(value.management);
+    if (management.isEmpty()) return operation;
+    if (operation.isEmpty()) return management;
+    return value.busy || value.result != PluginRepository.State.RESULT_NONE
+        ? operation + "\n\n" + management
+        : management + "\n\n" + operation;
+  }
+
   /**
    * 统一状态条：图标 / 计数 / 状态文字 / 唯一动作，形态由 {@link com.deepseekharness.app.util.PluginHeaderStrip}
    * 推导。文字仍是管理引擎原消息，不在这里改写。
@@ -878,7 +934,7 @@ public class PluginFragment extends Fragment {
     input.busy = current.busy;
     input.cancellable = current.cancellable;
     input.result = current.result;
-    input.hasMessage = !current.message.isEmpty();
+    input.hasMessage = !stateMessage(current).isEmpty();
     input.catalogLoading = catalogLoading;
     input.catalogError = catalogError;
     var view = com.deepseekharness.app.util.PluginHeaderStrip.project(input);
@@ -929,8 +985,7 @@ public class PluginFragment extends Fragment {
           });
     find(R.id.pluginCount).setVisibility(view.showCount ? View.VISIBLE : View.GONE);
     TextView status = find(R.id.statusText);
-    UiMotion.crossFadeText(
-        status, com.deepseekharness.app.util.UiStateText.render(current.message));
+    UiMotion.crossFadeText(status, stateMessage(current));
     status.setClickable(input.hasMessage);
     android.graphics.drawable.Drawable chevron = null;
     if (view.chevron) {
@@ -1292,30 +1347,63 @@ public class PluginFragment extends Fragment {
   /** 当前 Web 胶囊的短文案：加载状态压成一个词，完整记录放 contentDescription。 */
   static String runtimeBadgeText(PluginRepository.Item item) {
     if (item.runtimeStale) return com.deepseekharness.app.util.UiText.choose("待核验", "Unverified");
-    return switch (item.runtimeState) {
-      case "loaded", "running", "active" ->
-          com.deepseekharness.app.util.UiText.choose("已加载", "Loaded");
-      case "failed" -> com.deepseekharness.app.util.UiText.choose("加载失败", "Failed");
-      case "pending", "waiting" -> com.deepseekharness.app.util.UiText.choose("等待服务", "Waiting");
-      case "loading" -> com.deepseekharness.app.util.UiText.choose("加载中", "Loading");
-      case "stopped", "unloaded", "disabled", "inactive" ->
-          com.deepseekharness.app.util.UiText.choose("未加载", "Not loaded");
-      default -> com.deepseekharness.app.util.UiText.choose("待核验", "Unverified");
+    return switch (com.deepseekharness.app.util.PluginStateView.runtimePhase(
+        item.runtimeState, false)) {
+      case ACTIVE -> com.deepseekharness.app.util.UiText.choose("已加载", "Loaded");
+      case FAILED -> com.deepseekharness.app.util.UiText.choose("加载失败", "Failed");
+      case PENDING -> com.deepseekharness.app.util.UiText.choose("等待服务", "Waiting");
+      case LOADING -> com.deepseekharness.app.util.UiText.choose("加载中", "Loading");
+      case UNLOADING -> com.deepseekharness.app.util.UiText.choose("正在卸载", "Unloading");
+      case ABSENT -> com.deepseekharness.app.util.UiText.choose("未加载", "Not loaded");
+      case UNKNOWN -> com.deepseekharness.app.util.UiText.choose("待核验", "Unverified");
     };
   }
 
   static String runtimeText(PluginRepository.Item item) {
+    String text = runtimeObservationText(item);
+    String reason = runtimeReasonText(item.runtimeReason);
+    if ("STARTUP_FAILURE_UNATTRIBUTED".equals(item.loadReason))
+      reason =
+          com.deepseekharness.app.util.UiText.choose("启动故障尚未归因", "Startup failure is unattributed");
+    else if ("BROWSER_READY_UNVERIFIED".equals(item.loadReason) && reason.isEmpty())
+      reason =
+          com.deepseekharness.app.util.UiText.choose(
+              "浏览器就绪，条目仍待核验", "Browser ready; entries remain unverified");
+    return reason.isEmpty()
+        ? text
+        : text + "\n" + com.deepseekharness.app.util.UiText.format("运行证据：%s", reason);
+  }
+
+  private static String runtimeReasonText(String reason) {
+    return switch (reason) {
+      case "CONTENT_UNVERIFIED" ->
+          com.deepseekharness.app.util.UiText.choose("内容尚未核验", "Content is unverified");
+      case "VERSION", "CONTENT_CHANGED" ->
+          com.deepseekharness.app.util.UiText.choose("等待生效", "queued");
+      case "EXPIRED", "FUTURE_TIME", "NO_TIME" ->
+          com.deepseekharness.app.util.UiText.choose("运行证据已过期", "Runtime evidence expired");
+      case "GENERATION", "INSTANCE", "IDENTITY_UNBOUND", "LEGACY_EVIDENCE" ->
+          com.deepseekharness.app.util.UiText.choose("运行身份不匹配", "Runtime identity mismatch");
+      default ->
+          reason.startsWith("ENTRY_")
+              ? com.deepseekharness.app.util.UiText.choose(
+                  "条目证据不完整", "Entry evidence is incomplete")
+              : "";
+    };
+  }
+
+  private static String runtimeObservationText(PluginRepository.Item item) {
     String state =
-        switch (item.runtimeState) {
-          case "loaded", "running", "active" ->
-              com.deepseekharness.app.util.UiText.choose("已加载", "loaded");
-          case "failed" -> com.deepseekharness.app.util.UiText.choose("加载失败", "load failed");
-          case "pending", "waiting" ->
+        switch (com.deepseekharness.app.util.PluginStateView.runtimePhase(
+            item.runtimeState, false)) {
+          case ACTIVE -> com.deepseekharness.app.util.UiText.choose("已加载", "loaded");
+          case FAILED -> com.deepseekharness.app.util.UiText.choose("加载失败", "load failed");
+          case PENDING ->
               com.deepseekharness.app.util.UiText.choose("等待服务", "waiting for services");
-          case "loading" -> com.deepseekharness.app.util.UiText.choose("正在加载", "loading");
-          case "stopped", "unloaded", "disabled", "inactive" ->
-              com.deepseekharness.app.util.UiText.choose("未加载", "not loaded");
-          default -> "";
+          case LOADING -> com.deepseekharness.app.util.UiText.choose("正在加载", "loading");
+          case UNLOADING -> com.deepseekharness.app.util.UiText.choose("正在卸载", "unloading");
+          case ABSENT -> com.deepseekharness.app.util.UiText.choose("未加载", "not loaded");
+          case UNKNOWN -> "";
         };
     if (state.isEmpty()) {
       String unknown =
@@ -1700,10 +1788,17 @@ public class PluginFragment extends Fragment {
   /** 配置徽章的语义语气；是否已加载由独立的当前 Web 徽章表达。 */
   private com.deepseekharness.app.util.PluginCardState.Tone configBadgeTone(
       PluginListPresenter.Row<PluginRepository.Item> row) {
+    if (row.operation != null) {
+      var result = com.deepseekharness.app.util.PluginStateView.operationState(row.operation.phase);
+      if (com.deepseekharness.app.util.PluginStateView.prominent(result))
+        return com.deepseekharness.app.util.PluginStateView.failed(result)
+            ? com.deepseekharness.app.util.PluginCardState.Tone.BAD
+            : com.deepseekharness.app.util.PluginCardState.Tone.WARN;
+    }
     PluginRepository.Item item = row.entry.value;
     return com.deepseekharness.app.util.PluginCardState.configTone(
         row.pending(),
-        item.available,
+        item.hasReadableInstallation(),
         item.enabled,
         item.detected,
         item.dynamic,
@@ -1760,17 +1855,22 @@ public class PluginFragment extends Fragment {
     };
   }
 
-  /** 提示条：重启生效 → 可更新（带更新动作）→ 最近一次操作消息；平板左栏只显示首条。 */
+  /** 紧凑卡片保留首条提示时，关键操作结果不能被重启/更新提示遮住。 */
   private void bindCardNotes(
       View card, PluginListPresenter.Row<PluginRepository.Item> row, CardDensity density) {
     PluginRepository.Item item = row.entry.value;
-    String message =
-        row.operation == null || row.operation.message.isEmpty()
-            ? ""
-            : com.deepseekharness.app.util.UiStateText.render(row.operation.message);
+    String message = operationMessage(row.operation);
+    boolean prominent =
+        row.operation != null
+            && com.deepseekharness.app.util.PluginStateView.prominent(
+                com.deepseekharness.app.util.PluginStateView.operationState(row.operation.phase));
     List<com.deepseekharness.app.util.PluginCardState.Note> notes =
         com.deepseekharness.app.util.PluginCardState.notes(
-            item.restartRequired, item.updateAvailable, row.pending(), !message.isEmpty());
+            item.restartRequired,
+            item.updateAvailable,
+            row.pending(),
+            !message.isEmpty(),
+            prominent);
     if (density == CardDensity.COMPACT && notes.size() > 1) notes = notes.subList(0, 1);
     LinearLayout container = card.findViewById(R.id.pluginNotes);
     // 进度每次刷新都会走到这里：提示内容不变时不重建子视图。
@@ -1938,10 +2038,112 @@ public class PluginFragment extends Fragment {
               "%s\n\n临时插件请在对应 Web 会话的 Cordis 插件管理中删除。", item.description);
     if (!item.metadataError.isEmpty())
       return com.deepseekharness.app.util.UiText.text("元数据读取失败；可删除入口");
-    if (item.description.isEmpty()) return "";
-    return item.builtin
-        ? com.deepseekharness.app.util.UiStateText.render(item.description)
-        : com.deepseekharness.app.util.UiText.raw(item.description);
+    String description =
+        item.builtin
+            ? com.deepseekharness.app.util.UiStateText.render(item.description)
+            : com.deepseekharness.app.util.UiText.raw(item.description);
+    String configuration = entryConfigurationText(item);
+    String compatibility = compatibilityText(item);
+    String protection =
+        Boolean.TRUE.equals(item.managementReadOnly)
+            ? com.deepseekharness.app.util.UiText.text("Web 管理保护（只读）")
+            : "protected".equals(item.readOnlyReason)
+                ? com.deepseekharness.app.util.UiText.text("由当前应用维护")
+                : "runtime-location".equals(item.readOnlyReason)
+                    ? com.deepseekharness.app.util.UiText.text("运行目录内容受保护")
+                    : "";
+    if (!protection.isEmpty())
+      compatibility = compatibility.isEmpty() ? protection : compatibility + "\n" + protection;
+    if (item.eligibilityObservedAt > 0) {
+      String preflight =
+          switch (item.eligibilityState) {
+            case "compatible" -> com.deepseekharness.app.util.UiText.text("插件兼容性已核验");
+            case "unconstrained" -> com.deepseekharness.app.util.UiText.text("作者未声明 dsh 兼容范围");
+            case "exempted" -> com.deepseekharness.app.util.UiText.text("精确版本豁免（只读）");
+            case "incompatible" -> com.deepseekharness.app.util.UiText.text("插件与当前 dsh 版本不兼容");
+            case "unsupported-platform" -> com.deepseekharness.app.util.UiText.text("插件不支持当前运行平台");
+            default -> com.deepseekharness.app.util.UiText.text("启动兼容预检尚未确认");
+          };
+      compatibility += "\n" + com.deepseekharness.app.util.UiText.format("启动兼容预检：%s", preflight);
+    }
+    String text =
+        configuration.isEmpty()
+            ? description
+            : description.isEmpty() ? configuration : description + "\n\n" + configuration;
+    return compatibility.isEmpty()
+        ? text
+        : text.isEmpty() ? compatibility : text + "\n\n" + compatibility;
+  }
+
+  static String compatibilityText(PluginRepository.Item item) {
+    if (item.dynamic) return "";
+    String state =
+        switch (com.deepseekharness.app.util.PluginCompatibilityView.state(
+            item.compatibilityState)) {
+          case COMPATIBLE -> com.deepseekharness.app.util.UiText.text("插件兼容性已核验");
+          case UNCONSTRAINED -> com.deepseekharness.app.util.UiText.text("作者未声明 dsh 兼容范围");
+          case EXEMPTED ->
+              item.versionExempted
+                  ? com.deepseekharness.app.util.UiText.text("此插件版本的精确兼容豁免已生效")
+                  : com.deepseekharness.app.util.UiText.choose("待核验", "Unverified");
+          case INCOMPATIBLE -> com.deepseekharness.app.util.UiText.text("插件与当前 dsh 版本不兼容");
+          case UNSUPPORTED_PLATFORM -> com.deepseekharness.app.util.UiText.text("插件不支持当前运行平台");
+          case CHECK_FAILED -> com.deepseekharness.app.util.UiText.text("插件兼容性检查失败，未执行操作");
+          case UNKNOWN -> com.deepseekharness.app.util.UiText.choose("待核验", "Unverified");
+        };
+    String text = com.deepseekharness.app.util.UiText.format("兼容性：%s", state);
+    return item.versionExempted
+        ? text + "\n" + com.deepseekharness.app.util.UiText.text("精确版本豁免（只读）")
+        : text;
+  }
+
+  static String entryConfigurationText(PluginRepository.Item item) {
+    if (item.dynamic || "ENTRY_READER_LEGACY".equals(item.entryReadError)) return "";
+    String heading =
+        com.deepseekharness.app.util.UiText.choose("条目配置（当前 profile）", "Entries (current profile)");
+    if (!item.entryReadError.isEmpty())
+      return com.deepseekharness.app.util.UiText.format(
+          "%s · %s", heading, com.deepseekharness.app.util.UiText.choose("待核验", "Unverified"));
+    if (item.entries.isEmpty()) return "";
+    StringBuilder text = new StringBuilder(heading);
+    for (int index = 0; index < Math.min(12, item.entries.size()); index++) {
+      var entry = item.entries.get(index);
+      String state =
+          entry.patchDisabled == null
+              ? "PROFILE_UNSET".equals(entry.patchReason)
+                  ? com.deepseekharness.app.util.UiText.choose("未覆盖", "No override")
+                  : com.deepseekharness.app.util.UiText.choose("待核验", "Unverified")
+              : entry.patchDisabled
+                  ? com.deepseekharness.app.util.UiText.choose("已禁用", "Disabled")
+                  : com.deepseekharness.app.util.UiText.choose("已启用", "Enabled");
+      text.append('\n').append(entry.entryId).append(" · ").append(state);
+      if (entry.runtimeObserved) {
+        String phase =
+            switch (com.deepseekharness.app.util.PluginStateView.runtimePhase(
+                entry.runtimePhase, false)) {
+              case ACTIVE -> com.deepseekharness.app.util.UiText.choose("已加载", "Loaded");
+              case FAILED -> com.deepseekharness.app.util.UiText.choose("加载失败", "Failed");
+              case PENDING -> com.deepseekharness.app.util.UiText.choose("等待服务", "Waiting");
+              case LOADING -> com.deepseekharness.app.util.UiText.choose("加载中", "Loading");
+              case UNLOADING -> com.deepseekharness.app.util.UiText.choose("正在卸载", "Unloading");
+              case ABSENT -> com.deepseekharness.app.util.UiText.choose("未加载", "Not loaded");
+              case UNKNOWN -> com.deepseekharness.app.util.UiText.choose("待核验", "Unverified");
+            };
+        text.append(" · ").append(phase);
+        if (!entry.runtimeVerified())
+          text.append(" · ")
+              .append(com.deepseekharness.app.util.UiText.choose("待核验", "Unverified"));
+      }
+      if (Boolean.TRUE.equals(entry.managementReadOnly))
+        text.append(" · ").append(com.deepseekharness.app.util.UiText.text("Web 管理保护（只读）"));
+      if (entry.ancestorDisabled())
+        text.append(" · ")
+            .append(com.deepseekharness.app.util.UiText.choose("父级已禁用", "Parent disabled"));
+      else if ("ANCESTOR_UNKNOWN".equals(entry.patchReason))
+        text.append(" · ").append(com.deepseekharness.app.util.UiText.choose("待核验", "Unverified"));
+    }
+    if (item.entries.size() > 12) text.append("\n… +").append(item.entries.size() - 12);
+    return text.toString();
   }
 
   private String locationText(PluginRepository.Item item) {
@@ -1974,22 +2176,62 @@ public class PluginFragment extends Fragment {
         com.deepseekharness.app.util.UiText.format(row.checked() ? "禁用 %s" : "启用 %s", item.name));
     toggle.jumpDrawablesToCurrentState();
     toggle.setEnabled(row.toggleEnabled());
-    toggle.setOnCheckedChangeListener((v, checked) -> toggle(item, checked));
+    toggle.setOnCheckedChangeListener(
+        (v, checked) -> {
+          toggle(item, checked);
+          // 等新投影确认待处理意图；拒绝且行未变化时也不能留下乐观开关值。
+          bindToggle(v, row);
+        });
   }
 
-  /** 左侧主状态：排队中显示意图与百分比，平时显示配置。当前 Web 单独写在右侧。 */
-  /** 配置胶囊的短文案：首屏只留一个结论词，完整状态放 contentDescription。 */
+  /** 操作阶段来自结构化队列，不从翻译后的消息推断是否成功。 */
+  static String operationBadgeText(String phase) {
+    return switch (com.deepseekharness.app.util.PluginStateView.operationState(phase)) {
+      case QUEUED -> com.deepseekharness.app.util.UiText.choose("排队中", "Queued");
+      case RUNNING -> com.deepseekharness.app.util.UiText.choose("正在执行", "Running");
+      case COMMITTING -> com.deepseekharness.app.util.UiText.choose("正在确认提交", "Confirming commit");
+      case FAILED -> com.deepseekharness.app.util.UiText.choose("失败", "Failed");
+      case CANCELLED -> com.deepseekharness.app.util.UiText.choose("已取消", "Cancelled");
+      case SUPERSEDED -> com.deepseekharness.app.util.UiText.choose("已替代", "Superseded");
+      case INVALIDATED -> com.deepseekharness.app.util.UiText.choose("已失效", "Invalidated");
+      case REJECTED -> com.deepseekharness.app.util.UiText.choose("已拒绝", "Rejected");
+      case TIMEOUT -> com.deepseekharness.app.util.UiText.choose("已超时", "Timed out");
+      case UNCONFIRMED -> com.deepseekharness.app.util.UiText.choose("待核验", "Unverified");
+      case NONE, SUCCEEDED -> "";
+    };
+  }
+
+  private static String operationMessage(PluginListPresenter.Operation operation) {
+    if (operation == null) return "";
+    String message =
+        switch (operation.message) {
+          case "PLUGIN_OPERATION_BLOCKED_UNCONFIRMED" ->
+              com.deepseekharness.app.util.UiText.choose("插件退出待核验", "Plugin exit unverified");
+          case "PLUGIN_QUEUE_FULL" ->
+              com.deepseekharness.app.util.UiText.text("插件任务队列已满，请等待已有任务完成");
+          case "PLUGIN_OPERATION_SUPERSEDED", "PLUGIN_OPERATION_CANCELLED" -> "";
+          default -> com.deepseekharness.app.util.UiStateText.render(operation.message);
+        };
+    String label = operationBadgeText(operation.phase);
+    if (label.isEmpty()) return message;
+    return message.isEmpty() ? label : label + " · " + message;
+  }
+
+  /** 配置事实保留在完整文案中；短徽章优先显示尚未解决的操作结果。 */
   private String configuredBadgeText(PluginListPresenter.Row<PluginRepository.Item> row) {
     PluginRepository.Item item = row.entry.value;
-    if (row.pending()) {
-      String working = com.deepseekharness.app.util.UiText.choose("处理中", "Working");
-      return row.operation.percent >= 0 ? working + " " + row.operation.percent + "%" : working;
+    if (row.operation != null) {
+      String result = operationBadgeText(row.operation.phase);
+      if (!result.isEmpty())
+        return row.pending() && row.operation.percent >= 0
+            ? result + " " + row.operation.percent + "%"
+            : result;
     }
     return item.dynamic
         ? com.deepseekharness.app.util.UiText.choose("临时", "Temporary")
         : !item.metadataError.isEmpty()
             ? com.deepseekharness.app.util.UiText.choose("异常", "Error")
-            : !item.available
+            : !item.hasReadableInstallation()
                 ? com.deepseekharness.app.util.UiText.choose("缺失", "Missing")
                 : item.enabled
                     ? com.deepseekharness.app.util.UiText.choose("已启用", "Enabled")
@@ -2008,29 +2250,27 @@ public class PluginFragment extends Fragment {
                       ? com.deepseekharness.app.util.UiText.choose("\n等待启用", "\nEnable pending")
                       : com.deepseekharness.app.util.UiText.choose("\n等待禁用", "\nDisable pending"))
               .substring(1);
-      String phase =
-          switch (row.operation.phase) {
-            case "RUNNING" -> com.deepseekharness.app.util.UiText.choose("正在执行", "Running");
-            case "COMMITTING" ->
-                com.deepseekharness.app.util.UiText.choose("正在确认提交", "Confirming commit");
-            default -> com.deepseekharness.app.util.UiText.choose("排队中", "Queued");
-          };
+      String phase = operationBadgeText(row.operation.phase);
       String progress = intent + " · " + phase;
       if (row.operation.percent >= 0) progress += " · " + row.operation.percent + "%";
       return progress;
     }
-    return item.dynamic
-        ? com.deepseekharness.app.util.UiText.choose("临时插件", "Temporary plugin")
-        : !item.metadataError.isEmpty()
-            ? com.deepseekharness.app.util.UiText.text("插件元数据不可用")
-            : !item.available
-                ? com.deepseekharness.app.util.UiText.text("实体缺失，请重新导入")
-                : item.enabled
-                    ? com.deepseekharness.app.util.UiText.choose("配置：已启用", "Configuration: enabled")
-                    : item.detected
-                        ? com.deepseekharness.app.util.UiText.text("已检测，可开启以加入 Web")
-                        : com.deepseekharness.app.util.UiText.choose(
-                            "配置：已禁用", "Configuration: disabled");
+    String configured =
+        item.dynamic
+            ? com.deepseekharness.app.util.UiText.choose("临时插件", "Temporary plugin")
+            : !item.metadataError.isEmpty()
+                ? com.deepseekharness.app.util.UiText.text("插件元数据不可用")
+                : !item.hasReadableInstallation()
+                    ? com.deepseekharness.app.util.UiText.text("实体缺失，请重新导入")
+                    : item.enabled
+                        ? com.deepseekharness.app.util.UiText.choose(
+                            "配置：已启用", "Configuration: enabled")
+                        : item.detected
+                            ? com.deepseekharness.app.util.UiText.text("已检测，可开启以加入 Web")
+                            : com.deepseekharness.app.util.UiText.choose(
+                                "配置：已禁用", "Configuration: disabled");
+    String result = row.operation == null ? "" : operationBadgeText(row.operation.phase);
+    return result.isEmpty() ? configured : configured + "\n" + result;
   }
 
   // ---------------------------------------------------------------- 方案 A 双栏详情窗格

@@ -1,15 +1,16 @@
-# DSHA 0.2.1-rc.5-20261113.1340-dsh0.2.2-rc.1 / build364
+# DSHA 0.2.1-rc.5-20261114.1717-dsh0.2.2-rc.1 / build366
 
-- 資料安全與啟動觀測版（一處使用者可見的資料正確性修復）：build364 在 build363 之後合入 RC1 遷移 P1a/P1b 與非實作者評審 P0/P1/P2 修復、K0 Kotlin 受管輸入與架構邊界閘門、S0 啟動唯讀觀測基線，以及外接 adb/fastboot 路徑與首次 proroot 試執行修復。**使用者可見的是 RC1 遷移的保守失敗關閉語意**；K0 / S0 為建置與診斷基礎設施，其餘為裝置路徑修復與文件。
-- RC1 遷移（資料安全，使用者可見）：結果協定升級為 `resultVersion=3`，區分「本次內容副本讀回」「歷史完成」「寫入結果未知」。只有本次流程完整讀回副本才允許遷移寫入；歷史完成只授予無遷移寫入的普通啟動，且必須已有 committed 完成回執與完整 settings 帳本；快取命中綁定 generation + sourceSha256 + 期望分節集合，不再由舊布林合成成功。
-- RC1 遷移（續）：history-only 核對不建立或更新設定分節、不覆寫使用者後來修改的值；來源分節缺失或 pending/writing/unknown 只回傳 pending/unknown，不寫入檔案。已派發但終態未知的寫入不再自動重放；保留資料清單按真實 current 形狀投影歷史完成 / 待處理 / 未知，未知記錄仍可唯讀查看，不授予自動還原或刪除。
-- 啟動唯讀觀測基線（工程）：S0 為停止殘留、掃描、guest helper、準備命中與 Node→鑑權鏈路增加唯讀計數觀測，只進入啟動診斷與既有日誌，不改變啟動順序、等待時間與權限閘門。
-- Kotlin 受管輸入（工程）：K0 讓受管源樹中的 `.kt` 進入 `runtimeId` 與架構邊界閘門，並補充 Kotlin 編譯 / 格式與重名負控；不改變執行行為。
-- 裝置路徑與維護試執行修復：外接裝置庫搜尋補充 `usr/lib/aarch64-linux-gnu/android`，adb / fastboot 在外接環境可被找到；首次 proroot 受管執行時試執行不再因 profile 列舉 ENOENT 崩潰，維護頁不再多一次失敗試執行。
-- 文件與驗收（僅文件）：build363 真機覆蓋驗收回執、執行時 trial 首次失敗分析、RC1 遷移設計與對外回覆、啟動鏈路評估納入文件索引。
-- 覆蓋升級影響：受管啟動輸入與受管執行時變化，`runtimeId` 更新為 **`bd0016c33e807a8e60cec8b3267e78fef0d003f618c083227cb651bd274eaabf`**（489 個啟動輸入、205 個資產輸入）；**363→364 覆蓋升級後首次啟動會進入一次執行環境維護頁**並執行受管執行時試執行，屬預期，個人資料保留。內建 `dsh-web-mobile` 3.3.5 與預設啟用不變，資料格式不升級。
-- 固定建置輸入：鎖保持 `fixed-inputs-20261105e`。K0 修改了 `tools/runtime_input_contract.py`（dsh 執行時 recipe input），舊 provenance 在 `ci-package` 的 `rebuild_runtime:false` 下會按設計 fail-closed；本版已用本機鎖重建執行時，封存位元組仍為 `c1bd6833…`，僅 `dsh-runtime.inputs.json` 的 recipe 摘要更新。release-production 使用 `rebuild_runtime:true` 會重建並重算描述符；`ci-package` 需在發布新 bundle 後以顯式 URL + SHA-256 觸發（本分支候選 bundle `sha256 2c8dc3fa…`，尚未上傳，故不更新鎖）。
-- 版本與範圍：版本碼提升為 364（基於已發布的 build363，tag `dsha-a-su-build363-20261113-170000` @ `d0bc1b0b`）；DSHA 修訂號保持 `0.2.1-rc.5`，內建 DSH 為 `0.2.2-rc.1`；套件名 `io.github.sunsetrne.dsha`、Mod 自有憑證與簽章方案不變。裝置 shell 白名單與執行期護欄不放寬。目標 tag `dsha-a-su-build364-20261113-134000` 由 release 工作流在使用者確認後建立。
-- **未驗證 / 未驗收**：build364 發布準備只通過本機靜態閘門與定向測試；全量單元測試、lint、未簽章建置、測試包與正式簽章由 release 工作流執行，結果以 CI / Release 回執為準；**未做真機覆蓋安裝驗收**。驗收項是 363→364 覆蓋安裝成功、首次啟動進入一次執行環境維護頁並完成、資料完好、到達 READY，以及 RC1 遷移在普通啟動下的提示與保留資料清單符合預期。
-- 驗證範圍：發布身分與前置檢查（versionCode 364 / versionName 與 `ci/release-identity.json` 一致；`check-release-prerequisites.py` PASS）、三身分交叉核對、`generate-changelog.py --check`、`UpdateVersionPageTest` 斷言更新、`prepare-runtime-descriptor.py --check`（`bd0016c3…`，489 個啟動輸入）與 descriptor 源核驗、全樹 Java 與 Kotlin 格式、來源衛生、UI i18n、文件連結、`test-ci-workflows.py`、`test-release-signing.py`、`test-core-boundaries.py`，以及 RC1 Python 與真實 SettingsForms CJS 回歸；正式簽章 assemble 不在本機執行。
-- 十語種更新說明見 [build364 更新說明](build364-changes.zh-Hant.md)。
+- 插件管理、裝置能力與檔案工作台整合版：build366 在已發布 build365 之後合入 A6 插件管理 P0–P4、A7 裝置能力與識屏 S1–S5、A2 檔案工作台 slice3/4，以及 A5 S1 頁面環境取樣整理。A8 第一階段僅凍結任務基線，A3 slice4 和 A5 後續行為切片尚未交付。
+- A6 插件身分與狀態：區分安裝套件 bundle、profile 選擇、entryId/moduleHash/父群組、字面停用意圖與實際執行；生命週期 phase 區分 pending/loading/unloading/active/failed/null。缺少內容證明、過期、世代變更或身分不符時仍待核驗；預檢、瀏覽器 ready 和歷史記錄不冒充 Loader 成功，也不因無法歸因的啟動失敗停用整輪插件。
+- A6 操作結果與卡片：列表、精簡卡片與詳情優先顯示排隊、取消、逾時、失敗和結果待核驗，已提交但目錄過期的情況另行呈現。相容性優先依 engines.dsh 判定，否則檢查全部 DSH peer；已知不相容、平台不支援或檢查失敗時拒絕提交；精確版本豁免為唯讀。已儲存但未熱套用時顯示 restart-required，仍須重新啟動才會生效；新增狀態與原因文案涵蓋十語。
+- A6 未知結果邊界：插件變更的退出狀態無法核驗時，保留環境占用，請重新啟動應用程式後到執行環境維護頁核對；候選和未完成交易不自動重放，重新啟動不代表成功。可信 A5 退出證明與部署內容證明尚未接齊，保守的 unknown 不因確認或狀態文字而解除。唯讀查詢結果未知時，只使目錄過期並交還共用租約，不永久占用環境；缺少 package.json 的真實目錄不再顯示為可用插件。使用者停用、安全模式與系統／使用者插件分層繼續保留。
+- A7 裝置授權與通道事實：將授權快照、世代和執行前複核收攏為裝置授權圍欄；使用者開關、授權請求、連線與實際通道能力分別顯示和判斷。Shizuku 回呼及 Root 路徑依目前身分與明確策略複核，撤銷、世代變更和不可用時不借用舊成功記錄放行；不新增系統權限或任意命令入口。
+- A7 實體螢幕與虛擬螢幕：實體螢幕的語意節點、截圖座標、輸入與導覽鍵各自使用相應的動作證據；虛擬螢幕的座標、節點、editor、anchor 和按鍵五類證據分別綁定 Core、世代與目標。不靜默互換證據或跨螢幕兜底，UNKNOWN 不重放；動作後仍須取得新觀察。密碼文字硬阻擋與敏感畫面確認／交接策略維持不變。
+- A7 Root 模組唯讀清單：裝置頁新增明確的讀取入口，僅展示固定 /data/adb/modules 的有界模組資訊。固定 FD 探測依已核查的 Magisk/KernelSU/APatch 樣本核對 UID0、目前安裝身分與檔案身分，再執行已開啟的物件；未知版本或有歧義時拒絕，不搜尋 PATH、不改走 Shizuku/ADB。清單不讀取指令碼、不遞迴、不提供安裝／啟停／更新／解除安裝；失敗和 partial 不冒充完整的空清單，暫停或授權變更時捨棄舊結果。14 條新文案涵蓋十語；原始碼樣本不代表管理器或真機相容認證。
+- A2 檔案工作台：設定中的跨應用程式檔案存取頁新增預設關閉的檔案工作台（匯入與匯出）開關，作品檔案頁重用授權、瀏覽與記錄入口。傳輸前和發布前複核授權／epoch、讀寫位元與本機檔案身分；中途撤銷、取消或逾時時保留具型別的結果，不自動重放。記錄有界且不儲存 URI、完整路徑或正文；Provider 仍是信任邊界，外部原地覆寫失敗可能留下不完整檔案，不承諾內容層級的憑據防複製。
+- A5 與工程收尾：S1 僅整理頁面唯讀環境取樣並維持原判據，不宣稱已修復 latest/trial 接線或停用 APK 自動檢查。A7 合併後的 CI 編譯清單補齊動作證據類別，Root 清單測試改用真實 JSON 的 Robolectric 路徑；這些修復不等於本版全量 CI 或裝置驗收已完成。
+- 覆蓋升級影響：目前 runtimeId 為 **f540d7f1988b4854b65660993a9d3f5743b0dca78bce8e51997c45b9773de7be**（507 個啟動輸入、205 個資產輸入）。A7 合入前後為 4a592153→5a276392；已發布 build365 的 runtimeId 是 8598a8db。**365→366 覆蓋升級後首次啟動會進入一次整屏執行環境維護頁**並執行執行時試執行，個人資料保留；未發布的中間提交不累加維護次數。版本號提升本身不改變 runtimeId；內建 dsh-web-mobile 3.3.5 與預設啟用狀態不變。
+- 固定建置輸入：沿用 fixed-inputs-20261113，資產 dsha-a-su-fixed-inputs-20261113-build364.zip（716,787,167 B；SHA-256 2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad）。基礎 Ubuntu、內建 DSH 0.2.2-rc.1、應急封存檔、相依套件與輸入鎖不升級；資料格式和還原語意維持不變，舊 RC1 證據缺失仍可保守阻擋啟動。
+- 版本與範圍：版本碼提升為 366，基於已發布 build365（tag dsha-a-su-build365-20261114-103000 @ c27af356）。DSHA 修訂保持 0.2.1-rc.5，套件名 io.github.sunsetrne.dsha、Mod 自有憑證與簽章方案不變。建議 tag dsha-a-su-build366-20261114-171700 由使用者批准後的 release 工作流建立。
+- 驗證範圍與限制：發布準備實際檢查版本身分、十語生成說明、descriptor／來源一致性、Java/Kotlin 格式、來源衛生、UI i18n、文件連結及發布／CI 指令碼，結果以準備回執為準。本機未執行版本頁 JUnit、全量 Gradle 單元測試、Lint、APK／測試套件建置與簽章（aarch64 無法執行固定的 x86 AAPT2）；這些仍由 CI 實際執行。**build366 尚未真機驗收**；一次維護頁／READY、插件狀態、Root 清單、雙螢幕敏感畫面與 SAF 傳輸／版面配置仍待裝置核對，不宣稱廣泛的 ROM／管理器相容性。
+- 十語種更新說明見 [build366 更新說明](build366-changes.zh-Hant.md)。

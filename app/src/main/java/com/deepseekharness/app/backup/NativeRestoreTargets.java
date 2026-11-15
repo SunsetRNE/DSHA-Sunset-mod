@@ -84,6 +84,21 @@ public final class NativeRestoreTargets
     known.put("data-layout", new File(files, UserDataLayout.RECORD));
   }
 
+  /**
+   * A3 slice2：home 布局决策（{@code STABLE}/{@code LEGACY}），{@code mapping.json} 持久化的独立事实。
+   *
+   * <p>只读；与 {@link #projectDestination()} 一起由 {@code RestorePlanProjection.targetMappingKind}
+   * 编码成 PlanView 字段 10。
+   */
+  public String homeMode() {
+    return homeMode;
+  }
+
+  /** A3 slice2：项目落点决策（{@code PRIVATE}/{@code GUEST_HOME}）；只读。 */
+  public String projectDestination() {
+    return projectDestination;
+  }
+
   @Override
   public NativeRestorePlan.Target target(Map<String, Object> root) throws IOException {
     String id = BackupLimits.root(BackupJson.string(root, "id")),
