@@ -68,6 +68,7 @@ public final class AssistantService extends Service {
   private AssistantNotificationTicket notificationTicket;
   private String replyEpoch = "", showEpoch = "";
   private AssistantSessionController notificationController;
+  private Object nativeEditorToken;
   private volatile boolean stopAccessArmed;
   private final Runnable stopAccessChanged =
       () -> {
@@ -77,10 +78,39 @@ public final class AssistantService extends Service {
           stopChannelCurrent(this, task);
       };
 
-  static void nativeEditorVisible(boolean visible) {
+  static void nativeEditorVisible(
+      AssistantSessionController expected, Object editorToken, boolean visible) {
     AssistantWindowOwner owner = AssistantWindowOwner.legacy();
     AssistantService service = owner == null ? null : owner.service();
-    if (service != null && service.window != null) service.window.setEditorVisible(visible);
+    if (expected == null
+        || owner == null
+        || !owner.isCurrent(expected)
+        || service == null
+        || service.controller != expected
+        || service.window == null) return;
+    // 同一 controller 也可被后继 Activity 接管；旧 onPause 只释放自己的呈现句柄。
+    if (visible) service.nativeEditorToken = editorToken;
+    else if (service.nativeEditorToken != editorToken) return;
+    else service.nativeEditorToken = null;
+    service.window.setEditorVisible(visible);
+  }
+
+  /** 正文导航复用已发布通知的身份；不另造票据或选择后继任务。 */
+  AssistantSessionController notificationTarget(String address) {
+    AssistantSessionController current = controller;
+    if (current == null || owner.service() != this || !owner.isCurrent(current)) return null;
+    synchronized (current) {
+      var snapshot = current.snapshot();
+      AssistantNotificationTicket ticket = notificationTicket;
+      return ticket != null
+              && notificationController == current
+              && owner.service() == this
+              && owner.isCurrent(current)
+              && ticket.addresses(snapshot.binding(), snapshot.turnId())
+              && ticket.forAction("OPEN").identity().equals(address)
+          ? current
+          : null;
+    }
   }
 
   /** Called only by an authenticated physical-phone tool request, never a text listener. */
@@ -566,8 +596,7 @@ public final class AssistantService extends Service {
   }
 
   private void publishTaskNotification(AssistantNotificationTicket ticket, boolean foreground) {
-    Intent open = new Intent(this, AssistantActivity.class).putExtra("bound", true);
-    if (ticket != null) open.setData(android.net.Uri.parse(ticket.forAction("OPEN").identity()));
+    Intent open = AssistantNotificationNavigation.openIntent(this, ticket);
     Notification.Builder note =
         Build.VERSION.SDK_INT >= 26
             ? new Notification.Builder(this, STOP_CHANNEL)
@@ -749,6 +778,7 @@ public final class AssistantService extends Service {
   }
 
   void retirePresentation() {
+    nativeEditorToken = null;
     owner.closeSurface(this);
     if (window != null) window.close();
     if (confirmations != null) confirmations.close();
