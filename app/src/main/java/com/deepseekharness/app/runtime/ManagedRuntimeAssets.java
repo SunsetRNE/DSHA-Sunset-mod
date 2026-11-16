@@ -37,7 +37,7 @@ final class ManagedRuntimeAssets {
   private final Supplier<String> environmentIdentity;
   private final AssetText assetText;
   private final LegacyArchive legacyArchive;
-  private final RuntimeDescriptorPreparation preparation = new RuntimeDescriptorPreparation();
+  private final RuntimeDescriptorPreparation preparation;
 
   ManagedRuntimeAssets(
       Context context,
@@ -45,11 +45,32 @@ final class ManagedRuntimeAssets {
       Supplier<String> environmentIdentity,
       AssetText assetText,
       LegacyArchive legacyArchive) {
+    this(
+        context,
+        rootfs,
+        environmentIdentity,
+        assetText,
+        legacyArchive,
+        new RuntimeDescriptorPreparation(new RuntimePreparationInputs(context, rootfs)::observe));
+  }
+
+  ManagedRuntimeAssets(
+      Context context,
+      File rootfs,
+      Supplier<String> environmentIdentity,
+      AssetText assetText,
+      LegacyArchive legacyArchive,
+      RuntimeDescriptorPreparation preparation) {
     this.context = context;
     this.rootfs = rootfs;
     this.environmentIdentity = environmentIdentity;
     this.assetText = assetText;
     this.legacyArchive = legacyArchive;
+    this.preparation = java.util.Objects.requireNonNull(preparation);
+  }
+
+  void invalidatePreparation() {
+    preparation.invalidate();
   }
 
   RuntimeHostPorts.Scope openPreparation(
@@ -64,27 +85,49 @@ final class ManagedRuntimeAssets {
   }
 
   RuntimeDescriptor installedDescriptor() throws IOException {
-    AndroidBackupFileSystem fs = new AndroidBackupFileSystem();
-    File files = context.getFilesDir().getCanonicalFile();
-    File linux = fs.child(files, "linux");
-    if (fs.stat(linux).type.equals("MISSING")) return null;
-    File file = fs.child(linux, ".runtime-descriptor.json");
-    if (fs.stat(file).type.equals("MISSING")) return null;
-    return preparation.descriptor(
-        RuntimeDescriptorPreparation.Kind.INSTALLED, () -> fs.small(file, 2 * 1024 * 1024));
+    try {
+      AndroidBackupFileSystem fs = new AndroidBackupFileSystem();
+      File files = context.getFilesDir().getCanonicalFile();
+      File linux = fs.child(files, "linux");
+      if (fs.stat(linux).type.equals("MISSING")) {
+        preparation.invalidate();
+        return null;
+      }
+      File file = fs.child(linux, ".runtime-descriptor.json");
+      if (fs.stat(file).type.equals("MISSING")) {
+        preparation.invalidate();
+        return null;
+      }
+      return preparation.descriptor(
+          RuntimeDescriptorPreparation.Kind.INSTALLED, () -> fs.small(file, 2 * 1024 * 1024));
+    } catch (IOException | RuntimeException unavailable) {
+      preparation.invalidate();
+      throw unavailable;
+    }
   }
 
   Map<String, Object> health() throws IOException {
-    RuntimeDescriptor descriptor = installedDescriptor();
-    if (descriptor == null) return null;
-    AndroidBackupFileSystem fs = new AndroidBackupFileSystem();
-    File home = new File(context.getFilesDir().getCanonicalFile(), "runtime-health");
-    File file = new File(home, descriptor.id() + ".json");
-    if (fs.stat(home).type.equals("MISSING") || fs.stat(file).type.equals("MISSING")) return null;
-    return BackupJson.read(fs.small(file, 512 * 1024), 512 * 1024);
+    try {
+      RuntimeDescriptor descriptor = installedDescriptor();
+      if (descriptor == null) return null;
+      AndroidBackupFileSystem fs = new AndroidBackupFileSystem();
+      File home = new File(context.getFilesDir().getCanonicalFile(), "runtime-health");
+      File file = new File(home, descriptor.id() + ".json");
+      if (fs.stat(home).type.equals("MISSING") || fs.stat(file).type.equals("MISSING")) {
+        preparation.invalidate();
+        return null;
+      }
+      Map<String, Object> proof = BackupJson.read(fs.small(file, 512 * 1024), 512 * 1024);
+      if (!RuntimeDescriptor.healthy(proof, descriptor.id())) preparation.invalidate();
+      return proof;
+    } catch (IOException | RuntimeException unavailable) {
+      preparation.invalidate();
+      throw unavailable;
+    }
   }
 
   void confirmHealth(Map<String, Object> proof) throws IOException {
+    preparation.invalidate();
     RuntimeDescriptor descriptor = installedDescriptor();
     if (descriptor == null || !RuntimeDescriptor.healthy(proof, descriptor.id()))
       throw new IOException("RUNTIME_HEALTH_INCOMPLETE");
@@ -124,6 +167,7 @@ final class ManagedRuntimeAssets {
   }
 
   List<String> stage(File stage, Consumer<String> progress) throws IOException {
+    preparation.invalidate();
     File root = new File(stage, "linux/ubuntu");
     if (!root.mkdirs()) throw new IOException(UiText.text("无法建立独立运行时暂存目录"));
     final String prefix = ManagedRuntimeLayout.DSH;

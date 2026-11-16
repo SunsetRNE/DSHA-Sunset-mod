@@ -33,6 +33,10 @@ final class RuntimeTools {
   private static String preparedRoot;
   private static String preparedApk;
   private static String preparedStamp;
+
+  /** 仅区分同次解析观察；不参与既有工具准备缓存的命中或执行判定。 */
+  private static long preparedObservationRevision;
+
   private static String preparedInvalidation = "not-prepared";
   private static boolean preparedWithNpm;
   private static final java.util.Set<File> preparedFiles = new java.util.LinkedHashSet<>();
@@ -111,6 +115,7 @@ final class RuntimeTools {
               missCode = cacheMissCode(miss);
               preparedInvalidation = "preparation-incomplete";
               preparedStamp = null;
+              preparedObservationRevision++;
               prepareManagedOverlay(context, rootfs, expected);
               writeApkGeneration(context, rootfs);
               preparedFiles.add(installedDescriptor);
@@ -145,6 +150,7 @@ final class RuntimeTools {
           missCode = cacheMissCode(miss);
           preparedInvalidation = "preparation-incomplete";
           preparedStamp = null;
+          preparedObservationRevision++;
           preparedFiles.clear();
           String managedIdentity = assetRuntimeId(context);
           installManagedAssets(context, rootfs);
@@ -167,6 +173,9 @@ final class RuntimeTools {
         }
       }
     } catch (IOException | RuntimeException | Error failure) {
+      synchronized (LOCK) {
+        preparedObservationRevision++;
+      }
       outcome = "failed";
       throw failure;
     } finally {
@@ -247,6 +256,27 @@ final class RuntimeTools {
     synchronized (LOCK) {
       preparedInvalidation = "explicit-repair";
       preparedStamp = null;
+      preparedObservationRevision++;
+    }
+  }
+
+  /** 同 LOCK 复核既有准备戳；只给同次描述符解析绑定输入，不签发就绪或执行许可。 */
+  static String preparationIdentity(Context context, File rootfs) {
+    synchronized (LOCK) {
+      try {
+        File apk = new File(context.getPackageCodePath());
+        String identity = apk.getPath() + ":" + apk.length() + ":" + apk.lastModified();
+        String root = rootfs.getCanonicalPath();
+        if (cacheMiss(rootfs, root, identity, true) != null) return null;
+        String value = preparedRoot + "\n" + preparedApk + "\n" + preparedStamp;
+        return preparedObservationRevision
+            + ":"
+            + com.deepseekharness.app.backup.BackupArchive.hex(
+                com.deepseekharness.app.backup.BackupArchive.sha()
+                    .digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+      } catch (IOException | RuntimeException unavailable) {
+        return null;
+      }
     }
   }
 
@@ -512,6 +542,7 @@ final class RuntimeTools {
       host.verify(fs);
       preparedInvalidation = "adb-scripts";
       preparedStamp = null;
+      preparedObservationRevision++;
     }
   }
 
@@ -708,6 +739,7 @@ final class RuntimeTools {
     boolean markerCurrent =
         com.deepseekharness.app.util.ManagedAssetVersion.current(current, identity);
     preparedStamp = null;
+    preparedObservationRevision++;
     preparedFiles.clear();
     installManagedAssets(context, rootfs);
     preparePackageCommands(context, rootfs, true);

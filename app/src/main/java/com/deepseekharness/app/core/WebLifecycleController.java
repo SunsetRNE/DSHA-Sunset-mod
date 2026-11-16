@@ -1266,18 +1266,24 @@ final class WebLifecycleController {
     WebRun run = webRuns.get(generation);
     if (run == null) return;
     ProotBootstrap boot = compatible ? new ProotBootstrap(ctx, true) : proot;
+    long preparationCancellation = state.startProtection.cancellationRevision();
+    java.util.function.BooleanSupplier preparationCurrent =
+        () ->
+            lifecycle.isCurrent(generation)
+                && webRuns.get(generation) == run
+                && state.startProtection.cancellationRevision() == preparationCancellation;
     boolean draining = false;
     try (com.deepseekharness.app.runtime.RuntimeHostPorts.Scope invocation =
             owner.runtimeHostPorts().open();
         com.deepseekharness.app.runtime.RuntimeHostPorts.Scope stablePreparation =
             proot.openStartupPreparation(
                 generation,
-                () -> lifecycle.isCurrent(generation),
+                preparationCurrent,
                 line -> state.diagnostics.message(generation, line));
         com.deepseekharness.app.runtime.RuntimeHostPorts.Scope selectedPreparation =
             boot.openStartupPreparation(
                 generation,
-                () -> lifecycle.isCurrent(generation),
+                preparationCurrent,
                 line -> state.diagnostics.message(generation, line))) {
       if (!lifecycle.isCurrent(generation)
           || com.deepseekharness.app.core.MaintenanceCoordinator.isExclusive()) return;
