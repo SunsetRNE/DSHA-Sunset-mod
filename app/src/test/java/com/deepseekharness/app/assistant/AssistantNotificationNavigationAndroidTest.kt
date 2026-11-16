@@ -368,6 +368,13 @@ class AssistantNotificationNavigationAndroidTest {
         if (continuation) {
             selected.pause("USER_PAUSED")
             drain(selected)
+            // 通过真实 poll 读取 idle 回执，不依赖 900ms 周期恰好已经触发。
+            val poll = selected.javaClass.getDeclaredMethod("poll").apply { isAccessible = true }
+            (field(selected, "worker") as ScheduledExecutorService)
+                .submit { poll.invoke(selected) }
+                .get(2, TimeUnit.SECONDS)
+            drain(selected)
+            assertTrue(selected.snapshot().terminalKnown())
         }
         val activity = open(openIntent())
         val entered = java.util.concurrent.CountDownLatch(1)
@@ -472,6 +479,27 @@ class AssistantNotificationNavigationAndroidTest {
         voice.get().onResults(voiceResult("当前识别草稿"))
         assertEquals("当前识别草稿", selected.snapshot().draft())
         assertTrue(host.sentTurns.isEmpty())
+    }
+
+    @Test
+    fun stoppedVoiceCannotOverwriteANewEditorsDraftInTheSameTurn() {
+        val selected = attach(Host(address("stopped-voice-same-turn")))
+        val voice = openVoice(AssistantNotificationNavigation.voiceIntent(app, openIntent()))
+        voice.pause().stop()
+        val editor = open(openIntent())
+        (field(editor.get(), "input") as EditText).setText("编辑器后写草稿")
+        voice.get().onResults(voiceResult("停止后的旧识别"))
+        assertEquals("编辑器后写草稿", selected.snapshot().draft())
+        assertTrue(selected.composing())
+    }
+
+    @Test
+    fun voiceResultIsConsumedOnceEvenBeforeAndroidDeliversOnStop() {
+        val selected = attach(Host(address("duplicate-voice-result")))
+        val voice = openVoice(AssistantNotificationNavigation.voiceIntent(app, openIntent()))
+        voice.get().onResults(voiceResult("第一次识别"))
+        voice.get().onResults(voiceResult("重复迟到识别"))
+        assertEquals("第一次识别", selected.snapshot().draft())
     }
 
     @Test

@@ -469,9 +469,15 @@ public final class AssistantActivity extends AppCompatActivity {
 
           public void afterTextChanged(android.text.Editable value) {}
         });
-    bound.collapse();
-    bound.beginComposing(editorSurface);
-    AssistantService.nativeEditorVisible(bound, editorToken, true);
+    synchronized (selected) {
+      if (bound != selected || !boundCurrent()) {
+        finish();
+        return;
+      }
+      bound.collapse();
+      bound.beginComposing(editorSurface);
+      AssistantService.nativeEditorVisible(bound, editorToken, true);
+    }
     pendingInput = getIntent().getBooleanExtra("focus_input", false);
     input.setOnFocusChangeListener(
         (v, focus) -> {
@@ -646,9 +652,15 @@ public final class AssistantActivity extends AppCompatActivity {
       input.setShowSoftInputOnFocus(true);
     }
     if (bound != null) {
-      // 从语音或其他界面回到编辑器：继续标记“用户正在输入”（不暂停、不取消）。
-      bound.beginComposing(editorSurface);
-      AssistantService.nativeEditorVisible(bound, editorToken, true);
+      synchronized (bound) {
+        if (!boundCurrent()) {
+          finish();
+          return;
+        }
+        // 从语音或其他界面回到编辑器时，在同轮复核后重新取得呈现。
+        bound.beginComposing(editorSurface);
+        AssistantService.nativeEditorVisible(bound, editorToken, true);
+      }
       if (pendingInput && input != null) input.post(this::focusComposer);
     }
     if (bound == null && !loading) selectLocal();
