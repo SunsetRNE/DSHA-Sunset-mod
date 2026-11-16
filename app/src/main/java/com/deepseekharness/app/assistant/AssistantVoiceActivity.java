@@ -20,11 +20,22 @@ public final class AssistantVoiceActivity extends AppCompatActivity implements R
   private AssistantSessionController session;
   private TextView status;
   private boolean started;
+  private final String voiceSurface = "voice-" + java.util.UUID.randomUUID();
+
+  private boolean current() {
+    return session != null
+        && session == AssistantWindowOwner.from(this).current()
+        && (!AssistantNotificationNavigation.requested(getIntent())
+            || AssistantNotificationNavigation.resolve(this, getIntent()) == session);
+  }
 
   @Override
   public void onCreate(Bundle saved) {
     super.onCreate(saved);
-    session = AssistantSessionController.active();
+    session =
+        AssistantNotificationNavigation.requested(getIntent())
+            ? AssistantNotificationNavigation.resolve(this, getIntent())
+            : AssistantWindowOwner.from(this).current();
     LinearLayout layout = new LinearLayout(this);
     layout.setOrientation(LinearLayout.VERTICAL);
     status = new TextView(this);
@@ -42,7 +53,13 @@ public final class AssistantVoiceActivity extends AppCompatActivity implements R
       return;
     }
     // 语音输入：手机动作原地等待，不暂停、不取消当前对话。
-    session.beginComposing("voice");
+    synchronized (session) {
+      if (!current()) {
+        finish();
+        return;
+      }
+      session.beginComposing(voiceSurface);
+    }
     if (!SpeechRecognizer.isRecognitionAvailable(this)) {
       status.setText(
           UiText.choose(
@@ -57,6 +74,10 @@ public final class AssistantVoiceActivity extends AppCompatActivity implements R
   @Override
   public void onRequestPermissionsResult(int code, String[] permissions, int[] results) {
     super.onRequestPermissionsResult(code, permissions, results);
+    if (!current()) {
+      finish();
+      return;
+    }
     if (code == 195 && results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED)
       start();
     else
@@ -66,7 +87,7 @@ public final class AssistantVoiceActivity extends AppCompatActivity implements R
   }
 
   private void start() {
-    if (started || isFinishing() || session != AssistantSessionController.active()) return;
+    if (started || isFinishing() || !current()) return;
     started = true;
     recognizer = SpeechRecognizer.createSpeechRecognizer(this);
     recognizer.setRecognitionListener(this);
@@ -88,8 +109,10 @@ public final class AssistantVoiceActivity extends AppCompatActivity implements R
   @Override
   public void onResults(Bundle results) {
     var texts = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-    if (session == AssistantSessionController.active() && texts != null && !texts.isEmpty())
-      session.setDraft(texts.get(0));
+    if (session != null)
+      synchronized (session) {
+        if (current() && texts != null && !texts.isEmpty()) session.setDraft(texts.get(0));
+      }
     finish();
   }
 
@@ -134,8 +157,7 @@ public final class AssistantVoiceActivity extends AppCompatActivity implements R
       recognizer = null;
     }
     // 未经编辑器接管就离开语音时放开等待；编辑器接管后来源已不同，这里不生效。
-    if (session != null && session == AssistantSessionController.active())
-      session.endComposing("voice");
+    if (session != null) session.endComposing(voiceSurface);
     super.onStop();
   }
 

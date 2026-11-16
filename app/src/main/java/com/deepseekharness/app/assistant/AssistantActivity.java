@@ -396,6 +396,10 @@ public final class AssistantActivity extends AppCompatActivity {
         || AssistantNotificationNavigation.resolve(this, getIntent()) == bound;
   }
 
+  private boolean editorCurrent() {
+    return boundCurrent() && AssistantService.ownsNativeEditor(bound, editorToken);
+  }
+
   private void showBound() {
     showBound(AssistantWindowOwner.from(this).current());
   }
@@ -457,8 +461,10 @@ public final class AssistantActivity extends AppCompatActivity {
           public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
           public void onTextChanged(CharSequence s, int start, int before, int count) {
-            if (composingRevision == boundViewRevision && bound == selected && boundCurrent())
-              selected.setDraft(s.toString());
+            synchronized (selected) {
+              if (composingRevision == boundViewRevision && bound == selected && editorCurrent())
+                selected.setDraft(s.toString());
+            }
           }
 
           public void afterTextChanged(android.text.Editable value) {}
@@ -469,29 +475,31 @@ public final class AssistantActivity extends AppCompatActivity {
     pendingInput = getIntent().getBooleanExtra("focus_input", false);
     input.setOnFocusChangeListener(
         (v, focus) -> {
-          if (focus
-              && composingRevision == boundViewRevision
-              && bound == selected
-              && boundCurrent()) selected.beginComposing(editorSurface);
+          synchronized (selected) {
+            if (focus
+                && composingRevision == boundViewRevision
+                && bound == selected
+                && editorCurrent()) selected.beginComposing(editorSurface);
+          }
         });
     sendButton =
         button(
             UiText.choose("发送", "Send"),
             () -> {
-              if (bound.send(input.getText().toString())) finish();
+              if (AssistantNotificationNavigation.send(
+                  this, getIntent(), bound, input.getText().toString())) finish();
             });
     button(
         UiText.choose("语音输入", "Voice input"),
         () -> {
-          bound.beginComposing("voice");
-          startActivity(new Intent(this, AssistantVoiceActivity.class));
+          startActivity(AssistantNotificationNavigation.voiceIntent(this, getIntent()));
         });
     button(UiText.choose("暂停", "Pause"), () -> bound.pause("USER_PAUSED"));
     resumeButton =
         button(
             UiText.choose("继续", "Continue"),
             () -> {
-              if (bound.resume()) finish();
+              if (AssistantNotificationNavigation.resume(this, getIntent(), bound)) finish();
             });
     button(UiText.choose("停止当前任务", "Stop current task"), bound::stop);
     button(
@@ -583,10 +591,15 @@ public final class AssistantActivity extends AppCompatActivity {
     long expectedRevision = boundViewRevision;
     button.setOnClickListener(
         v -> {
-          if (expected != null
-              && (bound != expected || boundViewRevision != expectedRevision || !boundCurrent()))
+          if (expected == null) {
+            action.run();
             return;
-          action.run();
+          }
+          synchronized (expected) {
+            if (bound != expected || boundViewRevision != expectedRevision || !editorCurrent())
+              return;
+            action.run();
+          }
         });
     return button;
   }
@@ -659,10 +672,12 @@ public final class AssistantActivity extends AppCompatActivity {
       ime.hideSoftInputFromWindow(input.getWindowToken(), 0);
     }
     if (bound != null) {
-      bound.collapse();
-      AssistantService.nativeEditorVisible(bound, editorToken, false);
-      // 编辑器未发送就离开：放开等待中的手机动作（仍要求先重新观察）。
-      bound.endComposing(editorSurface);
+      synchronized (bound) {
+        if (editorCurrent()) bound.collapse();
+        AssistantService.nativeEditorVisible(bound, editorToken, false);
+        // 仅释放本 Activity 的输入来源；旧 onPause 不碰后继的输入闸。
+        bound.endComposing(editorSurface);
+      }
     }
     super.onPause();
   }
