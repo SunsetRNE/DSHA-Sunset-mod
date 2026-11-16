@@ -26,6 +26,13 @@ final class RuntimeInstallationState {
             com.deepseekharness.app.util.BundledRootfsAsset::find);
   }
 
+  RuntimeHostPorts.Scope openPreparation(
+      long generation,
+      java.util.function.BooleanSupplier current,
+      java.util.function.Consumer<String> output) {
+    return managedAssets.openPreparation(generation, current, output);
+  }
+
   String readAssetString(String name) {
     return RuntimeAssetText.read(ctx, name);
   }

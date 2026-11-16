@@ -107,6 +107,13 @@ constructor(
 
     fun hostPorts(): RuntimeHostPorts = hostPorts
 
+    /** 排队后的 worker 创建同次只读准备范围；不改变原 invocation、维护或执行门。 */
+    fun openStartupPreparation(
+        generation: Long,
+        current: BooleanSupplier,
+        output: Consumer<String>?,
+    ): RuntimeHostPorts.Scope = installation.openPreparation(generation, current, output)
+
     open fun getRootfsDir(): File = rootfsDir
 
     @Throws(IOException::class)

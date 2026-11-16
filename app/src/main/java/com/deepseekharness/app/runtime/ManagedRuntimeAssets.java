@@ -37,6 +37,7 @@ final class ManagedRuntimeAssets {
   private final Supplier<String> environmentIdentity;
   private final AssetText assetText;
   private final LegacyArchive legacyArchive;
+  private final RuntimeDescriptorPreparation preparation = new RuntimeDescriptorPreparation();
 
   ManagedRuntimeAssets(
       Context context,
@@ -51,11 +52,15 @@ final class ManagedRuntimeAssets {
     this.legacyArchive = legacyArchive;
   }
 
+  RuntimeHostPorts.Scope openPreparation(
+      long generation, java.util.function.BooleanSupplier current, Consumer<String> output) {
+    return preparation.open(generation, current, output);
+  }
+
   RuntimeDescriptor expectedDescriptor() throws IOException {
-    return new RuntimeDescriptor(
-        BackupJson.read(
-            assetText.read("runtime-descriptor.json").getBytes(StandardCharsets.UTF_8),
-            2 * 1024 * 1024));
+    return preparation.descriptor(
+        RuntimeDescriptorPreparation.Kind.EXPECTED,
+        () -> assetText.read("runtime-descriptor.json").getBytes(StandardCharsets.UTF_8));
   }
 
   RuntimeDescriptor installedDescriptor() throws IOException {
@@ -65,7 +70,8 @@ final class ManagedRuntimeAssets {
     if (fs.stat(linux).type.equals("MISSING")) return null;
     File file = fs.child(linux, ".runtime-descriptor.json");
     if (fs.stat(file).type.equals("MISSING")) return null;
-    return new RuntimeDescriptor(BackupJson.read(fs.small(file, 2 * 1024 * 1024), 2 * 1024 * 1024));
+    return preparation.descriptor(
+        RuntimeDescriptorPreparation.Kind.INSTALLED, () -> fs.small(file, 2 * 1024 * 1024));
   }
 
   Map<String, Object> health() throws IOException {
