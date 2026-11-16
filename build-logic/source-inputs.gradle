@@ -4,6 +4,25 @@ def sourceComponents = [:]
 def sourcePython = System.getenv('DSHA_PYTHON') ?: 'python3'
 def sourceRoot = rootProject.projectDir.canonicalFile.toPath()
 def sourceFail = { detail -> throw new GradleException('DSHA_SOURCE_INPUT: ' + detail) }
+// 显式 include 嵌套模块路径（如 ':core:policy'）会让 Gradle 在工程树里隐式产生分组工程（':core'）。
+// 分组不是产品模块：必须同时满足"是已声明模块路径的严格前缀"以及下面全部空形态判据；
+// 任一项不满足都留在产品集合里，由既有产品模块审计拒绝（负控见 tools/test-build-conventions.py）。
+def implicitGroupPaths = {
+    def layout = new groovy.json.JsonSlurper().parse(rootProject.file('ci/source-layout.json'))
+    def declared = layout.modules.collect { it.path } as Set
+    allprojects.findAll { module ->
+        module != rootProject && !declared.contains(module.path) &&
+                declared.any { it.startsWith(module.path + ':') } &&
+                !module.ext.has('dshaBuildConvention') &&
+                module.buildFile != null && !module.buildFile.exists() &&
+                !new File(module.projectDir, 'src').exists() &&
+                module.extensions.findByName('sourceSets') == null &&
+                module.extensions.findByName('android') == null &&
+                module.tasks.findAll { it.name.startsWith('compile') || it instanceof Test }.isEmpty() &&
+                module.configurations.collectMany { configuration -> configuration.dependencies }.isEmpty()
+    }.collect { it.path } as Set
+}
+ext.dshaImplicitGroupPaths = implicitGroupPaths
 def isKotlinCompile = { task ->
     def type = task.getClass()
     while (type != null) {
@@ -291,9 +310,10 @@ auditCompile = { task, inventory, strict ->
 }
 ext.dshaAuditSourceInputs = { strict = false ->
     def inventory = snapshot()
+    def groups = implicitGroupPaths()
     def roots = []
     def compileRows = []
-    allprojects.findAll { it != rootProject }.each { module ->
+    allprojects.findAll { it != rootProject && !groups.contains(it.path) }.each { module ->
         roots += rootRows(module)
         module.tasks.findAll { isCompile(it) }.each { task -> compileRows += auditCompile(task, inventory, strict) }
     }

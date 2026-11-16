@@ -151,6 +151,25 @@ class UnitResults(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "SOURCE_ONLY_SKIPS"):
             results.verify(self.reports, "source-only", max_skips=2)
 
+    def test_multiple_report_directories_aggregate_and_reject_duplicate_identity(self):
+        first = self.reports / "app/build/test-results/testStandardDebugUnitTest"
+        second = self.reports / "core/policy/build/test-results/test"
+        for directory, rows in ((first, self.passing[:4]), (second, self.passing[4:])):
+            directory.mkdir(parents=True)
+            suite = ET.Element("testsuite", tests=str(len(rows)),
+                               failures="0", errors="0", skipped="0")
+            for owner, name, _ in rows:
+                ET.SubElement(suite, "testcase", classname=owner, name=name)
+            ET.ElementTree(suite).write(directory / "TEST-one.xml")
+        summary = results.verify([first, second], "full", require_fixtures=True)
+        self.assertEqual(len(self.passing), summary["flavors"]["Standard"]["tests"])
+        self.assertEqual(7, summary["flavors"]["Standard"]["requiredFixtureTestsPassed"])
+        duplicate = ET.Element("testsuite", tests="1", failures="0", errors="0", skipped="0")
+        ET.SubElement(duplicate, "testcase", classname=self.passing[0][0], name=self.passing[0][1])
+        ET.ElementTree(duplicate).write(second / "TEST-duplicate.xml")
+        with self.assertRaisesRegex(ValueError, "JUNIT_DUPLICATE_IDENTITY"):
+            results.verify([first, second], "full")
+
     def test_missing_reports_fail(self):
         with self.assertRaisesRegex(ValueError, "JUNIT_MISSING"):
             results.verify(self.reports, "full")

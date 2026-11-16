@@ -627,6 +627,8 @@ def verifyUiLanguageResources = tasks.register("verifyUiLanguageResources", Exec
 tasks.named("preBuild").configure { dependsOn(verifyUiLanguageResources) }
 
 dependencies {
+    // A8 P3：纯逻辑策略作为独立 JVM 模块，app 是唯一生产消费者；逻辑键/FQCN 不变。
+    implementation project(':core:policy')
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.webkit:webkit:1.15.0'
     implementation 'com.google.android.material:material:1.11.0'

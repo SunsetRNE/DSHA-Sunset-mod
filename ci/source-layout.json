@@ -9,6 +9,15 @@
       "formatSourceSets": ["main", "standard", "debug", "androidTest", "test"],
       "testSourceSets": ["test"],
       "testTask": "testStandardDebugUnitTest"
+    },
+    {
+      "path": ":core:policy",
+      "directory": "core/policy",
+      "kind": "jvm",
+      "sourceSets": ["main", "test"],
+      "formatSourceSets": ["main", "test"],
+      "testSourceSets": ["test"],
+      "testTask": "test"
     }
   ]
 }

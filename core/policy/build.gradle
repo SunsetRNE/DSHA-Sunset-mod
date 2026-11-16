@@ -1,0 +1,4 @@
+// A8 P3：首个真实纯 JVM Kotlin 模块。只复用根 buildscript 已固定为 2.2.10 的 KGP，
+// JDK 17 toolchain 与 JUnit 共享约定来自 build-logic；不应用 Android/Kotlin-Android 插件。
+// 生产依赖白名单与 Android/反射禁止门禁在 build-logic/verify.gradle 与宿主门禁中核验。
+apply from: rootProject.file('build-logic/kotlin-jvm-library.gradle')
