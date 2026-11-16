@@ -20,6 +20,7 @@ public final class AssistantVoiceActivity extends AppCompatActivity implements R
   private AssistantSessionController session;
   private TextView status;
   private boolean started;
+  private boolean acceptingResults;
   private final String voiceSurface = "voice-" + java.util.UUID.randomUUID();
 
   private boolean current() {
@@ -58,6 +59,7 @@ public final class AssistantVoiceActivity extends AppCompatActivity implements R
         finish();
         return;
       }
+      acceptingResults = true;
       session.beginComposing(voiceSurface);
     }
     if (!SpeechRecognizer.isRecognitionAvailable(this)) {
@@ -74,7 +76,7 @@ public final class AssistantVoiceActivity extends AppCompatActivity implements R
   @Override
   public void onRequestPermissionsResult(int code, String[] permissions, int[] results) {
     super.onRequestPermissionsResult(code, permissions, results);
-    if (!current()) {
+    if (!acceptingResults || !current()) {
       finish();
       return;
     }
@@ -87,7 +89,7 @@ public final class AssistantVoiceActivity extends AppCompatActivity implements R
   }
 
   private void start() {
-    if (started || isFinishing() || !current()) return;
+    if (started || !acceptingResults || isFinishing() || !current()) return;
     started = true;
     recognizer = SpeechRecognizer.createSpeechRecognizer(this);
     recognizer.setRecognitionListener(this);
@@ -111,9 +113,24 @@ public final class AssistantVoiceActivity extends AppCompatActivity implements R
     var texts = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
     if (session != null)
       synchronized (session) {
-        if (current() && texts != null && !texts.isEmpty()) session.setDraft(texts.get(0));
+        boolean admitted =
+            acceptingResults
+                && !isFinishing()
+                && current()
+                && voiceSurface.equals(
+                    com.deepseekharness.app.control.PhoneControlCoordinator.get(this)
+                        .compose()
+                        .surface());
+        acceptingResults = false;
+        if (admitted && texts != null && !texts.isEmpty()) session.setDraft(texts.get(0));
       }
     finish();
+  }
+
+  @Override
+  public void finish() {
+    acceptingResults = false;
+    super.finish();
   }
 
   @Override
@@ -150,6 +167,7 @@ public final class AssistantVoiceActivity extends AppCompatActivity implements R
 
   @Override
   protected void onStop() {
+    acceptingResults = false;
     // Leaving recognition is an immediate microphone stop, even if Android retains the Activity.
     if (recognizer != null) {
       recognizer.cancel();
@@ -163,6 +181,7 @@ public final class AssistantVoiceActivity extends AppCompatActivity implements R
 
   @Override
   protected void onDestroy() {
+    acceptingResults = false;
     if (recognizer != null) {
       recognizer.cancel();
       recognizer.destroy();
