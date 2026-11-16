@@ -261,6 +261,7 @@ class SafGrants private constructor() {
                 val resolver = context!!.contentResolver
                 val persisted = persisted(context)
                 if (persisted == null) return AddResult.failed("PERMISSION_STATE_UNAVAILABLE")
+                if (store.hasPendingRestriction(value)) return AddResult.failed("STATE_UNAVAILABLE")
                 var existing = ledger.findByUri(value)
                 // 清理未完成时不得用新的 before/intent 覆盖原 PENDING 的权限归属证据。
                 if (existing?.state == SafGrantRecord.State.PENDING)
@@ -359,18 +360,21 @@ class SafGrants private constructor() {
                     if (record.state != SafGrantRecord.State.ACTIVE) return
                     // 失败重授恢复了旧 ACTIVE；用户仍要移除，继续正常 forget。
                 }
+                // 先登记当前 tree/epoch 的撤销意图，再释放或保存；commit(false) 不能复活旧 ACTIVE。
+                val restriction = store.beginRevocation(record)
                 val persisted = persisted(context)
                 if (persisted == null) {
-                    // 未知不能当作已释放，保留 RELEASING 等下次重试。
+                    // 未知不能当作已释放，围栏和 RELEASING 意图一起保留，等实际系统位可读再重试。
                     store.save(ledger.beginRelease(value).ledger)
                     return
                 }
                 val remaining = record.acquired and flagsOf(persisted, tree)
                 val released =
                     remaining == 0 || releaseFlags(context!!.contentResolver, tree, remaining)
-                store.save(
+                val desired =
                     if (released) ledger.forget(value).ledger else ledger.beginRelease(value).ledger
-                )
+                if (released) store.saveAfterRelease(desired, listOf(record to restriction))
+                else store.save(desired)
             }
         }
 
@@ -384,9 +388,16 @@ class SafGrants private constructor() {
                     return
                 }
                 val store = ledgerStore(context)
+                store.retryWriteDenials()
                 val ledger = store.load()
+                val record = ledger.findByUri(tree.toString()) ?: return
+                if (record.state == SafGrantRecord.State.RELEASING) return
+                // 未完成关闭前不接受新的开启；无关保存也不能撤销用户的缩权意图。
+                if (writable && store.hasPendingRestriction(record.uri)) return
+                val restriction = if (writable) null else store.denyWrite(record)
                 val change = ledger.setUserWritable(tree.toString(), writable)
-                if (change.accepted()) store.save(change.ledger)
+                if (change.accepted() && store.save(change.ledger) && !writable)
+                    store.finishWriteDenial(record, restriction)
             }
         }
 
@@ -519,10 +530,12 @@ class SafGrants private constructor() {
         @JvmStatic
         private fun cleanupLedgerLocked(context: Context?) {
             val store = ledgerStore(context)
+            store.retryWriteDenials()
             var ledger = store.load()
             val persisted = persisted(context) ?: return
             val resolver = context!!.contentResolver
             var changed = false
+            val releasedRestrictions = ArrayList<Pair<SafGrantRecord, Long?>>()
             for (record in ledger.records()) {
                 val uri = safeParseUri(record.uri) ?: continue
                 if (record.state == SafGrantRecord.State.PENDING) {
@@ -535,13 +548,15 @@ class SafGrants private constructor() {
                     changed = true
                 } else if (record.state == SafGrantRecord.State.RELEASING) {
                     // 只重试本功能位与系统仍持有位的交集；交集为空直接完成撤销（P1）。
+                    val restriction = store.revocationToken(record)
                     val remaining = record.acquired and flagsOf(persisted, uri)
                     if (remaining != 0 && !releaseFlags(resolver, uri, remaining)) continue
                     ledger = ledger.finishRelease(record.uri).ledger
+                    releasedRestrictions.add(record to restriction)
                     changed = true
                 }
             }
-            if (changed) store.save(ledger)
+            if (changed) store.saveAfterRelease(ledger, releasedRestrictions)
         }
 
         @JvmStatic
