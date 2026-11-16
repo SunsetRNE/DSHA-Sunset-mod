@@ -83,11 +83,11 @@ class RuntimeDescriptorPreparationTest {
         val preparation = RuntimeDescriptorPreparation()
         val lines = ArrayList<String>()
         preparation.open(7, { true }, lines::add).use {
-            val worker = Thread {
-                preparation.descriptor(RuntimeDescriptorPreparation.Kind.EXPECTED) { bytes() }
-            }
-            worker.start()
-            worker.join()
+            val result =
+                java.util.concurrent.CompletableFuture.supplyAsync {
+                    preparation.descriptor(RuntimeDescriptorPreparation.Kind.EXPECTED) { bytes() }
+                }.get(5, java.util.concurrent.TimeUnit.SECONDS)
+            assertNotNull(result)
         }
         assertTrue(lines.contains("STARTUP_PREP_OBSERVATION: phase=descriptor-expected calls=0"))
     }

@@ -49,18 +49,34 @@ constructor(private val identities: Supplier<Identity?> = Supplier { null }) {
         val invalidations = LongArray(Kind.entries.size)
         val entries = arrayOfNulls<Entry>(Kind.entries.size)
         var retired = false
+        private var observed: Identity? = null
 
         fun clear() {
             entries.fill(null)
         }
 
-        fun retire() {
+        fun invalidateEntries() {
+            for (index in entries.indices) {
+                if (entries[index] != null) invalidations[index]++
+            }
             clear()
+        }
+
+        fun align(identity: Identity) {
+            val previous = observed
+            if (previous != null && !previous.matches(identity)) invalidateEntries()
+            observed = identity
+        }
+
+        fun retire() {
+            invalidateEntries()
+            observed = null
             retired = true
         }
 
         fun finish() {
             clear()
+            observed = null
             for (kind in Kind.entries) {
                 emit(kind, "calls", calls[kind.ordinal])
                 emit(kind, "parses", parses[kind.ordinal])
@@ -117,7 +133,7 @@ constructor(private val identities: Supplier<Identity?> = Supplier { null }) {
             } catch (_: RuntimeException) {
                 null
             }
-        if (identity == null) active.retire()
+        if (identity == null) active.retire() else active.align(identity)
         return identity
     }
 
@@ -128,12 +144,13 @@ constructor(private val identities: Supplier<Identity?> = Supplier { null }) {
         val index = kind.ordinal
         active.calls[index]++
         try {
-            val previous = active.entries[index]
             val before = observe(active)
             // 每次读取仍走原受控文件/AssetManager 路径；缓存只省 JSON、摘要和冻结解析。
             val bytes = source.read()
             val after = observe(active)
             val stable = before != null && after != null && before.matches(after)
+            // observe 可因另一类输入或当前读期间的变化清空两槽；只取清空后的条目。
+            val previous = active.entries[index]
             if (previous != null) {
                 if (
                     stable &&
@@ -143,8 +160,7 @@ constructor(private val identities: Supplier<Identity?> = Supplier { null }) {
                     active.hits[index]++
                     return previous.value
                 }
-                active.clear()
-                active.invalidations[index]++
+                active.invalidateEntries()
             }
             active.parses[index]++
             val parsed = decode(bytes)
@@ -152,7 +168,7 @@ constructor(private val identities: Supplier<Identity?> = Supplier { null }) {
             if (stable && finalIdentity != null && after!!.matches(finalIdentity)) {
                 active.entries[index] = Entry(finalIdentity, bytes.clone(), parsed)
             } else {
-                active.clear()
+                active.invalidateEntries()
             }
             return parsed
         } catch (error: Throwable) {

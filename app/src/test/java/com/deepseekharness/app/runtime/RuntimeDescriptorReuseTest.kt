@@ -88,6 +88,25 @@ class RuntimeDescriptorReuseTest {
     }
 
     @Test
+    fun observedInputChangeAcrossKindsCannotResurrectTheOlderIdentity() {
+        for (firstKind in RuntimeDescriptorPreparation.Kind.entries) {
+            val f = Fixture()
+            val otherKind = RuntimeDescriptorPreparation.Kind.entries.first { it != firstKind }
+            val originalRoot = f.root
+            f.scope().use {
+                val first = f.read(firstKind)
+                f.root = "$originalRoot:replacement"
+                f.read(otherKind)
+                f.root = originalRoot
+                assertNotSame(first, f.read(firstKind))
+            }
+            assertEquals(2, f.count(firstKind.token, "parses"))
+            assertEquals(0, f.count(firstKind.token, "hits"))
+            assertEquals(1, f.count(firstKind.token, "invalidations"))
+        }
+    }
+
+    @Test
     fun contentChangeWithIdenticalMetadataStillParsesFreshBytes() {
         val f = Fixture()
         f.scope().use {
