@@ -139,17 +139,20 @@ def source_inputs_contract(source, verify, hook, root):
             r"sourceSet\.getCompileTaskName\('kotlin'\)", r"component: componentRow\(task, context\)")
     # P3 首切：隐式分组只能是"已声明模块路径前缀 + 全空形态"，且生产模块边必须命中白名单。
     require(source, r"ext\.dshaImplicitGroupPaths = implicitGroupPaths",
+            r"ext\.dshaImplicitGroupViolations = implicitGroupViolations",
             r"declared\.any \{ it\.startsWith\(module\.path \+ ':'\) \}",
             r"!module\.ext\.has\('dshaBuildConvention'\)",
             r"module\.buildFile != null && !module\.buildFile\.exists\(\)",
             r"!new File\(module\.projectDir, 'src'\)\.exists\(\)",
             r"module\.extensions\.findByName\('sourceSets'\) == null",
             r"module\.extensions\.findByName\('android'\) == null",
-            r"module\.tasks\.findAll \{ it\.name\.startsWith\('compile'\) \|\| it instanceof Test \}\.isEmpty\(\)",
+            r"module\.tasks\.findAll \{ it\.name\.startsWith\('compile'\) \|\| it instanceof Test \}\.isEmpty\(\) &&",
             r"module\.configurations\.collectMany \{ configuration -> configuration\.dependencies \}\.isEmpty\(\)",
+            r"if \(!reasons\.isEmpty\(\)\) violations\[module\.path\] = reasons",
+            r"reasons\.add\('source-tree'\)", r"reasons\.add\('dependencies'\)",
             r"allprojects\.findAll \{ it != rootProject && !groups\.contains\(it\.path\) \}")
     require(verify, r"def groups = rootProject\.ext\.dshaImplicitGroupPaths\(\)",
-            r"DSHA_IMPLICIT_GROUP_PATH",
+            r"DSHA_IMPLICIT_GROUP_NOT_EMPTY", r"DSHA_IMPLICIT_GROUP_PATH",
             r"def products = modules\.findAll \{ !fixtures\.contains\(it\) && !groups\.contains\(it\.path\) \}",
             r"allowedProjectEdges = \[':app->:core:policy'\] as Set",
             r"DSHA_PROJECT_DEPENDENCY_UNDECLARED", r"DSHA_PROJECT_DEPENDENCY_MISSING",
@@ -958,6 +961,8 @@ class BuildConventions(unittest.TestCase):
                 "", 1), verify, hook, root),
             (source, verify.replace("DSHA_PROJECT_DEPENDENCY_UNDECLARED", "DSHA_PROJECT_DEPENDENCY_UNUSED", 1),
              hook, root),
+            (source.replace("if (!reasons.isEmpty()) violations[module.path] = reasons", "", 1),
+             verify, hook, root),
         )
         for number, values in enumerate(mutations):
             with self.subTest(mutation=number):

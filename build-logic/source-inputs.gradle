@@ -23,6 +23,29 @@ def implicitGroupPaths = {
     }.collect { it.path } as Set
 }
 ext.dshaImplicitGroupPaths = implicitGroupPaths
+// 与分组路径前缀相同但形态不空的前缀工程：显式列出失败判据，避免它们落入通用审计后
+// 抛出未定义扩展的模糊错误。藏构建脚本/源码/扩展/任务/依赖都在这里被点名拒绝。
+def implicitGroupViolations = {
+    def layout = new groovy.json.JsonSlurper().parse(rootProject.file('ci/source-layout.json'))
+    def declared = layout.modules.collect { it.path } as Set
+    def violations = [:]
+    allprojects.findAll { module ->
+        module != rootProject && !declared.contains(module.path) &&
+                declared.any { it.startsWith(module.path + ':') }
+    }.each { module ->
+        def reasons = []
+        if (module.ext.has('dshaBuildConvention')) reasons.add('convention')
+        if (module.buildFile != null && module.buildFile.exists()) reasons.add('build-script')
+        if (new File(module.projectDir, 'src').exists()) reasons.add('source-tree')
+        if (module.extensions.findByName('sourceSets') != null) reasons.add('sourceSets')
+        if (module.extensions.findByName('android') != null) reasons.add('android')
+        if (!module.tasks.findAll { it.name.startsWith('compile') || it instanceof Test }.isEmpty()) reasons.add('tasks')
+        if (!module.configurations.collectMany { configuration -> configuration.dependencies }.isEmpty()) reasons.add('dependencies')
+        if (!reasons.isEmpty()) violations[module.path] = reasons
+    }
+    violations
+}
+ext.dshaImplicitGroupViolations = implicitGroupViolations
 def isKotlinCompile = { task ->
     def type = task.getClass()
     while (type != null) {
