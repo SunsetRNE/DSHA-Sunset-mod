@@ -1,5 +1,7 @@
 # A2 / N4：SAF 首次迁移失败的模式一致性（2026-11-16）
 
+> **P1 返修更新**：原 `f10b39a4` 已被独立全 diff 审查判为 REQUEST_CHANGES，不可合入；原 219/0 和 19 负控仅为历史阶段证据。当前返修分支 `fix/a2-n4-restriction-fence` 从最新 `origin/main=4ce4064b56211dd41600a0f9fa5df6a0a2bc41ff` 建立，修复提交 `2f7bd43f9813845f251907c93ff43c6c2b6ce827`。新增 6 负控在 f10 字节码上全部以业务断言失败；当前完整混编 **225/0/0/0**，新冻结 SHA 仍须 main 安排独立复审。下文前四节保留原交付历史，本次实现、验证和回退以末节「P1 独立审查返修」为准。
+
 本轮由用户指定 `session-8ad28be2-ced7-484a-96bf-a387a82312e8` 接手，仅做本地实现、定向测试、提交与回执。基线为重新 fetch 后的 `origin/main=46f4970369c796c3a7cb9acca6cff58961778840`；分支 `fix-a2-n4-ledger`。当前发布仍由 main 的 build369 版本线管理，本任务不生成发行身份。
 
 ## 旧成果与本轮剩余范围
@@ -70,3 +72,56 @@
 未运行完整固定输入 Gradle 全量、Lint、AAPT/APK、外部 Provider/设备矩阵、LayoutAudit、安装或手机操作；本地定向不能代替这些出口。受管启动成员 **517→517**，只改变 `saf/SafGrants.kt`、`saf/SafLedgerStore.kt` 两个内容摘要；`runtime-input-impact-final.json` 记录最终字节哈希，既有 descriptor 完全未修改。最终 descriptor/runtimeId/recipe 由 main 在集成树统一生成，本分支不改受管证明或版本号。
 
 本地代码回退命令为 `git revert 6ce3dbf90e5fd390e76e66f01ecce3442953720e`；集成时若发生 cherry-pick，由 main 对应实际集成 SHA 回退并重算受管身份。保留 SAF Kotlin 实现，不需要清数据、删除旧授权、改 schema 或恢复 Java。push、合并 main、发布、安装、手机操作及清理旧树均未执行。
+
+## P1 独立审查返修（当前交付）
+
+### 问题与旧现场
+
+专职审查会话 `session-41e7f89b-2923-41ad-9520-6e819fb7b11e` 完整审查原四文件 1,435 行 diff，给出 REQUEST_CHANGES / P1=1；报告保存在 `/tmp/t9-n4-review-41e7f89b.md`。作者和 main 已核对调用链并接受问题：旧确认快照隔离了失败提权，却会在 `setWritable(false)` 或移除的保存失败后重新暴露缩权前可写 / 撤销前 ACTIVE。原 19 项覆盖失败开启方向，不能证明失败关闭方向安全。
+
+旧 `fix-a2-n4-ledger` 工作树、`f10b39a4`、原 219/0、19 红例、所有失败日志均未修改。当前从最新主线另建新树，映射为：
+
+| 来源 | 新树提交 | 说明 |
+|---|---|---|
+| 最新主线 | `4ce4064b56211dd41600a0f9fa5df6a0a2bc41ff` | 含已集成 T7，SAF 与旧基线相同 |
+| 原实现 `6ce3dbf90e5fd390e76e66f01ecce3442953720e` | `f091879d86f3e4eefc934dd43c21eb27ac485020` | `cherry-pick -x`，三文件 blob 不变 |
+| 原回执 `f10b39a4b4a4291ed2622f08884b8cbf0ad48d03` | `8e93e6d49bc01b2a70bc181a93513ec114bac1e0` | `cherry-pick -x`，原文保留后本节补正 |
+| P1 修复 | `2f7bd43f9813845f251907c93ff43c6c2b6ce827` | 只改两个 SAF 实现并新增独立 P1 测试；原 19 测试未改 |
+
+### 修复规则
+
+- 存储仍以已确认的提交快照隔离失败提权；在同一 SharedPreferences 的进程内状态中另保留 URI/tree、epoch、操作意图和单调 token。失败 raw map 不能成为执行授权来源。
+- 关闭写入先登记拒绝写围栏。`load` 的保守投影保持系统事实和读能力，只把 `userWritable` 降为 false；lookup、真实桥写准入、工作台新 WRITE 票据以及已有票据的 check/running 守卫共用该结果。
+- 撤销先保留原 epoch/acquired，投影为 RELEASING；即使释放失败和保存失败叠加也不退回 ACTIVE。后续 cleanup 继续现场复查，只释放 `acquired ∩ 当前系统位`，原有其它功能位不动。
+- 通用保存先叠加所有未决拒绝投影，所以无关 metadata / 其它树的成功保存也会尽力持久化缩权或 RELEASING；**通用保存成功不清除意图**。重复写旧快照也不能恢复旧写许可。
+- 写关闭只有专门重试确实提交且确认目标代次为 false/已移除才解除；撤销只有调用方确认系统增量已释放，并通过专门删除提交后才解除。确认必须同时匹配原 tree、epoch 和 token，重入后的新意图不能被旧完成覆盖。未决时不允许 add 跨 epoch 重授。
+- 不新增持久 key/schema、桥字段、权限或进程身份；PENDING 的 before/intent/Previous 恢复及原有模式/代次/Provider 锁外规则继续保持。围栏的进程内未决状态不是新的磁盘日志；在所有相关写入都失败且进程死亡时，不承诺恢复尚未保存的用户意图。
+
+### 本次确定性负控与新验证
+
+[SafRestrictionFailureTest](../../../app/src/test/java/com/deepseekharness/app/saf/SafRestrictionFailureTest.kt) 新增六项，用保存失败、可控系统释放和真实入口断言验证：
+
+1. 内存已改但 commit=false 的关闭写入，lookup / 真实桥 / 新 WRITE / 旧票据 retarget 和实际 running 守卫均拒绝。
+2. commit=false 且内存未改，同样立即拒绝写。
+3. release 失败 + RELEASING 保存失败不恢复 ACTIVE；释放先恢复、磁盘仍失败时也保持撤销，最终仅释放本功能新增写位并完成重试，其它功能原有读位保留。
+4. 连续两次无关 metadata 成功保存旧快照，不能清除写关闭意图；专门重试完成后，新的显式开启才可成功。
+5. 连续两次无关保存不能清除移除意图。
+6. 另一 tree 的成功保存不能解除原 tree 围栏，也不误拒绝另一 tree 的合法写权限。
+
+本次证据根为 `/tmp/saf-n4-p1-8ad28be2/`，整批 `bash-86187d7ff0b048dd` exit0 已收集，所有 JVM 串行执行且槽已交还 main；完整 argv/exit 在 `batch-r1/receipt.json`。没有把链接、NPE 或配置失败当作负控。
+
+| 本次阶段 | 实际结果 | 证据 |
+|---|---|---|
+| 原 f10 生产字节码 + 新六用例 | 编译 exit0；**6 运行 / 6 业务 AssertionError / 0 忽略 / 0 assumptions**，无 NPE/链接/初始化错误 | `batch-r1/red-compile.*`、`red-junit.*`；两生产源 SHA 与原 f10 编译 receipt、-x 重放 blob 一致 |
+| 当前基线 4ce + 返修全源混编 / 定向回归 | **225/0/0/0**，其中包含未经修改的原 219 用例 | `final-r1/receipt.json`、`final-r1/junit.log`；1010 Java（996 仓库含 AIDL stub，另 14 生成/runner）+77 Kotlin；测试 17 Java+3 Kotlin、18 类 |
+| Kotlin / Java 全树格式 | **88 / 0 待格式化**；**1775 / 0 待格式化** | `batch-r1/kotlin-tree.log`、`java-tree.log`，均 offline/jobs1 |
+| 卫生 / 架构边界 / host 清单 / diff | 全部 exit0；边界 25/25、清单264 | `batch-r1/` 分项日志 |
+| 对原 f10 的 JVM API 只读比较 | **577 个非 private / 非 access$ 成员无丢失**；原79类均保留，新增私有 Restriction 一类 | `api-comparison.json`，不把新增 internal/JVM synthetic 方法称作公共授权协议 |
+
+原 19 用例源 SHA-256 仍为 `47bbae9ce947aec32197ea5df1973835df73ae211c31bd05ea7f668ec913ead7`。225 是本轮实际运行数，不与旧 219 或六负控重复累加；本轮没有重跑 Gradle，未继承 T7 CI、旧 f10 绿结果或旧批准作为新修复通过证明。AGP/full CI/Lint/APK/设备和新的独立复审仍未验，最终 descriptor/runtimeId/recipe 继续由 main 集成树统一生成。
+
+### 本次回退与交接
+
+本节取代历史章节对旧 6ce 的回退命令。当前尚未集成/发布；若需回到最新主线行为，本地可依次 revert `2f7bd43f9813845f251907c93ff43c6c2b6ce827` 与 `f091879d86f3e4eefc934dd43c21eb27ac485020`（文档提交按需另退），并由 main 重算受管身份。不能只撤 P1 修复而把已确认有漏洞的 f10 当作安全回退点；不需要清数据、删除用户授权、改格式或恢复 Java。
+
+新冻结提交必须交回 `41e7f89b` 重新全 diff 审查；独立审查未通过前不称 APPROVE 或已合入，旧 f10 的批准不扩到新 SHA。没有 push、合并 main、发布、安装、手机操作或清理旧树。
