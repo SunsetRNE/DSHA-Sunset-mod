@@ -4,8 +4,6 @@ tasks.register('verifyDshaBuildConventions') {
     group = 'verification'
     description = '核验实际模块的 DSHA 编译和测试约定（默认单 fork）。'
     doLast {
-        // 真实源码根 / JavaCompile 与 KotlinCompile 输入核验，不运行编译或资产任务。
-        rootProject.ext.dshaAuditSourceInputs(false)
         if (gradle.ext.kotlinVersion != '2.2.10')
             throw new GradleException('DSHA_KOTLIN_VERSION_DRIFT')
         def sourceOnly = providers.gradleProperty('dsha.sourceOnlyTests').orElse('false').get()
@@ -27,11 +25,17 @@ tasks.register('verifyDshaBuildConventions') {
         // 显式 include 嵌套模块路径会隐式产生空分组工程；只有通过严格空形态判据的路径前缀
         // 才从产品集合排除，其余（含藏构建脚本/源码/扩展/任务/依赖）都保持产品身份并被拒绝。
         def groups = rootProject.ext.dshaImplicitGroupPaths()
+        def groupViolations = rootProject.ext.dshaImplicitGroupViolations()
+        if (!groupViolations.isEmpty())
+            throw new GradleException('DSHA_IMPLICIT_GROUP_NOT_EMPTY: ' + groupViolations)
         if (!groups.every { path -> declaredPaths.any { it.startsWith(path + ':') } })
             throw new GradleException('DSHA_IMPLICIT_GROUP_PATH: ' + groups)
         def products = modules.findAll { !fixtures.contains(it) && !groups.contains(it.path) }
         if ((products.collect { it.path } as Set) != declaredPaths || declaredPaths.size() != layout.modules.size())
             throw new GradleException('DSHA_PRODUCT_MODULE_SET_MISMATCH')
+        // 先完成分组/产品集合判定，再核真实源码根与编译输入；这样藏脚本/源码/插件的前缀工程
+        // 会得到明确的 DSHA_IMPLICIT_GROUP_NOT_EMPTY，而不是通用审计的未定义扩展错误。
+        rootProject.ext.dshaAuditSourceInputs(false)
         layout.modules.each { row ->
             def module = rootProject.project(row.path)
             if (module.projectDir.canonicalFile != rootProject.file(row.directory).canonicalFile)
