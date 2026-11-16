@@ -21,13 +21,13 @@
 
 用户在[配置页 ConfigFragment](../app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java)的高级选项选择 proroot、静态加载器及 proot seccomp 选项，`config_save` 保存。选项决定后续新进程的 argv/env，不能替换已经运行的 Web/终端引擎；先正常停止，再启动才可核对实际运行方式。`RuntimeHostPorts` 为一次调用提供配置作用域，不能让执行到一半的命令读到另一套设置。
 
-[RuntimeExecution.runtime()](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeExecution.java) 还要求 Android API >= 26、没有本次 `forceProot`，且 proroot 的五个原始文件与两个兼容文件可用并准备成功。否则记录 `RUNTIME_SELECTION_FALLBACK`，选择 proot。这是**启动前可用性选择**，和“guest 已执行后再次运行命令”是两件事。build209 起不再有 Low/API23 构建线。
+[RuntimeExecution.runtime()](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeExecution.kt) 还要求 Android API >= 26、没有本次 `forceProot`，且 proroot 的五个原始文件与两个兼容文件可用并准备成功。否则记录 `RUNTIME_SELECTION_FALLBACK`，选择 proot。这是**启动前可用性选择**，和“guest 已执行后再次运行命令”是两件事。build209 起不再有 Low/API23 构建线。
 
 [CHANGELOG 历史段](../CHANGELOG.md)的“v1.1.6 起默认 proroot”说的是 **DSHA v1.1.6**，不是当前 proroot 二进制的版本号。该段还记录旧 vivo/Android14 的速度数据与旧兜底规则；“快 5–6 倍”、`+58%` 和“连续三次失败切换”等不能当成 build190 的全设备性能或当前重试契约。应分别阅读历史和上面的当前配置。
 
 ## 2. Ubuntu 在哪里，所谓 root 是什么
 
-APK 内的离线 Ubuntu 与 DSH 归档被完整解压到应用私有环境，正式运行根由 [ProotBootstrap](../app/src/main/java/com/deepseekharness/app/runtime/ProotBootstrap.java) 管理。基础环境为 Ubuntu **24.04 arm64**，编号 10 是 DSHA 的基础环境身份，并非 Ubuntu 的发行版本号。Node 使用 Linux/glibc **24.x** 运行时；DSH 的精确 npm 版本及依赖由 [package.json](../tools/dsh-runtime/package.json) / [package-lock.json](../tools/dsh-runtime/package-lock.json) 固定。构建宿主的 Node 24 也不能作为手机实际 Node 小版本的证据。
+APK 内的离线 Ubuntu 与 DSH 归档被完整解压到应用私有环境，正式运行根由 [ProotBootstrap](../app/src/main/java/com/deepseekharness/app/runtime/ProotBootstrap.kt) 管理。基础环境为 Ubuntu **24.04 arm64**，编号 10 是 DSHA 的基础环境身份，并非 Ubuntu 的发行版本号。Node 使用 Linux/glibc **24.x** 运行时；DSH 的精确 npm 版本及依赖由 [package.json](../tools/dsh-runtime/package.json) / [package-lock.json](../tools/dsh-runtime/package-lock.json) 固定。构建宿主的 Node 24 也不能作为手机实际 Node 小版本的证据。
 
 Linux Node、Bash、glibc 与原生 npm 模块需要 Linux 路径和 ABI。Android 应用本身使用 Android/bionic 环境，不能把这套 glibc 程序当普通 Android Java 库直接调用。proot/proroot 在应用权限内提供类似 chroot 的路径和假身份视图，让 `/bin/bash`、`/usr/local/bin/node` 和 `/root` 指向所选运行根中的对象。
 
@@ -59,8 +59,8 @@ flowchart TD
 
 | 文件 / 方法 | 责任 |
 |---|---|
-| [ContainerRuntime](../app/src/main/java/com/deepseekharness/app/runtime/ContainerRuntime.java) | 引擎可用性、原生文件、根路径、bind、专属环境。 |
-| [RuntimeLauncher.builder/environment/start](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeLauncher.java) | 统一非交互 argv/env，追加 `/bin/bash -c`，绑定签名预加载目录，选择普通或独立会话进程。 |
+| [ContainerRuntime](../app/src/main/java/com/deepseekharness/app/runtime/ContainerRuntime.kt) | 引擎可用性、原生文件、根路径、bind、专属环境。 |
+| [RuntimeLauncher.builder/environment/start](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeLauncher.kt) | 统一非交互 argv/env，追加 `/bin/bash -c`，绑定签名预加载目录，选择普通或独立会话进程。 |
 | [TerminalRuntime.launch/interactive](../app/src/main/java/com/deepseekharness/app/runtime/TerminalRuntime.java) | 复用引擎选择和环境准备；PTY 把 argv/env 交给 JNI；简易终端另持有生命周期工作锁。 |
 | [StartupPipeline](../app/src/main/java/com/deepseekharness/app/core/StartupPipeline.java) / [StartupEnvironmentActions.releasePrior](../app/src/main/java/com/deepseekharness/app/core/StartupEnvironmentActions.java) | 启动准备、恢复与受管检查；关闭已持有 launcher 并确认旧 guest 退出后，才进入下一次启动。 |
 | [WebLifecycleController](../app/src/main/java/com/deepseekharness/app/core/WebLifecycleController.java) | 运行代次、鉴权、停止、慢启动提示、兼容重试与用户停止意图。 |
