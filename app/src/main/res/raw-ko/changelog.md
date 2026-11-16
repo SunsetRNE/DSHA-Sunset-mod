@@ -1,11 +1,8 @@
-# DSHA 0.2.1-rc.5-20261116.0500-dsh0.2.2-rc.1 / build368
+# DSHA 0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1 / build369
 
-- Rust 릴리스 조립(기본 prebuilt): release-production의 rust_native_mode 기본값을 prebuilt로 바꾸어 같은 run에서 빌드·검증한 arm64 libdsha_rs.so와 rust-native-receipt.json을 정식 패키지에 포함합니다. off는 라이브러리를 넣지 않는 선택지로 남습니다. 같은 run 산출물 바인딩, commit/run 영수증 대조, 서명 후 멤버별 재검증은 그대로이며 불일치 시 중단합니다. 정식 서명은 계속 release 워크플로가 Mod 인증서로 수행합니다.
-- Rust 런타임 백엔드 기본 활성화: DshaApp.onCreate()가 언어·설정 초기화 뒤 RustBackends를 명시적으로 켜므로 라이브러리가 포함된 경우 digest, archive, verify_plan이 기본으로 네이티브 경로를 사용합니다. 프로세스 필드 기본값은 여전히 false여서 일반 JVM 단위 테스트는 네이티브 로딩 영향을 받지 않습니다. setEnabled(false)로 한 번에 JVM으로 돌아갑니다. .so 미포함, 로딩 실패, ABI 불일치는 유형화된 사유로 JVM에 남고, verify_plan이 Rust를 선택한 뒤의 내부 오류나 구현 간 불일치는 fail-closed를 유지하며 JVM 결과로 덮어쓰지 않습니다.
-- Android Rust 프로브 적응: RustNativeInstrumentation은 먼저 시작 후 기본값(APK에 영수증이 있으면 활성)을 검증하고, 이어서 잠시 스위치를 꺼서 기존 네이티브 차분·실패 정리 프로브를 실행한 뒤 finally에서 초기 상태를 복원하고 복원 성공을 단언합니다. BACKENDS_NOT_DEFAULT_ON과 BACKENDS_RESTORE_FAILED를 추가했으며, 영수증이 없는 .so 미포함 빌드는 기본값만 기록하고 오탐하지 않습니다.
-- 파이프라인 수정: dry-run/publish 단일 변형 테스트 패키지 증거 다운로드 배치를 고쳐(bf491c77) test_packages=debug에서도 증거 디렉터리 병합이 실패하지 않게 했습니다. androidTest의 refreshPowerMode(Context) 호출을 보완해(872d48ac) prebuilt debug 빌드의 androidTest 컴파일을 복구했습니다.
-- 덮어쓰기 업그레이드 영향: runtimeId가 **52624be1ad386017c68c2fc986c0e834eaeec5364e9539bd0f3aa8dc74e1daba**로 바뀝니다(517개 시작 입력, 205개 자산 입력, 439 Java + 18 Kotlin). DshaApp과 Rust 백엔드/브리지가 관리 시작 입력에 들어가기 때문입니다. baseVersion 10, dataWrite dsh-0.2.2-rc.1은 그대로입니다. **367→368 덮어쓰기 후 첫 시작에서 전체 화면 런타임 유지보수 페이지가 한 번 표시**되며 개인 데이터는 보존됩니다. 버전 번호 상향 자체는 runtimeId를 바꾸지 않습니다.
-- 빌드 입력과 호환 범위: fixed-inputs-20261113과 dsha-a-su-fixed-inputs-20261113-build364.zip(716,787,167 B, SHA-256 2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad)을 계속 사용합니다. 포함된 dsh-web-mobile 3.3.5, 자동 기본 비활성화 의미, SAF "앱 간 파일 접근", A8-P1 기반, APK 업데이트(M17), 내장 플러그인 활성화(T2), S1a/S1b, 기존 UNKNOWN 보수 처리는 유지됩니다. contract 경계, 데이터 형식, 복원 의미, fail-closed 복원 계획은 완화하지 않습니다.
-- 버전과 범위: 버전 코드를 368로 올리며 공개된 build367(tag dsha-a-su-build367-20261115-230955 @ f3f8fc03)을 기반으로 합니다. DSHA 리비전은 0.2.1-rc.5, 패키지 io.github.sunsetrne.dsha, Mod 인증서, 단일 Standard와 서명 방식은 그대로입니다. 이 후보는 아직 공개되지 않았고, 사용자 승인 후 Android release 워크플로가 .debug / .dev 공존 테스트 패키지와 함께 빌드할 계획입니다.
-- 검증 범위와 한계: build368 이전 main(bf491c77)의 prebuilt dry-run 43804700097은 전부 초록(debug/androidTest 조립, 테스트 패키지 서명, Dry-run release plan 포함)이지만 이 역사 결과는 파이프라인만 증명하며 build368의 전체 게이트가 아닙니다. **build368 전체 Gradle 테스트, Lint, APK/테스트 패키지, 정식 서명은 이번 release 워크플로 실행을 기다립니다. 기기 검수는 두 번째 휴대폰에서 .debug / .dev 테스트 패키지와 ADB 로그로 수행하며, 본 기기에는 공식 패키지를 설치하지 않습니다.** 유지보수 페이지/READY, Rust 네이티브 로딩과 폴백, 백업/복원, 두 화면의 민감 화면은 기기 확인 대기이며 광범위한 ROM/관리자 호환성을 주장하지 않습니다.
-- 10개 언어 릴리스 노트: [build368 노트](build368-changes.ko.md)를 참고하세요.
+- 영역별 Kotlin 이전: capabilities 6개, runtime 명령·마운트 구성 8개, plugins 관리 11개 등 Java 클래스 25개를 이전했습니다. 권한, 시작, 플러그인 트랜잭션 의미는 유지합니다. 성능 향상은 주장하지 않으며 A8-P3 다중 모듈 작업은 포함하지 않습니다.
+- 관리되는 동적 리더를 ProotBootstrap.kt로 바꾸고 소스 경로와 계약 테스트를 맞춘 뒤 descriptor를 갱신했습니다. 이전 Java 경로나 오래된 생성기 해시를 사용하지 않습니다.
+- runtimeId: 1d42f79d5fea6bad5caaa2409822aa5949691c89e6e230b95011ae35db8a5757. baseVersion 10, DSH 0.2.2-rc.1 및 데이터 형식은 유지합니다. 368→369 덮어쓰기 업데이트 후 첫 실행에서 전체 화면 실행 환경 유지 관리가 한 번 나타날 것으로 예상하며 개인 데이터는 보존합니다.
+- Rust 구성은 기본 prebuilt, 런타임 백엔드는 기본 활성화 상태를 유지합니다. 같은 run의 출처 검증도 유지합니다. 라이브러리를 사용할 수 없으면 유형화된 이유와 함께 JVM을 선택하지만, Rust 선택 후 실패는 재실행하거나 JVM 결과로 구현 차이를 숨기지 않습니다.
+- 내장 dsh-web-mobile 3.3.5와 기본 활성화, 사용자 비활성화 및 안전 모드 의도, Android 11+ / arm64, Mod 패키지명과 서명을 유지합니다. versionCode 369.
+- 통합 후보 c243b7a0는 dry-run 43823137009에서 모든 소프트웨어 검사와 서명 검사를 통과했습니다. 정식 릴리스 CI는 build369 최종 커밋을 다시 검증합니다. 이번 버전은 기기 인수 검증 전이며 build368 기록을 대신 사용하지 않습니다.

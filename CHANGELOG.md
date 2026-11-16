@@ -1,3 +1,14 @@
+## 0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1 / build369（capabilities / runtime / plugins 25 类 Kotlin 整域迁移；runtimeId 1d42f79d，覆盖升级一次整屏维护页）
+
+- 能力层（T6）：capabilities 的 6 个生产类整体迁移 Kotlin，保留 FQCN、能力清单、权限与动作证据语义；`c5f7052d` / `7b7bb5b7` 与集成描述符 `0bf3eec9` 已进入 main，独立 dry-run 43817269010 成功。
+- 运行时组装（T5）：先冻结 argv / env / BINDS 黄金结果，再将命令与挂载组装的 8 个生产类整体迁移 Kotlin；原 Java 与新 Kotlin 实现对照回执保留。不改变停止算法、PTY、插件 writer、数据格式或授权边界。
+- 插件管理：plugins 的 11 个生产类整体迁移 Kotlin，保留现有事务、查询生命周期、自动默认禁用、用户主动禁用与安全模式意图；不新增原生审批门槛。合计 25 类迁移为工程调整，不承诺性能提升；A8-P3 真实多模块首切尚未合入本版。
+- 集成修复：`tools/asset-deployment.json` 的动态读取器改指 `ProotBootstrap.kt`，运行库、命令环境及发布验收的受管源路径同步；生成器字节变更后紧接重算 descriptor，修复旧源引用与生成器摘要不一致。集成修复 `e2796a3e`、描述符刷新 `c243b7a0`。
+- 覆盖升级影响：runtimeId 为 **1d42f79d5fea6bad5caaa2409822aa5949691c89e6e230b95011ae35db8a5757**（517 个启动输入、205 个资产输入；启动源码含 414 Java + 43 Kotlin）。baseVersion 10、内置 DSH 0.2.2-rc.1、数据格式不变。**368→369 覆盖升级后首次启动预期进入一次整屏运行环境维护页**，个人数据保留；尚未完成本版真机覆盖验收。
+- 默认值与固定输入：Rust 发布装配继续默认 prebuilt、运行时后端默认启用；同 run 来源绑定、类型化不可用原因与已选 Rust 后失败不重放保持。dsh-web-mobile 3.3.5 及默认启用、SAF、恢复语义与 UNKNOWN 保守处理保持。固定输入沿用 fixed-inputs-20261113 / dsha-a-su-fixed-inputs-20261113-build364.zip（716,787,167 B；SHA-256 2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad）。
+- 身份与验证：版本码提升为 369，基于已发布 build368；DSHA 修订 0.2.1-rc.5、包名 io.github.sunsetrne.dsha、Mod 自有签名、Android 11+ / arm64 与单一 Standard 保持。集成候选 c243b7a0 的完整 dry-run [43823137009](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43823137009) 已通过格式、契约、完整单测、Lint、正式签名及 .debug / .dev 测试包检查；正式 release CI 按最终版本提交重新核验并绑定产物。build368 的设备证据不作为 build369 验收，不宣称广泛 ROM/管理器或 16 KB 页内核兼容。
+- 十语种更新说明见 [build369 更新说明](docs/releases/build369-changes.zh.md)；本地验证与发布清单见 [build369 发布准备回执](docs/releases/build369-preparation-20261116.md)。
+
 ## 0.2.1-rc.5-20261116.0500-dsh0.2.2-rc.1 / build368（Rust prebuilt 装配默认 + Rust 运行时后端默认启用；runtimeId 52624be1，覆盖升级一次整屏维护页）
 
 - Rust 发布装配（默认 prebuilt）：`release-production` 的 `rust_native_mode` 默认从 `off` 改为 `prebuilt`，把同一 run 构建并核验的 arm64 `libdsha_rs.so` 与 `rust-native-receipt.json` 随正式包装配；`off` 仍保留为不随包选项。同 run 产物绑定、提交 / run 回执核对、签名后逐成员重核照旧，绑定失败即中止；正式签名仍由 release 工作流用 Mod 自有证书执行。bind 步骤不再硬拒 prebuilt 非 dry-run 发布，旧 `RUST_PREBUILT_REQUIRES_DRY_RUN_DEBUG_CANDIDATE` 护栏与对应 workflow 契约断言同步改写。

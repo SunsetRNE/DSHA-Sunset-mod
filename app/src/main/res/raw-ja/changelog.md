@@ -1,11 +1,8 @@
-# DSHA 0.2.1-rc.5-20261116.0500-dsh0.2.2-rc.1 / build368
+# DSHA 0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1 / build369
 
-- Rust リリース組み立て（既定 prebuilt）：release-production の rust_native_mode は既定で prebuilt になり、同一 run でビルド・検証した arm64 の libdsha_rs.so と rust-native-receipt.json を正式パッケージに同梱します。off はライブラリを同梱しない選択肢として残ります。同一 run の成果物バインド、commit/run 回執の照合、署名後のメンバー単位再検証は従来どおりで、不一致なら中止します。正式署名は引き続き release ワークフローが Mod 証明書で行います。
-- Rust ランタイムバックエンドを既定で有効化：DshaApp.onCreate() が言語・設定の初期化後に RustBackends を明示的に有効化し、ライブラリ同梱時は digest、archive、verify_plan が既定でネイティブ経路を使います。プロセス内フィールドの既定は false のままで、通常の JVM 単体テストはネイティブ読み込みの影響を受けません。setEnabled(false) で JVM に一括復帰します。.so 非同梱、読み込み失敗、ABI 不一致は型付き理由で JVM に留まり、verify_plan が Rust を選んだ後の内部エラーや実装間の不一致は fail-closed を維持し、JVM の結果で上書きしません。
-- Android Rust プローブの適応：RustNativeInstrumentation は起動後の既定値（APK に受領書がある場合は有効）を先に検証し、その後いったんスイッチを無効化して従来のネイティブ差分・失敗後片付けプローブを実行し、finally で初期状態を復元して復元成功を検証します。BACKENDS_NOT_DEFAULT_ON と BACKENDS_RESTORE_FAILED を追加し、受領書のない .so 非同梱ビルドでは既定値を記録するだけで誤報しません。
-- パイプライン修正：dry-run/publish の単一バリアント向けテストパッケージ証跡ダウンロード配置を修正し（bf491c77）、test_packages=debug でも証跡ディレクトリの結合が失敗しないようにしました。androidTest の refreshPowerMode(Context) 呼び出しを補完し（872d48ac）、prebuilt debug ビルドでの androidTest コンパイルを回復しました。
-- 上書きアップデートの影響：runtimeId は **52624be1ad386017c68c2fc986c0e834eaeec5364e9539bd0f3aa8dc74e1daba** に更新（517 起動入力、205 アセット入力、439 Java + 18 Kotlin）。DshaApp と Rust バックエンド／ブリッジが管理対象起動入力に入るためです。baseVersion 10、dataWrite dsh-0.2.2-rc.1 は不変。**367→368 の上書き後、初回起動で全画面の実行環境メンテナンスページを一度表示**し、個人データは保持されます。バージョン番号の引き上げ自体は runtimeId を変えません。
-- ビルド入力と互換範囲：fixed-inputs-20261113 と dsha-a-su-fixed-inputs-20261113-build364.zip（716,787,167 B、SHA-256 2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad）を継続使用します。同梱 dsh-web-mobile 3.3.5、自動既定無効化の意味、SAF「アプリ間ファイルアクセス」、A8-P1 基盤、APK アップデート（M17）、組み込みプラグイン有効化（T2）、S1a/S1b、既存の UNKNOWN 保守的扱いは不変です。contract 境界、データ形式、復元意味、fail-closed の復元計画は緩めません。
-- バージョンと範囲：バージョンコードを 368 に引き上げ、公開済み build367（tag dsha-a-su-build367-20261115-230955 @ f3f8fc03）を基にしています。DSHA リビジョンは 0.2.1-rc.5 のまま、パッケージ io.github.sunsetrne.dsha、Mod 証明書、単一 Standard、署名方式は不変です。本候補は未公開で、ユーザー承認後の Android release ワークフローにより、.debug / .dev 共存テストパッケージを伴ってビルドする計画です。
-- 検証範囲と制限：build368 以前の main（bf491c77）における prebuilt dry-run 43804700097 は全緑（debug/androidTest 組み立て、テストパッケージ署名、Dry-run release plan を含む）ですが、この履歴結果はパイプラインを証明するだけで build368 の完全なゲートではありません。**build368 の全 Gradle テスト、Lint、APK／テストパッケージ、正式署名は本版の release ワークフローでの実行待ちです。実機受け入れは 2 台目の端末で .debug / .dev テストパッケージと ADB ログにより行い、本機には公式パッケージをインストールしません。** メンテナンスページ／READY、Rust ネイティブ読み込みとフォールバック、バックアップ／復元、両画面の機密画面は実機確認待ちで、広範な ROM／マネージャー互換性は主張しません。
-- 十言語の更新説明：[build368 更新説明](build368-changes.ja.md) を参照してください。
+- 領域単位の Kotlin 移行：capabilities 6 クラス、runtime のコマンド・マウント組み立て 8 クラス、plugins 管理 11 クラス、計 25 クラスを Java から移行しました。権限・起動・プラグイントランザクションの意味は維持します。性能向上は未主張で、A8-P3 のマルチモジュール化は本版に含みません。
+- 管理対象の動的リーダーを ProotBootstrap.kt に変更し、ソースパスと契約テストを同期して descriptor を更新しました。旧 Java パスや古い生成器のダイジェストを使いません。
+- runtimeId は 1d42f79d5fea6bad5caaa2409822aa5949691c89e6e230b95011ae35db8a5757。baseVersion 10、DSH 0.2.2-rc.1、データ形式は同じです。368→369 の上書き更新後、初回起動で全画面の実行環境メンテナンスが一度表示される想定です。個人データは保持します。
+- Rust の組み込み方式は既定で prebuilt、実行時バックエンドは有効のままです。同一 run の出所確認を維持します。ライブラリを利用できない場合は型付きの理由で JVM を選び、Rust 選択後の失敗は再実行せず、実装間の不一致も JVM の結果で隠しません。
+- 内蔵 dsh-web-mobile 3.3.5 と既定の有効化、ユーザーによる無効化とセーフモードの意図、Android 11+ / arm64、Mod のパッケージ名と署名を維持します。versionCode 369。
+- 統合候補 c243b7a0 は dry-run 43823137009 ですべてのソフトウェア検査と署名検査を通過しました。正式リリース CI は build369 の最終コミットを再検証します。本版の実機受け入れ確認は未実施で、build368 の記録では代用しません。

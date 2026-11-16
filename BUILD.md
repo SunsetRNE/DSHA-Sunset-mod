@@ -1,7 +1,7 @@
 # DSHA 现行构建说明
 
-> 当前候选身份（build368）：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261116.0500-dsh0.2.2-rc.1` / versionCode 368。
-> build367 已发布（tag `dsha-a-su-build367-20261115-230955`）；build368 完整 CI 与设备验收待完成，本页步骤不构成已通过回执。
+> 当前候选身份（build369）：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1` / versionCode 369。
+> build368 已发布（tag `dsha-a-su-build368-20261116-052738`）；build369 集成候选 c243b7a0 的完整 dry-run 已通过，最终提交由发布 CI 复核；本版设备验收待完成。
 > 单一 Standard 变体：minSdk 30（Android 11+）、arm64-v8a、系统 WebView。原 `low`/GeckoView 兼容线与独立上岛包已删除。
 > 签名：Mod 自有新建证书（SHA-256 `a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d`），不再使用原版 E7E3。
 > 固定构建输入：公开仓库预发布 Release 资产，SHA-256 锁定；流程见 [docs/fixed-build-inputs.md](docs/fixed-build-inputs.md)。
@@ -25,7 +25,7 @@
 | Python / Node | 生成器 Python 3.9+，CI 锁定版本见 `ci/toolchain.lock.json`；Node 24 |
 | Standard | minSdk 30，系统 WebView，arm64-v8a（唯一变体） |
 
-build368 的 517 项受管启动输入中含 439 个 Java + 18 个 Kotlin 文件（不是全仓生产源码总量）。Kotlin 使用 AGP 内置支持并固定 KGP 2.2.10，不应用 `org.jetbrains.kotlin.android`；旧“无 Kotlin”说法属于 Java-only 时期，不能作为当前构建要求。编译与格式门禁见 [Kotlin 工具链](docs/kotlin-toolchain.md)。
+build369 的 517 项受管启动输入中含 414 个 Java + 43 个 Kotlin 文件（不是全仓生产源码总量）。Kotlin 使用 AGP 内置支持并固定 KGP 2.2.10，不应用 `org.jetbrains.kotlin.android`；旧“无 Kotlin”说法属于 Java-only 时期，不能作为当前构建要求。编译与格式门禁见 [Kotlin 工具链](docs/kotlin-toolchain.md)。
 
 当前只有一条 Standard 构建线；测试变体通过 `-Pdsha.sunsetTest=true`（`.test`）、`-Pdsha.debugPackage=true`（`.debug`，debuggable 的 debug 构建）或 `-Pdsha.devPackage=true`（`.dev`，release 构建）改包名/版本名，与正式包并存、数据隔离；三个变体互斥，且必须配合 `-Pdsha.unsignedPackage=true` 由测试证书签名。原 `dsh.android.client` 与更早的 `com.dsh.client` 均为独立包名，本 Mod 与之互不覆盖。
 
@@ -107,7 +107,7 @@ Rebirth 身份只能经 `-Pdsha.rebirthCandidate=true` 进入；与 `.test/.debu
 ./gradlew :app:assembleStandardRelease -Pdsha.rebirthCandidate=true -Pdsha.unsignedPackage=true
 ```
 
-产物标 `UNSIGNED_NOT_FOR_INSTALLATION`，**不得称可安装**；证书固定后 `verifyPublishCertificate` 还会拒绝复用 Mod/upstream 证书、applicationId 不符或指纹不符的签名候选。versionCode / versionName 仍以 `app/build.gradle` 为构建基准，三份身份文件记录同一值并在配置阶段交叉核对（当前 368 / `0.2.1-rc.5-20261116.0500-dsh0.2.2-rc.1`）；Rebirth 将来同线递增时须同时更新 build.gradle、身份文件与 `generate-changelog.py` / `release_names.py` / `sign-release-apks.py` 的版本解析，属 G1 版本源迁移。
+产物标 `UNSIGNED_NOT_FOR_INSTALLATION`，**不得称可安装**；证书固定后 `verifyPublishCertificate` 还会拒绝复用 Mod/upstream 证书、applicationId 不符或指纹不符的签名候选。versionCode / versionName 仍以 `app/build.gradle` 为构建基准，三份身份文件记录同一值并在配置阶段交叉核对（当前 369 / `0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1`）；Rebirth 将来同线递增时须同时更新 build.gradle、身份文件与 `generate-changelog.py` / `release_names.py` / `sign-release-apks.py` 的版本解析，属 G1 版本源迁移。
 
 签名身份绝不混用：Mod 证书只签 mod 身份，E7E3 只签 upstream 身份，Rebirth 候选测试证书只签 rebirth 身份。E7E3 私钥只在上游维护者私有仓库的 Secrets 中，本仓库与本机不保存，也不用 upstream 身份打正式包。
 
