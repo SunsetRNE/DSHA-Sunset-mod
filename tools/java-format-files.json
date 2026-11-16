@@ -1203,6 +1203,7 @@
     "app/src/test/java/com/deepseekharness/app/runtime/Rc1CachedStartupFixture.java",
     "app/src/test/java/com/deepseekharness/app/runtime/Rc1MigrationCacheTest.java",
     "app/src/test/java/com/deepseekharness/app/runtime/RuntimeApkAssetsTest.java",
+    "app/src/test/java/com/deepseekharness/app/runtime/RuntimeAssemblyStorageAccessShadow.java",
     "app/src/test/java/com/deepseekharness/app/runtime/RuntimeAssetFilesTest.java",
     "app/src/test/java/com/deepseekharness/app/runtime/RuntimeAssetStampAndroidTest.java",
     "app/src/test/java/com/deepseekharness/app/runtime/RuntimeAssetStampDifferenceTest.java",

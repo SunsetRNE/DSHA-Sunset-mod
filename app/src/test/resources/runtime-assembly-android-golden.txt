@@ -1,0 +1,107 @@
+# DSHA runtime assembly golden v1
+CASE proroot-argv-static
+ARGV 0 $ROOT/native/libproroot.so
+ARGV 1 --static-loader
+ARGV 2 -r
+ARGV 3 $ROOT/data/files/linux/ubuntu
+ARGV 4 -0
+ARGV 5 -w
+ARGV 6 /root
+ARGV 7 -b
+ARGV 8 $ROOT/cache/shm:/dev/shm
+ARGV 9 --link2symlink
+END
+CASE proroot-argv-dynamic-datadomain
+ARGV 0 $ROOT/native/libproroot.so
+ARGV 1 --no-static-loader
+ARGV 2 -r
+ARGV 3 $ROOT/data/files/linux/ubuntu
+ARGV 4 -0
+ARGV 5 -w
+ARGV 6 /root
+ARGV 7 -b
+ARGV 8 $ROOT/cache/shm:/dev/shm
+ARGV 9 --link2symlink
+ARGV 10 -b
+ARGV 11 $ROOT/data/files/rc1-migration-state:/run/dsha-rc1-state
+END
+CASE proroot-argv-space-quote
+ARGV 0 $ROOT/native/libproroot.so
+ARGV 1 --static-loader
+ARGV 2 -r
+ARGV 3 $ROOT/weird dir 'single' "double"/linux/ubuntu
+ARGV 4 -0
+ARGV 5 -w
+ARGV 6 /root
+ARGV 7 -b
+ARGV 8 $ROOT/cache/shm:/dev/shm
+ARGV 9 --link2symlink
+END
+CASE proot-argv-datadomain
+ARGV 0 $ROOT/native/libproot.so
+ARGV 1 -L
+ARGV 2 --kill-on-exit
+ARGV 3 -0
+ARGV 4 --rootfs=$ROOT/data/files/linux/ubuntu
+ARGV 5 --cwd=/root
+ARGV 6 -b
+ARGV 7 $ROOT/data/files/linux/ubuntu:$ROOT/data/files/linux/ubuntu
+ARGV 8 -b
+ARGV 9 $ROOT/data/files/rc1-migration-state:/run/dsha-rc1-state
+META migrationDirectory=true
+END
+CASE proot-argv-space-quote-datadomain
+ARGV 0 $ROOT/native/libproot.so
+ARGV 1 --link2symlink
+ARGV 2 -b
+ARGV 3 $ROOT/weird dir 'single' "double"/files/linux/ubuntu/.l2s:$ROOT/weird dir 'single' "double"/files/linux/ubuntu/.l2s
+ARGV 4 -L
+ARGV 5 --kill-on-exit
+ARGV 6 -0
+ARGV 7 --rootfs=$ROOT/weird dir 'single' "double"/files/linux/ubuntu
+ARGV 8 --cwd=/root
+ARGV 9 -b
+ARGV 10 $ROOT/weird dir 'single' "double"/files/linux/ubuntu:$ROOT/weird dir 'single' "double"/files/linux/ubuntu
+ARGV 11 -b
+ARGV 12 $ROOT/weird dir 'single' "double"/files/rc1-migration-state:/run/dsha-rc1-state
+END
+CASE launch-builder-stdin-normal
+META stdin=file:/dev/null
+END
+CASE launch-builder-stdin-isolated
+META stdin=pipe
+END
+CASE launch-builder-stdin-piped
+META stdin=pipe
+END
+CASE runtime-selection-proroot-available
+META selected=proroot
+META records=[]
+END
+CASE runtime-selection-fallback-proot
+META selected=proot
+META records=[RUNTIME_SELECTION_FALLBACK]
+END
+CASE runtime-selection-force-proot
+META selected=proot
+META records=[]
+END
+CASE runtime-selection-proroot-disabled
+META selected=proot
+META records=[]
+END
+CASE runtime-hardlink-probe
+META supported=false
+META records=[HARDLINK_PROBE_RETAINED]
+END
+CASE launch-spec-invalid-record-without-isolation
+META build.class=IllegalArgumentException
+META build.message=LAUNCH_RECORD_REQUIRES_ISOLATION
+META build.cause.class=<null>
+META build.cause.message=<null>
+END
+CASE execution-launch-datadomain
+META runtime=proot
+META dataDomain=$ROOT/data/files
+META hardlinks=false
+END

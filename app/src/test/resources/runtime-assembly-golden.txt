@@ -1,0 +1,293 @@
+# DSHA runtime assembly golden v1
+CASE binds-storage-off
+BINDS 0 /dev|/dev
+BINDS 1 /dev/urandom|/dev/random
+BINDS 2 /proc|/proc
+BINDS 3 /sys|/sys
+BINDS 4 /system|/system
+BINDS 5 /apex|/apex
+BINDS 6 /proc/self/fd|/dev/fd
+END
+CASE binds-storage-on
+BINDS 0 /dev|/dev
+BINDS 1 /dev/urandom|/dev/random
+BINDS 2 /proc|/proc
+BINDS 3 /sys|/sys
+BINDS 4 /system|/system
+BINDS 5 /apex|/apex
+BINDS 6 /proc/self/fd|/dev/fd
+BINDS 7 /storage/emulated/0|/sdcard
+BINDS 8 /storage/emulated/0|/storage/emulated/0
+END
+CASE proot-argv-hardlinks-on
+ARGV 0 $ROOT/native/libproot.so
+ARGV 1 -L
+ARGV 2 --kill-on-exit
+ARGV 3 -0
+ARGV 4 --rootfs=$ROOT/data/files/linux/ubuntu
+ARGV 5 --cwd=/root
+ARGV 6 -b
+ARGV 7 $ROOT/data/files/linux/ubuntu:$ROOT/data/files/linux/ubuntu
+END
+CASE proot-argv-hardlinks-off
+ARGV 0 $ROOT/native/libproot.so
+ARGV 1 --link2symlink
+ARGV 2 -b
+ARGV 3 $ROOT/data/files/linux/ubuntu/.l2s:$ROOT/data/files/linux/ubuntu/.l2s
+ARGV 4 -L
+ARGV 5 --kill-on-exit
+ARGV 6 -0
+ARGV 7 --rootfs=$ROOT/data/files/linux/ubuntu
+ARGV 8 --cwd=/root
+ARGV 9 -b
+ARGV 10 $ROOT/data/files/linux/ubuntu:$ROOT/data/files/linux/ubuntu
+END
+CASE proot-argv-space-quote
+ARGV 0 $ROOT/native/libproot.so
+ARGV 1 --link2symlink
+ARGV 2 -b
+ARGV 3 $ROOT/weird dir 'single' "double"/linux/ubuntu/.l2s:$ROOT/weird dir 'single' "double"/linux/ubuntu/.l2s
+ARGV 4 -L
+ARGV 5 --kill-on-exit
+ARGV 6 -0
+ARGV 7 --rootfs=$ROOT/weird dir 'single' "double"/linux/ubuntu
+ARGV 8 --cwd=/root
+ARGV 9 -b
+ARGV 10 $ROOT/weird dir 'single' "double"/linux/ubuntu:$ROOT/weird dir 'single' "double"/linux/ubuntu
+END
+CASE proot-env-seccomp-on
+ENV LD_LIBRARY_PATH=$ROOT/data/files/linux/lib:$ROOT/native
+ENV PROOT_LOADER=$ROOT/native/libprootloader.so
+ENV PROOT_LOADER_32=$ROOT/native/libprootloader32.so
+ENV PROOT_NO_SECCOMP=1
+ENV PROOT_TMP_DIR=$ROOT/data/files/linux/tmp
+END
+CASE proot-env-seccomp-off
+ENV LD_LIBRARY_PATH=$ROOT/data/files/linux/lib:$ROOT/native
+ENV PROOT_LOADER=$ROOT/native/libprootloader.so
+ENV PROOT_NO_SECCOMP=1
+ENV PROOT_TMP_DIR=$ROOT/data/files/linux/tmp
+END
+CASE proot-env-missing-talloc
+META applyEnv.class=IOException
+META applyEnv.message=PROOT_DEPENDENCIES_MISSING
+META applyEnv.cause.class=<null>
+META applyEnv.cause.message=<null>
+END
+CASE proot-env-missing-proot
+META applyEnv.class=IOException
+META applyEnv.message=PROOT_EXECUTABLE_MISSING
+META applyEnv.cause.class=<null>
+META applyEnv.cause.message=<null>
+END
+CASE proot-env-missing-loader
+META applyEnv.class=IOException
+META applyEnv.message=PROOT_LOADER_MISSING
+META applyEnv.cause.class=<null>
+META applyEnv.cause.message=<null>
+END
+CASE proroot-env-static
+ENV PROROOT_LIB_PATH=$ROOT/native/libproroot-runtime.so
+ENV PROROOT_LINKER_PATH=$ROOT/native/libdsha-proroot-linker.so
+ENV PROROOT_STUB_LOADER=$ROOT/native/libproroot-stub-loader.so
+ENV PROROOT_TMP_DIR=$ROOT/data/files/linux/tmp
+END
+CASE proroot-env-dynamic
+ENV PROROOT_LIB_PATH=$ROOT/native/libproroot-runtime.so
+ENV PROROOT_LINKER_PATH=$ROOT/native/libdsha-proroot-linker.so
+ENV PROROOT_TMP_DIR=$ROOT/data/files/linux/tmp
+END
+CASE proroot-prepare-missing-lib
+META prepare.class=IllegalStateException
+META namesMissingLib=true
+END
+CASE proroot-env-missing-proxy
+META applyEnv.class=IOException
+META applyEnv.message=PROROOT_COMPAT_PROXY_MISSING
+META applyEnv.cause.class=<null>
+META applyEnv.cause.message=<null>
+END
+CASE proroot-env-missing-entry
+META applyEnv.class=IOException
+META applyEnv.message=PROROOT_COMPAT_ENTRY_MISSING
+META applyEnv.cause.class=<null>
+META applyEnv.cause.message=<null>
+END
+CASE launch-spec-state
+META runtime=fixture
+META hardlinks=true
+META isolated=true
+META coldTrace=true
+META pipedInput=true
+META dataDomain=$ROOT/domain
+META record=<null>
+META coldMode=PROOT_COMPAT
+META environmentKeys=[DEEPSEEK_API_KEY]
+META binds=[/private/payload:/root/trial]
+META toString=LaunchSpec[runtime=fixture, isolated=true, pipedInput=true, environmentKeys=[DEEPSEEK_API_KEY]]
+END
+CASE launch-spec-invalid-runtime-missing
+META build.class=IllegalArgumentException
+META build.message=LAUNCH_RUNTIME_MISSING
+META build.cause.class=<null>
+META build.cause.message=<null>
+END
+CASE launch-spec-invalid-bind-guest-relative
+META build.class=IllegalArgumentException
+META build.message=LAUNCH_BIND_FORMAT
+META build.cause.class=<null>
+META build.cause.message=<null>
+END
+CASE launch-spec-invalid-bind-dotdot
+META build.class=IllegalArgumentException
+META build.message=LAUNCH_BIND_FORMAT
+META build.cause.class=<null>
+META build.cause.message=<null>
+END
+CASE launch-spec-invalid-bind-trailing-dotdot
+META build.class=IllegalArgumentException
+META build.message=LAUNCH_BIND_FORMAT
+META build.cause.class=<null>
+META build.cause.message=<null>
+END
+CASE launch-spec-invalid-bind-host-nul
+META build.class=IllegalArgumentException
+META build.message=LAUNCH_BIND_FORMAT
+META build.cause.class=<null>
+META build.cause.message=<null>
+END
+CASE launch-spec-invalid-environment-key
+META build.class=IllegalArgumentException
+META build.message=LAUNCH_ENVIRONMENT_FORMAT
+META build.cause.class=<null>
+META build.cause.message=<null>
+END
+CASE launch-spec-invalid-environment-value
+META build.class=IllegalArgumentException
+META build.message=LAUNCH_ENVIRONMENT_FORMAT
+META build.cause.class=<null>
+META build.cause.message=<null>
+END
+CASE launch-spec-binds-immutable
+META clear.class=UnsupportedOperationException
+META clear.message=<null>
+META clear.cause.class=<null>
+META clear.cause.message=<null>
+END
+CASE launch-spec-environment-immutable
+META clear.class=UnsupportedOperationException
+META clear.message=<null>
+META clear.cause.class=<null>
+META clear.cause.message=<null>
+END
+CASE launch-builder-argv
+ARGV 0 fixture-runtime
+ARGV 1 $ROOT/data/files/linux/ubuntu
+ARGV 2 -b
+ARGV 3 /private/payload one:/root/trial 'two'
+ARGV 4 /bin/bash
+ARGV 5 -c
+ARGV 6 printf '%s' "a b"; echo done
+META redirectErrorStream=true
+META stdin=pipe
+END
+CASE launch-builder-environment
+ENV DEBIAN_FRONTEND=noninteractive
+ENV DEEPSEEK_API_KEY=secret value with 'quote'
+ENV DSHA_MANAGED_PACKAGE_PROOFS_SHA256=<absent>
+ENV HOME=/custom-home
+ENV NARB_DISABLE_NATIVE_CACHE=0
+ENV PATH=/root/dsh-bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV PROOT_NO_SECCOMP=caller
+ENV TMPDIR=/tmp
+END
+CASE launch-builder-proof-absent
+META proofPresent=false
+END
+CASE launch-builder-proot-l2s
+ARGV 0 $ROOT/native/libproot.so
+ARGV 1 --link2symlink
+ARGV 2 -b
+ARGV 3 $ROOT/data/files/linux/ubuntu/.l2s:$ROOT/data/files/linux/ubuntu/.l2s
+ARGV 4 -L
+ARGV 5 --kill-on-exit
+ARGV 6 -0
+ARGV 7 --rootfs=$ROOT/data/files/linux/ubuntu
+ARGV 8 --cwd=/root
+ARGV 9 -b
+ARGV 10 $ROOT/data/files/linux/ubuntu:$ROOT/data/files/linux/ubuntu
+ARGV 11 /bin/bash
+ARGV 12 -c
+ARGV 13 true
+ENV DEBIAN_FRONTEND=noninteractive
+ENV HOME=/root
+ENV KEY_A=value a
+ENV LD_LIBRARY_PATH=$ROOT/data/files/linux/lib:$ROOT/native
+ENV PATH=/root/dsh-bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV PROOT_L2S_DIR=$ROOT/data/files/linux/ubuntu/.l2s
+ENV PROOT_LOADER=$ROOT/native/libprootloader.so
+ENV PROOT_LOADER_32=<absent>
+ENV PROOT_NO_SECCOMP=1
+ENV PROOT_TMP_DIR=$ROOT/data/files/linux/tmp
+ENV TMPDIR=/tmp
+META l2sDirectory=true
+END
+CASE start-order-verify-before-process
+META start.class=IOException
+META start.message=GOLDEN_VERIFY
+META start.cause.class=<null>
+META start.cause.message=<null>
+META checks=[verify]
+META phases=[launcher-prepare]
+END
+CASE start-order-without-timing-still-checks
+META checks=[verify]
+META error.class=IOException
+END
+CASE runtime-mode-keys
+META prootNoSeccomp.key=proot-no-seccomp
+META prootNoSeccomp.seccompOff=true
+META prootSeccomp.key=proot-seccomp
+META prootSeccomp.seccompOff=false
+META fake.key=fixture
+META fake.seccompOff=false
+END
+CASE user-data-bindings-legacy
+ARGV 0 -b
+ARGV 1 $ROOT/data/files/rc1-migration-state:/run/dsha-rc1-state
+META migrationDirectory=true
+END
+CASE user-data-bindings-files-not-directory
+META append.class=IllegalStateException
+META append.message=DATA_LOCATION_UNREADABLE
+META append.cause.class=IOException
+META append.cause.message=DATA_DOMAIN_FILES_TYPE
+META argv=[]
+END
+CASE user-data-bindings-rootfs-mismatch
+META append.class=IllegalStateException
+META append.message=DATA_LOCATION_UNREADABLE
+META append.cause.class=IOException
+META append.cause.message=DATA_DOMAIN_ROOTFS_MISMATCH
+META argv=[]
+END
+CASE user-data-bindings-migration-state-file
+META append.class=IllegalStateException
+META append.message=DATA_LOCATION_UNREADABLE
+META append.cause.class=IOException
+META append.cause.message=MIGRATION_STATE_UNAVAILABLE
+META argv=[]
+END
+CASE user-data-bindings-stable
+ARGV 0 -b
+ARGV 1 $ROOT/data/files/user-data-v5/dsh:/root/.dsh
+ARGV 2 -b
+ARGV 3 $ROOT/data/files/rc1-migration-state:/run/dsha-rc1-state
+END
+CASE user-data-bindings-stable-root-missing
+META append.class=IllegalStateException
+META append.message=DATA_LOCATION_UNREADABLE
+META append.cause.class=IOException
+META append.cause.message=DATA_LOCATION_UNREADABLE
+META argv=[]
+END
