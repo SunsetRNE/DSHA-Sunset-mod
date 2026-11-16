@@ -2,7 +2,9 @@
 
 这些 applied Groovy 脚本直接复用根工程已经加载的 AGP 9.1.1 与 KGP 2.2.10。
 本目录不是 Gradle 产品模块，也不是 included build；不另建插件构建、不解析另一套 KGP，
-不引入空产品模块。当前实际应用者是 `:app`。
+不引入空产品模块。当前实际应用者：`:app`（Android application）与 `:core:policy`
+（首个真实纯 JVM Kotlin 模块）；显式 include 嵌套模块路径隐式产生的分组 `:core`
+由严格空形态判据排除，不是产品模块。
 
 `android.gradle` 共享 Java/Kotlin 17、desugar 2.0.4、JUnit 4.13.2、Robolectric 4.15.1
 和 `includeAndroidResources=true`。`test.gradle` 共享测试资产的模块绝对根、
@@ -52,6 +54,20 @@ apply from: rootProject.file('build-logic/kotlin-jvm-library.gradle')
 上述接口已有可执行脚本；没有把“文档示例”或缓存存在写成离线编译已通过。
 Kotlin 目标由 `kotlin-target.gradle` 从已经应用的 Kotlin 扩展 classloader 获取枚举并设为
 `JVM_17`；applied script 自身无需能静态解析插件的 Kotlin 类型。
+
+## 首个真实模块、隐式分组与生产依赖白名单
+
+`:core:policy`（`core/policy`，布局 kind `jvm`）是首个真实纯 JVM Kotlin 模块：
+`NetworkHealthPolicy` 与两个测试整体迁入，FQCN、逻辑源键和生产调用形态不变。
+显式 `include ':core:policy'` 会在工程树里隐式产生分组 `:core`；
+`verifyDshaBuildConventions` 只把同时满足“已声明模块路径的严格前缀”且没有构建脚本、
+`src/` 源码树、`sourceSets`/Android 扩展、编译或 Test 任务、依赖、约定的分组排除出
+产品集合，其余情形按产品模块审计并拒绝（静态契约与文本负控见
+[test-build-conventions](../tools/test-build-conventions.py)）。
+生产工程依赖边由显式白名单证明（当前仅 `:app->:core:policy`）；未声明边、缺失边都要
+失败，AGP 在可解析测试 classpath 上注入的模块自引用边不当作生产依赖声明。
+纯 JVM 模块的生产源另由 [test-core-boundaries](../tools/test-core-boundaries.py)
+禁止 Android import 与反射；模块自己的构建脚本不声明外部生产依赖。
 
 ## 测试资产和夹具的归属
 
