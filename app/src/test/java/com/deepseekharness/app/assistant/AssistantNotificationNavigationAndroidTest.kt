@@ -73,7 +73,9 @@ class AssistantNotificationNavigationAndroidTest {
 
     private class Host(val binding: AssistantBinding) : AssistantBackend {
         @Volatile var turn = "17"
+        @Volatile var running = true
         val calls = Collections.synchronizedList(mutableListOf<String>())
+        val sentTurns = Collections.synchronizedList(mutableListOf<String>())
 
         override fun current() = true
 
@@ -82,16 +84,18 @@ class AssistantNotificationNavigationAndroidTest {
             assertEquals(binding.hostInstanceId(), args.optString("hostInstanceId"))
             assertEquals(binding.sessionId(), args.optString("sessionId"))
             assertTrue(
-                "导航不得创建、发送或改选会话：$method",
-                method == "sessions.status" || method == "sessions.cancel",
+                "只允许夹具声明的后端动作：$method",
+                method in listOf("sessions.status", "sessions.cancel", "sessions.send"),
             )
+            if (method == "sessions.send") sentTurns.add(args.optString("turnId"))
             return JSONObject()
                 .put("hostInstanceId", binding.hostInstanceId())
                 .put("sessionId", binding.sessionId())
                 .put("taskId", binding.sessionId())
                 .put("turnId", turn)
-                .put("turnActive", true)
-                .put("running", true)
+                .put("turnActive", running)
+                .put("running", running)
+                .put("accepted", true)
         }
 
         override fun returnConversation(binding: AssistantBinding) {}
@@ -100,6 +104,7 @@ class AssistantNotificationNavigationAndroidTest {
     private lateinit var app: App
     private lateinit var service: ServiceController<AssistantService>
     private val activities = mutableListOf<ActivityController<AssistantActivity>>()
+    private val voices = mutableListOf<ActivityController<AssistantVoiceActivity>>()
 
     private fun address(session: String) = AssistantBinding("host", session, "connection", 4)
 
@@ -165,6 +170,7 @@ class AssistantNotificationNavigationAndroidTest {
 
     @After
     fun after() {
+        for (voice in voices) voice.pause().stop().destroy()
         for (activity in activities) activity.pause().stop().destroy()
         service.destroy()
         AssistantWindowOwner.from(app).current()?.detachFinishedTask()
@@ -334,6 +340,138 @@ class AssistantNotificationNavigationAndroidTest {
         assertFalse(selected.composing())
         assertSame(selected, AssistantWindowOwner.from(app).current())
         assertFalse(host.calls.contains("sessions.cancel"))
+    }
+
+    @Test
+    fun oldTurnPauseCannotCollapseOrFinishTheNewTurnsExpandedPanel() {
+        val host = Host(address("old-pause-new-panel"))
+        val selected = attach(host)
+        val previous = open(openIntent())
+        host.turn = "18"
+        assertTrue(selected.followVerifiedTask("18"))
+        drain(selected)
+        selected.expand()
+        var finished = false
+        selected.deferFinishUntilCollapsed { finished = true }
+        previous.pause()
+        idle()
+        assertTrue(selected.snapshot().expanded())
+        assertFalse(finished)
+        selected.collapse()
+        idle()
+        assertTrue(finished)
+    }
+
+    private fun queuedEditorActionCannotRetarget(continuation: Boolean) {
+        val host = Host(address("queued-editor-$continuation")).apply { running = false }
+        val selected = attach(host)
+        if (continuation) {
+            selected.pause("USER_PAUSED")
+            drain(selected)
+        }
+        val activity = open(openIntent())
+        val entered = java.util.concurrent.CountDownLatch(1)
+        val release = java.util.concurrent.CountDownLatch(1)
+        (field(selected, "worker") as ScheduledExecutorService).execute {
+            entered.countDown()
+            release.await(5, TimeUnit.SECONDS)
+        }
+        try {
+            assertTrue(entered.await(2, TimeUnit.SECONDS))
+            val button =
+                field(activity.get(), if (continuation) "resumeButton" else "sendButton") as Button
+            (field(activity.get(), "input") as EditText).setText("排队的原会话输入")
+            assertTrue(button.isEnabled)
+            assertTrue(button.performClick())
+            host.running = true
+            host.turn = "18"
+            assertTrue(selected.followVerifiedTask("18"))
+            release.countDown()
+            drain(selected)
+            assertTrue("旧编辑器排队动作不得投向新轮次", host.sentTurns.isEmpty())
+            assertEquals("18", selected.snapshot().turnId())
+        } finally {
+            release.countDown()
+        }
+    }
+
+    @Test
+    fun queuedOpenEditorSendCannotRetargetTheVerifiedNextTurn() {
+        queuedEditorActionCannotRetarget(false)
+    }
+
+    @Test
+    fun queuedOpenEditorContinuationCannotRetargetTheVerifiedNextTurn() {
+        queuedEditorActionCannotRetarget(true)
+    }
+
+    @Test
+    fun currentOpenEditorSendStillDispatchesOnceToItsExactTurn() {
+        val host = Host(address("current-editor-send")).apply { running = false }
+        val selected = attach(host)
+        val activity = open(openIntent())
+        (field(activity.get(), "input") as EditText).setText("当前会话输入")
+        val send = field(activity.get(), "sendButton") as Button
+        assertTrue(send.isEnabled)
+        assertTrue(send.performClick())
+        drain(selected)
+        assertEquals(listOf("17"), host.sentTurns.toList())
+    }
+
+    private fun openVoice(intent: Intent): ActivityController<AssistantVoiceActivity> {
+        val voice = Robolectric.buildActivity(AssistantVoiceActivity::class.java, intent)
+        voices.add(voice)
+        voice.get().setTheme(R.style.Theme_DeepseekHarness)
+        voice.setup().visible()
+        return voice
+    }
+
+    private fun voiceResult(text: String) =
+        android.os.Bundle().apply {
+            putStringArrayList(
+                android.speech.SpeechRecognizer.RESULTS_RECOGNITION,
+                arrayListOf(text),
+            )
+        }
+
+    @Test
+    fun voiceReceiverRejectsANotificationRetiredBeforeTheActivityStarts() {
+        val host = Host(address("late-voice-start"))
+        val selected = attach(host)
+        val old = AssistantNotificationNavigation.voiceIntent(app, openIntent())
+        host.turn = "18"
+        assertTrue(selected.followVerifiedTask("18"))
+        drain(selected)
+        val voice = openVoice(old)
+        assertTrue(voice.get().isFinishing)
+        assertNull(field(voice.get(), "session"))
+        assertNull(field(voice.get(), "recognizer"))
+        assertEquals(0, NoRuntime.restores)
+    }
+
+    @Test
+    fun lateVoiceResultCannotOverwriteTheVerifiedNextTurnsDraft() {
+        val host = Host(address("late-voice-result"))
+        val selected = attach(host)
+        val voice = openVoice(AssistantNotificationNavigation.voiceIntent(app, openIntent()))
+        host.turn = "18"
+        assertTrue(selected.followVerifiedTask("18"))
+        drain(selected)
+        selected.setDraft("后继草稿")
+        voice.get().onResults(voiceResult("旧轮识别结果"))
+        assertEquals("后继草稿", selected.snapshot().draft())
+        assertTrue(voice.get().isFinishing)
+        assertTrue(host.sentTurns.isEmpty())
+    }
+
+    @Test
+    fun currentVoiceResultStillAddsADraftWithoutSendingIt() {
+        val host = Host(address("current-voice-result"))
+        val selected = attach(host)
+        val voice = openVoice(AssistantNotificationNavigation.voiceIntent(app, openIntent()))
+        voice.get().onResults(voiceResult("当前识别草稿"))
+        assertEquals("当前识别草稿", selected.snapshot().draft())
+        assertTrue(host.sentTurns.isEmpty())
     }
 
     @Test

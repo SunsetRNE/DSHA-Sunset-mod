@@ -95,6 +95,14 @@ public final class AssistantService extends Service {
     service.window.setEditorVisible(visible);
   }
 
+  static boolean ownsNativeEditor(AssistantSessionController expected, Object editorToken) {
+    AssistantWindowOwner owner = AssistantWindowOwner.legacy();
+    if (expected == null || owner == null || !owner.isCurrent(expected)) return false;
+    AssistantService service = owner.service();
+    return service == null
+        || (service.controller == expected && service.nativeEditorToken == editorToken);
+  }
+
   /** 正文导航复用已发布通知的身份；不另造票据或选择后继任务。 */
   AssistantSessionController notificationTarget(String address) {
     AssistantSessionController current = controller;

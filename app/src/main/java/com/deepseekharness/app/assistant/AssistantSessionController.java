@@ -269,11 +269,25 @@ public final class AssistantSessionController implements AutoCloseable {
   }
 
   public boolean resume() {
+    return resumeInternal(false);
+  }
+
+  private boolean resumeInternal(boolean frozen) {
     return sendInternal(
         UiText.choose(
             "继续当前任务。操作手机前必须重新观察当前屏幕，再决定下一步；不要重放结果未知的操作。",
             "Continue the current task. Observe the current phone screen again before deciding the next action. Do not replay operations with unknown results."),
-        true);
+        true,
+        frozen);
+  }
+
+  synchronized boolean resumeFromNotification(
+      AssistantBinding expectedBinding, String expectedTurn) {
+    if (closed
+        || !owner.isCurrent(this)
+        || !binding.equals(expectedBinding)
+        || !state.turnId().equals(expectedTurn)) return false;
+    return resumeInternal(true);
   }
 
   public boolean send(String message) {

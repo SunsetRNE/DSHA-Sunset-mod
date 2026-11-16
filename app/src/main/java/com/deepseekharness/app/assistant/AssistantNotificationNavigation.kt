@@ -16,6 +16,16 @@ internal object AssistantNotificationNavigation {
         return intent
     }
 
+    @JvmStatic
+    fun voiceIntent(context: Context, origin: Intent): Intent {
+        val intent = Intent(context, AssistantVoiceActivity::class.java)
+        if (requested(origin)) {
+            intent.data = origin.data
+            intent.putExtra("bound", origin.getBooleanExtra("bound", false))
+        }
+        return intent
+    }
+
     @JvmStatic fun requested(intent: Intent): Boolean = intent.data != null
 
     @JvmStatic
@@ -25,4 +35,27 @@ internal object AssistantNotificationNavigation {
         val owner = AssistantWindowOwner.from(context)
         return owner.service()?.notificationTarget(address)
     }
+
+    @JvmStatic
+    fun send(
+        context: Context,
+        intent: Intent,
+        selected: AssistantSessionController,
+        message: String,
+    ): Boolean =
+        synchronized(selected) {
+            if (!requested(intent)) return@synchronized selected.send(message)
+            if (resolve(context, intent) !== selected) return@synchronized false
+            val snapshot = selected.snapshot()
+            selected.sendFromNotification(message, snapshot.binding(), snapshot.turnId())
+        }
+
+    @JvmStatic
+    fun resume(context: Context, intent: Intent, selected: AssistantSessionController): Boolean =
+        synchronized(selected) {
+            if (!requested(intent)) return@synchronized selected.resume()
+            if (resolve(context, intent) !== selected) return@synchronized false
+            val snapshot = selected.snapshot()
+            selected.resumeFromNotification(snapshot.binding(), snapshot.turnId())
+        }
 }
