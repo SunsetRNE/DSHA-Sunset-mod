@@ -333,6 +333,306 @@ public final class AssistantTaskAttachmentAndroidTest {
     }
   }
 
+  private android.app.PendingIntent notificationAction(String action) {
+    Shadow.<ShadowLooper>extract(Looper.getMainLooper()).idle();
+    var manager = app.getSystemService(android.app.NotificationManager.class);
+    var notification =
+        Shadow.<ShadowNotificationManager>extract(manager)
+            .getNotification(com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT);
+    assertNotNull(notification);
+    assertNotNull(notification.actions);
+    for (var candidate : notification.actions) {
+      var saved = Shadow.<ShadowPendingIntent>extract(candidate.actionIntent).getSavedIntent();
+      if (action.equals(saved.getAction())) return candidate.actionIntent;
+    }
+    throw new AssertionError("Missing current task notification action: " + action);
+  }
+
+  private static Intent savedAction(android.app.PendingIntent pending) {
+    return new Intent(Shadow.<ShadowPendingIntent>extract(pending).getSavedIntent());
+  }
+
+  private static Intent replyIntent(android.app.PendingIntent pending, String text) {
+    Intent intent = savedAction(pending);
+    var results = new android.os.Bundle();
+    results.putCharSequence(AssistantService.REPLY_KEY, text);
+    android.app.RemoteInput.addResultsToIntent(
+        new android.app.RemoteInput[] {
+          new android.app.RemoteInput.Builder(AssistantService.REPLY_KEY).build()
+        },
+        intent,
+        results);
+    return intent;
+  }
+
+  @Test
+  public void oldNotificationActionsCannotStopReplyOrShowTheVerifiedNextTurn() throws Exception {
+    var host = new Host(address("notification-same-session"), "17");
+    var admitted = request(host, "17");
+    var service = dispatchService();
+    assertTrue(admitted.get(2, TimeUnit.SECONDS).ready());
+    var oldStop = notificationAction("STOP_TASK");
+    var oldReply = notificationAction("REPLY");
+    var oldShow = notificationAction("SHOW_OVERLAY");
+    host.status = new JSONObject(host.status.toString()).put("turnId", "18");
+    var next = request(host, "18");
+    service.get().onStartCommand(nextService(), 0, 2);
+    assertTrue(next.get(2, TimeUnit.SECONDS).ready());
+    var selected = AssistantSessionController.active();
+    var currentStop = notificationAction("STOP_TASK");
+    assertNotEquals(oldStop, currentStop);
+    assertNotEquals(savedAction(oldStop).getData(), savedAction(currentStop).getData());
+    service.get().onStartCommand(replyIntent(oldReply, "stale reply"), 0, 3);
+    service.get().onStartCommand(savedAction(oldShow), 0, 4);
+    service.get().onStartCommand(savedAction(oldStop), 0, 5);
+    service
+        .get()
+        .onStartCommand(new Intent(app, AssistantService.class).setAction("STOP_TASK"), 0, 6);
+    drain(selected);
+    assertEquals("18", selected.snapshot().turnId());
+    assertEquals(AssistantSessionState.Phase.RUNNING, selected.snapshot().phase());
+    assertFalse(selected.snapshot().expanded());
+    assertFalse(host.calls.contains("sessions.send"));
+    assertTrue(host.cancelledTurns.isEmpty());
+    service.get().onStartCommand(savedAction(currentStop), 0, 7);
+    service.get().onStartCommand(savedAction(currentStop), 0, 8);
+    drain(selected);
+    assertEquals(List.of("18"), host.cancelledTurns);
+  }
+
+  @Test
+  public void reselectingTheSameFullAddressStillRetiresItsPreviousNotificationEpoch()
+      throws Exception {
+    var firstHost = new Host(address("same-notification-address"), "17");
+    var admitted = request(firstHost, "17");
+    var service = dispatchService();
+    assertTrue(admitted.get(2, TimeUnit.SECONDS).ready());
+    var oldStop = notificationAction("STOP_TASK");
+    var nextHost = new Host(firstHost.binding, "17");
+    AssistantService.bind(app, nextHost.binding, nextHost);
+    service.get().onStartCommand(nextService(), 0, 2);
+    var selected = AssistantSessionController.active();
+    drain(selected);
+    service.get().onStartCommand(savedAction(oldStop), 0, 3);
+    drain(selected);
+    assertTrue(nextHost.cancelledTurns.isEmpty());
+    var currentStop = notificationAction("STOP_TASK");
+    assertNotEquals(oldStop, currentStop);
+    service.get().onStartCommand(savedAction(currentStop), 0, 4);
+    drain(selected);
+    assertEquals(List.of("17"), nextHost.cancelledTurns);
+  }
+
+  @Test
+  public void currentNotificationReplyDispatchesOnceAndKeepsItsOriginalTurn() throws Exception {
+    var sent = Collections.synchronizedList(new ArrayList<String>());
+    var host =
+        new Host(address("current-notification-reply"), "17") {
+          @Override
+          public JSONObject call(String method, JSONObject args) throws java.io.IOException {
+            if (!"sessions.send".equals(method)) return super.call(method, args);
+            sent.add(args.optString("turnId") + ":" + args.optString("text"));
+            try {
+              return new JSONObject().put("accepted", true);
+            } catch (org.json.JSONException impossible) {
+              throw new java.io.IOException(impossible);
+            }
+          }
+        };
+    var admitted = request(host, "17");
+    var service = dispatchService();
+    assertTrue(admitted.get(2, TimeUnit.SECONDS).ready());
+    var originalStop = notificationAction("STOP_TASK");
+    var manager = app.getSystemService(android.app.NotificationManager.class);
+    var previousFrame =
+        Shadow.<ShadowNotificationManager>extract(manager)
+            .getNotification(com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT);
+    var coordinator = PhoneControlCoordinator.get(app);
+    coordinator.begin(task(host, "17"));
+    var reply = notificationAction("REPLY");
+    Intent intent = replyIntent(reply, "original user text");
+    service.get().onStartCommand(intent, 0, 2);
+    service.get().onStartCommand(intent, 0, 3);
+    drain(AssistantSessionController.active());
+    assertEquals(List.of("17:original user text"), sent);
+    assertNotEquals(reply, notificationAction("REPLY"));
+    assertEquals(originalStop, notificationAction("STOP_TASK"));
+    // 模拟 notify 已接收、系统 active 列表仍停留旧帧：真实 Stop 入口必须仍可使用。
+    manager.notify(com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT, previousFrame);
+    assertTrue(AssistantService.stopChannelCurrent(app, task(host, "17")));
+    assertFalse(coordinator.snapshot().paused());
+    assertTrue(host.cancelledTurns.isEmpty());
+    service.get().onStartCommand(savedAction(originalStop), 0, 4);
+    drain(AssistantSessionController.active());
+    assertEquals(List.of("17"), host.cancelledTurns);
+  }
+
+  @Test
+  public void queuedNotificationReplyIsNotRetargetedToAVerifiedNextTurn() throws Exception {
+    var host = new Host(address("queued-notification-reply"), "17");
+    var admitted = request(host, "17");
+    var service = dispatchService();
+    assertTrue(admitted.get(2, TimeUnit.SECONDS).ready());
+    var selected = AssistantSessionController.active();
+    drain(selected);
+    var entered = new CountDownLatch(1);
+    var release = new CountDownLatch(1);
+    worker(selected)
+        .execute(
+            () -> {
+              entered.countDown();
+              try {
+                if (!release.await(3, TimeUnit.SECONDS))
+                  throw new AssertionError("TEST_WORKER_GATE_TIMEOUT");
+              } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+              }
+            });
+    try {
+      assertTrue(entered.await(2, TimeUnit.SECONDS));
+      service
+          .get()
+          .onStartCommand(replyIntent(notificationAction("REPLY"), "old-turn message"), 0, 2);
+      host.status = new JSONObject(host.status.toString()).put("turnId", "18");
+      assertTrue(selected.followVerifiedTask("18"));
+    } finally {
+      release.countDown();
+    }
+    drain(selected);
+    assertFalse(host.calls.contains("sessions.send"));
+    assertTrue(host.cancelledTurns.isEmpty());
+    assertEquals("18", selected.snapshot().turnId());
+    assertEquals(AssistantSessionState.Phase.RUNNING, selected.snapshot().phase());
+  }
+
+  private void lateNotificationReplyCannotChangeNextTurn(int outcome) throws Exception {
+    var entered = new CountDownLatch(1);
+    var release = new CountDownLatch(1);
+    var host =
+        new Host(address("late-notification-reply-" + outcome), "17") {
+          @Override
+          public JSONObject call(String method, JSONObject args) throws java.io.IOException {
+            if (!"sessions.send".equals(method)) return super.call(method, args);
+            assertEquals("17", args.optString("turnId"));
+            entered.countDown();
+            try {
+              if (!release.await(3, TimeUnit.SECONDS))
+                throw new java.io.IOException("TEST_SEND_GATE_TIMEOUT");
+            } catch (InterruptedException interrupted) {
+              Thread.currentThread().interrupt();
+              throw new java.io.IOException(interrupted);
+            }
+            if (outcome == 1) throw new java.io.IOException("UNKNOWN_OLD_REPLY");
+            if (outcome == 2) throw new AssistantBackend.Rejected("session/model-unavailable");
+            try {
+              return new JSONObject().put("accepted", true);
+            } catch (org.json.JSONException impossible) {
+              throw new java.io.IOException(impossible);
+            }
+          }
+        };
+    var admitted = request(host, "17");
+    var service = dispatchService();
+    assertTrue(admitted.get(2, TimeUnit.SECONDS).ready());
+    var selected = AssistantSessionController.active();
+    try {
+      service.get().onStartCommand(replyIntent(notificationAction("REPLY"), "same draft"), 0, 2);
+      assertTrue(entered.await(2, TimeUnit.SECONDS));
+      host.status = new JSONObject(host.status.toString()).put("turnId", "18");
+      assertTrue(selected.followVerifiedTask("18"));
+      selected.setDraft("same draft");
+      selected.beginComposing("next-turn-editor");
+      release.countDown();
+      drain(selected);
+      assertEquals("18", selected.snapshot().turnId());
+      assertEquals(AssistantSessionState.Phase.RUNNING, selected.snapshot().phase());
+      assertEquals("same draft", selected.snapshot().draft());
+      assertTrue(selected.composing());
+      assertTrue(host.cancelledTurns.isEmpty());
+    } finally {
+      release.countDown();
+      selected.endComposing("next-turn-editor");
+    }
+  }
+
+  @Test
+  public void lateNotificationReplySuccessCannotClearNewTurnDraftOrComposing() throws Exception {
+    lateNotificationReplyCannotChangeNextTurn(0);
+  }
+
+  @Test
+  public void lateNotificationReplyUnknownCannotClearNewTurnDraftOrComposing() throws Exception {
+    lateNotificationReplyCannotChangeNextTurn(1);
+  }
+
+  @Test
+  public void lateNotificationReplyRejectionCannotClearNewTurnDraftOrComposing() throws Exception {
+    lateNotificationReplyCannotChangeNextTurn(2);
+  }
+
+  @Test
+  public void currentIdleNotificationRejectionPublishesPausedWithoutAnotherPoll() throws Exception {
+    var sendEntered = new CountDownLatch(1);
+    var sendRelease = new CountDownLatch(1);
+    var pollRelease = new CountDownLatch(1);
+    var sending = new java.util.concurrent.atomic.AtomicBoolean();
+    var host =
+        new Host(address("current-notification-rejection"), "17") {
+          @Override
+          public JSONObject call(String method, JSONObject args) throws java.io.IOException {
+            try {
+              if ("sessions.status".equals(method) && sending.get()) {
+                if (!pollRelease.await(5, TimeUnit.SECONDS))
+                  throw new java.io.IOException("TEST_POLL_GATE_TIMEOUT");
+              }
+              if ("sessions.send".equals(method)) {
+                sending.set(true);
+                sendEntered.countDown();
+                if (!sendRelease.await(3, TimeUnit.SECONDS))
+                  throw new java.io.IOException("TEST_SEND_GATE_TIMEOUT");
+                throw new AssistantBackend.Rejected("session/model-unavailable");
+              }
+            } catch (InterruptedException interrupted) {
+              Thread.currentThread().interrupt();
+              throw new java.io.IOException(interrupted);
+            }
+            return super.call(method, args);
+          }
+        };
+    host.status.put("running", false);
+    AssistantService.bind(app, host.binding, host);
+    var service = dispatchService();
+    var selected = AssistantSessionController.active();
+    drain(selected);
+    var observations =
+        new java.util.concurrent.CopyOnWriteArrayList<AssistantSessionController.Snapshot>();
+    Runnable observed = () -> observations.add(selected.snapshot());
+    selected.addListener(observed);
+    try {
+      assertEquals(AssistantSessionState.Phase.IDLE, selected.snapshot().phase());
+      service.get().onStartCommand(replyIntent(notificationAction("REPLY"), "new prompt"), 0, 2);
+      assertTrue(sendEntered.await(2, TimeUnit.SECONDS));
+      Shadow.<ShadowLooper>extract(Looper.getMainLooper()).idle();
+      observations.clear();
+      sendRelease.countDown();
+      long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+      while (selected.snapshot().phase() != AssistantSessionState.Phase.PAUSED
+          && System.nanoTime() < deadline) Thread.sleep(2);
+      assertEquals(AssistantSessionState.Phase.PAUSED, selected.snapshot().phase());
+      Shadow.<ShadowLooper>extract(Looper.getMainLooper()).idle();
+      assertTrue(
+          observations.stream()
+              .anyMatch(
+                  value ->
+                      value.phase() == AssistantSessionState.Phase.PAUSED
+                          && !value.detail().isBlank()));
+    } finally {
+      sendRelease.countDown();
+      pollRelease.countDown();
+      selected.removeListener(observed);
+    }
+  }
+
   @Before
   public void before() {
     app = (App) RuntimeEnvironment.getApplication();

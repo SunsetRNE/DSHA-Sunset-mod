@@ -65,9 +65,13 @@ public final class AssistantService extends Service {
 
   private PendingIntent stopAction;
   private Notification taskNotification;
+  private AssistantNotificationTicket notificationTicket;
+  private String replyEpoch = "", showEpoch = "";
+  private AssistantSessionController notificationController;
   private volatile boolean stopAccessArmed;
   private final Runnable stopAccessChanged =
       () -> {
+        refreshTaskNotification();
         var task = PhoneControlCoordinator.get(this).snapshot().binding();
         if (controller != null && task != null && controller.ownsTask(task))
           stopChannelCurrent(this, task);
@@ -538,27 +542,32 @@ public final class AssistantService extends Service {
               STOP_CHANNEL,
               UiText.choose("手机任务状态", "Phone task status"),
               NotificationManager.IMPORTANCE_LOW));
+    publishTaskNotification(null, true);
+    confirmations = new AssistantConfirmationWindow(this);
+    PhoneControlCoordinator.get(this).setConfirmationHandler(confirmations::show);
+  }
+
+  private AssistantNotificationTicket actionTicket(
+      AssistantNotificationTicket ticket, String action) {
+    String suffix =
+        "REPLY".equals(action) ? replyEpoch : "SHOW_OVERLAY".equals(action) ? showEpoch : "";
+    return new AssistantNotificationTicket(
+        ticket.binding(), ticket.turnId(), ticket.epoch() + suffix, action);
+  }
+
+  private PendingIntent notificationAction(
+      AssistantNotificationTicket ticket, String action, int requestCode, int flags) {
+    Intent intent =
+        new Intent(this, AssistantService.class)
+            .setAction(action)
+            .setData(android.net.Uri.parse(actionTicket(ticket, action).identity()));
+    return PendingIntent.getService(
+        this, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT | flags);
+  }
+
+  private void publishTaskNotification(AssistantNotificationTicket ticket, boolean foreground) {
     Intent open = new Intent(this, AssistantActivity.class).putExtra("bound", true);
-    Intent stop = new Intent(this, AssistantService.class).setAction("STOP_TASK");
-    stopAction =
-        PendingIntent.getService(
-            this, 1952, stop, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-    // 直接回复：悬浮窗隐藏时也能从通知栏（或系统支持时的实时活动/岛）回复当前会话。
-    Intent reply = new Intent(this, AssistantService.class).setAction("REPLY");
-    PendingIntent replyAction =
-        PendingIntent.getService(
-            this,
-            1953,
-            reply,
-            PendingIntent.FLAG_UPDATE_CURRENT
-                | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0));
-    Intent showOverlay = new Intent(this, AssistantService.class).setAction("SHOW_OVERLAY");
-    PendingIntent showAction =
-        PendingIntent.getService(
-            this,
-            1954,
-            showOverlay,
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    if (ticket != null) open.setData(android.net.Uri.parse(ticket.forAction("OPEN").identity()));
     Notification.Builder note =
         Build.VERSION.SDK_INT >= 26
             ? new Notification.Builder(this, STOP_CHANNEL)
@@ -570,34 +579,112 @@ public final class AssistantService extends Service {
         .setContentIntent(
             PendingIntent.getActivity(
                 this, 1951, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
-        .addAction(
-            new Notification.Action.Builder(null, UiText.choose("回复", "Reply"), replyAction)
-                .addRemoteInput(
-                    new android.app.RemoteInput.Builder(REPLY_KEY)
-                        .setLabel(UiText.choose("回复当前会话", "Reply to this conversation"))
-                        .build())
-                .setAllowGeneratedReplies(false)
-                .build())
-        .addAction(
-            new Notification.Action.Builder(
-                    null, UiText.choose("显示悬浮窗", "Show floating window"), showAction)
-                .build())
-        .addAction(
-            new Notification.Action.Builder(null, UiText.choose("停止任务", "Stop task"), stopAction)
-                .build())
         .setOngoing(true);
+    if (ticket == null) stopAction = null;
+    if (ticket != null) {
+      stopAction = notificationAction(ticket, "STOP_TASK", 1952, PendingIntent.FLAG_IMMUTABLE);
+      PendingIntent replyAction =
+          notificationAction(
+              ticket, "REPLY", 1953, Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
+      PendingIntent showAction =
+          notificationAction(ticket, "SHOW_OVERLAY", 1954, PendingIntent.FLAG_IMMUTABLE);
+      note.addAction(
+          new Notification.Action.Builder(null, UiText.choose("回复", "Reply"), replyAction)
+              .addRemoteInput(
+                  new android.app.RemoteInput.Builder(REPLY_KEY)
+                      .setLabel(UiText.choose("回复当前会话", "Reply to this conversation"))
+                      .build())
+              .setAllowGeneratedReplies(false)
+              .build());
+      note.addAction(
+          new Notification.Action.Builder(
+                  null, UiText.choose("显示悬浮窗", "Show floating window"), showAction)
+              .build());
+      note.addAction(
+          new Notification.Action.Builder(null, UiText.choose("停止任务", "Stop task"), stopAction)
+              .build());
+    }
     if (Build.VERSION.SDK_INT >= 31)
       note.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
     taskNotification = note.build();
     if (new com.deepseekharness.app.core.ConfigStore(this).isTaskIslandEnabled())
-      // 系统支持实时活动时把同一条通知提升为岛；同一 id、频道与停止入口，不支持时原样返回。
       taskNotification =
           com.deepseekharness.app.IslandSupport.enhance(
               this, taskNotification, UiText.choose("DSH 执行中", "DSH running"), true);
-    startForeground(
-        com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT, taskNotification);
-    confirmations = new AssistantConfirmationWindow(this);
-    PhoneControlCoordinator.get(this).setConfirmationHandler(confirmations::show);
+    if (foreground)
+      startForeground(
+          com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT, taskNotification);
+    else {
+      try {
+        var manager = getSystemService(NotificationManager.class);
+        if (manager != null)
+          manager.notify(
+              com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT, taskNotification);
+      } catch (RuntimeException unavailable) {
+        // 原停止入口可见性核验会暂停手机权威并恢复原生停止按钮，不能把 notify 接受当已可见。
+      }
+    }
+  }
+
+  private void refreshTaskNotification() {
+    refreshTaskNotification(false);
+  }
+
+  private void refreshTaskNotification(boolean force) {
+    AssistantSessionController current = controller;
+    if (current == null || owner.service() != this || !owner.isCurrent(current)) return;
+    synchronized (current) {
+      var snapshot = current.snapshot();
+      boolean same =
+          notificationTicket != null
+              && notificationController == current
+              && notificationTicket.addresses(snapshot.binding(), snapshot.turnId());
+      if (same && !force) return;
+      if (!same) {
+        notificationController = current;
+        replyEpoch = UUID.randomUUID().toString();
+        showEpoch = UUID.randomUUID().toString();
+        notificationTicket =
+            new AssistantNotificationTicket(
+                snapshot.binding(), snapshot.turnId(), UUID.randomUUID().toString(), "STOP_TASK");
+      }
+      publishTaskNotification(notificationTicket, false);
+    }
+  }
+
+  private void dispatchNotification(Intent intent) {
+    AssistantSessionController current = controller;
+    if (current == null || owner.service() != this || !owner.isCurrent(current)) return;
+    boolean admitted = false;
+    try {
+      synchronized (current) {
+        var snapshot = current.snapshot();
+        AssistantNotificationTicket ticket = notificationTicket;
+        String action = intent.getAction();
+        if (ticket == null
+            || notificationController != current
+            || !owner.isCurrent(current)
+            || !ticket.addresses(snapshot.binding(), snapshot.turnId())
+            || !actionTicket(ticket, action).identity().equals(intent.getDataString())) return;
+        // 回复/显示单独轮换；回复不能撤掉仍在异步发布中的真实 Stop 入口。
+        if ("REPLY".equals(action)) replyEpoch = UUID.randomUUID().toString();
+        else if ("SHOW_OVERLAY".equals(action)) showEpoch = UUID.randomUUID().toString();
+        else notificationTicket = null;
+        admitted = true;
+        if ("STOP_TASK".equals(action)) current.stop();
+        else if ("SHOW_OVERLAY".equals(action)) {
+          if (window != null) window.showByUser();
+        } else if ("REPLY".equals(action)) {
+          var results = android.app.RemoteInput.getResultsFromIntent(intent);
+          CharSequence text = results == null ? null : results.getCharSequence(REPLY_KEY);
+          String message = text == null ? "" : text.toString().strip();
+          if (!message.isEmpty() && message.length() <= 32768)
+            current.sendFromNotification(message, ticket.binding(), ticket.turnId());
+        }
+      }
+    } finally {
+      if (admitted) refreshTaskNotification(true);
+    }
   }
 
   @Override
@@ -606,25 +693,10 @@ public final class AssistantService extends Service {
       stopSelf();
       return START_NOT_STICKY;
     }
-    if ("STOP_TASK".equals(intent.getAction())) {
-      if (controller != null) controller.stop();
-      return START_NOT_STICKY;
-    }
-    if ("SHOW_OVERLAY".equals(intent.getAction())) {
-      if (window != null) window.showByUser();
-      return START_NOT_STICKY;
-    }
-    if ("REPLY".equals(intent.getAction())) {
-      var results = android.app.RemoteInput.getResultsFromIntent(intent);
-      CharSequence text = results == null ? null : results.getCharSequence(REPLY_KEY);
-      String message = text == null ? "" : text.toString().strip();
-      if (controller != null && !message.isEmpty() && message.length() <= 32768)
-        controller.send(message);
-      // 重新发出同一条通知，结束系统的“发送中”状态。
-      var manager = getSystemService(NotificationManager.class);
-      if (manager != null && taskNotification != null)
-        manager.notify(
-            com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT, taskNotification);
+    if ("STOP_TASK".equals(intent.getAction())
+        || "SHOW_OVERLAY".equals(intent.getAction())
+        || "REPLY".equals(intent.getAction())) {
+      dispatchNotification(intent);
       return START_NOT_STICKY;
     }
     String key = intent.getStringExtra("binding");
@@ -655,16 +727,11 @@ public final class AssistantService extends Service {
         return START_NOT_STICKY;
       }
       if (controller != null && controller.snapshot().binding().equals(selection.binding)) {
-        if (taskNotification != null
-            && PhoneControlCoordinator.get(this).snapshot().binding() == null)
-          getSystemService(NotificationManager.class)
-              .notify(
-                  com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT,
-                  taskNotification);
         if (controller.followVerifiedTask(selection.verifiedTurn)
             && (window == null || !window.taskUiAvailable())) {
           window = owner.showSurface(this, controller);
         }
+        refreshTaskNotification();
         selection.ready.run();
         return START_NOT_STICKY;
       }
@@ -675,11 +742,8 @@ public final class AssistantService extends Service {
         new AssistantSessionController(
             this, selection.binding, selection.backend, selection.verifiedTurn);
     controller.addListener(stopAccessChanged);
-    if (selection.verifiedTurn != null && taskNotification != null)
-      getSystemService(NotificationManager.class)
-          .notify(
-              com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT, taskNotification);
     window = owner.showSurface(this, controller);
+    refreshTaskNotification();
     selection.ready.run();
     return START_NOT_STICKY;
   }
