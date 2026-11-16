@@ -8,6 +8,7 @@
 - 默认值与固定输入：Rust 发布装配继续默认 prebuilt、运行时后端默认启用；同 run 来源绑定、类型化不可用原因与已选 Rust 后失败不重放保持。dsh-web-mobile 3.3.5 及默认启用、SAF、恢复语义与 UNKNOWN 保守处理保持。固定输入沿用 fixed-inputs-20261113 / dsha-a-su-fixed-inputs-20261113-build364.zip（716,787,167 B；SHA-256 2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad）。
 - 身份与验证：版本码提升为 369，基于已发布 build368；DSHA 修订 0.2.1-rc.5、包名 io.github.sunsetrne.dsha、Mod 自有签名、Android 11+ / arm64 与单一 Standard 保持。集成候选 c243b7a0 的完整 dry-run [43823137009](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43823137009) 已通过格式、契约、完整单测、Lint、正式签名及 .debug / .dev 测试包检查；正式 release CI 按最终版本提交重新核验并绑定产物。build368 的设备证据不作为 build369 验收，不宣称广泛 ROM/管理器或 16 KB 页内核兼容。
 - 十语种更新说明见 [build369 更新说明](docs/releases/build369-changes.zh.md)；本地验证与发布清单见 [build369 发布准备回执](docs/releases/build369-preparation-20261116.md)。
+- 2026-11-16 已发布：tag `dsha-a-su-build369-20261116-080147` @ `82eb958d`，正式 CI 43828110344 success。发布后实际下载七资产并复核摘要、三包 v1/v2/v3 与 Rust 静态来源，Standard 单测 5338/0/0/0、7 夹具通过；本版真机验收未做。详见 [build369 发布与资产复核回执](docs/releases/build369-release-20261116.md)。
 
 ## 0.2.1-rc.5-20261116.0500-dsh0.2.2-rc.1 / build368（Rust prebuilt 装配默认 + Rust 运行时后端默认启用；runtimeId 52624be1，覆盖升级一次整屏维护页）
 

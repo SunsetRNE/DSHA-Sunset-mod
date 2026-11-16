@@ -1,7 +1,7 @@
 # DSHA 现行构建说明
 
-> 当前候选身份（build369）：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1` / versionCode 369。
-> build368 已发布（tag `dsha-a-su-build368-20261116-052738`）；build369 集成候选 c243b7a0 的完整 dry-run 已通过，最终提交由发布 CI 复核；本版设备验收待完成。
+> 当前发布身份（build369）：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1` / versionCode 369。
+> build369 已发布（tag `dsha-a-su-build369-20261116-080147` @ `82eb958d`）；正式 CI 43828110344 通过，七资产与三包签名/来源已独立复核；本版设备验收待完成。
 > 单一 Standard 变体：minSdk 30（Android 11+）、arm64-v8a、系统 WebView。原 `low`/GeckoView 兼容线与独立上岛包已删除。
 > 签名：Mod 自有新建证书（SHA-256 `a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d`），不再使用原版 E7E3。
 > 固定构建输入：公开仓库预发布 Release 资产，SHA-256 锁定；流程见 [docs/fixed-build-inputs.md](docs/fixed-build-inputs.md)。

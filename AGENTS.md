@@ -1,8 +1,8 @@
 # AGENTS.md
 
 
-> **当前候选**：`0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1` / build369 / `io.github.sunsetrne.dsha` / DSH-A-Su / 单一 Standard。
-> build368 已发布（tag `dsha-a-su-build368-20261116-052738`）；build369 集成候选 c243b7a0 的完整 dry-run 已通过，最终提交由发布 CI 复核；本版设备验收待完成，历史回执不作本版通过证据。
+> **当前发布**：`0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1` / build369 / `io.github.sunsetrne.dsha` / DSH-A-Su / 单一 Standard。
+> build369 已发布（tag `dsha-a-su-build369-20261116-080147` @ `82eb958d`）；正式 CI 43828110344 通过，七资产与三包签名/来源已独立复核；Standard 5338/0/0/0、7 夹具通过。本版设备验收待完成，历史设备回执不作本版通过证据。
 > 主线分支 `main`；Android 11+（API 30）/ arm64；proot 默认、proroot 可选；内置 DSH 0.2.2-rc.1。
 > 上岛能力已并入正式包；旧 low/GeckoView 兼容线与独立上岛包已删除；签名使用 Mod 自有证书（见 BUILD.md）。
 > Rust 发布装配默认 prebuilt、运行时后端启动后默认启用；`.so` 未随包或加载失败按类型化原因留在 JVM。
