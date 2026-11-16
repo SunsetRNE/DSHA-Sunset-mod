@@ -23,7 +23,7 @@
     {
       "path": "tools/test-source-layout.py",
       "stage": "fast",
-      "reason": "Execute logical-to-physical source mapping, real Java/Kotlin/module moves and duplicate/link/undeclared-source negative controls; compare the current single-app source, launcher and format inventories with the original algorithms.",
+      "reason": "Execute logical-to-physical source mapping, real Java/Kotlin/module moves and duplicate/link/undeclared-source negative controls; compare the current all-module Git-tracked source, launcher and format inventories with the original algorithms and reject unregistered module trees.",
       "args": [],
       "timeoutSeconds": 120,
       "requires": ["python39"],
