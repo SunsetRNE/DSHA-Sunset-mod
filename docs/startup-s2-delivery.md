@@ -1,6 +1,6 @@
 # 启动链路 S2：同次描述符准备复用
 
-本地任务 T10；建树基线 `46f4970369c796c3a7cb9acca6cff58961778840`，远端后续 `4ce4064b` 的 T7 改动仅在 contract 域，本域源码无差异。本文状态为**实现已写、JVM 验证排队中**；测试结果将按实际回执更新，不继承 build369 或旧任务的通过结论。
+本地任务 T10；建树基线 `46f4970369c796c3a7cb9acca6cff58961778840`，远端后续 `4ce4064b` 的 T7 改动仅在 contract 域，本域源码无差异。**本地实现、定向验证及分提交交付已完成**；本回执只使用本次实际执行证据，不继承 build369 或旧任务的通过结论。最终 descriptor/runtimeId/recipe 与完整 Gradle/CI 由 main 集成树统一处理。
 
 ## 旧成果与本次剩余工作
 
@@ -21,7 +21,7 @@
 
 结构提交 `1065e638` 独立接入 [RuntimeDescriptorPreparation](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeDescriptorPreparation.kt) 和真实调用计数，仍每次解析；行为提交 `4a8c568a` 单独启用同次复用。后续 `1ab70dbe` 修补跨 kind 的 A→B→A 输入历史失效，并增强线程测试异常回传；交付必须包含该修补，不能单独采用 `4a8c568a`。
 
-自查与只读独审共同确认：原 C2 只在当前 kind 已有条目时清缓存，先 EXPECTED(A)→空槽 INSTALLED(B)→EXPECTED(A) 可能复活最早 expected 对象。原始字节仍相等、未见执行许可绕过，但违反本轮绑定/失效要求，按 P2 修补。新实现每次观察都以 scope.observed/align 对齐全 scope 输入，任何变化清两槽；所有观察完成后才取缓存条目，避免局部旧引用穿过失效。新负控枚举两个交错方向；将以旧 C2 真实代码运行该负控得到失败，再对修补后源码完整混编复验。
+自查与只读独审共同确认：原 C2 只在当前 kind 已有条目时清缓存，先 EXPECTED(A)→空槽 INSTALLED(B)→EXPECTED(A) 可能复活最早 expected 对象。原始字节仍相等、未见执行许可绕过，但违反本轮绑定/失效要求，按 P2 修补。新实现每次观察都以 scope.observed/align 对齐全 scope 输入，任何变化清两槽；所有观察完成后才取缓存条目，避免局部旧引用穿过失效。新负控枚举两个交错方向；已在旧 C2 的真实已编译生产代码上复现该业务断言失败，并对修补后源码在全新输出目录完整混编复验通过。
 
 - scope 由 [WebLifecycleController](../app/src/main/java/com/deepseekharness/app/core/WebLifecycleController.java) 的排队后 worker 打开，在原 `RuntimeHostPorts` settings invocation 内运行；同一 stable/selected bootstrap 只消费外层 scope，结束清空，不跨线程和下一次操作。
 - [RuntimePreparationInputs](../app/src/main/java/com/deepseekharness/app/runtime/RuntimePreparationInputs.kt) 绑定既有 APK/split/AssetManager 验证返回的 Snapshot 对象、当前 settings 对象、root/固定文件 `RuntimeAssetStamp`、工具摘要与失效观察修订。APK 不可验证时既有 get 每次返回新 Snapshot，前后身份无法匹配，不能复用。
@@ -36,19 +36,37 @@
 
 ## 验证记录
 
-- 非 JVM：架构边界 25 项通过；源码卫生通过；输入契约 18 项通过；源码布局 16 项通过（首次因 4 个新文件未登记 git 失败，登记后同一断言通过）；host manifest 264 项仅为登记核验；本文 11 链接无错误/警告。基线和结构源码已冻结，旧提交映射核对完成。
+- 非 JVM：架构边界 25 项通过；源码卫生通过；输入契约 18 项通过；源码布局 16 项通过（首次因 4 个新文件未登记 git 失败，登记后同一断言通过）；host manifest 264 项仅为登记核验；本文 12 链接无错误/警告。基线和结构源码已冻结，旧提交映射核对完成。
 - 原基线 `46f49703`：1010 个 Java 编译输入（996 仓库含 AIDL stub、14 个临时生成 Java）+77 个 Kotlin，全新编译；16 类、151 项通过，failure/ignored/assumption 均 0。
 - C1 `1065e638`：同 1010 Java+78 Kotlin 全新编译；17 类、156 项通过，failure/ignored/assumption 均 0；结构计数夹具的两次准备链实际为 6 次读取、6 次解析。
-- C2 首次：同 1010 Java+79 Kotlin 全新编译及所有选中测试编译通过；7 个 Kotlin、5 个 Java 的定向格式门禁通过。20 类 176 项中 175 通过、1 个新集成夹具失败，ignored/assumption 均 0：`ApplicationInfo.nativeLibraryDir=null` 在构造 ProotBootstrap 时 NPE，尚未进入该项 pending/末次门断言。仅补夹具私有 native 目录，保留原日志；复验尚待下一轮串行槽。
+- C2 首次历史记录：同 1010 Java+79 Kotlin 全新编译及所有选中测试编译通过；7 个 Kotlin、5 个 Java 的定向格式门禁通过。20 类 176 项中 175 通过、1 个新集成夹具失败，ignored/assumption 均 0：`ApplicationInfo.nativeLibraryDir=null` 在构造 ProotBootstrap 时 NPE，尚未进入该项 pending/末次门断言。仅补夹具私有 native 目录，原日志与失败夹具快照保留；最终 177 项已覆盖修复后的真实 pending/末次门断言。
 - 已执行的调用计数/负控：两次真实 ManagedRuntimeAssets 读取链仍做 4 次已装 descriptor、2 次 APK descriptor 和 2 次 health 读取；descriptor 解析从 C1 的 6 次降为 C2 的 2 次（每类各一次），其余同路径替换、恢复 mtime、原字节变化、APK/AssetManager/settings/root/tools/操作改变、未知后恢复旧身份、跨线程/新 scope 和异常不复活旧成功的断言均通过。既有 RuntimeApkAssets/RuntimeTools 命中未重复计功。
 - 本机验证为锁定 JDK17/Kotlin2.2.10 的直接混编与离线 Robolectric API34/JUnit，编译类型用 SDK37；R 符号从当前真实 XML/resValue 生成，未运行 AAPT/AGP 资源合并，不能称 API37 资源构建通过。三个阶段覆盖重叠，不能把 151+156+176 相加成独特覆盖。
-- Gradle 与全树 Kotlin 格式：尚待下一轮串行槽。七份固定/派生输入共 489982546 字节已从 main 验证树复制并按 pin/SHA 回读，不生成最终 descriptor/runtimeId/recipe；所有本机 Gradle 只用 dsha-gradle。
+- 最终负控：旧 `4a8c568a` 生产编译物绑定原源码摘要，重新编译当前复用测试，**10 运行 / 1 失败 / 0 忽略 / 0 assumption**；唯一失败为 `observedInputChangeAcrossKindsCannotResurrectTheOlderIdentity` 的 `assertNotSame`，是缓存业务失效断言，不是编译/配置/夹具失败。
+- 最终候选：在全新 `candidate2` 输出目录重新混编 **1010 Java（996 仓库含 AIDL stub +14 生成）+79 Kotlin**；20 类 **177 运行 / 0 失败 / 0 忽略 / 0 assumption**。1089 份编译输入与当前生产源码逐 SHA 核对一致，2684 个输出 class 均 major 61；没有用旧 175 项的生产 class 代替修补后编译。
+- 最终格式：Kotlin 全树 **92 文件 / 17 批 / 0 待格式化**；Java 定向 **5 文件 / 0 改动**且精确 token 保持。仅 Future.get 测试表达式由 ktfmt 调整换行，该字节已纳入最终 177 项执行输入。
+- Gradle：本轮未启动 Gradle；按 main 不重复已知旧 descriptor 配置拒绝的安排，未为本地测试重算正式 descriptor 或排除守卫。完整 Gradle/CI 待 main 在最终集成树统一生成身份后验证，不能计通过；本机若后续运行 Gradle 仍只用 dsha-gradle。七份固定/派生输入共 489982546 字节已从 main 验证树复制并按 pin/SHA 回读。
+- 最终有界验证批次共 **198.715 秒**，单 JVM 串行，job `bash-22d82775561a446c` exit0 已收集并交还槽位；它是本机验证耗时，不是设备启动耗时。
 - 新用例：[计数结构](../app/src/test/java/com/deepseekharness/app/runtime/RuntimeDescriptorPreparationTest.kt)、[复用与负控](../app/src/test/java/com/deepseekharness/app/runtime/RuntimeDescriptorReuseTest.kt)、[真实读取/health/pending/末次门](../app/src/test/java/com/deepseekharness/app/runtime/RuntimeDescriptorReadIntegrationTest.kt)、[工具投影与元数据负控](../app/src/test/java/com/deepseekharness/app/runtime/RuntimeToolsProjectionTest.kt)。
-- 运行回执边界：上述 175 项通过不计为 `1ab70dbe` 修补后的运行证据。当前源码需要全新混编与 177 项复验，不能只复用旧生产 class；旧 C2 的交错失效负控也待执行。
+- 运行回执边界：各阶段覆盖重叠，最终独特目标集合为 20 类 177 项，不把 151、156、176 和 177 累加成独特覆盖。源码 SHA、编译、实际 JUnit 与独立审查分别记录，只有最后一批证明修补后的软件结果。
 - 前两个只读审查后端 product-error，无有效结论；后续 fork 审查 `11fc4fa4` 已完整核对 8 生产文件、4 测试及 ABA 修补，最终源码 **APPROVE**，随后线程 Future.get 小差异复核保持 APPROVE。该审查未运行 JVM，不代替测试或合入授权。
 - 五个原 `preparedStamp=null` 分支均已逐处静态核对；直接执行的修订负控是显式 invalidate 与准备失败，不能扩写成每个修复分支均已执行。生产投影的 hit 需两次 observe、miss 通常三次，每次复核固定工具集 lstat、摘要和 APK 身份；6→2 的集成计数注入固定 Identity，仅证明解析减少。
 
-设备耗时、真实 Android/proot/proroot 启动、完整 Gradle/CI/Lint/APK/签名、安装/覆盖维护及 ROM 矩阵均未验。本机 fixture 的解析调用数即使下降，也不能据此宣称设备启动耗时下降。新增输入复核本身有成本，设备净收益仍需实测。
+设备耗时、真实 Android/proot/proroot 启动、完整 Gradle/CI/Lint/APK/签名、安装/覆盖维护及 ROM 矩阵均未验。已验证的 6→2 只表示该读取夹具中的解析次数下降；新增输入复核有额外成本，设备净收益仍需实测。
+
+原始证据索引保留在本机，未将日志或编译物提交到仓库：
+
+```text
+evidenceRoot=/tmp/startup-s2-f1b14b77
+baseline=baseline/receipt.json; baseline/junit.log
+structure=structure/receipt.json; structure/junit.log
+firstCandidate=candidate-driver.log; candidate/failed-integration-fixture.kt
+negative=aba-red-junit.log; aba-batch-receipt.json
+final=candidate2/receipt.json; candidate2/junit.log; final-main-inputs.json
+format=final-kotlin-tree.log; final-java-format.log
+batch=revalidation-slot-receipt.json; static-after-aba.json
+oldMapping=old-runtime-content-mapping.json; old-s1b-content-mapping.json
+```
 
 ## 受管身份与回退
 
