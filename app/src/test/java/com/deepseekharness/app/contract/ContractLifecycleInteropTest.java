@@ -221,15 +221,18 @@ public class ContractLifecycleInteropTest {
   }
 
   @Test
-  public void factoryStillRunsUnderRegistryMonitorAndDispatchRunsOnlyUnderLeaseMonitor() {
+  public void factoryRunsOutsideRegistryMonitorAndDispatchRunsOnlyUnderLeaseMonitor() {
     ModuleRegistry registry = registry(DiagnosticsSink.discarding());
     registry.register(
         descriptor(),
         () -> {
-          assertTrue(Thread.holdsLock(registry)); // N3 的既有锁边界仍在，本批不修复慢 factory。
-          return () -> List.of(Contribution.route(ID, "page", "页面", "Page", 0, "app.page"));
+          assertFalse(Thread.holdsLock(registry));
+          return () -> {
+            assertFalse(Thread.holdsLock(registry));
+            return List.of(Contribution.route(ID, "page", "页面", "Page", 0, "app.page"));
+          };
         });
-    assertTrue(registry.install(ID).accepted());
+    assertTrue(registry.setEnabled(ID, true).accepted());
     GenerationLease lease = registry.lease(ID);
     assertTrue(
         registry
