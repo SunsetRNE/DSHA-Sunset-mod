@@ -138,67 +138,74 @@ class SafGrants private constructor() {
 
         // ---------------------------------------------------------------- 账本模式（A2 slice 2）
 
-        /** 独立命名空间为主存储；首次只读导入历史数据，保存失败回退旧路径。 */
+        /** 模式、记录代次与系统位在同一临界区取快照；Provider 补查始终在锁外。 */
+        private class ListSnapshot(
+            val ledger: SafGrantLedger?,
+            val legacyGeneration: Long,
+            val grants: List<Grant>,
+        )
+
+        private var legacyGeneration = 0L
+
         @JvmStatic
         private fun listInternal(context: Context?, resolveMissingLabels: Boolean): List<Grant> {
-            // 锁只保护账本就绪判定；旧路径会查询 Provider，必须在锁外执行（P2-4）。
-            if (!ledgerReady(context)) return legacyListInternal(context, resolveMissingLabels)
-            synchronized(LOCK) { cleanupLedgerLocked(context) }
-            val grants = ArrayList<Grant>()
-            val missingLabels = ArrayList<String>()
-            synchronized(LOCK) {
-                val store = ledgerStore(context)
-                val ledger = store.load()
-                val persisted = persisted(context)
-                var updated = ledger
-                for (record in ledger.records()) {
-                    if (record.state != SafGrantRecord.State.ACTIVE) continue
-                    val uri = safeParseUri(record.uri) ?: continue
-                    val flags = if (persisted == null) 0 else flagsOf(persisted, uri)
-                    val refreshed = updated.refreshSystemFlags(record.uri, flags)
-                    if (refreshed.accepted()) updated = refreshed.ledger
-                    val current = updated.findByUri(record.uri) ?: continue
-                    grants.add(grantFromRecord(current, flags))
-                    if (
-                        resolveMissingLabels &&
-                            (current.app!!.isEmpty() || current.label!!.isEmpty())
-                    ) {
-                        missingLabels.add(current.uri!!)
-                    }
-                }
-                if (updated !== ledger) store.save(updated)
-            }
-            for (value in missingLabels) {
-                val uri = safeParseUri(value) ?: continue
-                val app = appLabel(context, uri)
-                val label = documentLabel(context, uri)
-                if (app.isNotEmpty() || label!!.isNotEmpty()) {
-                    cacheLedgerMetadata(context, value, app, label)
+            val snapshot = synchronized(LOCK) { listSnapshotLocked(context) }
+            var queried = false
+            if (resolveMissingLabels) {
+                for (grant in snapshot.grants) {
+                    if (!grant.app.isNullOrEmpty() && !grant.label.isNullOrEmpty()) continue
+                    queried = true
+                    val uri = grant.uri!!
+                    cacheMetadata(
+                        context,
+                        uri.toString(),
+                        snapshot.ledger?.findByUri(uri.toString())?.epoch,
+                        snapshot.legacyGeneration,
+                        appLabel(context, uri),
+                        documentLabel(context, uri),
+                    )
                 }
             }
-            if (missingLabels.isNotEmpty()) {
-                synchronized(LOCK) {
-                    val ledger = ledgerStore(context).load()
-                    val persisted = persisted(context)
-                    grants.clear()
-                    for (record in ledger.records()) {
-                        if (record.state != SafGrantRecord.State.ACTIVE) continue
-                        val uri = safeParseUri(record.uri) ?: continue
-                        val flags = if (persisted == null) 0 else flagsOf(persisted, uri)
-                        grants.add(grantFromRecord(record, flags))
-                    }
-                }
-            }
+            // 慢查询期间可能已迁移/撤销/重授；整体重取快照，不拼接旧系统位与新偏好。
+            val grants =
+                ArrayList(
+                    if (queried) synchronized(LOCK) { listSnapshotLocked(context).grants }
+                    else snapshot.grants
+                )
             grants.sortWith(compareBy { it.summary()!!.lowercase(Locale.ROOT) })
             return grants
+        }
+
+        @JvmStatic
+        private fun listSnapshotLocked(context: Context?): ListSnapshot {
+            if (!ledgerReadyLocked(context)) {
+                val grants = legacyListLocked(context)
+                return ListSnapshot(null, legacyGeneration, grants)
+            }
+            cleanupLedgerLocked(context)
+            val store = ledgerStore(context)
+            val ledger = store.load()
+            val persisted = persisted(context)
+            val grants = ArrayList<Grant>()
+            var updated = ledger
+            for (record in ledger.records()) {
+                if (record.state != SafGrantRecord.State.ACTIVE) continue
+                val uri = safeParseUri(record.uri) ?: continue
+                val flags = if (persisted == null) 0 else flagsOf(persisted, uri)
+                val refreshed = updated.refreshSystemFlags(record.uri, flags)
+                if (refreshed.accepted()) updated = refreshed.ledger
+                grants.add(grantFromRecord(updated.findByUri(record.uri)!!, flags))
+            }
+            if (updated !== ledger) store.save(updated)
+            return ListSnapshot(updated, legacyGeneration, grants)
         }
 
         /** 轻量查找：不查应用名与目录名，只验系统券。 */
         @JvmStatic
         fun lookup(context: Context?, id: String?): Lookup {
             if (id == null || id.isEmpty()) return Lookup(null, "NO_GRANT")
-            if (!ledgerReady(context)) return legacyLookup(context, id)
             synchronized(LOCK) {
+                if (!ledgerReadyLocked(context)) return legacyLookup(context, id)
                 cleanupLedgerLocked(context)
                 val record = ledgerStore(context).load().findById(id)
                 if (record == null || record.state != SafGrantRecord.State.ACTIVE) {
@@ -217,8 +224,35 @@ class SafGrants private constructor() {
         fun add(context: Context?, tree: Uri?, wantWrite: Boolean): AddResult {
             if (!documentsTree(tree)) return AddResult.failed("NOT_TREE")
             if (ownProvider(context, tree)) return AddResult.failed("OWN_PROVIDER")
-            if (!ledgerReady(context)) return legacyAdd(context, tree, wantWrite)
             val result: AddResult
+            val epoch: Long?
+            val generation: Long
+            synchronized(LOCK) {
+                val ledgerMode = ledgerReadyLocked(context)
+                result =
+                    if (ledgerMode) ledgerAddLocked(context, tree, wantWrite)
+                    else legacyAddLocked(context, tree, wantWrite)
+                epoch =
+                    if (ledgerMode && result.added)
+                        ledgerStore(context).load().findByUri(tree.toString())?.epoch
+                    else null
+                generation = legacyGeneration
+            }
+            if (result.added) {
+                cacheMetadata(
+                    context,
+                    tree.toString(),
+                    epoch,
+                    generation,
+                    appLabel(context, tree),
+                    documentLabel(context, tree),
+                )
+            }
+            return result
+        }
+
+        @JvmStatic
+        private fun ledgerAddLocked(context: Context?, tree: Uri?, wantWrite: Boolean): AddResult {
             synchronized(LOCK) {
                 cleanupLedgerLocked(context)
                 val store = ledgerStore(context)
@@ -228,6 +262,9 @@ class SafGrants private constructor() {
                 val persisted = persisted(context)
                 if (persisted == null) return AddResult.failed("PERMISSION_STATE_UNAVAILABLE")
                 var existing = ledger.findByUri(value)
+                // 清理未完成时不得用新的 before/intent 覆盖原 PENDING 的权限归属证据。
+                if (existing?.state == SafGrantRecord.State.PENDING)
+                    return AddResult.failed("STATE_UNAVAILABLE")
                 if (existing != null && existing.state == SafGrantRecord.State.RELEASING) {
                     // 系统已没有可释放位时完成撤销后重加；仍有位残留则失败关闭，等 cleanup 重试。
                     val held = flagsOf(persisted, tree!!)
@@ -254,10 +291,13 @@ class SafGrants private constructor() {
                     )
                 if (!begun.accepted()) return AddResult.failed(begun.failure)
                 if (!store.save(begun.ledger)) return AddResult.failed("STATE_UNAVAILABLE")
-                var taken = takePersistable(resolver, tree, wantWrite)
+                var taken =
+                    takePersistable(resolver, tree, wantWrite)
+                        ?: return AddResult.failed("PERMISSION_STATE_UNAVAILABLE")
                 if (taken == 0) {
                     val nowList = persistedList(resolver)
-                    taken = if (nowList == null) 0 else flagsOf(nowList, tree)
+                    if (nowList == null) return AddResult.failed("PERMISSION_STATE_UNAVAILABLE")
+                    taken = flagsOf(nowList, tree)
                 }
                 if (taken == 0) {
                     store.save(begun.ledger.abortTake(value).ledger)
@@ -285,27 +325,19 @@ class SafGrants private constructor() {
                     // PENDING 已在 take 前落盘，下次清理释放新增位并恢复旧记录。
                     return AddResult.failed("STATE_UNAVAILABLE")
                 }
-                result = AddResult(true, (taken and READ) != 0, writable, null)
+                return AddResult(true, (taken and READ) != 0, writable, null)
             }
-            // Provider 查询在锁外做；界面在后台线程调用 add。
-            cacheLedgerMetadata(
-                context,
-                tree.toString(),
-                appLabel(context, tree),
-                documentLabel(context, tree),
-            )
-            return result
         }
 
         /** 只退本功能新增位；释放失败进入不可用的 RELEASING，下次访问重试。 */
         @JvmStatic
         fun forget(context: Context?, tree: Uri?) {
             if (tree == null) return
-            if (!ledgerReady(context)) {
-                legacyForget(context, tree)
-                return
-            }
             synchronized(LOCK) {
+                if (!ledgerReadyLocked(context)) {
+                    legacyForget(context, tree)
+                    return
+                }
                 cleanupLedgerLocked(context)
                 val store = ledgerStore(context)
                 var ledger = store.load()
@@ -345,11 +377,12 @@ class SafGrants private constructor() {
         @JvmStatic
         fun setWritable(context: Context?, tree: Uri?, writable: Boolean) {
             if (tree == null) return
-            if (!ledgerReady(context)) {
-                legacySetWritable(context, tree, writable)
-                return
-            }
             synchronized(LOCK) {
+                if (!ledgerReadyLocked(context)) {
+                    legacyGeneration++
+                    legacySetWritable(context, tree, writable)
+                    return
+                }
                 val store = ledgerStore(context)
                 val ledger = store.load()
                 val change = ledger.setUserWritable(tree.toString(), writable)
@@ -360,18 +393,9 @@ class SafGrants private constructor() {
         /** 清理 take/remember 间死亡或释放失败留下的记录；旧命名空间只读迁移。 */
         @JvmStatic
         fun cleanupPending(context: Context?) {
-            if (!ledgerReady(context)) {
-                synchronized(LOCK) { legacyCleanupPendingLocked(context) }
-                return
-            }
-            synchronized(LOCK) { cleanupLedgerLocked(context) }
-        }
-
-        /** 单独加锁判定账本就绪，调用方出锁后才走旧路径或账本清理。 */
-        @JvmStatic
-        private fun ledgerReady(context: Context?): Boolean {
             synchronized(LOCK) {
-                return ledgerReadyLocked(context)
+                if (ledgerReadyLocked(context)) cleanupLedgerLocked(context)
+                else legacyCleanupPendingLocked(context)
             }
         }
 
@@ -381,25 +405,24 @@ class SafGrants private constructor() {
         @Throws(SafTree.Failure::class)
         internal fun capabilitySnapshot(context: Context?, id: String?): SafGrantLedger {
             synchronized(LOCK) {
-                val lookup = lookup(context, id)
-                if (lookup.failure != null) throw SafTree.Failure(lookup.failure, null)
-                // 旧路径没有可验证 epoch；桥仍可回退，工作台浏览/预览/传输失败关闭。
-                val store = ledgerStore(context)
-                if (!store.initialized()) throw SafTree.Failure("STATE_UNAVAILABLE", null)
-                val ledger = store.load()
+                if (!ledgerReadyLocked(context)) {
+                    val lookup = legacyLookup(context, id)
+                    throw SafTree.Failure(lookup.failure ?: "STATE_UNAVAILABLE", null)
+                }
+                cleanupLedgerLocked(context)
+                val ledger = ledgerStore(context).load()
                 val record = ledger.findById(id)
-                val grant = lookup.grant
-                if (
-                    record == null ||
-                        record.state != SafGrantRecord.State.ACTIVE ||
-                        grant == null ||
-                        record.uri!! != grant.uri!!.toString() ||
-                        ownProvider(context, grant.uri)
-                ) {
+                if (record == null || record.state != SafGrantRecord.State.ACTIVE) {
                     throw SafTree.Failure("NO_GRANT", null)
                 }
-                val flags = (if (grant.readable) READ else 0) or if (grant.canWrite) WRITE else 0
-                return ledger.refreshSystemFlags(record.uri, flags).ledger
+                val uri = safeParseUri(record.uri)
+                if (uri == null || !documentsTree(uri) || ownProvider(context, uri)) {
+                    throw SafTree.Failure("NO_GRANT", null)
+                }
+                val persisted =
+                    persisted(context)
+                        ?: throw SafTree.Failure("PERMISSION_STATE_UNAVAILABLE", null)
+                return ledger.refreshSystemFlags(record.uri, flagsOf(persisted, uri)).ledger
             }
         }
 
@@ -415,7 +438,8 @@ class SafGrants private constructor() {
         private fun ledgerReadyLocked(context: Context?): Boolean {
             val store = ledgerStore(context)
             if (store.initialized()) return true
-            return store.save(migrateLegacyLocked(context))
+            // commit 的同步监听器可能已重入并完成迁移；失败回退前核对同一存储的已确认状态。
+            return store.save(migrateLegacyLocked(context)) || store.initialized()
         }
 
         /** 历史命名空间只读导入；超过上限的尾巴不迁移，旧数据保持原样。 */
@@ -537,16 +561,29 @@ class SafGrants private constructor() {
         }
 
         @JvmStatic
-        private fun cacheLedgerMetadata(
+        private fun cacheMetadata(
             context: Context?,
             value: String,
+            expectedEpoch: Long?,
+            expectedLegacyGeneration: Long,
             app: String?,
             label: String?,
         ) {
-            if ((app == null || app.isEmpty()) && (label == null || label.isEmpty())) return
+            if (app.isNullOrEmpty() && label.isNullOrEmpty()) return
             synchronized(LOCK) {
                 val store = ledgerStore(context)
-                val change = store.load().setMetadata(value, app, label)
+                if (expectedEpoch == null) {
+                    // 未迁移的同一旧代次才可补缓存；迁移后绝不回写已退休命名空间。
+                    if (store.initialized() || legacyGeneration != expectedLegacyGeneration) return
+                    cacheLabels(prefs(context), Uri.parse(value), app, label)
+                    return
+                }
+                if (!store.initialized()) return
+                val ledger = store.load()
+                val record = ledger.findByUri(value) ?: return
+                if (record.state != SafGrantRecord.State.ACTIVE || record.epoch != expectedEpoch)
+                    return
+                val change = ledger.setMetadata(value, app, label)
                 if (change.accepted()) store.save(change.ledger)
             }
         }
@@ -562,16 +599,16 @@ class SafGrants private constructor() {
         }
 
         @JvmStatic
-        private fun legacyListInternal(
-            context: Context?,
-            resolveMissingLabels: Boolean,
-        ): List<Grant> {
+        private fun legacyListLocked(context: Context?): List<Grant> {
             val persisted: List<UriPermission>?
             val saved: Set<String>
             val prefs = prefs(context)
             synchronized(LOCK) {
                 legacyCleanupPendingLocked(context)
-                saved = HashSet(prefs.getStringSet(KEY_URIS, HashSet<String>())!!)
+                saved =
+                    HashSet(prefs.getStringSet(KEY_URIS, HashSet<String>())!!).apply {
+                        removeAll(prefs.getStringSet(KEY_PENDING, HashSet<String>())!!)
+                    }
                 persisted = persisted(context)
             }
             val grants = ArrayList<Grant>()
@@ -584,17 +621,8 @@ class SafGrants private constructor() {
                 }
                 if (!documentsTree(uri)) continue
                 val flags = if (persisted == null) 0 else flagsOf(persisted, uri)
-                var app = prefs.getString(KEY_APP + uri, "")
-                var label = prefs.getString(KEY_LABEL + uri, "")
-                if (resolveMissingLabels && (app!!.isEmpty() || label!!.isEmpty())) {
-                    val freshApp = if (app!!.isEmpty()) appLabel(context, uri) else app
-                    val freshLabel = if (label!!.isEmpty()) documentLabel(context, uri) else label
-                    if (freshApp.isNotEmpty() || freshLabel!!.isNotEmpty()) {
-                        cacheLabels(prefs, uri, freshApp, freshLabel)
-                        if (app.isEmpty()) app = freshApp
-                        if (label.isEmpty()) label = freshLabel
-                    }
-                }
+                val app = prefs.getString(KEY_APP + uri, "")
+                val label = prefs.getString(KEY_LABEL + uri, "")
                 grants.add(grant(prefs, uri, flags, app, label))
             }
             grants.sortWith(compareBy { it.summary()!!.lowercase(Locale.ROOT) })
@@ -617,7 +645,10 @@ class SafGrants private constructor() {
             val saved: Set<String>
             synchronized(LOCK) {
                 legacyCleanupPendingLocked(context)
-                saved = HashSet(prefs.getStringSet(KEY_URIS, HashSet<String>())!!)
+                saved =
+                    HashSet(prefs.getStringSet(KEY_URIS, HashSet<String>())!!).apply {
+                        removeAll(prefs.getStringSet(KEY_PENDING, HashSet<String>())!!)
+                    }
                 persisted = persisted(context)
             }
             if (persisted == null) return Lookup(null, "PERMISSION_STATE_UNAVAILABLE")
@@ -653,13 +684,16 @@ class SafGrants private constructor() {
 
         /** 旧路径取持久授权，只记录和释放本功能新增的位。 */
         @JvmStatic
-        private fun legacyAdd(context: Context?, tree: Uri?, wantWrite: Boolean): AddResult {
+        private fun legacyAddLocked(context: Context?, tree: Uri?, wantWrite: Boolean): AddResult {
             if (!documentsTree(tree)) return AddResult.failed("NOT_TREE")
             if (ownProvider(context, tree)) return AddResult.failed("OWN_PROVIDER")
             val result: AddResult
             synchronized(LOCK) {
+                legacyGeneration++
                 legacyCleanupPendingLocked(context)
                 val prefs = prefs(context)
+                if (prefs.getStringSet(KEY_PENDING, HashSet<String>())!!.contains(tree.toString()))
+                    return AddResult.failed("STATE_UNAVAILABLE")
                 val saved = HashSet(prefs.getStringSet(KEY_URIS, HashSet<String>())!!)
                 if (!saved.contains(tree.toString()) && saved.size >= MAX_TREES) {
                     return AddResult.failed("LIMIT")
@@ -681,10 +715,13 @@ class SafGrants private constructor() {
                 ) {
                     return AddResult.failed("STATE_UNAVAILABLE")
                 }
-                var taken = takePersistable(resolver, tree, wantWrite)
+                var taken =
+                    takePersistable(resolver, tree, wantWrite)
+                        ?: return AddResult.failed("PERMISSION_STATE_UNAVAILABLE")
                 if (taken == 0) {
                     val now = persistedList(resolver)
-                    taken = if (now == null) 0 else flagsOf(now, tree)
+                    if (now == null) return AddResult.failed("PERMISSION_STATE_UNAVAILABLE")
+                    taken = flagsOf(now, tree)
                 }
                 if (taken == 0) {
                     clearPendingLocked(prefs, tree)
@@ -722,13 +759,6 @@ class SafGrants private constructor() {
                 if (!committed) return AddResult.failed("STATE_UNAVAILABLE")
                 result = AddResult(true, (taken and READ) != 0, writable, null)
             }
-            // Provider 查询在锁外做；界面在后台线程调用 add。
-            cacheLabels(
-                prefs(context),
-                tree!!,
-                appLabel(context, tree),
-                documentLabel(context, tree),
-            )
             return result
         }
 
@@ -737,8 +767,12 @@ class SafGrants private constructor() {
         private fun legacyForget(context: Context?, tree: Uri?) {
             if (tree == null) return
             synchronized(LOCK) {
+                legacyGeneration++
                 legacyCleanupPendingLocked(context)
                 val prefs = prefs(context)
+                // 清理失败保留原 before/intent，不用另一次移除覆盖在途授权的归属事实。
+                if (prefs.getStringSet(KEY_PENDING, HashSet<String>())!!.contains(tree.toString()))
+                    return
                 val acquired = parse(prefs.getString(KEY_ACQUIRED + tree, ""))
                 val released = releaseFlags(context!!.contentResolver, tree, acquired)
                 val saved = HashSet(prefs.getStringSet(KEY_URIS, HashSet<String>())!!)
@@ -810,7 +844,11 @@ class SafGrants private constructor() {
 
         /** 依次尝试读写一起、只读、只写，返回 take 后系统实际持有的位。 */
         @JvmStatic
-        private fun takePersistable(resolver: ContentResolver, tree: Uri, wantWrite: Boolean): Int {
+        private fun takePersistable(
+            resolver: ContentResolver,
+            tree: Uri,
+            wantWrite: Boolean,
+        ): Int? {
             val attempts =
                 if (wantWrite) intArrayOf(READ or WRITE, READ, WRITE) else intArrayOf(READ)
             for (attempt in attempts) {
@@ -820,7 +858,8 @@ class SafGrants private constructor() {
                     continue
                 }
                 val persisted = persistedList(resolver)
-                return if (persisted == null) attempt else flagsOf(persisted, tree)
+                // 请求位不是系统事实；复核不可读时保留 PENDING，既不激活也不重放 take。
+                return if (persisted == null) null else flagsOf(persisted, tree)
             }
             return 0
         }
@@ -831,6 +870,7 @@ class SafGrants private constructor() {
             val prefs = prefs(context)
             val pending = HashSet(prefs.getStringSet(KEY_PENDING, HashSet<String>())!!)
             if (pending.isEmpty()) return
+            legacyGeneration++
             val persisted = persisted(context) ?: return
             val resolver = context!!.contentResolver
             val saved = HashSet(prefs.getStringSet(KEY_URIS, HashSet<String>())!!)
