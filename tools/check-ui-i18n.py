@@ -11,6 +11,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+from source_layout import SourceLayout
 
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = ROOT / 'tools/i18n/ui-source-baseline.json'
@@ -57,14 +58,78 @@ def top_level_concat(values):
     return False
 
 
+def kotlin_tokens(source):
+    """保留 raw string / 模板字面量；嵌套注释不能吞掉后续显示调用。"""
+    result, at, line = [], 0, 1
+    while at < len(source):
+        start, token_line = at, line
+        if source.startswith('//', at):
+            end = source.find('\n', at + 2)
+            at = len(source) if end < 0 else end
+            continue
+        if source.startswith('/*', at):
+            depth = 1
+            at += 2
+            while at < len(source) and depth:
+                if source.startswith('/*', at):
+                    depth += 1
+                    at += 2
+                elif source.startswith('*/', at):
+                    depth -= 1
+                    at += 2
+                else:
+                    at += 1
+            line += source.count('\n', start, at)
+            continue
+        if source.startswith('"""', at):
+            end = source.find('"""', at + 3)
+            at = len(source) if end < 0 else end + 3
+        elif source[at] in ('"', "'", '`'):
+            quote = source[at]
+            at += 1
+            while at < len(source):
+                if source[at] == '\\' and quote != '`':
+                    at += 2
+                elif source[at] == quote:
+                    at += 1
+                    break
+                else:
+                    at += 1
+        elif source[at].isspace():
+            line += int(source[at] == '\n')
+            at += 1
+            continue
+        else:
+            identifier = re.match(r'[A-Za-z_$][\w$]*', source[at:])
+            at += len(identifier[0]) if identifier else 1
+        value = source[start:at]
+        result.append((value, token_line))
+        line += value.count('\n')
+    return result
+
+
 def java_findings(source):
-    tokens = java_tokens(source)
+    return source_findings(java_tokens(source))
+
+
+def kotlin_findings(source):
+    return source_findings(kotlin_tokens(source), kotlin=True)
+
+
+def source_findings(tokens, kotlin=False):
     values = [token[0] for token in tokens]
     results, dynamic = [], 0
+    direct_kind = 'kotlin_direct_display_literal' if kotlin else 'java_direct_display_literal'
+    # TextView/View 的 JavaBean 属性；业务记录的 message 不是显示方法调用。
+    properties = {'text', 'hint', 'contentDescription', 'title'}
     for index, (value, line) in enumerate(tokens):
+        if kotlin and value in properties and index and values[index - 1] == '.' \
+                and values[index + 1:index + 2] == ['='] \
+                and index + 2 < len(values) and chinese_literal(values[index + 2]):
+            results.append((direct_kind, value + '=' + values[index + 2], line))
         if value in DISPLAY and values[index + 1:index + 2] == ['(']:
             if index + 2 < len(values) and chinese_literal(values[index + 2]):
-                results.append(('java_direct_display_literal', value + '(' + values[index + 2], line))
+                results.append((direct_kind, value + '(' + values[index + 2], line))
         if value == 'makeText' and values[index + 1:index + 2] == ['(']:
             depth = 0
             for pos in range(index + 2, len(values)):
@@ -75,13 +140,16 @@ def java_findings(source):
                     depth -= 1
                 if current == ',' and depth == 0:
                     if pos + 1 < len(values) and chinese_literal(values[pos + 1]):
-                        results.append(('java_direct_display_literal', 'makeText(_, ' + values[pos + 1], line))
+                        results.append((direct_kind, 'makeText(_, ' + values[pos + 1], line))
                     break
         if value == 'UiText' and values[index + 1:index + 4] == ['.', 'text', '(']:
             if index + 4 >= len(values): continue
             argument = values[index + 4]
             if not argument.startswith('"'):
                 dynamic += 1
+            elif kotlin and chinese_literal(argument) and re.search(
+                    r'\$[A-Za-z_{]' if argument.startswith('"""') else r'(?<!\\)\$[A-Za-z_{]', argument):
+                results.append(('translated_template_literal', 'UiText.text(' + argument + ')', line))
             elif values[index + 5:index + 7] == [')', '+'] and chinese_literal(argument):
                 results.append(('translated_fragment_concat', 'UiText.text(' + argument + ')+', line))
         if value == 'UiText' and values[index + 1:index + 4] == ['.', 'choose', '(']:
@@ -108,23 +176,29 @@ def java_findings(source):
 
 def inventory(root):
     rows, dynamic = [], 0
-    for source_set in ('main', 'standard'):
-        source_root = root / 'app/src' / source_set
-        for path in sorted((source_root / 'java').rglob('*.java')):
-            content = path.read_bytes()
-            found, count = java_findings(content.decode('utf-8'))
-            dynamic += count
-            rows.extend({'kind': kind, 'file': path.relative_to(root).as_posix(),
-                         'signature': signature, 'line': line,
-                         'sourceSha256': hashlib.sha256(content).hexdigest()} for kind, signature, line in found)
-        for path in sorted((source_root / 'res').glob('layout*/*.xml')):
-            source = path.read_text(encoding='utf-8')
-            for match in XML_LITERAL.finditer(source):
-                value = match[3]
-                if not value or value.startswith(('@', '?')): continue
-                rows.append({'kind': 'xml_literal', 'file': path.relative_to(root).as_posix(),
-                             'signature': match[1] + '=' + value,
-                             'line': source.count('\n', 0, match.start()) + 1})
+    layout = SourceLayout(root)
+    for entry in layout.source_files(('main', 'standard'), suffixes=('.java', '.kt')):
+        path = entry.path
+        content = path.read_bytes()
+        scanner = kotlin_findings if path.suffix == '.kt' else java_findings
+        found, count = scanner(content.decode('utf-8'))
+        dynamic += count
+        rows.extend({'kind': kind, 'file': entry.relative,
+                     'signature': signature, 'line': line,
+                     'sourceSha256': hashlib.sha256(content).hexdigest()} for kind, signature, line in found)
+    for module in layout.modules:
+        for source_set in ('main', 'standard'):
+            if source_set not in module['sourceSets']:
+                continue
+            source_root = root / module['directory'] / 'src' / source_set
+            for path in sorted((source_root / 'res').glob('layout*/*.xml')):
+                source = path.read_text(encoding='utf-8')
+                for match in XML_LITERAL.finditer(source):
+                    value = match[3]
+                    if not value or value.startswith(('@', '?')): continue
+                    rows.append({'kind': 'xml_literal', 'file': path.relative_to(root).as_posix(),
+                                 'signature': match[1] + '=' + value,
+                                 'line': source.count('\n', 0, match.start()) + 1})
     return rows, dynamic
 
 
