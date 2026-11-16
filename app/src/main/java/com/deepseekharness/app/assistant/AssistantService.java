@@ -15,7 +15,6 @@ import android.os.SystemClock;
 import com.deepseekharness.app.control.PhoneControlCoordinator;
 import com.deepseekharness.app.control.ControlTaskAuthority;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -23,7 +22,7 @@ import org.json.JSONObject;
 
 /** Keeps local conversation status, native confirmations, and Stop available during phone tools. */
 public final class AssistantService extends Service {
-  private record Pending(
+  record Pending(
       AssistantBinding binding,
       AssistantBackend backend,
       Runnable ready,
@@ -54,12 +53,16 @@ public final class AssistantService extends Service {
     }
   }
 
-  private static final ConcurrentHashMap<String, Pending> pending = new ConcurrentHashMap<>();
+  private AssistantWindowOwner owner;
   private AssistantSessionController controller;
   private volatile AssistantWindow window;
   private AssistantConfirmationWindow confirmations;
   static final String REPLY_KEY = "dsha_assistant_reply";
-  private static volatile AssistantService live;
+
+  private static AssistantService live(Context context) {
+    return AssistantWindowOwner.from(context).service();
+  }
+
   private PendingIntent stopAction;
   private Notification taskNotification;
   private volatile boolean stopAccessArmed;
@@ -71,7 +74,8 @@ public final class AssistantService extends Service {
       };
 
   static void nativeEditorVisible(boolean visible) {
-    AssistantService service = live;
+    AssistantWindowOwner owner = AssistantWindowOwner.legacy();
+    AssistantService service = owner == null ? null : owner.service();
     if (service != null && service.window != null) service.window.setEditorVisible(visible);
   }
 
@@ -149,22 +153,25 @@ public final class AssistantService extends Service {
         new AtomicReference<>(refused("ASSISTANT_UI_UNAVAILABLE"));
     long expiresAt = SystemClock.elapsedRealtime() + 3000;
     String key = UUID.randomUUID().toString();
-    pending.put(
-        key,
-        new Pending(
-            binding,
-            backend,
-            () -> {
-              if (matchesTask(AssistantSessionController.active(), binding, turnId)
-                  && live != null
-                  && live.window != null
-                  && stopNotificationAvailable(context)
-                  && live.window.taskUiAvailable()) outcome.set(new TaskUiResult(true, "READY"));
-              ready.countDown();
-            },
-            turnId,
-            expiresAt,
-            nativeTask));
+    AssistantWindowOwner.from(context)
+        .pending()
+        .put(
+            key,
+            new Pending(
+                binding,
+                backend,
+                () -> {
+                  if (matchesTask(AssistantSessionController.active(), binding, turnId)
+                      && live(context) != null
+                      && live(context).window != null
+                      && stopNotificationAvailable(context)
+                      && live(context).window.taskUiAvailable())
+                    outcome.set(new TaskUiResult(true, "READY"));
+                  ready.countDown();
+                },
+                turnId,
+                expiresAt,
+                nativeTask));
     try {
       startBinding(context, key);
       if (ready.await(3, TimeUnit.SECONDS)) {
@@ -175,7 +182,7 @@ public final class AssistantService extends Service {
           while (stopNotificationAvailable(context)
               && !postedStopNotification(context)
               && System.nanoTime() < postedBy) Thread.sleep(10);
-          AssistantService service = live;
+          AssistantService service = live(context);
           if (service != null) service.stopAccessArmed = true;
         }
         if (!stopChannelCurrent(context, nativeTask)
@@ -188,7 +195,7 @@ public final class AssistantService extends Service {
     } catch (RuntimeException unavailable) {
       return refused("ASSISTANT_UI_UNAVAILABLE");
     } finally {
-      pending.remove(key);
+      AssistantWindowOwner.from(context).pending().remove(key);
     }
     return refused("ASSISTANT_UI_UNAVAILABLE");
   }
@@ -231,7 +238,7 @@ public final class AssistantService extends Service {
   }
 
   private static boolean postedStopNotification(Context context) {
-    AssistantService service = live;
+    AssistantService service = live(context);
     if (service == null || service.stopAction == null) return false;
     try {
       NotificationManager manager = context.getSystemService(NotificationManager.class);
@@ -259,7 +266,7 @@ public final class AssistantService extends Service {
 
   /** Also used in final input validity checks, so revocation while confirming cannot admit input. */
   public static boolean stopChannelCurrent(Context context, ControlTaskAuthority.Binding task) {
-    AssistantService current = live;
+    AssistantService current = live(context);
     boolean postedRequired =
         current != null
             && current.stopAccessArmed
@@ -276,7 +283,7 @@ public final class AssistantService extends Service {
         coordinator.pause("ASSISTANT_STOP_NOTIFICATION_REQUIRED");
       Runnable restore =
           () -> {
-            AssistantService service = live;
+            AssistantService service = live(context);
             if (service != null
                 && service.controller != null
                 && service.window != null
@@ -313,7 +320,7 @@ public final class AssistantService extends Service {
             () -> {
               try {
                 if (SystemClock.elapsedRealtime() >= expiresAt) return;
-                AssistantService service = live;
+                AssistantService service = live(context);
                 if (service == null
                     || service.window == null
                     || service.controller == null
@@ -358,8 +365,9 @@ public final class AssistantService extends Service {
    * A canceled turn may still have a user-visible local pause. Keep that exact task attached so
    * the user can press Continue; a normal completed turn remains eligible for retirement.
    */
-  private static boolean retainLocalTaskAfterTurnEnd(ControlTaskAuthority.Binding task) {
-    AssistantService service = live;
+  private static boolean retainLocalTaskAfterTurnEnd(
+      Context context, ControlTaskAuthority.Binding task) {
+    AssistantService service = live(context);
     if (service == null || service.controller == null || !service.controller.ownsTask(task))
       return false;
     var state = service.controller.snapshot();
@@ -373,19 +381,19 @@ public final class AssistantService extends Service {
     new android.os.Handler(android.os.Looper.getMainLooper())
         .post(
             () -> {
-              AssistantService service = live;
+              AssistantService service = live(context);
               if (service == null
                   || service.controller == null
                   || !service.controller.ownsTask(task)) return;
               // Recheck on the UI thread: expansion may race the turn-end callback after the
               // worker-side decision. A user-visible pause must never be closed by stale cleanup.
-              if (retainLocalTaskAfterTurnEnd(task)) return;
+              if (retainLocalTaskAfterTurnEnd(context, task)) return;
               if (service.controller.snapshot().expanded()) {
                 // 面板展开时本轮结束：等用户收起后再关窗，窗口不在手指下消失。
                 service.controller.deferFinishUntilCollapsed(() -> finishLocalTask(context, task));
                 return;
               }
-              if (service.window != null) service.window.close();
+              service.owner.closeSurface(service);
               service.controller.detachFinishedTask();
               service.stopSelf();
             });
@@ -444,7 +452,7 @@ public final class AssistantService extends Service {
 
   private static void offerOverlayPermission(Context context) {
     // Revoking overlay permission must not replace an active task's stop notification.
-    if (live != null) return;
+    if (live(context) != null) return;
     try {
       NotificationManager manager = context.getSystemService(NotificationManager.class);
       if (Build.VERSION.SDK_INT >= 26)
@@ -494,7 +502,9 @@ public final class AssistantService extends Service {
   public static void bind(
       Context context, AssistantBinding binding, AssistantBackend backend, Runnable ready) {
     String key = UUID.randomUUID().toString();
-    pending.put(key, new Pending(binding, backend, ready, null, 0, null));
+    AssistantWindowOwner.from(context)
+        .pending()
+        .put(key, new Pending(binding, backend, ready, null, 0, null));
     startBinding(context, key);
   }
 
@@ -504,7 +514,7 @@ public final class AssistantService extends Service {
       if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent);
       else context.startService(intent);
     } catch (RuntimeException failure) {
-      pending.remove(key);
+      AssistantWindowOwner.from(context).pending().remove(key);
       throw failure;
     }
   }
@@ -519,7 +529,8 @@ public final class AssistantService extends Service {
   @Override
   public void onCreate() {
     super.onCreate();
-    live = this;
+    owner = AssistantWindowOwner.from(this);
+    owner.attach(this);
     var manager = getSystemService(NotificationManager.class);
     if (Build.VERSION.SDK_INT >= 26)
       manager.createNotificationChannel(
@@ -617,7 +628,7 @@ public final class AssistantService extends Service {
       return START_NOT_STICKY;
     }
     String key = intent.getStringExtra("binding");
-    Pending selection = key == null ? null : pending.remove(key);
+    Pending selection = key == null ? null : owner.pending().remove(key);
     if (selection == null) {
       if (controller == null) stopSelf();
       return START_NOT_STICKY;
@@ -652,15 +663,13 @@ public final class AssistantService extends Service {
                   taskNotification);
         if (controller.followVerifiedTask(selection.verifiedTurn)
             && (window == null || !window.taskUiAvailable())) {
-          if (window != null) window.close();
-          window = new AssistantWindow(this, controller);
-          window.show();
+          window = owner.showSurface(this, controller);
         }
         selection.ready.run();
         return START_NOT_STICKY;
       }
     }
-    if (window != null) window.close();
+    owner.closeSurface(this);
     if (controller != null) controller.close();
     controller =
         new AssistantSessionController(
@@ -670,20 +679,23 @@ public final class AssistantService extends Service {
       getSystemService(NotificationManager.class)
           .notify(
               com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT, taskNotification);
-    com.deepseekharness.app.OverlayController.teardown(this);
-    window = new AssistantWindow(this, controller);
-    window.show();
+    window = owner.showSurface(this, controller);
     selection.ready.run();
     return START_NOT_STICKY;
   }
 
+  void retirePresentation() {
+    owner.closeSurface(this);
+    if (window != null) window.close();
+    if (confirmations != null) confirmations.close();
+  }
+
   @Override
   public void onDestroy() {
-    if (live == this) live = null;
-    if (window != null) window.close();
-    if (controller != null) controller.close();
-    if (confirmations != null) confirmations.close();
-    PhoneControlCoordinator.get(this).setConfirmationHandler(null);
+    boolean current = owner.release(this);
+    retirePresentation();
+    if (current && controller != null) controller.close();
+    if (current) PhoneControlCoordinator.get(this).setConfirmationHandler(null);
     super.onDestroy();
   }
 

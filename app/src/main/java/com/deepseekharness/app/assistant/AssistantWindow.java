@@ -57,6 +57,7 @@ final class AssistantWindow implements AutoCloseable {
   private Button notificationSettingsButton;
   private WindowManager.LayoutParams params;
   private volatile boolean added;
+  private boolean closed;
   private boolean renderedExpanded;
   private long draftRevision = -1;
   private boolean editorVisible;
@@ -101,6 +102,7 @@ final class AssistantWindow implements AutoCloseable {
 
   /** Remove the actual input window before observing pixels; polling never recreates it. */
   boolean hideForScreen() {
+    if (closed) throw new IllegalStateException("ASSISTANT_UI_UNAVAILABLE");
     if (controller.snapshot().expanded() || editorVisible)
       throw new IllegalStateException("ASSISTANT_LOCAL_RESUME_REQUIRED");
     if (hiddenForScreen || userHidden) return false;
@@ -115,6 +117,7 @@ final class AssistantWindow implements AutoCloseable {
 
   /** Losing the stop notification restores explicit native controls, even after a user hide. */
   void restoreStopControls() {
+    if (closed) return;
     stopControlsRequired = true;
     if (!added && (hiddenForScreen || userHidden) && !editorVisible && canAdd()) {
       try {
@@ -132,6 +135,7 @@ final class AssistantWindow implements AutoCloseable {
 
   /** ✕：隐藏悬浮窗，任务继续；通知栏仍有回复、显示悬浮窗与停止。 */
   void hideByUser() {
+    if (closed) return;
     stopInlineInput(true);
     menuOpen = false;
     controller.collapse();
@@ -164,7 +168,7 @@ final class AssistantWindow implements AutoCloseable {
   }
 
   private boolean canAdd() {
-    return Settings.canDrawOverlays(context);
+    return !closed && Settings.canDrawOverlays(context);
   }
 
   AssistantWindow(Context context, AssistantSessionController controller) {
@@ -660,6 +664,7 @@ final class AssistantWindow implements AutoCloseable {
   }
 
   private void render() {
+    if (closed) return;
     if (!added) return;
     var state = controller.snapshot();
     boolean expanded = state.expanded();
@@ -754,6 +759,7 @@ final class AssistantWindow implements AutoCloseable {
   }
 
   void setEditorVisible(boolean visible) {
+    if (closed) return;
     editorVisible = visible;
     if (!added) return;
     root.clearFocus();
@@ -811,6 +817,7 @@ final class AssistantWindow implements AutoCloseable {
   }
 
   private void publish() {
+    if (closed) return;
     if (editorVisible) {
       OwnedScreenOverlay.clear("assistant");
       return;
@@ -844,6 +851,8 @@ final class AssistantWindow implements AutoCloseable {
 
   @Override
   public void close() {
+    if (closed) return;
+    closed = true;
     stopInlineInput(true);
     controller.removeListener(changed);
     OwnedScreenOverlay.clear("assistant");

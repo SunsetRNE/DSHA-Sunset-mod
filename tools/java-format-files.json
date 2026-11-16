@@ -96,6 +96,7 @@
     "app/src/main/java/com/deepseekharness/app/assistant/AssistantTaskAttachment.java",
     "app/src/main/java/com/deepseekharness/app/assistant/AssistantVoiceActivity.java",
     "app/src/main/java/com/deepseekharness/app/assistant/AssistantWindow.java",
+    "app/src/main/java/com/deepseekharness/app/assistant/AssistantWindowOwner.java",
     "app/src/main/java/com/deepseekharness/app/assistant/LocalAssistantBackend.java",
     "app/src/main/java/com/deepseekharness/app/backup/AndroidBackupFileSystem.java",
     "app/src/main/java/com/deepseekharness/app/backup/AndroidTreeFileSystem.java",
