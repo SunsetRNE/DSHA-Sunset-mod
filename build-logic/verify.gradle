@@ -72,8 +72,11 @@ tasks.register('verifyDshaBuildConventions') {
                     throw new GradleException("DSHA_RESOURCE_SOURCE_ROOT: ${resourceModule.path} ${sourceSetName}/${resourceKind} -> ${resourceRoot}")
             }
         }
+        // 合法仓库外夹具仍受完整的 SDK/JVM/Test/资源约定审计；仅严格空分组没有这些选项。
+        // 产品集合与生产依赖边继续单独使用 products，夹具不能变成产品或放宽边界。
+        def auditedModules = modules.findAll { !groups.contains(it.path) }
         def checked = []
-        products.each { module ->
+        auditedModules.each { module ->
             if (!module.ext.has('dshaBuildConvention'))
                 throw new GradleException("DSHA_MODULE_CONVENTION_MISSING: ${module.path}")
             def kind = module.ext.dshaBuildConvention
