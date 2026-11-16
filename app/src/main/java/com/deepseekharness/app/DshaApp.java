@@ -54,6 +54,13 @@ public class DshaApp extends Application
     return com.deepseekharness.app.ui.MainActivity.homeIntent(this);
   }
 
+  private final com.deepseekharness.app.assistant.AssistantWindowOwner assistantWindowOwner =
+      new com.deepseekharness.app.assistant.AssistantWindowOwner();
+
+  public com.deepseekharness.app.assistant.AssistantWindowOwner assistantWindowOwner() {
+    return assistantWindowOwner;
+  }
+
   private final com.deepseekharness.app.util.ApplicationServiceSlot<HarnessService> harnessService =
       new com.deepseekharness.app.util.ApplicationServiceSlot<>();
 

@@ -168,12 +168,16 @@ final class AssistantConfirmationWindow implements AutoCloseable {
                   PixelFormat.TRANSLUCENT);
           params.gravity = Gravity.TOP;
           params.y = 90;
-          view.addOnLayoutChangeListener(
-              (v, l, t, r, b, ol, ot, or, ob) ->
-                  AssistantWindow.publish(view, "assistant-confirm", false));
+          LinearLayout publishedView = view;
+          Runnable publish =
+              () -> {
+                if (!closed && active == pending && sequence == stamp && view == publishedView)
+                  AssistantWindow.publish(publishedView, "assistant-confirm", false);
+              };
+          view.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> publish.run());
           try {
             manager.addView(view, params);
-            view.post(() -> AssistantWindow.publish(view, "assistant-confirm", false));
+            view.post(publish);
           } catch (RuntimeException denied) {
             finish(null);
             return;
@@ -210,6 +214,7 @@ final class AssistantConfirmationWindow implements AutoCloseable {
   }
 
   private void finish(Boolean approved, boolean rememberTurn) {
+    if (active == null && view == null) return;
     ++sequence;
     Pending pending = active;
     active = null;
@@ -228,6 +233,7 @@ final class AssistantConfirmationWindow implements AutoCloseable {
   @Override
   public void close() {
     closed = true;
-    main.post(() -> finish(null));
+    if (Looper.myLooper() == Looper.getMainLooper()) finish(null);
+    else main.post(() -> finish(null));
   }
 }

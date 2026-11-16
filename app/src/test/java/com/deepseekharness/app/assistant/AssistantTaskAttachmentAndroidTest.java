@@ -226,6 +226,113 @@ public final class AssistantTaskAttachmentAndroidTest {
     }
   }
 
+  @Test
+  public void applicationWindowOwnerSurvivesContextWrappersAndPredecessorClose() throws Exception {
+    var owner = AssistantWindowOwner.from(app);
+    assertSame(owner, AssistantWindowOwner.from(new android.content.ContextWrapper(app)));
+    var firstHost = new Host(address("owner-first-same1234"), "17");
+    var first = new AssistantSessionController(app, firstHost.binding, firstHost, "17");
+    var nextHost = new Host(address("owner-next-same1234"), "18");
+    var next = new AssistantSessionController(app, nextHost.binding, nextHost, "18");
+    try {
+      assertSame(next, owner.current());
+      assertSame(next, AssistantSessionController.active());
+      first.close();
+      assertSame(next, owner.current());
+      var coordinator = PhoneControlCoordinator.get(app);
+      coordinator.begin(task(nextHost, "18"));
+      coordinator.pause("TEST_CURRENT_OWNER");
+      drain(next);
+      assertEquals(List.of("18"), nextHost.cancelledTurns);
+    } finally {
+      first.close();
+      next.detachFinishedTask();
+    }
+    assertNull(owner.current());
+  }
+
+  @Test
+  public void destroyedPredecessorServiceCannotDetachReplacementWindowOrConfirmations()
+      throws Exception {
+    var firstHost = new Host(address("service-first"), "17");
+    AssistantService.bind(app, firstHost.binding, firstHost);
+    var first = dispatchService();
+    var nextHost = new Host(address("service-next"), "18");
+    AssistantService.bind(app, nextHost.binding, nextHost);
+    var next = dispatchService();
+    var owner = AssistantWindowOwner.from(app);
+    var selected = owner.current();
+    assertEquals(nextHost.binding, selected.snapshot().binding());
+    var confirmations = PhoneControlCoordinator.get(app).confirmationHandler();
+    assertNotNull(confirmations);
+    var bounds = new com.deepseekharness.app.util.ScreenWindowRegion.Bounds(1, 2, 30, 40);
+    // 受控几何登记夹具：迟到清理不得只按共享 owner 字符串擦除后继登记。
+    com.deepseekharness.app.control.OwnedScreenOverlay.publish("assistant", 901, bounds, false);
+    com.deepseekharness.app.control.OwnedScreenOverlay.publish(
+        "assistant-confirm", 902, bounds, false);
+    try {
+      first.destroy();
+      services.remove(first);
+      Shadow.<ShadowLooper>extract(Looper.getMainLooper()).idle();
+      assertSame(selected, owner.current());
+      assertSame(next.get(), owner.service());
+      assertSame(confirmations, PhoneControlCoordinator.get(app).confirmationHandler());
+      assertTrue(owner.isCurrent(selected));
+      assertNotNull(com.deepseekharness.app.control.OwnedScreenOverlay.match(901, bounds, true));
+      assertNotNull(com.deepseekharness.app.control.OwnedScreenOverlay.match(902, bounds, true));
+      Field windowField = AssistantService.class.getDeclaredField("window");
+      windowField.setAccessible(true);
+      assertTrue(((AssistantWindow) windowField.get(next.get())).visible());
+    } finally {
+      com.deepseekharness.app.control.OwnedScreenOverlay.clear("assistant");
+      com.deepseekharness.app.control.OwnedScreenOverlay.clear("assistant-confirm");
+    }
+  }
+
+  @Test
+  public void capturedCancellationCannotBeRetargetedToTheNextControllerTurn() throws Exception {
+    var firstHost = new Host(address("same-session-cancellation"), "17");
+    firstHost.status.put("running", false);
+    var first = new AssistantSessionController(app, firstHost.binding, firstHost);
+    drain(first);
+    var owner = AssistantWindowOwner.from(app);
+    var captured = owner.cancellationFor(first);
+    var nextHost = new Host(firstHost.binding, "18");
+    var next = new AssistantSessionController(app, nextHost.binding, nextHost, "18");
+    try {
+      captured.accept(task(firstHost, "17"));
+      drain(next);
+      assertTrue(firstHost.cancelledTurns.isEmpty());
+      assertTrue(nextHost.cancelledTurns.isEmpty());
+      next.stop();
+      drain(next);
+      assertEquals(List.of("18"), nextHost.cancelledTurns);
+    } finally {
+      first.detachFinishedTask();
+      next.detachFinishedTask();
+    }
+  }
+
+  @Test
+  public void capturedCancellationForPreviousTurnCannotPoisonTheSameController() throws Exception {
+    var host = new Host(address("same-controller-cancellation"), "17");
+    var selected = new AssistantSessionController(app, host.binding, host, "17");
+    try {
+      drain(selected);
+      var captured = AssistantWindowOwner.from(app).cancellationFor(selected);
+      host.status = new JSONObject(host.status.toString()).put("turnId", "18");
+      assertTrue(selected.followVerifiedTask("18"));
+      captured.accept(task(host, "17"));
+      drain(selected);
+      assertTrue(host.cancelledTurns.isEmpty());
+      selected.stop();
+      drain(selected);
+      assertEquals(List.of("18"), host.cancelledTurns);
+    } finally {
+      selected.detachFinishedTask();
+    }
+  }
+
   @Before
   public void before() {
     app = (App) RuntimeEnvironment.getApplication();

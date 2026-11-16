@@ -30,11 +30,13 @@ public final class AssistantSessionController implements AutoCloseable {
       boolean terminalKnown,
       boolean paused) {}
 
-  private static volatile AssistantSessionController active;
-
+  /** 兼容原 Java 静态调用；唯一选中状态由 Application 持有。 */
   public static AssistantSessionController active() {
-    return active;
+    AssistantWindowOwner owner = AssistantWindowOwner.legacy();
+    return owner == null ? null : owner.current();
   }
+
+  private final AssistantWindowOwner owner;
 
   private final AssistantBinding binding;
   private final AssistantBackend backend;
@@ -68,12 +70,15 @@ public final class AssistantSessionController implements AutoCloseable {
     this.binding = binding;
     this.backend = backend;
     if (verifiedTurn != null) state.observed(true, verifiedTurn, binding.sessionId());
+    owner = AssistantWindowOwner.from(context);
     fence = PhoneControlCoordinator.get(context);
-    AssistantSessionController previous = active;
-    if (previous != null) previous.close();
-    active = this;
-    fence.setTurnCancellation(cancelled);
-    worker.scheduleWithFixedDelay(this::poll, 0, 900, TimeUnit.MILLISECONDS);
+    owner.select(
+        this,
+        cancelled,
+        () -> {
+          fence.setTurnCancellation(owner.cancellationFor(this));
+          worker.scheduleWithFixedDelay(this::poll, 0, 900, TimeUnit.MILLISECONDS);
+        });
   }
 
   /** Only the tool attachment path calls this after an exact live Host status receipt. */
@@ -411,8 +416,9 @@ public final class AssistantSessionController implements AutoCloseable {
   private void poll() {
     final PollObservation observed;
     synchronized (this) {
-      if (closed || active != this || state.phase() == AssistantSessionState.Phase.DISCONNECTED)
-        return;
+      if (closed
+          || !owner.isCurrent(this)
+          || state.phase() == AssistantSessionState.Phase.DISCONNECTED) return;
       try {
         observed = new PollObservation(pollRevision, state.turnId(), state.taskId(), args());
       } catch (org.json.JSONException invalid) {
@@ -481,7 +487,7 @@ public final class AssistantSessionController implements AutoCloseable {
   /** Called only under this monitor, also shared with followVerifiedTask/send/close. */
   private boolean pollCurrent(PollObservation observed) {
     return !closed
-        && active == this
+        && owner.isCurrent(this)
         && pollRevision == observed.revision()
         && state.turnId().equals(observed.turnId())
         && state.taskId().equals(observed.taskId());
@@ -566,9 +572,7 @@ public final class AssistantSessionController implements AutoCloseable {
     closed = true;
     worker.shutdown();
     listeners.clear();
-    if (active == this) {
-      active = null;
-      fence.setTurnCancellation(null);
-    }
+    // 围栏只持有应用所有者的派发器；退休后不再引用旧 controller，也不清掉后继回调。
+    owner.release(this);
   }
 }
