@@ -78,7 +78,13 @@ bridge run 身份判据逐条保留。没有修改实体屏/虚拟屏凭据实�
 
 ## 4. 真实编译与测试（本机实测）
 
-本机 aarch64，JDK 17.0.21；K2JVMCompiler 2.2.10 + javac 17，目标字节码 17。
+本机 aarch64，JDK 17.0.21；K2JVMCompiler 2.2.10 + javac 17，目标字节码 17。以下编译与测试在
+`01da530afcd0810d65cd9c03c8ec0cae397f6987` 的干净工作树上执行；本回执的后续文档提交只改文档，
+不把文档提交冒称被测源码 HEAD。
+
+源码 SHA-256：`CapabilityBroker.kt fb3d6225…`、`CapabilityRequest.kt 1d902cc0…`、
+`CapabilityResult.kt 39a81ef9…`、`ScreenTargetEvidence.kt d107ea89…`、`TargetEvidence.kt dd307b38…`、
+`WindowTargetEvidence.kt 30577f4c…`、`CapabilityBrokerContractTest.java 32790290…`。
 
 | 阶段 | 实际输入/结果 |
 |---|---|
