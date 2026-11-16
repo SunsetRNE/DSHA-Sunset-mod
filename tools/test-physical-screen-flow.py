@@ -26,6 +26,7 @@ def main():
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--android-jar', type=Path, help='Current compile SDK android.jar, before cached runtime Android stubs')
     parser.add_argument('--resource-jar', type=Path, help='Current flavor R.jar; otherwise inferred beside production classes')
+    parser.add_argument('--kotlin-classes', type=Path, help='Current built-in Kotlin classes; otherwise inferred beside production classes')
     parser.add_argument('--compile-timeout', type=int, default=120, help='Compiler deadline on the shared Windows host')
     parser.add_argument('--junit-timeout', type=int, default=120, help='Physical fixture deadline on the shared Windows host')
     args = parser.parse_args()
@@ -41,12 +42,19 @@ def main():
         raise RuntimeError('OFFLINE_CACHED_DEPENDENCIES_REQUIRED')
     if not args.production_classes.is_dir():
         raise RuntimeError('CURRENT_PRODUCTION_CLASSES_REQUIRED')
+    flavor = args.production_classes.parent.parent.name
     resource = args.resource_jar
     if resource is None:
-        flavor = args.production_classes.parent.parent.name
         resource = args.production_classes.parents[3] / 'compile_and_runtime_r_class_jar' / flavor / ('process' + flavor[0].upper() + flavor[1:] + 'Resources') / 'R.jar'
     if not resource.is_file():
         raise RuntimeError('CURRENT_FLAVOR_RESOURCE_JAR_REQUIRED')
+    kotlin = args.kotlin_classes
+    if kotlin is None:
+        kotlin = args.production_classes.parents[3] / 'built_in_kotlinc' / flavor / ('compile' + flavor[0].upper() + flavor[1:] + 'Kotlin') / 'classes'
+    # 能力层已迁移 Kotlin：Java 消费方从 Kotlin 编译产物解析，必须显式绑定同一构建。
+    if not kotlin.is_dir() or not (kotlin / 'com/deepseekharness/app/capabilities/CapabilityBroker.class').is_file() \
+            or not (kotlin / 'com/deepseekharness/app/capabilities/CapabilityRequest.class').is_file():
+        raise RuntimeError('CURRENT_KOTLIN_CLASSES_REQUIRED')
     output = args.out.resolve()
     output.mkdir(parents=True, exist_ok=False)
     classes = output / 'classes'
@@ -55,7 +63,6 @@ def main():
     empty.mkdir()
     main = ROOT / 'app/src/main/java/com/deepseekharness/app'
     sources = list((main / 'screen').glob('*.java'))
-    sources += list((main / 'capabilities').glob('*.java'))
     sources += list((main / 'control').glob('*.java'))
     sources += [main / 'core/ScreenRuntimeIdentity.java']
     sources += [main / 'DshaAccessibilityService.java', main / 'HttpShellService.java', main / 'core/RuntimeSnapshot.java']
@@ -68,10 +75,13 @@ def main():
              'CredentialPaths', 'LanPortPolicy']
     sources += [main / ('util/' + name + '.java') for name in names]
     sources.append(ROOT / 'tools/fixtures/physical-screen/com/deepseekharness/app/screen/PhysicalScreenFlowTest.java')
-    inputs = sources + [ROOT / ('app/src/main/assets/builtin-plugins/dsh-computer-use-android/lib/' + name)
-                        for name in ['server.cjs', 'bridge-port.cjs']]
+    inputs = sources + [main / 'capabilities' / (name + '.kt')
+                        for name in ['CapabilityBroker', 'CapabilityRequest', 'CapabilityResult',
+                                     'ScreenTargetEvidence', 'TargetEvidence', 'WindowTargetEvidence']]
+    inputs += [ROOT / ('app/src/main/assets/builtin-plugins/dsh-computer-use-android/lib/' + name)
+               for name in ['server.cjs', 'bridge-port.cjs']]
     before = {str(path.relative_to(ROOT)): digest(path) for path in inputs}
-    cp = os.pathsep.join(map(str, [*([args.android_jar] if args.android_jar else []), resource, args.production_classes, *dependencies]))
+    cp = os.pathsep.join(map(str, [*([args.android_jar] if args.android_jar else []), resource, args.production_classes, kotlin, *dependencies]))
     jdk = Path(os.environ['JAVA_HOME']) / 'bin'
     ext = '.exe' if os.name == 'nt' else ''
     compile_args = ['-encoding', 'UTF-8', '-source', '17', '-target', '17', '-proc:none',
