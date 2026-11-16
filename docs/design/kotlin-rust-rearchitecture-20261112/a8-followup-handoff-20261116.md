@@ -33,7 +33,7 @@
 | `de5c1fbd` | OPEN 正文从 Kotlin 导航协作者构造并在 Activity 接收端复核已发布票据的完整地址、当前 service/controller/turn/epoch；旧票据结束入口，不回退到当前选中会话。Activity 重建/onNewIntent、旧视图回调和输入呈现交接均绑定原对象/视图代次。 |
 | `88a1ad48` | 在同一 controller monitor 内复核 OPEN 编辑器动作；Send 复用已有 `sendFromNotification`，Continue 加同等冻结入口，排队期间换轮不派发到后继。旧 pause 只有仍持当前输入呈现且原通知有效时才 collapse，不消费后继 deferredFinish；输入来源按 Activity 实例区分，旧释放不放开后继输入闸。语音接收端继承同一 OPEN 地址，迟到启动/权限回调/识别结果不得写新轮草稿。 |
 
-第三项修补已写入待提交 diff：Voice 对本次识别结果在 finish/stop/destroy 时失效、按原 OPEN 和输入来源一次消费；showBound/onResume 的最终呈现发布在 controller monitor 内重新核对；Continue 排队夹具通过真实 worker/poll 的 idle 回执推进，不依赖 900ms 周期。新增同 turn 语音停止后旧结果、重复识别结果反例。完整增量静态复审结论 **APPROVE**，没有剩余明确 P1/P2；复审未运行 JVM/Gradle，不等于编译或测试通过。当前 main 排定 T9→本树格式/第三提交→main 身份/app/P3 验证的串行槽位，第三提交 SHA 将在获得格式槽后补记。
+第三项修补已提交为 **`9cb67d5100851799a7fcc2c9b4759a11bab3b0c0`**：Voice 对本次识别结果在 finish/stop/destroy 时失效、按原 OPEN 和输入来源一次消费；showBound/onResume 的最终呈现发布在 controller monitor 内重新核对；Continue 排队夹具通过真实 worker/poll 的 idle 回执推进，不依赖 900ms 周期。新增同 turn 语音停止后旧结果、重复识别结果反例。完整增量静态复审结论 **APPROVE**，没有剩余明确 P1/P2；复审不等于编译或测试通过。main 已在 T9 交还后提供独占格式槽：两 Java/一 Kotlin 的 write/check 均 0 changed、exit0，第三修补提交后立即交还，没有串接全树编译或测试。main 将按届时最新主线（包括其协调的 T7 合入）与本业务 SHA 接入 P3，统一生成身份后执行实际 app 验证；`88a1ad48` 只作历史点。
 
 新职责在 [Kotlin 导航协作者](../../../app/src/main/java/com/deepseekharness/app/assistant/AssistantNotificationNavigation.kt) 中，现有 Java Service/Activity/controller 只接入已有平台或发送职责。没有第二个任务 owner、后台连接、默认最近会话、自动 begin 或未知动作重放。
 
@@ -47,7 +47,7 @@
 |---|---|
 | 新增测试可发现性 | `unit_test_contract.py plan` 已实际枚举新 Kotlin 类的 21 方法；相对 build369 源计划，测试源 **796→798**、声明身份 **5,306→5,346**，新增 40（原 P2 新增 19、本次 21）、丢失 0；原测试未改名/过滤/Ignore，冻结基线未重写 |
 | 工程门禁 | 接收原链后 Java 全树 1,778 文件、Kotlin 全树 88 文件格式通过；i18n 26 项、扫描 newFindings=0/stale=0；core 边界 25 项、architecture、unit contract 64 项、source hygiene 均 PASS |
-| 最后实现的定向格式 | 两个新提交的四个 Java 与两个 Kotlin 文件经锁定格式工具，Java exact tokens 守恒、Kotlin 幂等；commit 前 `git diff --check` 通过 |
+| 最后实现的定向格式 | `9cb67d51` 的两 Java/一 Kotlin 以锁定工具离线 write/check 均 PASS、0 changed；Java exact tokens 守恒、Kotlin 幂等，`git diff --check` 通过。job `bash-13360ae7e4704f2e` 已收集 exit0；未串接编译/测试 |
 | Android / Gradle / app | 交 main 独立身份树后实际执行，当前不记 PASS。不得以 21 个源码声明或静态审查冒充 21 项执行 |
 | full / Lint / APK / merged Manifest / 受管身份 | 尚待 main 集成后真实验证；build369 的单 app CI 不覆盖本次新候选或跨模块集合 |
 | 设备 / 视觉 / 覆盖更新 | 未执行，不在本轮授权范围 |
@@ -57,9 +57,15 @@
 ```text
 本树 out/a8-followup/local-checks.log
 本树 out/a8-followup/plan-final.json
+本树 out/a8-followup/third-format.log（首轮已知 exit2）
+本树 out/a8-followup/third-format-r2.log（定向格式及第三提交 exit0）
+本树 app/build/java-format/a8-third-{write,check}.json
+本树 app/build/kotlin-format/a8-third-{write,check}.json
 旧 P2 树 out/a8-p2/ 与 /tmp/dsha-a8-6c3c6226-*
 旧 P3 树 out/a8-p3/ 与 /tmp/dsha-a8-p3-*
 ```
+
+最后定向格式首轮把 `--report` 指向 out/，工具以 `FORMAT_REPORT_OUTSIDE_CACHE` 明确 exit2，未改源码、未提交；改为工具允许的 app/build 格式缓存报告路径后，原三文件 write/check exit0。首轮 job `bash-a4600cb7c7074396` 和修正后的 job 均已收集，无待核实 UNKNOWN；原失败日志没有覆盖。
 
 全树格式首轮之后继续发现并修复了同步/排队竞态，首轮日志不冒充最终源码的 Android 证据；最后全树/文档复验及 main 实际结果在本回执后续提交中补记。一个只读审查子任务误写的 UI 交接增量已由本会话逐项审阅接收并纳入本地提交；其自行启动的重复门禁被取消，没有计入 PASS。所有旧树和未知现场保持不变。
 
@@ -156,6 +162,6 @@ layout generator 字节必变；BackupTaskKinds 是 managed launcherSource，`.j
 
 ## 6. 回退
 
-新修复先逆序 revert `88a1ad48`、`de5c1fbd`；原 P2 若需整组撤销，再按 `1e4d58a2` 通知、`c09bcf94` owner 及其配套测试逆序处理，i18n 的 `0dd1f902/116ee601` 成对撤销，文档单独回退。旧原提交链和树继续保留。
+新修复先逆序 revert `9cb67d51`、`88a1ad48`、`de5c1fbd`；原 P2 若需整组撤销，再按 `1e4d58a2` 通知、`c09bcf94` owner 及其配套测试逆序处理，i18n 的 `0dd1f902/116ee601` 成对撤销，文档单独回退。旧原提交链和树继续保留。
 
 main 若已经接入 P3 并生成受管证明，回退必须在其独立树一并恢复布局、源/测试/生成路径和 descriptor/recipe；不能留下与源码不符的摘要。P4 未来回退先平台原子提交、再 policy 前置，整组恢复测试/生成任务/布局/门禁清单后由 main 重算证明。所有回退只处理源码与构建证明，不回滚用户数据、不清数据、不降级安装。
