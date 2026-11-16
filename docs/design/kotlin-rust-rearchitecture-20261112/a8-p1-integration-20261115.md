@@ -1,6 +1,6 @@
 # A8 P1 串行集成回执（2026-11-15）
 
-状态：**集成候选完成，未 push / 未合并 / 未 dispatch；P1 出口仍未通过。** 本机已通过构建配置、Standard Lint 与宿主门禁；完整新鲜单测聚合和 unsigned APK 内容/身份检查受本机 x86_64 AAPT2 限制无法执行，必须在用户批准后由 main 合入并 dispatch [`release-production.yml`](../../../.github/workflows/release-production.yml) 的 `dry_run` 完成。P2–P7 与首个真实生产模块提取继续锁定。
+状态（2026-11-16 复核）：**P1 软件出口已通过，P2 本地实现已解锁。** 后续 `origin/main=f3f8fc03882ff7fecd32caac5c537b157395fbaa` 的 [R2 dry-run 43773301154](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43773301154) 与[正式 run 43775971374](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43775971374) 均成功；full 为 5,328 / 0 failure / 0 error / 0 skipped、旧 5,107 身份基线匹配、七夹具各一次、host Rust required，Standard Lint 与 unsigned APK 内容/身份门禁成功。本 worker 独立重跑 R2 archived 聚合为 PASS；正式发布实物由 main 核验。P2 CI/视觉尚未取得，**不得叠 P3；P3 全量未通过不得搬 P4**。详见[后续推进回执](a8-p2-progress-20261116.md)。下文是集成当时的过程记录，保留真实首轮失败与修复，不再用其“未过/未推”状态判断当前前置。
 
 依据：[A8-P1 工程门禁回执](a8-p1-engineering-20261115.md)、[A8 基线](a8-task-baseline-20261114.md)、[输入差异登记](../../../ci/a8-p1-input-delta.json)。
 
