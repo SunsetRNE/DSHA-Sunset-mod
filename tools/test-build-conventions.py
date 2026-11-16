@@ -137,6 +137,23 @@ def source_inputs_contract(source, verify, hook, root):
             r"task\.doFirst", r"task\.doLast", r"def before = auditCompile\(task, snapshot\(\), true\)",
             r"def after = auditCompile\(task, snapshot\(\), true\)",
             r"sourceSet\.getCompileTaskName\('kotlin'\)", r"component: componentRow\(task, context\)")
+    # P3 首切：隐式分组只能是"已声明模块路径前缀 + 全空形态"，且生产模块边必须命中白名单。
+    require(source, r"ext\.dshaImplicitGroupPaths = implicitGroupPaths",
+            r"declared\.any \{ it\.startsWith\(module\.path \+ ':'\) \}",
+            r"!module\.ext\.has\('dshaBuildConvention'\)",
+            r"module\.buildFile != null && !module\.buildFile\.exists\(\)",
+            r"!new File\(module\.projectDir, 'src'\)\.exists\(\)",
+            r"module\.extensions\.findByName\('sourceSets'\) == null",
+            r"module\.extensions\.findByName\('android'\) == null",
+            r"module\.tasks\.findAll \{ it\.name\.startsWith\('compile'\) \|\| it instanceof Test \}\.isEmpty\(\)",
+            r"module\.configurations\.collectMany \{ configuration -> configuration\.dependencies \}\.isEmpty\(\)",
+            r"allprojects\.findAll \{ it != rootProject && !groups\.contains\(it\.path\) \}")
+    require(verify, r"def groups = rootProject\.ext\.dshaImplicitGroupPaths\(\)",
+            r"DSHA_IMPLICIT_GROUP_PATH",
+            r"def products = modules\.findAll \{ !fixtures\.contains\(it\) && !groups\.contains\(it\.path\) \}",
+            r"allowedProjectEdges = \[':app->:core:policy'\] as Set",
+            r"DSHA_PROJECT_DEPENDENCY_UNDECLARED", r"DSHA_PROJECT_DEPENDENCY_MISSING",
+            r"\.canBeResolved", r"configuration\.dependencies\.withType\(org\.gradle\.api\.artifacts\.ProjectDependency\)")
 
 
 def shell_blocks(source):
@@ -660,6 +677,29 @@ class BuildConventions(unittest.TestCase):
         for path in LOGIC.glob("*.gradle"):
             self.assertNotRegex(text(path), r"(?m)^\s*(?:buildscript|repositories|plugins)\s*\{")
 
+    def test_first_real_kotlin_jvm_module_registration_and_group_shape(self):
+        layout = json.loads(text(ROOT / "ci/source-layout.json"))
+        modules = layout["modules"]
+        self.assertEqual([":app", ":core:policy"], [row["path"] for row in modules])
+        module = modules[1]
+        self.assertEqual("jvm", module["kind"])
+        self.assertEqual("core/policy", module["directory"])
+        self.assertEqual(["main", "test"], module["sourceSets"])
+        self.assertEqual(["main", "test"], module["formatSourceSets"])
+        self.assertEqual("test", module["testTask"])
+        self.assertTrue((ROOT / "core/policy/src/main/kotlin/com/deepseekharness/app/util/"
+                        "NetworkHealthPolicy.kt").is_file())
+        script = text(ROOT / "core/policy/build.gradle")
+        require(script, r"apply from: rootProject\.file\('build-logic/kotlin-jvm-library\.gradle'\)")
+        self.assertNotIn("id 'com.android", script)
+        self.assertNotRegex(script, r"(?m)^\s*(?:implementation|api|compileOnly|runtimeOnly)\b")
+        require(text(ROOT / "settings.gradle"), r"(?m)^include ':core:policy'$")
+        # 隐式分组目录不能藏构建脚本或源码树；它只能来自已声明模块路径的前缀。
+        self.assertFalse((ROOT / "core/build.gradle").exists())
+        self.assertFalse((ROOT / "core/build.gradle.kts").exists())
+        self.assertFalse((ROOT / "core/src").exists())
+        require(text(ROOT / "app/build.gradle"), r"implementation project\(':core:policy'\)")
+
     def test_library_sdk_defaults_are_audited_and_not_supplied_by_fixture(self):
         library = text(LOGIC / "android-library.gradle")
         android_library_contract(library)
@@ -912,6 +952,12 @@ class BuildConventions(unittest.TestCase):
             (source.replace("'--verify-compile-head'", "'--compile-inputs'", 1), verify, hook, root),
             (source, verify.replace('rootProject.ext.dshaAuditSourceInputs(false)', '', 1), hook, root),
             (source, verify, hook.replace("'--compile-proof', compileProof.absolutePath", '', 1), root),
+            (source.replace("!new File(module.projectDir, 'src').exists() &&", "", 1), verify, hook, root),
+            (source.replace(
+                "module.tasks.findAll { it.name.startsWith('compile') || it instanceof Test }.isEmpty() &&",
+                "", 1), verify, hook, root),
+            (source, verify.replace("DSHA_PROJECT_DEPENDENCY_UNDECLARED", "DSHA_PROJECT_DEPENDENCY_UNUSED", 1),
+             hook, root),
         )
         for number, values in enumerate(mutations):
             with self.subTest(mutation=number):

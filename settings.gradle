@@ -28,3 +28,7 @@ rootProject.name = "deepseekharness"
 // build-logic/ 是复用根 classpath 的 applied Groovy 约定，不是产品模块或 included build。
 // Android 用 AGP built-in Kotlin；纯 JVM Kotlin 入口复用上面的固定 KGP 2.2.10。
 include ':app'
+// 显式 include 嵌套路径会在工程树里隐式产生分组 `:core`。`verifyDshaBuildConventions`
+// 只把"已声明模块路径前缀且无构建脚本/源码/插件/Test/依赖"的空分组排除出产品集合，
+// 并对其余情形拒绝；分组本身不是产品模块，不得借它隐藏源码或任务。
+include ':core:policy'

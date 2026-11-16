@@ -221,7 +221,14 @@ jobs:
           path: app/build/reports
       # unit 节点已经验证；这里对下载到的 XML 重新核对，回执只由本节点写出。
       - name: Re-verify complete Standard unit-test results
-        run: python3 tools/verify-unit-results.py --mode full --require-fixtures --output out/full-unit-tests.json
+        run: |
+          set -euf
+          mapfile -t report_dirs < <(python3 tools/source_layout.py --test-tasks |
+            python3 -c 'import json,sys; print("\n".join(row["reports"] for row in json.load(sys.stdin)))')
+          if [ "${#report_dirs[@]}" -eq 0 ]; then echo "layout has no unit report dirs"; exit 2; fi
+          args=(python3 tools/verify-unit-results.py --mode full --require-fixtures)
+          for dir in "${report_dirs[@]}"; do args+=(--reports "$dir"); done
+          "${args[@]}" --output out/full-unit-tests.json
 
       - name: Prepare historical E7E3 release signing key from secrets
         env:
@@ -308,7 +315,7 @@ jobs:
       - name: Package commit-bound build evidence
         run: |
           python3 - <<'PYCODE'
-          import hashlib, json, os
+          import hashlib, json, os, sys
           from pathlib import Path
           import zipfile
           apk = Path('out') / (os.environ['APK_NAME'])
@@ -343,7 +350,11 @@ jobs:
           }
           Path('out/build-info.json').write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
           files = [Path('out') / name for name in ['build-info.json', 'full-unit-tests.json', 'apk-signature.txt', 'apk-badging.txt', os.environ['APK_NAME']]]
-          files += sorted(path for path in Path('app/build/test-results/testStandardDebugUnitTest').rglob('TEST-*.xml'))
+          # 单测 XML 归属由共享布局给出；模块提取后不再只收 app 一个目录。
+          sys.path.insert(0, 'tools')
+          from source_layout import SourceLayout
+          for task_row in SourceLayout(Path('.').resolve()).test_tasks():
+              files += sorted(Path(task_row['reports']).rglob('TEST-*.xml'))
           lint = Path('app/build/reports/lint-results-standardRelease.xml')
           if lint.is_file():
               files.append(lint)

@@ -216,16 +216,67 @@ class SourceLayoutTest(unittest.TestCase):
                 'launcherTrees': ['foreign/src/main/kotlin/' + PACKAGE + '/runtime']})
 
 
+NON_PRODUCT_SOURCE_TREES = ('tools/',)
+
+
+def source_tree_members(tracked, directories):
+    """按已声明模块目录枚举 Git 跟踪源文件；模块与 java/kotlin 源根都不进入逻辑身份。"""
+    members = set()
+    for name in tracked:
+        if Path(name).suffix not in ('.java', '.kt', '.kts'):
+            continue
+        for directory in directories:
+            prefix = directory + '/src/'
+            if not name.startswith(prefix):
+                continue
+            parts = name[len(prefix):].split('/')
+            if len(parts) >= 3 and parts[1] in ('java', 'kotlin'):
+                members.add(name)
+            break
+    return members
+
+
+def unregistered_module_trees(tracked, directories, non_product_prefixes=NON_PRODUCT_SOURCE_TREES):
+    """未登记模块树：除声明模块与工程夹具/历史外，任何 Git 跟踪的 <module>/src/<set>/{java,kotlin}。"""
+    known = set(directories)
+    found = set()
+    for name in tracked:
+        head, separator, rest = name.partition('/src/')
+        if not separator:
+            continue
+        parts = rest.split('/')
+        if len(parts) < 3 or parts[1] not in ('java', 'kotlin'):
+            continue
+        if head in known or any(head.startswith(prefix) for prefix in non_product_prefixes):
+            continue
+        found.add(head)
+    return found
+
+
 class CurrentAppEquivalenceTest(unittest.TestCase):
     def test_current_source_inventory_equals_real_git_source_list(self):
         layout = SourceLayout(ROOT)
-        tracked = subprocess.check_output(['git', 'ls-files', '-z'], cwd=ROOT).decode().split('\0')
-        expected = {name for name in tracked if name.startswith('app/src/')
-                    and Path(name).suffix in ('.java', '.kt', '.kts')
-                    and len(Path(name).parts) > 4 and Path(name).parts[3] in ('java', 'kotlin')}
+        directories = [module['directory'] for module in layout.modules]
+        tracked = [name for name in subprocess.check_output(
+            ['git', 'ls-files', '-z'], cwd=ROOT).decode().split('\0') if name]
+        expected = source_tree_members(tracked, directories)
         self.assertEqual(expected, {entry.relative for entry in layout.source_files()})
         self.assertTrue(any(e.path.suffix == '.kt' and e.source_set == 'test'
                             for e in layout.source_files()))
+        # 全模块库存来自 Git 跟踪；任何未登记模块树都必须暴露，不能靠缩小扫描范围隐藏。
+        self.assertEqual(set(), unregistered_module_trees(tracked, directories))
+
+    def test_unregistered_module_tree_detection_is_exact(self):
+        tracked = ['app/src/main/java/A.java',
+                   'core/policy/src/test/kotlin/B.kt',
+                   'hidden/module/src/main/java/C.java',
+                   'tools/fixtures/legacy/src/main/java/D.java',
+                   'app/src/main/resources/values.xml',
+                   'app/src/main/java/README.md']
+        self.assertEqual({'hidden/module'},
+                         unregistered_module_trees(tracked, ['app', 'core/policy']))
+        self.assertEqual({'app/src/main/java/A.java', 'core/policy/src/test/kotlin/B.kt'},
+                         source_tree_members(tracked, ['app', 'core/policy']))
 
     def test_current_launcher_logical_and_physical_members_equal_legacy_algorithm(self):
         spec, expected = load(ROOT), {}
@@ -246,15 +297,19 @@ class CurrentAppEquivalenceTest(unittest.TestCase):
         excluded = set(lock['protectedFiles'] + lock['generatedFiles'])
         expected_java = {java_tree.TOOL_SOURCE}
         expected_kotlin = set()
-        for source_set in java_tree.SETS:
-            for path in (ROOT / 'app/src' / source_set / java_tree.SOURCE).rglob('*.java'):
-                name = path.relative_to(ROOT).as_posix()
-                if not java_tree.EXCLUDED_PARTS.intersection(path.parts) and name not in excluded:
-                    expected_java.add(name)
-            for language in ('java', 'kotlin'):
-                for path in (ROOT / 'app/src' / source_set / language).rglob('*'):
-                    if path.suffix in ('.kt', '.kts') and not kotlin_tree.EXCLUDED_PARTS.intersection(path.parts):
-                        expected_kotlin.add(path.relative_to(ROOT).as_posix())
+        for module in SourceLayout(ROOT).modules:
+            for source_set in module['formatSourceSets']:
+                for language in ('java', 'kotlin'):
+                    root = ROOT / module['directory'] / 'src' / source_set / language / PACKAGE
+                    if not root.is_dir():
+                        continue
+                    for path in root.rglob('*'):
+                        name = path.relative_to(ROOT).as_posix()
+                        if path.suffix == '.java' and not java_tree.EXCLUDED_PARTS.intersection(path.parts) \
+                                and name not in excluded:
+                            expected_java.add(name)
+                        if path.suffix in ('.kt', '.kts') and not kotlin_tree.EXCLUDED_PARTS.intersection(path.parts):
+                            expected_kotlin.add(name)
         self.assertEqual(expected_java, set(java_tree.inventory(ROOT, lock['protectedFiles'], lock['generatedFiles'])))
         self.assertEqual(expected_kotlin, set(kotlin_tree.inventory(ROOT)))
 

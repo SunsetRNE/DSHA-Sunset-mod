@@ -383,7 +383,14 @@ jobs:
           path: app/build/reports
       # unit 节点已经验证；这里对下载到的 XML 重新核对，回执只由本节点写出。
       - name: Re-verify complete Standard unit-test results
-        run: python3 tools/verify-unit-results.py --mode full --require-fixtures --output out/full-unit-tests.json
+        run: |
+          set -euf
+          mapfile -t report_dirs < <(python3 tools/source_layout.py --test-tasks |
+            python3 -c 'import json,sys; print("\n".join(row["reports"] for row in json.load(sys.stdin)))')
+          if [ "${#report_dirs[@]}" -eq 0 ]; then echo "layout has no unit report dirs"; exit 2; fi
+          args=(python3 tools/verify-unit-results.py --mode full --require-fixtures)
+          for dir in "${report_dirs[@]}"; do args+=(--reports "$dir"); done
+          "${args[@]}" --output out/full-unit-tests.json
 
       - name: Verify unsigned handoff binding
         run: |
@@ -482,7 +489,7 @@ jobs:
       - name: Package commit-bound build evidence
         run: |
           python3 - <<'PYCODE'
-          import hashlib, json, os
+          import hashlib, json, os, sys
           from pathlib import Path
           import zipfile
           apk = Path('out') / os.environ['APK_NAME']
@@ -531,7 +538,11 @@ jobs:
           files += [Path('out') / name for name in ('rust-apk-unsigned.json', 'rust-apk-presign.json', 'rust-apk-signed.json')]
           if os.environ['RUST_NATIVE_MODE'] == 'prebuilt':
               files.append(Path('out/rust-receipt.json'))
-          files += sorted(path for path in Path('app/build/test-results/testStandardDebugUnitTest').rglob('TEST-*.xml'))
+          # 单测 XML 归属由共享布局给出；模块提取后不再只收 app 一个目录。
+          sys.path.insert(0, 'tools')
+          from source_layout import SourceLayout
+          for task_row in SourceLayout(Path('.').resolve()).test_tasks():
+              files += sorted(Path(task_row['reports']).rglob('TEST-*.xml'))
           lint = Path('app/build/reports/lint-results-standardRelease.xml')
           if lint.is_file():
               files.append(lint)

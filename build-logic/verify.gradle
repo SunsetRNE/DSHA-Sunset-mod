@@ -24,7 +24,12 @@ tasks.register('verifyDshaBuildConventions') {
             if (fixture.projectDir.canonicalFile.toPath().startsWith(rootDirectory))
                 throw new GradleException("DSHA_FIXTURE_INSIDE_PRODUCT_TREE: ${fixture.path}")
         }
-        def products = modules.findAll { !fixtures.contains(it) }
+        // 显式 include 嵌套模块路径会隐式产生空分组工程；只有通过严格空形态判据的路径前缀
+        // 才从产品集合排除，其余（含藏构建脚本/源码/扩展/任务/依赖）都保持产品身份并被拒绝。
+        def groups = rootProject.ext.dshaImplicitGroupPaths()
+        if (!groups.every { path -> declaredPaths.any { it.startsWith(path + ':') } })
+            throw new GradleException('DSHA_IMPLICIT_GROUP_PATH: ' + groups)
+        def products = modules.findAll { !fixtures.contains(it) && !groups.contains(it.path) }
         if ((products.collect { it.path } as Set) != declaredPaths || declaredPaths.size() != layout.modules.size())
             throw new GradleException('DSHA_PRODUCT_MODULE_SET_MISMATCH')
         layout.modules.each { row ->
@@ -64,7 +69,7 @@ tasks.register('verifyDshaBuildConventions') {
             }
         }
         def checked = []
-        modules.each { module ->
+        products.each { module ->
             if (!module.ext.has('dshaBuildConvention'))
                 throw new GradleException("DSHA_MODULE_CONVENTION_MISSING: ${module.path}")
             def kind = module.ext.dshaBuildConvention
@@ -141,6 +146,23 @@ tasks.register('verifyDshaBuildConventions') {
             }
             checked += "${module.path} (${kind}, ${tests.size()} Test tasks)"
         }
+        // 真实生产项目依赖白名单：只允许显式登记的模块边；未声明边与缺失边都拒绝。
+        // 只看可声明配置（implementation 等）；AGP 会在可解析的测试 classpath 配置里
+        // 注入指向自身模块的内部 ProjectDependency，那是构建实现而非生产依赖声明。
+        // 外部库由既有依赖校验与 verification metadata 证明；这里证明 Gradle 工程图。
+        def allowedProjectEdges = [':app->:core:policy'] as Set
+        def actualProjectEdges = [] as Set
+        products.each { module ->
+            module.configurations.findAll { !it.canBeResolved }.each { configuration ->
+                configuration.dependencies.withType(org.gradle.api.artifacts.ProjectDependency).each { dependency ->
+                    actualProjectEdges.add(module.path + '->' + dependency.path)
+                }
+            }
+        }
+        if (actualProjectEdges - allowedProjectEdges)
+            throw new GradleException('DSHA_PROJECT_DEPENDENCY_UNDECLARED: ' + (actualProjectEdges - allowedProjectEdges))
+        if (allowedProjectEdges - actualProjectEdges)
+            throw new GradleException('DSHA_PROJECT_DEPENDENCY_MISSING: ' + (allowedProjectEdges - actualProjectEdges))
         if (checked.isEmpty()) throw new GradleException('DSHA_CONVENTION_NOT_APPLIED')
         checked.each { println "build convention: ${it}" }
     }

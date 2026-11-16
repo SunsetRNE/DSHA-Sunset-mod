@@ -1524,8 +1524,6 @@
     "app/src/test/java/com/deepseekharness/app/util/NativeResultPartsTest.java",
     "app/src/test/java/com/deepseekharness/app/util/NestedScrollArbiterTest.java",
     "app/src/test/java/com/deepseekharness/app/util/NetworkEpochPolicyTest.java",
-    "app/src/test/java/com/deepseekharness/app/util/NetworkHealthPolicyContractTest.java",
-    "app/src/test/java/com/deepseekharness/app/util/NetworkHealthPolicyTest.java",
     "app/src/test/java/com/deepseekharness/app/util/NetworkSnapshotTest.java",
     "app/src/test/java/com/deepseekharness/app/util/NotificationIdsTest.java",
     "app/src/test/java/com/deepseekharness/app/util/NpmPackageNameTest.java",
@@ -1779,6 +1777,8 @@
     "app/src/test/java/com/deepseekharness/app/vscreen/VirtualScreenTouchOutcomeTest.java",
     "app/src/test/java/com/deepseekharness/app/vscreen/VirtualScreenTransportTest.java",
     "app/src/test/java/com/deepseekharness/app/vscreen/VscreenTargetEvidenceTest.java",
+    "core/policy/src/test/java/com/deepseekharness/app/util/NetworkHealthPolicyContractTest.java",
+    "core/policy/src/test/java/com/deepseekharness/app/util/NetworkHealthPolicyTest.java",
     "tools/java-format/JavaTokenFingerprint.java"
   ]
 }
