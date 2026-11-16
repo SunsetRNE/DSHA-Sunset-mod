@@ -43,7 +43,7 @@ internal object RuntimeAssemblyGoldenSupport {
 
         fun binds(values: List<ContainerRuntime.Bind>) {
             values.forEachIndexed { index, bind ->
-                lines.add("BINDS $index ${bind.host()}|${bind.guest()}")
+                lines.add("BINDS $index ${bind.host}|${bind.guest}")
             }
         }
 
@@ -205,14 +205,14 @@ internal object RuntimeAssemblyGoldenSupport {
 
         override fun unavailableReason(): String = ""
 
-        override fun baseArgv(rootfsDir: File, hardlinkSupported: Boolean): List<String> =
+        override fun baseArgv(rootfsDir: File, hardlinkSupported: Boolean): MutableList<String> =
             throw AssertionError("explicit domain is required")
 
         override fun baseArgv(
             rootfsDir: File,
             hardlinkSupported: Boolean,
             dataDomain: File?,
-        ): List<String> = mutableListOf("fixture-runtime", rootfsDir.path)
+        ): MutableList<String> = mutableListOf("fixture-runtime", rootfsDir.path)
 
         override fun applyEnv(pb: ProcessBuilder, baseDir: File, libDir: File, tmpDir: File) {
             pb.environment()["FIXTURE_RUNTIME"] = "1"
@@ -225,8 +225,8 @@ internal object RuntimeAssemblyGoldenSupport {
     private val systemBindTokens: Set<String> by lazy {
         val tokens = HashSet<String>()
         for (bind in ContainerRuntime.binds(false) + ContainerRuntime.binds(true)) {
-            tokens.add(bind.host())
-            tokens.add(bind.host() + ":" + bind.guest())
+            tokens.add(bind.host)
+            tokens.add(bind.host + ":" + bind.guest)
         }
         tokens.add("/storage/emulated/0")
         tokens.add("/storage/emulated/0:/sdcard")

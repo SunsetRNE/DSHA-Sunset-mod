@@ -263,7 +263,7 @@ class RuntimeAssemblyGoldenTest {
                 meta("record", spec.record)
                 meta("coldMode", spec.coldMode)
                 meta("environmentKeys", spec.environment.keys.sorted())
-                meta("binds", spec.binds.map { it.host() + ":" + it.guest() })
+                meta("binds", spec.binds.map { it.host + ":" + it.guest })
                 meta("toString", spec.toString())
             }
         sections +=
