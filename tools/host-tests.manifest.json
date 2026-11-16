@@ -2,6 +2,16 @@
   "schema": 1,
   "tests": [
     {
+      "path": "tools/test-plugin-lock-interop.py",
+      "stage": "support",
+      "reason": "Run separately after compiling the real Kotlin PluginLockFixture and pass --kotlin-classpath; exercise the actual Python flock/PID backend and pinned Node atomic-write module. Support registration does not imply default CI execution.",
+      "args": [],
+      "timeoutSeconds": 180,
+      "requires": ["python39", "node24", "jdk17"],
+      "platform": ["linux"],
+      "environment": {}
+    },
+    {
       "path": "tools/test-ci-toolchain.py",
       "stage": "fast",
       "reason": "Execute CI version discovery through the real shared Android convention, paired Java targets, missing wiring and duplicate owner negative controls, and the exact setup-toolchain CLI.",
