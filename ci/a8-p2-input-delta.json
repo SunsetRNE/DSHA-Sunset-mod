@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "kind": "a8-p2-integration-input-delta-not-a-descriptor",
+  "baselineCommit": "f3f8fc03882ff7fecd32caac5c537b157395fbaa",
+  "sourceCommit": "2202cde21fe691a777b5ecabac582b4402f1f1a6",
+  "baselineRuntimeId": "63adce0a3df6f0c46494dc6adf030f07f80724557f139b3598755caa1607e2ad",
+  "baselineLauncherCount": 517,
+  "currentLauncherCount": 517,
+  "added": [],
+  "removed": [],
+  "changed": [
+    {
+      "logicalKey": "DshaApp.java",
+      "physicalPath": "app/src/main/java/com/deepseekharness/app/DshaApp.java",
+      "beforeSha256": "52647485e5a73a9455134e54480f65ba7a2898b08376bac9e8b2399016ba8e32",
+      "afterSha256": "02d1b402a43b67b71da7ec3f12b745ffe0fb95afd66db655904c859faef915e9"
+    }
+  ],
+  "integrationOwner": "main",
+  "descriptorGeneratedByWorker": false,
+  "dataFormatChanged": false
+}
