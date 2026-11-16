@@ -282,7 +282,7 @@ def inside(root: Path, args):
             root / "app/src/main/java/com/deepseekharness/app/util/WebLaunchCommand.java",
             root / "app/src/main/java/com/deepseekharness/app/runtime/RuntimeTools.java",
             root / "app/src/main/java/com/deepseekharness/app/runtime/RootfsInstaller.java",
-            root / "app/src/main/java/com/deepseekharness/app/runtime/RuntimeLauncher.java"]},
+            root / "app/src/main/java/com/deepseekharness/app/runtime/RuntimeLauncher.kt"]},
         "results": results}
     write(out / ("web-review.json" if args.web_only else "review.json"), json.dumps(evidence, indent=2, ensure_ascii=False) + "\n")
     print(json.dumps({"work": str(work), "checkKind": evidence["checkKind"],

@@ -229,7 +229,7 @@
       ]
     },
     {
-      "source": "app/src/main/java/com/deepseekharness/app/runtime/ProotBootstrap.java",
+      "source": "app/src/main/java/com/deepseekharness/app/runtime/ProotBootstrap.kt",
       "method": "readAssetString/findBundleEntry",
       "contract": "Existing split-runtime/archive generator; rootfs and managed metadata.",
       "assets": [

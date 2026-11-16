@@ -130,7 +130,7 @@
         "tools/native-session/*",
         "app/src/main/jniLibs/arm64-v8a/libdsha-session.so",
         "*/runtime/RuntimeHostPorts.java",
-        "*/runtime/ProotBootstrap.java",
+        "*/runtime/ProotBootstrap.kt",
         "*/runtime/BoundedGuestSessions.java",
         "*/core/ConfigStore.java",
         "*/DshaApp.java"
