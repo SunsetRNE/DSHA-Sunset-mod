@@ -1,0 +1,65 @@
+{
+  "base": "46f4970369c796c3a7cb9acca6cff58961778840",
+  "candidateCode": "1ab70dbef275dae18284f7abdf743eb594f4b3a9",
+  "baselineRuntimeId": "1d42f79d5fea6bad5caaa2409822aa5949691c89e6e230b95011ae35db8a5757",
+  "launcherBefore": 517,
+  "launcherAfter": 519,
+  "added": [
+    "runtime/RuntimeDescriptorPreparation.kt",
+    "runtime/RuntimePreparationInputs.kt"
+  ],
+  "removed": [],
+  "changed": [
+    "core/WebLifecycleController.java",
+    "runtime/ManagedRuntimeAssets.java",
+    "runtime/ProotBootstrap.kt",
+    "runtime/RuntimeHostPorts.java",
+    "runtime/RuntimeInstallationState.java",
+    "runtime/RuntimeTools.java"
+  ],
+  "sourceHashes": [
+    {
+      "key": "core/WebLifecycleController.java",
+      "before": "4caf25e1bff74b5df71f1aa63c15f2f56918ab3bd1457281d7fd081ab9a848e4",
+      "after": "0a930e3792ca6b2af4c1b9a8cdb80ef0a1432d233e899c7447d6e402754e0eeb"
+    },
+    {
+      "key": "runtime/ManagedRuntimeAssets.java",
+      "before": "dfb88643cba2da805d7f7cec51215f7dc6d5aa6065ac801842e5036f0194b760",
+      "after": "458915303e078f92c252172a9d56f6e25541a3dad52182b5c0a7d1bd69ff85ed"
+    },
+    {
+      "key": "runtime/ProotBootstrap.kt",
+      "before": "610466c3167cecc76b76584c459df30e76ea4f932f8ecc3a782c4bcc971d9453",
+      "after": "0755a6020d8f98c1c6d671b5eb31b2b5f9363fdc47c7f580ddfd8ff63e078aef"
+    },
+    {
+      "key": "runtime/RuntimeDescriptorPreparation.kt",
+      "before": null,
+      "after": "b887456ddacb687af8b75349533427e117619d8afa509c4e996b995972644ba7"
+    },
+    {
+      "key": "runtime/RuntimeHostPorts.java",
+      "before": "cad6ea41f8791faf789fdefecfffea370f7b4310c078eff4cdaa7e15e8663245",
+      "after": "728122ce4ffdbe82c8fc8cc6078a76a475d45a65a13b2376abd583bdcc44e76a"
+    },
+    {
+      "key": "runtime/RuntimeInstallationState.java",
+      "before": "cdc8fe6011ce0af2d7848cfd3da917f35cab4c23c0b17e3da091d73af896ea3c",
+      "after": "8b8c851c763feb3297f4488502472d9d1e790f869883956f879371692d288faf"
+    },
+    {
+      "key": "runtime/RuntimePreparationInputs.kt",
+      "before": null,
+      "after": "564e710f8daf1c938465e1f68f087eddc99d9bac0d3139e44a13515144c1c399"
+    },
+    {
+      "key": "runtime/RuntimeTools.java",
+      "before": "758f5c2b1a0f6d585441e908ed92e0c2a5520372f706532fe8988cc18cf797bd",
+      "after": "c7d831c76b963bb880ea6a234602742d07e0393ea394083fba82d47a5a239f07"
+    }
+  ],
+  "assetCount": 205,
+  "assetChanges": [],
+  "generatedFinalDescriptor": false
+}
