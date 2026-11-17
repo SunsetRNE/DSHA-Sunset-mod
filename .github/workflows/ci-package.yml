@@ -59,7 +59,15 @@ jobs:
           python3 tools/prepare-runtime-descriptor.py --check
           python3 tools/generate-third-party-notices.py --check
           python3 tools/check-third-party-notices.py --archive app/src/main/assets/dsh-runtime.bin
-          python3 tools/native-session/build.py --ndk "$ANDROID_HOME/ndk/$ndk" --check
+          python3 tools/native-session/build.py --ndk "$ANDROID_HOME/ndk/$ndk" --check --evidence-dir "app/build/native-session-repro-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+      - name: Upload native-session failure diagnostics (successful check creates no evidence)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: native-session-repro-${{ github.run_id }}-${{ github.run_attempt }}
+          path: app/build/native-session-repro-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 14
   rust-repro:
     name: Rust vendor regeneration and host byte reproducibility
     needs: inputs
