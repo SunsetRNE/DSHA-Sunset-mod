@@ -34,7 +34,7 @@ jobs:
       asset_bundle_url: ${{ inputs.asset_bundle_url }}
       asset_bundle_sha256: ${{ inputs.asset_bundle_sha256 }}
       asset_archive_format: ${{ inputs.asset_archive_format }}
-      rebuild_runtime: false
+      rebuild_runtime: true
       artifact: package-inputs
   descriptor-assets:
     name: Descriptor bytes and notices
