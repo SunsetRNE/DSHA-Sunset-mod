@@ -8,6 +8,7 @@ import re
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 import xml.etree.ElementTree as ET
 
 from ui_language_catalog import LANGUAGES, RESOURCE_FOLDERS, format_signature, load_catalog
@@ -36,14 +37,14 @@ REQUIRED_SOURCES = {
     'ui/TerminalActivity.java', 'ui/LaunchFragment.java', 'ui/ExtraKeysDialog.java',
     'ui/PtyTerminalFragment.java', 'ui/TerminalFragment.java', 'ui/TerminalFloatingMenu.java',
     'ui/TerminalTabBar.java', 'ui/TerminalActionsDialog.java', 'ui/TerminalOutputDialog.java',
-    'util/TerminalExtraKeys.java', 'util/TerminalSession.java', 'util/TerminalTabs.java',
-    'core/TerminalSessionOwner.java', 'core/SimpleTerminalBackend.java',
-    'runtime/TerminalProcessCloser.java', 'TerminalRuntimeService.java', 'PtySession.java',
+    'util/TerminalExtraKeys.java', 'util/TerminalSession.kt', 'util/TerminalTabs.kt',
+    'core/TerminalSessionOwner.kt', 'core/SimpleTerminalBackend.kt',
+    'runtime/TerminalProcessCloser.kt', 'TerminalRuntimeService.java', 'PtySession.java',
 }
 
 
 def terminal_sources():
-    paths = set(SOURCE.rglob('*Terminal*.java'))
+    paths = {path for suffix in ('java', 'kt') for path in SOURCE.rglob('*Terminal*.' + suffix)}
     paths.update(SOURCE / name for name in (
         'PtySession.java', 'ui/ExtraKeysDialog.java', 'ui/LaunchFragment.java'))
     return sorted(paths)
@@ -141,6 +142,54 @@ class TerminalHomeLanguageTest(unittest.TestCase):
         '''
         self.assertEqual({'中文', '手机布局', '终端 %s · 关闭中…', '终端 %s',
                           '第一段\n第二段', '数量 %d'}, catalog_literals(source, {'radio'}))
+
+    def test_inventory_discovers_java_and_kotlin_and_rejects_missing_required_sources(self):
+        with tempfile.TemporaryDirectory(prefix='dsha-terminal-inventory-') as temp:
+            source = Path(temp)
+            names = REQUIRED_SOURCES | {'core/FutureTerminal.java', 'core/FutureTerminal.kt',
+                                        'core/Unrelated.kt'}
+            for name in names:
+                path = source / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('', encoding='utf8')
+            with mock.patch(__name__ + '.SOURCE', source):
+                discovered = {path.relative_to(source).as_posix() for path in terminal_sources()}
+            self.assertEqual(names - {'core/Unrelated.kt'}, discovered)
+        # Exercise the original catalog test's guard, including every migrated required source.
+        for name in REQUIRED_SOURCES:
+            with self.subTest(missing=name):
+                incomplete = {key: value for key, value in self.source_literals.items() if key != name}
+                with mock.patch.object(self, 'source_literals', incomplete):
+                    with self.assertRaises(AssertionError):
+                        self.test_terminal_and_launch_literal_calls_have_complete_catalog_entries()
+
+    def test_kotlin_inventory_reads_current_constants_without_counting_pseudo_calls(self):
+        # Current migrations use the ordinary Java/Kotlin literal subset, not a general Kotlin parser.
+        source = r'''
+        // UiText.text("注释不算")
+        /* UiText.choose("块注释不算", "Ignored") */
+        val example = "UiText.text(\"示例不算\")"
+        UiText.choose("中文", "English")
+        UiText.format("数量 %d", count)
+        UiText.text("第一段" + "\n第二段")
+        UiText.text("转义 \"引号\"、\u4e2d")
+        UiText.format(UiText.choose("嵌套 %s", "Nested %s"), userContent)
+        UiText.text(userContent)
+        if (closing) UiText.text("关闭中") else UiText.text("已就绪")
+        '''
+        self.assertEqual({'中文', '数量 %d', '第一段\n第二段', '转义 "引号"、中',
+                          '嵌套 %s', '关闭中', '已就绪'}, catalog_literals(source))
+        # These actual migrated sources must contribute, even though Java-only coverage exceeds 250.
+        expected = {
+            'util/TerminalTabs.kt': '终端会话不能为空',
+            'util/TerminalSession.kt': '终端读取被中断',
+            'core/TerminalSessionOwner.kt': '尚未确认终端退出',
+            'core/SimpleTerminalBackend.kt': '终端命令发送',
+            'runtime/TerminalProcessCloser.kt': '无法核验终端进程 UID',
+        }
+        for name, literal in expected.items():
+            with self.subTest(source=name):
+                self.assertIn(literal, self.source_literals[name])
 
     def test_interruption_actions_and_output_scopes_have_distinct_sources(self):
         pty = self.source_literals['ui/PtyTerminalFragment.java']
