@@ -320,11 +320,15 @@ class NativeRouteTest(unittest.TestCase):
         response.read.return_value = json.dumps({'result': json.dumps(value)}).encode()
         opener = Mock(); opener.open.return_value = response; opener.open.side_effect = error
         with patch.object(adb, 'open', return_value=io.StringIO('fake-token'), create=True), \
+             patch.object(adb, 'bridge_port', return_value=39001) as bridge_port, \
              patch.object(urllib.request, 'build_opener', return_value=opener):
             try:
                 return adb.request_native_execution('id')
             finally:
                 opener.open.assert_called_once()
+                bridge_port.assert_called_once_with()
+                self.assertEqual('http://127.0.0.1:39001/device/execute?cmd=id&su=0&adb=0',
+                                 opener.open.call_args.args[0].full_url)
                 self.assertNotIn('fake-token', opener.open.call_args.args[0].full_url)
 
     def test_only_explicit_plan_can_trigger_adb(self):
