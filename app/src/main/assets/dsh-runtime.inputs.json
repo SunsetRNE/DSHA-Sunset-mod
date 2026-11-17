@@ -93,7 +93,7 @@
     "tools/runtime_stable_patches.py": "a3f8a612f433cc024e6495bb180bbff8d7206482019c5710065f3c4cdc175873",
     "tools/runtime_input_contract.py": "8176ad1fe3815079876fb7147e4dbfb7f72967bf99591aa19f968327e42a1fc0",
     "tools/source_layout.py": "585abbc8a6e5fd7f4632ea2a2782c5bf0e5d50c12e16142ec4b42531a76c4113",
-    "ci/source-layout.json": "4a3ddda20d7e7a3b5064806736b8400a2573ac82eda710e99084a65cfb4590ac"
+    "ci/source-layout.json": "2ed67fe829033dcf34ff8c47aaf07cd4d2d4152518e48f6e35fb23d3a1370b21"
   },
   "archive_sha256": "c1bd68330a10776f304a92a19d8f82c184c1abf523275a9e28dbb2c2e764e4fe"
 }
