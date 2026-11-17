@@ -38,9 +38,14 @@ public final class TerminalJavaApiTest {
         SimpleTerminalBackend.class, "create", TerminalSession.Backend.class, ProotBootstrap.class);
     staticMethod(SimpleTerminalBackend.class, "blockMessage", String.class, ProotBootstrap.class);
     staticMethod(
-        TerminalProcessCloser.class, "captureSimpleLeader", ProcessIdentity.class, int.class, long.class);
+        TerminalProcessCloser.class,
+        "captureSimpleLeader",
+        ProcessIdentity.class,
+        int.class,
+        long.class);
     for (String name : new String[] {"close", "closeSimple"}) {
-      staticMethod(TerminalProcessCloser.class, name, void.class, ProcessIdentity.class, long.class);
+      staticMethod(
+          TerminalProcessCloser.class, name, void.class, ProcessIdentity.class, long.class);
     }
     staticMethod(TerminalProcessCloser.class, "closeProot", void.class, ProcessIdentity.class);
     staticMethod(TerminalProcessCloser.class, "requireSessionEmpty", void.class, int.class);
@@ -66,7 +71,8 @@ public final class TerminalJavaApiTest {
     field(TerminalRuntimeProtection.class, "PROMOTION_TIMEOUT_MS", long.class, true, true);
     field(TerminalRuntimeProtection.class, "PREPARATION_TIMEOUT_MS", long.class, true, true);
     // 反射读值也能发现 const 被内联后，声明字段缺失或数值悄然变化。
-    assertEquals(8_000L, TerminalRuntimeProtection.class.getField("PROMOTION_TIMEOUT_MS").getLong(null));
+    assertEquals(
+        8_000L, TerminalRuntimeProtection.class.getField("PROMOTION_TIMEOUT_MS").getLong(null));
     assertEquals(
         120_000L, TerminalRuntimeProtection.class.getField("PREPARATION_TIMEOUT_MS").getLong(null));
     assertEquals(8_000L, TerminalRuntimeProtection.PROMOTION_TIMEOUT_MS);
@@ -78,7 +84,12 @@ public final class TerminalJavaApiTest {
 
   @Test
   public void publicFieldsKeepJvmFieldEquivalentTypesAndMutability() throws Exception {
-    field(TerminalRuntimeProtection.Snapshot.class, "state", TerminalRuntimeProtection.State.class, false, true);
+    field(
+        TerminalRuntimeProtection.Snapshot.class,
+        "state",
+        TerminalRuntimeProtection.State.class,
+        false,
+        true);
     for (String name : new String[] {"preparing", "creating", "held"}) {
       field(TerminalRuntimeProtection.Snapshot.class, name, int.class, false, true);
     }
@@ -96,7 +107,8 @@ public final class TerminalJavaApiTest {
     field(TerminalSessionOwner.SimpleTab.class, "cursorEnd", int.class, false, false);
 
     TerminalRuntimeProtection.Snapshot snapshot =
-        new TerminalRuntimeProtection.Snapshot(TerminalRuntimeProtection.State.LOST, 1, 2, 3, "lost");
+        new TerminalRuntimeProtection.Snapshot(
+            TerminalRuntimeProtection.State.LOST, 1, 2, 3, "lost");
     assertEquals(TerminalRuntimeProtection.State.LOST, snapshot.state);
     assertEquals(1, snapshot.preparing);
     assertEquals(2, snapshot.creating);
@@ -138,7 +150,9 @@ public final class TerminalJavaApiTest {
     inner(TerminalSessionOwner.SimpleTab.class, TerminalSessionOwner.class, false);
     inner(TerminalRuntimeProtection.Ticket.class, TerminalRuntimeProtection.class, false);
     for (Class<?> type :
-        new Class<?>[] {TerminalTabs.Tab.class, TerminalTabs.Reservation.class, TerminalTabs.CloseSnapshot.class}) {
+        new Class<?>[] {
+          TerminalTabs.Tab.class, TerminalTabs.Reservation.class, TerminalTabs.CloseSnapshot.class
+        }) {
       inner(type, TerminalTabs.class, true);
     }
     inner(TerminalRuntimeProtection.Snapshot.class, TerminalRuntimeProtection.class, true);
@@ -150,20 +164,26 @@ public final class TerminalJavaApiTest {
     assertEquals(IOException.class, TerminalSession.UncertainStart.class.getSuperclass());
     assertEquals(IOException.class, TerminalExitPolicy.Failure.class.getSuperclass());
     // 非 static 内部类的 JVM 构造参数必须保留所属外层实例。
-    assertNotNull(
-        TerminalSessionOwner.SimpleTab.class
-            .getDeclaredConstructor(TerminalSessionOwner.class, TerminalSession.Backend.class));
-    assertNotNull(
-        TerminalRuntimeProtection.Ticket.class
-            .getDeclaredConstructor(
-                TerminalRuntimeProtection.class,
-                String.class,
-                TerminalRuntimeProtection.Kind.class,
-                TerminalRuntimeProtection.Admission.class));
+    assertTrue(
+        Modifier.isPrivate(
+            TerminalSessionOwner.SimpleTab.class
+                .getDeclaredConstructor(TerminalSessionOwner.class, TerminalSession.Backend.class)
+                .getModifiers()));
+    assertTrue(
+        Modifier.isPrivate(
+            TerminalRuntimeProtection.Ticket.class
+                .getDeclaredConstructor(
+                    TerminalRuntimeProtection.class,
+                    String.class,
+                    TerminalRuntimeProtection.Kind.class,
+                    TerminalRuntimeProtection.Admission.class)
+                .getModifiers()));
+    rejectUnknownConstructorKeysBeforeAnyCreation();
     assertNotNull(TerminalTabs.class.getConstructor());
     assertNotNull(TerminalRuntimeProtection.class.getConstructor(LongSupplier.class));
     assertNotNull(
-        TerminalSession.class.getConstructor(TerminalSession.Backend.class, Consumer.class, Consumer.class));
+        TerminalSession.class.getConstructor(
+            TerminalSession.Backend.class, Consumer.class, Consumer.class));
     assertNotNull(TerminalSession.EnvironmentUnavailable.class.getConstructor(String.class));
     assertNotNull(TerminalSession.UncertainStart.class.getConstructor(Throwable.class));
     instance(TerminalExitPolicy.Failure.class, "code", TerminalExitPolicy.Code.class);
@@ -172,8 +192,16 @@ public final class TerminalJavaApiTest {
     assertEquals("blocked", new TerminalSession.EnvironmentUnavailable("blocked").getMessage());
     enumOrder(TerminalRuntimeProtection.Kind.values(), "PTY", "SIMPLE");
     enumOrder(TerminalRuntimeProtection.State.values(), "PREPARING", "ACTIVE", "LOST", "RELEASED");
-    enumOrder(TerminalSession.State.values(), "STOPPED", "STARTING", "READY", "BUSY", "STOPPING", "FAILED");
-    enumOrder(TerminalTabs.CleanupState.values(), "NOT_REQUESTED", "CLOSING", "VERIFIED", "UNCONFIRMED");
+    enumOrder(
+        TerminalSession.State.values(),
+        "STOPPED",
+        "STARTING",
+        "READY",
+        "BUSY",
+        "STOPPING",
+        "FAILED");
+    enumOrder(
+        TerminalTabs.CleanupState.values(), "NOT_REQUESTED", "CLOSING", "VERIFIED", "UNCONFIRMED");
     enumOrder(TerminalExitPolicy.Signal.values(), "STOP", "CONTINUE", "KILL", "QUIT");
     enumOrder(
         TerminalExitPolicy.Code.values(),
@@ -190,7 +218,12 @@ public final class TerminalJavaApiTest {
     for (Method method :
         new Method[] {
           instance(TerminalSession.Backend.class, "beginLifetime", AutoCloseable.class),
-          instance(TerminalSession.Backend.class, "onReady", void.class, Process.class, TerminalReady.class),
+          instance(
+              TerminalSession.Backend.class,
+              "onReady",
+              void.class,
+              Process.class,
+              TerminalReady.class),
           instance(TerminalSession.Backend.class, "write", void.class, Process.class, String.class)
         }) {
       assertTrue(method.toString(), method.isDefault());
@@ -208,7 +241,8 @@ public final class TerminalJavaApiTest {
         TerminalSession.Backend.class.getMethod("onReady", Process.class, TerminalReady.class),
         Exception.class);
     exceptions(
-        TerminalSession.Backend.class.getMethod("write", Process.class, String.class), IOException.class);
+        TerminalSession.Backend.class.getMethod("write", Process.class, String.class),
+        IOException.class);
 
     // 只实现两个抽象方法；Java 源码与运行时都必须能继承其余三个默认实现。
     TerminalSession.Backend backend = neverOpen();
@@ -223,24 +257,43 @@ public final class TerminalJavaApiTest {
   @Test
   public void ownerPublicAndSamePackageEntrypointsRemainUnmangled() throws Exception {
     instance(TerminalSessionOwner.class, "protection", TerminalRuntimeProtection.class);
-    instance(TerminalSessionOwner.class, "protectionSnapshot", TerminalRuntimeProtection.Snapshot.class);
+    instance(
+        TerminalSessionOwner.class, "protectionSnapshot", TerminalRuntimeProtection.Snapshot.class);
     instance(TerminalSessionOwner.class, "ownerEpoch", String.class);
     instance(TerminalSessionOwner.class, "epoch", String.class);
     instance(TerminalSessionOwner.class, "ptyTabs", TerminalTabs.ReadOnly.class);
     instance(TerminalSessionOwner.class, "simpleTabs", TerminalTabs.ReadOnly.class);
     instance(TerminalSessionOwner.class, "currentPty", TerminalTabs.Tab.class);
     instance(TerminalSessionOwner.class, "currentSimple", TerminalTabs.Tab.class);
-    instance(TerminalSessionOwner.class, "attachPty", void.class, TerminalSessionOwner.PtyObserver.class);
-    instance(TerminalSessionOwner.class, "detachPty", void.class, TerminalSessionOwner.PtyObserver.class);
-    instance(TerminalSessionOwner.class, "attachSimple", void.class, TerminalSessionOwner.SimpleObserver.class);
-    instance(TerminalSessionOwner.class, "detachSimple", void.class, TerminalSessionOwner.SimpleObserver.class);
+    instance(
+        TerminalSessionOwner.class,
+        "attachPty",
+        void.class,
+        TerminalSessionOwner.PtyObserver.class);
+    instance(
+        TerminalSessionOwner.class,
+        "detachPty",
+        void.class,
+        TerminalSessionOwner.PtyObserver.class);
+    instance(
+        TerminalSessionOwner.class,
+        "attachSimple",
+        void.class,
+        TerminalSessionOwner.SimpleObserver.class);
+    instance(
+        TerminalSessionOwner.class,
+        "detachSimple",
+        void.class,
+        TerminalSessionOwner.SimpleObserver.class);
     instance(TerminalSessionOwner.class, "addSimpleStateObserver", void.class, Runnable.class);
     instance(TerminalSessionOwner.class, "removeSimpleStateObserver", void.class, Runnable.class);
     for (String kind : new String[] {"Pty", "Simple"}) {
       instance(TerminalSessionOwner.class, "claim" + kind + "InitialCreation", boolean.class);
-      instance(TerminalSessionOwner.class, "rename" + kind, boolean.class, long.class, String.class);
+      instance(
+          TerminalSessionOwner.class, "rename" + kind, boolean.class, long.class, String.class);
       instance(TerminalSessionOwner.class, "is" + kind + "InputAllowed", boolean.class, long.class);
-      instance(TerminalSessionOwner.class, "is" + kind + "ProtectionLost", boolean.class, long.class);
+      instance(
+          TerminalSessionOwner.class, "is" + kind + "ProtectionLost", boolean.class, long.class);
       instance(TerminalSessionOwner.class, "select" + kind, boolean.class, long.class);
       instance(TerminalSessionOwner.class, "beginClose" + kind, boolean.class, long.class);
       instance(
@@ -252,13 +305,26 @@ public final class TerminalJavaApiTest {
           TerminalSessionOwner.CloseCallback.class);
       instance(TerminalSessionOwner.class, "request" + kind + "Shutdown", void.class);
     }
-    instance(TerminalSessionOwner.class, "appendSimple", void.class, TerminalSessionOwner.SimpleTab.class, String.class);
+    instance(
+        TerminalSessionOwner.class,
+        "appendSimple",
+        void.class,
+        TerminalSessionOwner.SimpleTab.class,
+        String.class);
     instance(TerminalSessionOwner.SimpleTab.class, "output", String.class);
     instance(TerminalSessionOwner.SimpleTab.class, "clearOutput", void.class);
     instance(TerminalSessionOwner.PtyObserver.class, "onTabsChanged", void.class);
     instance(TerminalSessionOwner.SimpleObserver.class, "onTabsChanged", void.class);
-    instance(TerminalSessionOwner.SimpleObserver.class, "onOutput", void.class, TerminalSessionOwner.SimpleTab.class);
-    instance(TerminalSessionOwner.SimpleObserver.class, "onState", void.class, TerminalSessionOwner.SimpleTab.class);
+    instance(
+        TerminalSessionOwner.SimpleObserver.class,
+        "onOutput",
+        void.class,
+        TerminalSessionOwner.SimpleTab.class);
+    instance(
+        TerminalSessionOwner.SimpleObserver.class,
+        "onState",
+        void.class,
+        TerminalSessionOwner.SimpleTab.class);
     instance(
         TerminalSessionOwner.CloseCallback.class,
         "onClosed",
@@ -271,7 +337,11 @@ public final class TerminalJavaApiTest {
     packageConstructor(TerminalSessionOwner.class);
     packageConstructor(TerminalSessionOwner.class, TerminalRuntimeProtection.class);
     packageEntry(TerminalSessionOwner.class, "addPty", TerminalTabs.Tab.class, PtySession.class);
-    packageEntry(TerminalSessionOwner.class, "addSimple", TerminalTabs.Tab.class, TerminalSession.Backend.class);
+    packageEntry(
+        TerminalSessionOwner.class,
+        "addSimple",
+        TerminalTabs.Tab.class,
+        TerminalSession.Backend.class);
     packageEntry(
         TerminalSessionOwner.class,
         "createPty",
@@ -302,7 +372,12 @@ public final class TerminalJavaApiTest {
         Consumer.class,
         String[].class);
     exceptions(
-        instance(TerminalSessionOwner.SimpleStop.class, "stop", boolean.class, TerminalSessionOwner.SimpleTab.class, long.class),
+        instance(
+            TerminalSessionOwner.SimpleStop.class,
+            "stop",
+            boolean.class,
+            TerminalSessionOwner.SimpleTab.class,
+            long.class),
         InterruptedException.class);
 
     TerminalSessionOwner owner = new TerminalSessionOwner();
@@ -327,9 +402,23 @@ public final class TerminalJavaApiTest {
         TerminalRuntimeProtection.Kind.class,
         TerminalRuntimeProtection.Admission.class);
     instance(TerminalRuntimeProtection.class, "matches", boolean.class, String.class);
-    instance(TerminalRuntimeProtection.class, "promoted", boolean.class, String.class, Object.class, BooleanSupplier.class);
-    instance(TerminalRuntimeProtection.class, "isProtected", boolean.class, TerminalRuntimeProtection.Ticket.class);
-    instance(TerminalRuntimeProtection.class, "expire", void.class, TerminalRuntimeProtection.Ticket.class);
+    instance(
+        TerminalRuntimeProtection.class,
+        "promoted",
+        boolean.class,
+        String.class,
+        Object.class,
+        BooleanSupplier.class);
+    instance(
+        TerminalRuntimeProtection.class,
+        "isProtected",
+        boolean.class,
+        TerminalRuntimeProtection.Ticket.class);
+    instance(
+        TerminalRuntimeProtection.class,
+        "expire",
+        void.class,
+        TerminalRuntimeProtection.Ticket.class);
     instance(TerminalRuntimeProtection.class, "reject", void.class, String.class, String.class);
     instance(TerminalRuntimeProtection.class, "serviceDestroyed", void.class, Object.class);
     instance(TerminalRuntimeProtection.class, "hasDemand", boolean.class);
@@ -338,19 +427,33 @@ public final class TerminalJavaApiTest {
     instance(TerminalRuntimeProtection.class, "addObserver", void.class, Runnable.class);
     instance(TerminalRuntimeProtection.class, "removeObserver", void.class, Runnable.class);
     for (String name : new String[] {"retain", "finishCreate"}) {
-      packageEntry(TerminalRuntimeProtection.class, name, void.class, TerminalRuntimeProtection.Ticket.class);
+      packageEntry(
+          TerminalRuntimeProtection.class,
+          name,
+          void.class,
+          TerminalRuntimeProtection.Ticket.class);
     }
     instance(TerminalRuntimeProtection.Ticket.class, "id", String.class);
     instance(TerminalRuntimeProtection.Ticket.class, "ownerEpoch", String.class);
     instance(TerminalRuntimeProtection.Ticket.class, "kind", TerminalRuntimeProtection.Kind.class);
     instance(TerminalRuntimeProtection.Ticket.class, "generation", long.class);
     instance(TerminalRuntimeProtection.Ticket.class, "hasStarted", boolean.class);
-    instance(TerminalRuntimeProtection.Ticket.class, "state", TerminalRuntimeProtection.State.class);
+    instance(
+        TerminalRuntimeProtection.Ticket.class, "state", TerminalRuntimeProtection.State.class);
     instance(TerminalRuntimeProtection.Ticket.class, "error", String.class);
     instance(TerminalRuntimeProtection.Ticket.class, "cancel", boolean.class);
     exceptions(instance(TerminalRuntimeProtection.Ticket.class, "close", void.class));
-    instance(TerminalRuntimeProtection.Admission.class, "onReady", void.class, TerminalRuntimeProtection.Ticket.class);
-    instance(TerminalRuntimeProtection.Admission.class, "onRejected", void.class, TerminalRuntimeProtection.Ticket.class, String.class);
+    instance(
+        TerminalRuntimeProtection.Admission.class,
+        "onReady",
+        void.class,
+        TerminalRuntimeProtection.Ticket.class);
+    instance(
+        TerminalRuntimeProtection.Admission.class,
+        "onRejected",
+        void.class,
+        TerminalRuntimeProtection.Ticket.class,
+        String.class);
 
     instance(TerminalSession.class, "state", TerminalSession.State.class);
     for (String name : new String[] {"ensureStarted", "cancelAndRestart", "shutdown"}) {
@@ -361,7 +464,12 @@ public final class TerminalJavaApiTest {
     instance(TerminalTabs.class, "reserveIdentity", TerminalTabs.Reservation.class);
     instance(TerminalTabs.class, "cancelIdentity", void.class, TerminalTabs.Reservation.class);
     instance(TerminalTabs.class, "add", TerminalTabs.Tab.class, Object.class);
-    instance(TerminalTabs.class, "publish", TerminalTabs.Tab.class, TerminalTabs.Reservation.class, Object.class);
+    instance(
+        TerminalTabs.class,
+        "publish",
+        TerminalTabs.Tab.class,
+        TerminalTabs.Reservation.class,
+        Object.class);
     for (Class<?> type : new Class<?>[] {TerminalTabs.class, TerminalTabs.ReadOnly.class}) {
       instance(type, "snapshot", List.class);
       instance(type, "current", TerminalTabs.Tab.class);
@@ -372,7 +480,8 @@ public final class TerminalJavaApiTest {
     instance(TerminalTabs.class, "beginClose", boolean.class, long.class);
     instance(TerminalTabs.class, "closeFailed", void.class, long.class);
     instance(TerminalTabs.class, "closeFailed", void.class, long.class, String.class);
-    instance(TerminalTabs.class, "closeFailed", boolean.class, long.class, long.class, String.class);
+    instance(
+        TerminalTabs.class, "closeFailed", boolean.class, long.class, long.class, String.class);
     instance(TerminalTabs.class, "rename", boolean.class, long.class, String.class);
     instance(TerminalTabs.class, "remove", void.class, long.class);
     for (String name : new String[] {"isClosing", "isUnconfirmed", "isCloseUnconfirmed"}) {
@@ -393,58 +502,128 @@ public final class TerminalJavaApiTest {
           IOException.class,
           InterruptedException.class);
     }
-    for (String name : new String[] {"closeAllAndConfirm", "closeAllPtyAndConfirm", "closeAllSimpleAndConfirm"}) {
+    for (String name :
+        new String[] {"closeAllAndConfirm", "closeAllPtyAndConfirm", "closeAllSimpleAndConfirm"}) {
       exceptions(
           instance(TerminalSessionOwner.class, name, void.class, long.class),
           IOException.class,
           InterruptedException.class);
     }
     exceptions(
-        packageEntry(TerminalSessionOwner.class, "closeSimple", void.class, long.class, long.class, TerminalSessionOwner.SimpleStop.class),
+        packageEntry(
+            TerminalSessionOwner.class,
+            "closeSimple",
+            void.class,
+            long.class,
+            long.class,
+            TerminalSessionOwner.SimpleStop.class),
         IOException.class,
         InterruptedException.class);
     for (Class<?>[] parameters :
         new Class<?>[][] {
-          {TerminalRuntimeProtection.Ticket.class, ProotBootstrap.class, int.class, int.class, PtySession.Listener.class},
-          {TerminalRuntimeProtection.Ticket.class, ProotBootstrap.class, int.class, int.class, PtySession.Listener.class, String[].class},
+          {
+            TerminalRuntimeProtection.Ticket.class,
+            ProotBootstrap.class,
+            int.class,
+            int.class,
+            PtySession.Listener.class
+          },
+          {
+            TerminalRuntimeProtection.Ticket.class,
+            ProotBootstrap.class,
+            int.class,
+            int.class,
+            PtySession.Listener.class,
+            String[].class
+          },
           {TerminalRuntimeProtection.Ticket.class, TerminalSessionOwner.PtyStart.class},
-          {TerminalRuntimeProtection.Ticket.class, String[].class, TerminalSessionOwner.PtyStart.class}
+          {
+            TerminalRuntimeProtection.Ticket.class,
+            String[].class,
+            TerminalSessionOwner.PtyStart.class
+          }
         }) {
       Method method = TerminalSessionOwner.class.getDeclaredMethod("createPty", parameters);
       assertEquals(TerminalTabs.Tab.class, method.getReturnType());
       assertFalse(Modifier.isStatic(method.getModifiers()));
       assertFalse(Modifier.isPrivate(method.getModifiers()));
-      if (parameters[1] == ProotBootstrap.class) assertTrue(Modifier.isPublic(method.getModifiers()));
+      if (parameters[1] == ProotBootstrap.class)
+        assertTrue(Modifier.isPublic(method.getModifiers()));
       exceptions(method, IOException.class);
     }
     exceptions(
-        instance(TerminalSessionOwner.class, "createSimple", TerminalTabs.Tab.class, TerminalRuntimeProtection.Ticket.class, TerminalSession.Backend.class),
+        instance(
+            TerminalSessionOwner.class,
+            "createSimple",
+            TerminalTabs.Tab.class,
+            TerminalRuntimeProtection.Ticket.class,
+            TerminalSession.Backend.class),
         IOException.class);
     exceptions(
-        instance(TerminalRuntimeProtection.class, "beginCreate", void.class, TerminalRuntimeProtection.Ticket.class, String.class, TerminalRuntimeProtection.Kind.class),
+        instance(
+            TerminalRuntimeProtection.class,
+            "beginCreate",
+            void.class,
+            TerminalRuntimeProtection.Ticket.class,
+            String.class,
+            TerminalRuntimeProtection.Kind.class),
         IOException.class);
     exceptions(
-        instance(TerminalRuntimeProtection.class, "requireHeld", void.class, TerminalRuntimeProtection.Ticket.class),
+        instance(
+            TerminalRuntimeProtection.class,
+            "requireHeld",
+            void.class,
+            TerminalRuntimeProtection.Ticket.class),
         IOException.class);
-    exceptions(instance(TerminalRuntimeProtection.class, "releaseVerified", void.class, TerminalRuntimeProtection.Ticket.class));
+    exceptions(
+        instance(
+            TerminalRuntimeProtection.class,
+            "releaseVerified",
+            void.class,
+            TerminalRuntimeProtection.Ticket.class));
     for (String name : new String[] {"shutdownAndWait", "disposeAndWait"}) {
-      exceptions(instance(TerminalSession.class, name, boolean.class, long.class), InterruptedException.class);
+      exceptions(
+          instance(TerminalSession.class, name, boolean.class, long.class),
+          InterruptedException.class);
     }
-    exceptions(TerminalProcessCloser.class.getMethod("captureSimpleLeader", int.class, long.class), IOException.class);
-    exceptions(TerminalProcessCloser.class.getMethod("closeProot", ProcessIdentity.class), IOException.class);
-    exceptions(TerminalProcessCloser.class.getMethod("requireSessionEmpty", int.class), IOException.class);
+    exceptions(
+        TerminalProcessCloser.class.getMethod("captureSimpleLeader", int.class, long.class),
+        IOException.class);
+    exceptions(
+        TerminalProcessCloser.class.getMethod("closeProot", ProcessIdentity.class),
+        IOException.class);
+    exceptions(
+        TerminalProcessCloser.class.getMethod("requireSessionEmpty", int.class), IOException.class);
     for (String name : new String[] {"close", "closeSimple"}) {
-      exceptions(TerminalProcessCloser.class.getMethod(name, ProcessIdentity.class, long.class), IOException.class, InterruptedException.class);
+      exceptions(
+          TerminalProcessCloser.class.getMethod(name, ProcessIdentity.class, long.class),
+          IOException.class,
+          InterruptedException.class);
     }
-    exceptions(TerminalExitPolicy.class.getMethod("requestProotExit", ProcessIdentity.class, TerminalExitPolicy.Ports.class), IOException.class);
-    exceptions(TerminalExitPolicy.class.getMethod("requireSessionEmpty", int.class, TerminalExitPolicy.Ports.class), IOException.class);
-    exceptions(TerminalExitPolicy.class.getMethod("close", ProcessIdentity.class, long.class, TerminalExitPolicy.Ports.class), IOException.class, InterruptedException.class);
+    exceptions(
+        TerminalExitPolicy.class.getMethod(
+            "requestProotExit", ProcessIdentity.class, TerminalExitPolicy.Ports.class),
+        IOException.class);
+    exceptions(
+        TerminalExitPolicy.class.getMethod(
+            "requireSessionEmpty", int.class, TerminalExitPolicy.Ports.class),
+        IOException.class);
+    exceptions(
+        TerminalExitPolicy.class.getMethod(
+            "close", ProcessIdentity.class, long.class, TerminalExitPolicy.Ports.class),
+        IOException.class,
+        InterruptedException.class);
     Class<?> ports = TerminalExitPolicy.Ports.class;
-    exceptions(instance(ports, "read", ProcessIdentity.class, int.class, int.class), IOException.class);
-    exceptions(instance(ports, "belongsToSession", boolean.class, int.class, int.class), IOException.class);
+    exceptions(
+        instance(ports, "read", ProcessIdentity.class, int.class, int.class), IOException.class);
+    exceptions(
+        instance(ports, "belongsToSession", boolean.class, int.class, int.class),
+        IOException.class);
     exceptions(instance(ports, "uid", int.class, int.class), IOException.class);
     exceptions(instance(ports, "pids", int[].class), IOException.class);
-    exceptions(instance(ports, "signal", void.class, int.class, TerminalExitPolicy.Signal.class), IOException.class);
+    exceptions(
+        instance(ports, "signal", void.class, int.class, TerminalExitPolicy.Signal.class),
+        IOException.class);
     exceptions(instance(ports, "pause", void.class, long.class), InterruptedException.class);
     exceptions(instance(ports, "ownUid", int.class));
     exceptions(instance(ports, "now", long.class));
@@ -458,8 +637,10 @@ public final class TerminalJavaApiTest {
     synchronizedMethod(TerminalSessionOwner.SimpleTab.class, "output");
     synchronizedMethod(TerminalSession.class, "disposeAndWait", long.class);
     synchronizedMethod(TerminalRuntimeProtection.class, "matches", String.class);
-    synchronizedMethod(TerminalRuntimeProtection.class, "requireHeld", TerminalRuntimeProtection.Ticket.class);
-    synchronizedMethod(TerminalRuntimeProtection.class, "isProtected", TerminalRuntimeProtection.Ticket.class);
+    synchronizedMethod(
+        TerminalRuntimeProtection.class, "requireHeld", TerminalRuntimeProtection.Ticket.class);
+    synchronizedMethod(
+        TerminalRuntimeProtection.class, "isProtected", TerminalRuntimeProtection.Ticket.class);
     synchronizedMethod(TerminalRuntimeProtection.class, "hasDemand");
     synchronizedMethod(TerminalRuntimeProtection.class, "needsService", Object.class);
     synchronizedMethod(TerminalRuntimeProtection.class, "snapshot");
@@ -566,7 +747,9 @@ public final class TerminalJavaApiTest {
                 assertEquals("TERMINAL_CREATION_CANCELLED", reason);
                 assertEquals(TerminalRuntimeProtection.State.RELEASED, ticket.state());
                 rejected.incrementAndGet();
-                replacement.set(protection.prepare("owner", TerminalRuntimeProtection.Kind.SIMPLE, admission()));
+                replacement.set(
+                    protection.prepare(
+                        "owner", TerminalRuntimeProtection.Kind.SIMPLE, admission()));
               }
             });
     assertTrue(old.cancel());
@@ -690,8 +873,61 @@ public final class TerminalJavaApiTest {
     assertEquals(1, pauses.get());
   }
 
-  private static Method instance(Class<?> owner, String name, Class<?> result, Class<?>... parameters)
-      throws Exception {
+  /** 原 Java 没有公开构造桥；Kotlin 的额外桥只能接受外层私有精确 key。 */
+  private static void rejectUnknownConstructorKeysBeforeAnyCreation() throws Exception {
+    AtomicInteger clockCalls = new AtomicInteger();
+    TerminalRuntimeProtection protection =
+        new TerminalRuntimeProtection(
+            () -> {
+              clockCalls.incrementAndGet();
+              return 1L;
+            });
+    TerminalSessionOwner owner = new TerminalSessionOwner(protection);
+    for (Constructor<?> bridge : TerminalSessionOwner.SimpleTab.class.getConstructors()) {
+      if (bridge.isSynthetic()) continue;
+      assertArrayEquals(
+          new Class<?>[] {TerminalSessionOwner.class, TerminalSession.Backend.class, Object.class},
+          bridge.getParameterTypes());
+      for (Object key : new Object[] {null, new Object()}) {
+        var failure =
+            assertThrows(
+                java.lang.reflect.InvocationTargetException.class,
+                () -> bridge.newInstance(owner, neverOpen(), key));
+        assertEquals(IllegalArgumentException.class, failure.getCause().getClass());
+      }
+    }
+    for (Constructor<?> bridge : TerminalRuntimeProtection.Ticket.class.getConstructors()) {
+      if (bridge.isSynthetic()) continue;
+      assertArrayEquals(
+          new Class<?>[] {
+            TerminalRuntimeProtection.class,
+            String.class,
+            TerminalRuntimeProtection.Kind.class,
+            TerminalRuntimeProtection.Admission.class,
+            Object.class
+          },
+          bridge.getParameterTypes());
+      for (Object key : new Object[] {null, new Object()}) {
+        var failure =
+            assertThrows(
+                java.lang.reflect.InvocationTargetException.class,
+                () ->
+                    bridge.newInstance(
+                        protection,
+                        "owner",
+                        TerminalRuntimeProtection.Kind.SIMPLE,
+                        admission(),
+                        key));
+        assertEquals(IllegalArgumentException.class, failure.getCause().getClass());
+      }
+    }
+    assertEquals(0, clockCalls.get());
+    assertTrue(owner.simpleTabs().snapshot().isEmpty());
+    assertFalse(protection.hasDemand());
+  }
+
+  private static Method instance(
+      Class<?> owner, String name, Class<?> result, Class<?>... parameters) throws Exception {
     Method method = owner.getDeclaredMethod(name, parameters);
     assertEquals(method.toString(), result, method.getReturnType());
     assertTrue(method.toString(), Modifier.isPublic(method.getModifiers()));
@@ -699,16 +935,16 @@ public final class TerminalJavaApiTest {
     return method;
   }
 
-  private static void staticMethod(Class<?> owner, String name, Class<?> result, Class<?>... parameters)
-      throws Exception {
+  private static void staticMethod(
+      Class<?> owner, String name, Class<?> result, Class<?>... parameters) throws Exception {
     Method method = owner.getDeclaredMethod(name, parameters);
     assertEquals(method.toString(), result, method.getReturnType());
     assertTrue(method.toString(), Modifier.isPublic(method.getModifiers()));
     assertTrue(method.toString(), Modifier.isStatic(method.getModifiers()));
   }
 
-  private static Method packageEntry(Class<?> owner, String name, Class<?> result, Class<?>... parameters)
-      throws Exception {
+  private static Method packageEntry(
+      Class<?> owner, String name, Class<?> result, Class<?>... parameters) throws Exception {
     Method method = owner.getDeclaredMethod(name, parameters);
     assertEquals(method.toString(), result, method.getReturnType());
     assertFalse(method.toString(), Modifier.isStatic(method.getModifiers()));
@@ -727,7 +963,8 @@ public final class TerminalJavaApiTest {
     assertArrayEquals(method.toString(), expected, method.getExceptionTypes());
   }
 
-  private static void field(Class<?> owner, String name, Class<?> type, boolean isStatic, boolean isFinal)
+  private static void field(
+      Class<?> owner, String name, Class<?> type, boolean isStatic, boolean isFinal)
       throws Exception {
     Field field = owner.getField(name);
     assertSame(owner, field.getDeclaringClass());
