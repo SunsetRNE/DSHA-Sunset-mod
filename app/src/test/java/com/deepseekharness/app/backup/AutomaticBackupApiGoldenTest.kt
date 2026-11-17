@@ -28,6 +28,11 @@ class AutomaticBackupApiGoldenTest {
     @Test
     fun automaticBackupsRetainsItsJavaStaticSurface() {
         val owner = AutomaticBackups::class.java
+        System.getProperty("dsha.t14.compiled")?.let { compiled ->
+            for (type in listOf(owner, AutomaticBackupService::class.java, AutomaticBackupPruner::class.java, AutomaticBackupPolicy::class.java)) {
+                assertEquals("must load freshly compiled ${type.name}", java.io.File(compiled).canonicalFile, java.io.File(type.protectionDomain.codeSource.location.toURI()).canonicalFile)
+            }
+        }
         val context = Context::class.java
         val nothing = Void.TYPE
         assertTrue(Modifier.isFinal(owner.modifiers))

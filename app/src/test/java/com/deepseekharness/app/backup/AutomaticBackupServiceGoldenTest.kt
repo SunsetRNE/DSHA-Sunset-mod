@@ -24,7 +24,7 @@ import org.robolectric.shadow.api.Shadow
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], manifest = Config.NONE, application = Application::class,
     instrumentedPackages = ["com.deepseekharness.app.backup"],
-    shadows = [AutomaticBackupServiceGoldenTest.Backups::class, AutomaticBackupServiceGoldenTest.Jobs::class, AutomaticBackupServiceGoldenTest.Callbacks::class])
+    shadows = [AutomaticBackupServiceGoldenTest.Backups::class, AutomaticBackupServiceGoldenTest.CompanionBackups::class, AutomaticBackupServiceGoldenTest.Jobs::class, AutomaticBackupServiceGoldenTest.Callbacks::class])
 @LooperMode(LooperMode.Mode.PAUSED)
 class AutomaticBackupServiceGoldenTest {
     @Implements(value = AutomaticBackups::class, isInAndroidSdk = false)
@@ -45,6 +45,16 @@ class AutomaticBackupServiceGoldenTest {
             }
             @Implementation @JvmStatic fun recordError(context: Context, error: String?) { errors += error ?: "" }
         }
+    }
+
+    /** Kotlin 调用伴生实例，Java 调用外层 static；两条入口使用同一可控事实，原 Java 基线无此类。 */
+    @Implements(className = "com.deepseekharness.app.backup.AutomaticBackups\$Companion", isInAndroidSdk = false)
+    class CompanionBackups {
+        @Implementation fun enabled(context: Context): Boolean = Backups.enabled(context)
+        @Implementation fun due(context: Context): Boolean = Backups.due(context)
+        @Implementation fun idle(context: Context): Boolean = Backups.idle(context)
+        @Implementation fun password(context: Context): CharArray = Backups.password(context)
+        @Implementation fun recordError(context: Context, error: String?) { Backups.recordError(context, error) }
     }
 
     @Implements(value = NativeBackupJobs::class, isInAndroidSdk = false)
