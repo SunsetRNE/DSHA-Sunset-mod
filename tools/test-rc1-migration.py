@@ -121,7 +121,12 @@ class Migration(unittest.TestCase):
     def test_snapshot_modified_detected_even_source_unchanged(self):
         self.prepare();(self.folder()/self.doc()['sources'][0]['snapshot']).write_text('changed');self.assertEqual(self.finalize(),1)
     def test_source_replaced_with_same_bytes_keeps_content_copy_and_unknown_object_identity(self):
-        self.prepare();self.verified();source=self.dsh/'settings.yaml';value=source.read_text();source.unlink();source.write_text(value)
+        self.prepare();self.verified();source=self.dsh/'settings.yaml'
+        retained=self.root/'retained-settings.yaml';source.rename(retained)
+        source.write_bytes(retained.read_bytes())
+        before=retained.stat();after=source.stat()
+        self.assertNotEqual((before.st_dev,before.st_ino),(after.st_dev,after.st_ino))
+        self.assertEqual(retained.read_bytes(),source.read_bytes())
         code,payload=self.capture(self.finalize);self.assertEqual(code,0)
         self.assertEqual(payload['contentCopyStatus'],'verified');self.assertEqual(payload['sourceObjectIdentity'],'unknown')
         self.assertNotIn('sourcePreserved',payload);self.assertTrue(any(x.startswith('SOURCE_IDENTITY_CHANGED:') for x in payload['warnings']))
