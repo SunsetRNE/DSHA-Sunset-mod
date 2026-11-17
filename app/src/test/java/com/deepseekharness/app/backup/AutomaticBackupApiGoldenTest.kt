@@ -7,7 +7,9 @@ import android.content.SharedPreferences
 import com.deepseekharness.app.util.AutomaticBackupPolicy
 import java.io.IOException
 import java.lang.reflect.Modifier
+import java.nio.file.Files
 import java.time.ZoneId
+import javax.tools.ToolProvider
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -55,6 +57,56 @@ class AutomaticBackupApiGoldenTest {
             assertFalse(Modifier.isStatic(method.modifiers))
         }
         assertEquals(Void.TYPE, owner.getMethod("onDestroy").returnType)
+    }
+
+    @Test
+    fun realJavaCallerCompilesAgainstTheFrozenStaticSurface() {
+        val root = Files.createTempDirectory("automatic-backup-java-caller-")
+        try {
+            val source = root.resolve("AutomaticBackupJavaCaller.java")
+            Files.writeString(source, """
+                package com.deepseekharness.app.backup;
+                import android.content.Context;
+                import android.content.SharedPreferences;
+                import com.deepseekharness.app.util.AutomaticBackupPolicy;
+                import java.io.IOException;
+                import java.util.List;
+                final class AutomaticBackupJavaCaller {
+                  static void use(Context context, BackupControl control) throws IOException {
+                    int job = AutomaticBackups.JOB, now = AutomaticBackups.NOW;
+                    SharedPreferences preferences = AutomaticBackups.prefs(context);
+                    boolean enabled = AutomaticBackups.enabled(context);
+                    boolean due = AutomaticBackups.due(context);
+                    boolean idle = AutomaticBackups.idle(context);
+                    boolean owned = AutomaticBackups.idleForOwner(context);
+                    boolean suspended = AutomaticBackups.factoryResetSuspended();
+                    boolean pending = AutomaticBackups.factoryResetPending(context);
+                    WorkerQuiescence.Lease lease = AutomaticBackups.beginProducer();
+                    AutomaticBackups.recordError(context, null);
+                    AutomaticBackups.schedule(context);
+                    AutomaticBackups.stopped(context);
+                    AutomaticBackups.request(context, true);
+                    char[] password = AutomaticBackups.password(context);
+                    AutomaticBackups.completed(context, null);
+                    AutomaticBackups.prune(context, control);
+                    AutomaticBackups.suspendForFactoryReset(context, control);
+                    AutomaticBackups.abortFactoryReset(context);
+                    AutomaticBackups.completeFactoryReset(context);
+                    AutomaticBackupPruner.prune(null, List.of(), control);
+                    boolean policy = AutomaticBackupPolicy.due(null, 24, 180, 0, 0, 0, 0, null);
+                    AutomaticBackupService service = new AutomaticBackupService();
+                  }
+                }
+            """.trimIndent())
+            val classpath = listOf(AutomaticBackups::class.java, AutomaticBackupPolicy::class.java, Context::class.java, kotlin.Unit::class.java)
+                .map { java.io.File(it.protectionDomain.codeSource.location.toURI()).absolutePath }
+                .distinct().joinToString(java.io.File.pathSeparator)
+            val diagnostics = java.io.ByteArrayOutputStream()
+            val result = ToolProvider.getSystemJavaCompiler().run(null, diagnostics, diagnostics, "-proc:none", "-classpath", classpath, "-d", root.toString(), source.toString())
+            assertEquals(diagnostics.toString("UTF-8"), 0, result)
+        } finally {
+            Files.walk(root).use { paths -> paths.sorted(java.util.Comparator.reverseOrder()).forEach { Files.delete(it) } }
+        }
     }
 
     @Test

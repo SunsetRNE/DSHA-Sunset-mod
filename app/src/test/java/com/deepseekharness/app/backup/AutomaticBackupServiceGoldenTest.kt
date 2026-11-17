@@ -34,13 +34,14 @@ class AutomaticBackupServiceGoldenTest {
             var due = true
             var idle = true
             var passwordCalls = 0
+            var preparedSecret: CharArray? = null
             val errors = ArrayList<String>()
             @Implementation @JvmStatic fun enabled(context: Context): Boolean = enabled
             @Implementation @JvmStatic fun due(context: Context): Boolean = due
             @Implementation @JvmStatic fun idle(context: Context): Boolean = idle
             @Implementation @JvmStatic fun password(context: Context): CharArray {
                 passwordCalls++
-                return "synthetic-secret".toCharArray()
+                return "synthetic-secret".toCharArray().also { preparedSecret = it }
             }
             @Implementation @JvmStatic fun recordError(context: Context, error: String?) { errors += error ?: "" }
         }
@@ -83,6 +84,7 @@ class AutomaticBackupServiceGoldenTest {
         Backups.due = true
         Backups.idle = true
         Backups.passwordCalls = 0
+        Backups.preparedSecret = null
         Backups.errors.clear()
         Callbacks.finished.clear()
         Jobs.instance = Shadow.newInstanceOf(NativeBackupJobs::class.java)
@@ -144,6 +146,21 @@ class AutomaticBackupServiceGoldenTest {
         shadowOf(Looper.getMainLooper()).idle()
         assertTrue(owner.current(next))
         assertEquals(0, producers.active())
+        assertTrue(Backups.preparedSecret!!.all { it == '\u0000' })
+        assertEquals(0, Jobs.exports)
+        assertTrue(Callbacks.finished.isEmpty())
+    }
+
+    @Test
+    fun destructionKeepsQueuedCleanupAlive() {
+        val ticket = owner.begin(params())
+        val producers = WorkerQuiescence()
+        prepare(ticket, false, producers.tryBegin())
+        assertEquals(1, producers.active())
+        service.onDestroy()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(0, producers.active())
+        assertTrue(Backups.preparedSecret!!.all { it == '\u0000' })
         assertEquals(0, Jobs.exports)
         assertTrue(Callbacks.finished.isEmpty())
     }
