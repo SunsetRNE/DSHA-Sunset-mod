@@ -33,7 +33,7 @@ runner 的两个真实 Java 正例改用显式受控的单 app Java layout，保
 
 | 本轮层级 | 实证 |
 |---|---|
-| 旧夹具失败复现 | 从重放点读取未修改测试代码，真实 formatter inventory 与 runner guard 重新触发相同缺根/多模块拒绝；整个执行阶段 `subprocess.Popen` 被拦截，未启动 JVM |
+| 旧夹具失败复现 | 本地从重放点读取未修改测试代码，实际重新触发 formatter 的精确 policy 缺根拒绝；随后尝试旧 runner 正例时因 PATH 未找到 `javac`，停在 `JDK is a declared input`，没有到 runner guard。该次脚本失败日志保留，不计作 runner 本地 guard 复现；runner 原因依据上文原 CI 日志，修后的独立 guard 负控见下一行。整个本地尝试阶段 `subprocess.Popen` 被拦截，未启动 JVM |
 | formatter Python | 原 4 项保留，加全模块盘点与逐缺根拒绝，共 **6 项通过**；只盘点/分批，不执行格式器 |
 | runner Python/mock | **7 项通过**：原 3 个纯 Python 用例、新 mock 正例及 3 个多模块/Kotlin guard 负例；所有 `subprocess.Popen` 被禁止 |
 | 合计 | **13 tests / 0 failures / 0 errors / 0 skipped**，属于 Python/mock，不是 Java 编译或 JUnit 执行证据 |
