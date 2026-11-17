@@ -265,6 +265,47 @@ class NativeSessionDiagnosticsTest(unittest.TestCase):
                 builder.build(self.ndk, self.output, check=True, evidence_dir=self.evidence)
         self.assertEqual(self.original, self.output.read_bytes())
 
+    def test_closed_stderr_after_evidence_failure_preserves_compile_exception(self):
+        failure = subprocess.CalledProcessError(19, ['mock-compile'])
+        self.run.side_effect = failure
+        stderr = io.StringIO()
+        stderr.close()
+        with patch.object(builder, 'save_evidence', side_effect=OSError('mock manifest failure')) as save, \
+                patch.object(builder.sys, 'stderr', stderr):
+            with self.assertRaises(subprocess.CalledProcessError) as caught:
+                builder.build(self.ndk, self.output, check=True, evidence_dir=self.evidence)
+        self.assertIs(failure, caught.exception)
+        self.assertIs(failure, save.call_args.args[10])
+        self.assertEqual(1, self.run.call_count)
+        self.assertEqual(self.original, self.output.read_bytes())
+        self.assertFalse(self.evidence.exists())
+
+    def test_closed_stderr_after_evidence_failure_preserves_mismatch_exception(self):
+        stderr = io.StringIO()
+        stderr.close()
+        with patch.object(builder, 'save_evidence', side_effect=OSError('mock manifest failure')) as save, \
+                patch.object(builder.sys, 'stderr', stderr):
+            with self.assertRaises(ValueError) as caught:
+                builder.build(self.ndk, self.output, check=True, evidence_dir=self.evidence)
+        failure = save.call_args.args[10]
+        self.assertIs(failure, caught.exception)
+        self.assertEqual('NATIVE_SESSION_REBUILD_MISMATCH', str(failure))
+        self.assertEqual(3, self.run.call_count)
+        self.assertEqual(self.original, self.output.read_bytes())
+        self.assertFalse(self.evidence.exists())
+
+    def test_diagnostic_warning_does_not_swallow_base_exception(self):
+        interrupt = KeyboardInterrupt('mock warning interrupt')
+        class InterruptedStderr:
+            def write(self, text):
+                raise interrupt
+        with patch.object(builder, 'save_evidence', side_effect=OSError('mock manifest failure')), \
+                patch.object(builder.sys, 'stderr', InterruptedStderr()):
+            with self.assertRaises(KeyboardInterrupt) as caught:
+                builder.build(self.ndk, self.output, check=True, evidence_dir=self.evidence)
+        self.assertIs(interrupt, caught.exception)
+        self.assertEqual(self.original, self.output.read_bytes())
+
     def test_wrong_ndk_and_write_evidence_fail_before_tools(self):
         with self.assertRaisesRegex(ValueError, 'EVIDENCE_REQUIRES_CHECK'):
             builder.build(self.ndk, self.output, evidence_dir=self.evidence)
@@ -288,6 +329,27 @@ class NativeSessionDiagnosticsTest(unittest.TestCase):
         self.run.assert_not_called()
         self.assertEqual(b'keep', sentinel.read_bytes())
         self.assertEqual([sentinel], list(existing.iterdir()))
+
+    def test_overlapping_missing_output_and_evidence_are_rejected_before_tools(self):
+        cases = (('evidence-inside-output', 'reference.elf', 'reference.elf/diagnostics'),
+                 ('output-inside-evidence', 'diagnostics/reference.elf', 'diagnostics'),
+                 ('equal', 'same.elf', 'same.elf'))
+        for label, output, evidence in cases:
+            with self.subTest(relation=label):
+                self.run.reset_mock()
+                base = self.root / 'app/build' / label
+                output = base / output
+                evidence = base / evidence
+                self.assertFalse(output.exists())
+                self.assertFalse(evidence.exists())
+                with self.assertRaises(ValueError) as caught:
+                    builder.build(self.ndk, output, check=True, evidence_dir=evidence)
+                self.assertEqual({'failure': 'NATIVE_SESSION_EVIDENCE_PATH', 'toolsCalled': False,
+                                  'outputExists': False, 'evidenceExists': False, 'baseExists': False},
+                                 {'failure': str(caught.exception), 'toolsCalled': self.run.called,
+                                  'outputExists': output.exists(), 'evidenceExists': evidence.exists(),
+                                  'baseExists': base.exists()})
+                self.run.assert_not_called()
 
     def test_directory_created_after_validation_is_not_reused(self):
         def create_then_run(argv, **options):

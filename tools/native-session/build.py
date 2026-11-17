@@ -26,7 +26,7 @@ def evidence_path(value, output):
         path = root / path
     base = root / "app/build"
     if (".." in path.parts or not path.is_relative_to(base) or path == base
-            or output.resolve().is_relative_to(path)):
+            or output.resolve().is_relative_to(path) or path.is_relative_to(output.resolve())):
         raise ValueError("NATIVE_SESSION_EVIDENCE_PATH")
     for parent in (path, *path.parents):
         if parent == root:
@@ -281,7 +281,7 @@ def build(ndk, output, check=False, evidence_dir=None):
                 except Exception as error:
                     try:
                         print("NATIVE_SESSION_EVIDENCE_FAILED: " + type(error).__name__, file=sys.stderr)
-                    except OSError:
+                    except Exception:
                         pass  # 诊断提示写失败也不能覆盖原始异常。
             raise
     value = hashlib.sha256(content).hexdigest()
