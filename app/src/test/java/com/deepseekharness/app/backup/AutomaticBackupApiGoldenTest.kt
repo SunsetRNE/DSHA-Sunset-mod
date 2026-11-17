@@ -98,7 +98,7 @@ class AutomaticBackupApiGoldenTest {
                   }
                 }
             """.trimIndent())
-            val classpath = listOf(AutomaticBackups::class.java, AutomaticBackupPolicy::class.java, Context::class.java, kotlin.Unit::class.java)
+            val classpath = listOf(AutomaticBackups::class.java, AutomaticBackupPolicy::class.java, BackupControl::class.java, Context::class.java, kotlin.Unit::class.java)
                 .map { java.io.File(it.protectionDomain.codeSource.location.toURI()).absolutePath }
                 .distinct().joinToString(java.io.File.pathSeparator)
             val diagnostics = java.io.ByteArrayOutputStream()

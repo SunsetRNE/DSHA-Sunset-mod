@@ -70,7 +70,7 @@ class AutomaticBackupServiceGoldenTest {
     }
 
     @Implements(JobService::class)
-    class Callbacks {
+    class Callbacks : org.robolectric.shadows.ShadowService() {
         companion object { val finished = ArrayList<Pair<JobParameters, Boolean>>() }
         @Implementation fun jobFinished(params: JobParameters, retry: Boolean) { finished += params to retry }
     }
