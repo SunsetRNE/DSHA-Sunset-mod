@@ -1,6 +1,6 @@
 # T14 自动备份 Kotlin 等价迁移专项回执（2026-11-17）
 
-状态：Java golden 已冻结，尚未执行；生产仍为原 Java。验证必须由 main59161579 串行派槽，不能把本文计划写成通过。
+状态：Java golden 已完成首轮及夹具窄修验证，四类同 FQCN Kotlin 草稿已提交前准备；迁移后编译/格式/完整定向39项待 main 串行派槽，不能把本文计划写成通过。
 
 ## 基线与边界
 
@@ -28,7 +28,7 @@
 
 ## Java API 与行为 golden
 
-先提交以下五个 Kotlin 测试文件，全部对原 Java 实现运行；原有 Java 的 [AutomaticBackupPolicyTest](../../app/src/test/java/com/deepseekharness/app/util/AutomaticBackupPolicyTest.java)、[AutomaticBackupPrunerTest](../../app/src/test/java/com/deepseekharness/app/backup/AutomaticBackupPrunerTest.java) 和 [ScheduledBackupOwnerTest](../../app/src/test/java/com/deepseekharness/app/util/ScheduledBackupOwnerTest.java) 保留并复跑。
+Java golden 先提交以下五个 Kotlin 测试文件，全部对原 Java 实现运行；原有 Java 的 [AutomaticBackupPolicyTest](../../app/src/test/java/com/deepseekharness/app/util/AutomaticBackupPolicyTest.java)、[AutomaticBackupPrunerTest](../../app/src/test/java/com/deepseekharness/app/backup/AutomaticBackupPrunerTest.java) 和 [ScheduledBackupOwnerTest](../../app/src/test/java/com/deepseekharness/app/util/ScheduledBackupOwnerTest.java) 保留并复跑。
 
 - [AutomaticBackupApiGoldenTest](../../app/src/test/java/com/deepseekharness/app/backup/AutomaticBackupApiGoldenTest.kt)：同 FQCN、Java 静态方法名/参数/返回类型、IOException 声明、9137/9138、工具类私有构造、Service 无参构造与框架覆盖。允许 Kotlin 的合成成员；不把反射 API 兼容扩写成全字节码相同。
 - [AutomaticBackupPolicyGoldenTest](../../app/src/test/java/com/deepseekharness/app/util/AutomaticBackupPolicyGoldenTest.kt)：1–168 小时边界、anchor/last 最大值、clock rollback、停止事件单次消费、默认/未知/null mode、每日分钟钳位、纽约 gap/overlap、Lord Howe 半小时 gap、调用方所传时区。
@@ -44,9 +44,17 @@ Kotlin 没有 Java package-private；原包内静态入口拟用 `internal` + `@
 
 ## 验证状态
 
-尚未执行：新旧定向单测、Java/Kotlin 交叉编译、双语格式、Gradle、Lint、APK、完整 CI、设备。未启动任何 JVM；无 UNKNOWN 动作；无推送/合入/安装/手机操作。
+Java 基线（`8965d15b` → 补强 `6ea83741` → 夹具修复 `0ce7d0d3`）：main 授独占槽，首 JVM `2026-11-17T00:47:55Z`，00:50:55Z 收槽并核 `/proc` JVM=0。原4 Java、新5 Kotlin golden、既有3 Java测试及真实文件系统 helper 均新编译成功。首轮实际39项/3失败/0忽略/0assumption；失败是动态 Java caller 临时 classpath 漏独立协作者目录（1项）和回调 shadow 未继承 ShadowService（2项销毁用例）。只修两个测试夹具后，在新测试输出窄重跑受影响12项，12/0/0/0；其余27项在首轮通过。没有把它写成同次39项全绿。
 
-main 排队为 FIFO JVM#2；需先交 golden 精确 SHA 与唯一命令/时限，再等明确授槽。
+原始日志与输入/依赖 proof 保留在 `/tmp/t14-b26c9fdc/baseline/`、`/tmp/t14-b26c9fdc/baseline-fix/`；两次驱动日志为 `/tmp/t14-b26c9fdc/baseline-driver.log`、`/tmp/t14-b26c9fdc/baseline-fix-driver.log`；后台作业分别 `bash-b5b7646cdedb4519`（exit1）与 `bash-500d9057d7f940a6`（exit0），都已收集。
+
+基线独审指出的两项 P1 已实修。两项 P2 又补强原 API 的 public/static/final/私有构造断言，及真实 poll 的 busy/disable/原生error完成、onStartJob 已有票据的拒绝分支；原39个方法身份保留。下一槽先从 `127ae7bf` Git 对象取回原 Java 到独立临时目录，对补强后的同一组39项完整复跑，再以新4 Kotlin 重新编译和执行相同39项，避免以迁移后结果反推 Java 基线。
+
+非 JVM 门禁：源码卫生通过；core-boundaries 首跑25项中1失败，原因仅旧边登记仍写 AutomaticBackups.java，实际同 FQCN 两个宿主协调边改成 .kt 后被识别成新边。两条 file 扩展名登记同步已报 main，尚未修改 checker 或扩充 type 集合。
+
+尚未执行：迁移后编译/完整39项、双语格式、Gradle、Lint、APK、完整 CI、设备。无 UNKNOWN 动作；无推送/合入/安装/手机操作。
+
+原 main59161579 已批准格式清单仅移除本轮4个已删 Java 路径；JSON 集合差异证明 removed=4、added=0、schema/purpose及存活成员顺序不变。旧→新映射为 `backup/AutomaticBackupPruner.java→.kt`、`backup/AutomaticBackupService.java→.kt`、`backup/AutomaticBackups.java→.kt`、`util/AutomaticBackupPolicy.java→.kt`（均在原包目录）。
 
 ## 回退与交还
 
