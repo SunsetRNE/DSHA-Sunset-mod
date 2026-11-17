@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "kind": "retained-historical-behavior-fixture",
+  "description": "仅供隔离的旧基础 profile 行为回归；不部署到 APK，不恢复退休生产启动链，不代替现行 NativeSafeProfile 或独立应急运行时验证。",
+  "fixture": "tools/fixtures/startup-recovery-legacy.py",
+  "source": {
+    "commit": "805b5e78d53f1e5be32ea83139af28f33b399df4",
+    "path": "app/src/main/assets/startup-recovery.py",
+    "blob": "4c535c28840e492a1dc1333c083e870dad82daef",
+    "sha256": "6c307f6ec62aecb1ddb31f57e1588baf9dc262d157185bc6f2f233461ba4d20e",
+    "bytes": 1302,
+    "mode": "100644"
+  },
+  "relationship": {
+    "implementationBaseline": "41b65c9696ed1c976fdc8f56ddf08f9e4c059153",
+    "sourceIsAncestorOfBaseline": false,
+    "scope": "本地另一条已存在 ref 历史中的真实实现，逐字节保留；不是当前主线祖先来源。",
+    "missingArchivePath": "tools/history/engineering/assets/startup-recovery.py",
+    "missingArchiveExactSource": "unknown",
+    "missingArchiveNote": "旧用例在 8321228ead52bd47eb597432453b0223b0fc9c16 加入时已指向此路径，该 tree 未包含对应 blob；不声称此夹具就是该未知归档的精确原件。"
+  },
+  "testBinding": {
+    "consumer": "tools/test-startup-recovery.py",
+    "registerDependency": "app/src/main/assets/register-builtin-plugins.py",
+    "purpose": "保留原用例对损坏 web profile 和共享 settings 不变、两次独立新 profile、官方 bundles 与 patchReload startup 的行为断言；现有测试重绑定 register 到当前 ASSETS。",
+    "runtimeGitRequired": false
+  }
+}

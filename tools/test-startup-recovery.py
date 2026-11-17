@@ -72,7 +72,15 @@ class RecoveryTests(unittest.TestCase):
 
     def test_recovery_ignores_broken_original_and_preserves_shared_data(self):
         with tempfile.TemporaryDirectory() as temporary, patch.dict(os.environ, {'DSHA_TEST_ROOT': temporary, 'DSH_HOME': '/root/.dsh'}):
-            spec = importlib.util.spec_from_file_location('recovery', Path(__file__).resolve().parents[1] / 'tools/history/engineering/assets/startup-recovery.py')
+            import hashlib
+            fixture = Path(__file__).resolve().parents[1] / 'tools/fixtures/startup-recovery-legacy.py'
+            provenance = json.loads(fixture.with_suffix('.provenance.json').read_text(encoding='utf-8'))
+            source = fixture.read_bytes()
+            self.assertEqual(1302, len(source))
+            self.assertEqual('6c307f6ec62aecb1ddb31f57e1588baf9dc262d157185bc6f2f233461ba4d20e', hashlib.sha256(source).hexdigest())
+            self.assertEqual(provenance['source']['bytes'], len(source))
+            self.assertEqual(provenance['source']['sha256'], hashlib.sha256(source).hexdigest())
+            spec = importlib.util.spec_from_file_location('recovery', fixture)
             module = importlib.util.module_from_spec(spec)
             original_spec = importlib.util.spec_from_file_location
             def historical_dependency(name, path, *args, **kwargs):
