@@ -30,11 +30,13 @@ public final class AssistantSessionController implements AutoCloseable {
       boolean terminalKnown,
       boolean paused) {}
 
-  private static volatile AssistantSessionController active;
-
+  /** 兼容原 Java 静态调用；唯一选中状态由 Application 持有。 */
   public static AssistantSessionController active() {
-    return active;
+    AssistantWindowOwner owner = AssistantWindowOwner.legacy();
+    return owner == null ? null : owner.current();
   }
+
+  private final AssistantWindowOwner owner;
 
   private final AssistantBinding binding;
   private final AssistantBackend backend;
@@ -68,12 +70,15 @@ public final class AssistantSessionController implements AutoCloseable {
     this.binding = binding;
     this.backend = backend;
     if (verifiedTurn != null) state.observed(true, verifiedTurn, binding.sessionId());
+    owner = AssistantWindowOwner.from(context);
     fence = PhoneControlCoordinator.get(context);
-    AssistantSessionController previous = active;
-    if (previous != null) previous.close();
-    active = this;
-    fence.setTurnCancellation(cancelled);
-    worker.scheduleWithFixedDelay(this::poll, 0, 900, TimeUnit.MILLISECONDS);
+    owner.select(
+        this,
+        cancelled,
+        () -> {
+          fence.setTurnCancellation(owner.cancellationFor(this));
+          worker.scheduleWithFixedDelay(this::poll, 0, 900, TimeUnit.MILLISECONDS);
+        });
   }
 
   /** Only the tool attachment path calls this after an exact live Host status receipt. */
@@ -264,11 +269,25 @@ public final class AssistantSessionController implements AutoCloseable {
   }
 
   public boolean resume() {
+    return resumeInternal(false);
+  }
+
+  private boolean resumeInternal(boolean frozen) {
     return sendInternal(
         UiText.choose(
             "继续当前任务。操作手机前必须重新观察当前屏幕，再决定下一步；不要重放结果未知的操作。",
             "Continue the current task. Observe the current phone screen again before deciding the next action. Do not replay operations with unknown results."),
-        true);
+        true,
+        frozen);
+  }
+
+  synchronized boolean resumeFromNotification(
+      AssistantBinding expectedBinding, String expectedTurn) {
+    if (closed
+        || !owner.isCurrent(this)
+        || !binding.equals(expectedBinding)
+        || !state.turnId().equals(expectedTurn)) return false;
+    return resumeInternal(true);
   }
 
   public boolean send(String message) {
@@ -287,42 +306,20 @@ public final class AssistantSessionController implements AutoCloseable {
   }
 
   private synchronized boolean steer(String message) {
+    return steer(message, false);
+  }
+
+  private synchronized boolean steer(String message, boolean frozen) {
     if (message == null || message.isBlank() || message.length() > 32768 || closed) return false;
-    String requestId = UUID.randomUUID().toString();
-    worker.execute(
-        () -> {
-          try {
-            if (!backend.current() || closed) throw new java.io.IOException("CONNECTION_CHANGED");
-            JSONObject request =
-                args().put("text", message).put("requestId", requestId).put("mode", "steer");
-            JSONObject result = backend.call("sessions.send", request);
-            if (!result.optBoolean("accepted"))
-              throw new java.io.IOException("NO_ADMISSION_RECEIPT");
-            // 消息已进入当前轮次：唤醒正在等待的手机动作，让它返回“用户发来新消息”。
-            fence.compose().sent();
-            panelGeometryChanged();
-            admittedDraft(message);
-          } catch (AssistantBackend.Rejected rejected) {
-            // 明确未接收：放开等待，AI 照原任务继续；草稿保留。
-            fence.compose().release(fence.compose().surface());
-            state.failed(
-                UiText.choose(
-                    "消息未被接收。请打开完整会话检查模型或会话设置；草稿已保留。",
-                    "Message was not admitted. Open the full conversation to check its model or settings. Your draft is retained."));
-          } catch (Exception failure) {
-            // 结果未知：不重发。按“可能已收到”唤醒等待者，让 AI 先读会话再决定，不在原地卡满 60 秒。
-            fence.compose().sent();
-            state.failed(
-                UiText.choose(
-                    "发送结果未知；请先核对会话，勿重复发送",
-                    "Send result unknown; check the conversation before sending again"));
-          }
-          changed();
-        });
+    sendOnWorker(message, UUID.randomUUID().toString(), true, false, messageTarget(frozen));
     return true;
   }
 
   private synchronized boolean sendInternal(String message, boolean continuation) {
+    return sendInternal(message, continuation, false);
+  }
+
+  private synchronized boolean sendInternal(String message, boolean continuation, boolean frozen) {
     if (message == null || message.isBlank() || message.length() > 32768 || closed) return false;
     if (!state.terminalKnown() || cancelling.get()) {
       changed();
@@ -357,47 +354,122 @@ public final class AssistantSessionController implements AutoCloseable {
       changed();
       return false;
     }
-    String requestId = UUID.randomUUID().toString();
     changed();
+    sendOnWorker(message, UUID.randomUUID().toString(), false, continuation, messageTarget(frozen));
+    return true;
+  }
+
+  /** 通知先冻结原轮地址；排队期间更换任务时明确不派发，不改投新轮。 */
+  synchronized boolean sendFromNotification(
+      String message, AssistantBinding expectedBinding, String expectedTurn) {
+    if (closed
+        || !owner.isCurrent(this)
+        || !binding.equals(expectedBinding)
+        || !state.turnId().equals(expectedTurn)) return false;
+    if (steerable()) return steer(message, true);
+    return sendInternal(message, false, true);
+  }
+
+  private PollObservation messageTarget(boolean frozen) {
+    if (!frozen) return null;
+    try {
+      return new PollObservation(pollRevision, state.turnId(), state.taskId(), args());
+    } catch (org.json.JSONException invalid) {
+      throw new IllegalStateException("ASSISTANT_MESSAGE_IDENTITY_INVALID", invalid);
+    }
+  }
+
+  private synchronized boolean messageCurrent(PollObservation target, boolean steer) {
+    return pollCurrent(target)
+        && !state.paused()
+        && state.phase() != AssistantSessionState.Phase.DISCONNECTED
+        && (!steer || steerable());
+  }
+
+  private void applyMessage(PollObservation target, boolean steer, Runnable update) {
+    if (target == null) update.run();
+    else
+      synchronized (this) {
+        if (messageCurrent(target, steer)) {
+          update.run();
+          changed();
+        }
+      }
+  }
+
+  private void sendOnWorker(
+      String message,
+      String requestId,
+      boolean steer,
+      boolean continuation,
+      PollObservation target) {
     worker.execute(
         () -> {
+          if (target != null && !messageCurrent(target, steer)) return;
           try {
             if (!backend.current() || closed) throw new java.io.IOException("CONNECTION_CHANGED");
-            JSONObject request = args().put("text", message).put("requestId", requestId);
+            JSONObject request =
+                (target == null ? args() : target.args())
+                    .put("text", message)
+                    .put("requestId", requestId);
+            if (steer) request.put("mode", "steer");
             JSONObject result = backend.call("sessions.send", request);
             if (!result.optBoolean("accepted"))
               throw new java.io.IOException("NO_ADMISSION_RECEIPT");
-            state.accepted();
-            fence.compose().sent();
-            if (!continuation) admittedDraft(message);
+            applyMessage(
+                target,
+                steer,
+                () -> {
+                  if (!steer) state.accepted();
+                  fence.compose().sent();
+                  if (steer) panelGeometryChanged();
+                  if (steer || !continuation) admittedDraft(message);
+                });
           } catch (AssistantBackend.Rejected rejected) {
-            // Only the Host's explicit pre-admission errors get this path. Transport
-            // loss still remains UNKNOWN; no prompt is retried automatically.
-            fence.compose().release(fence.compose().surface());
-            suppressCancellation = true;
-            try {
-              fence.pause("ASSISTANT_PROMPT_REJECTED");
-            } finally {
-              suppressCancellation = false;
-            }
-            state.rejected(
-                "session/model-unavailable".equals(rejected.getMessage())
-                    ? UiText.choose(
-                        "消息尚未发送：请打开完整 DSH 会话设置可用模型和 API Key，然后重新发送。草稿已保留。",
-                        "Message not sent. Open the full DSH conversation to configure an available model and API key, then send again. Your draft is retained.")
-                    : UiText.choose(
-                        "消息未被接收。请打开完整会话检查模型或会话设置；草稿已保留。",
-                        "Message was not admitted. Open the full conversation to check its model or settings. Your draft is retained."));
+            applyMessage(
+                target,
+                steer,
+                () -> {
+                  fence.compose().release(fence.compose().surface());
+                  if (steer)
+                    state.failed(
+                        UiText.choose(
+                            "消息未被接收。请打开完整会话检查模型或会话设置；草稿已保留。",
+                            "Message was not admitted. Open the full conversation to check its model or settings. Your draft is retained."));
+                  else {
+                    suppressCancellation = true;
+                    try {
+                      fence.pause("ASSISTANT_PROMPT_REJECTED");
+                    } finally {
+                      suppressCancellation = false;
+                    }
+                    state.rejected(
+                        "session/model-unavailable".equals(rejected.getMessage())
+                            ? UiText.choose(
+                                "消息尚未发送：请打开完整 DSH 会话设置可用模型和 API Key，然后重新发送。草稿已保留。",
+                                "Message not sent. Open the full DSH conversation to configure an available model and API key, then send again. Your draft is retained.")
+                            : UiText.choose(
+                                "消息未被接收。请打开完整会话检查模型或会话设置；草稿已保留。",
+                                "Message was not admitted. Open the full conversation to check its model or settings. Your draft is retained."));
+                  }
+                });
           } catch (Exception failure) {
-            fence.compose().sent();
-            state.unknown(
-                UiText.choose(
-                    "发送结果未知；请先核对会话，勿重复发送",
-                    "Send result unknown; check the conversation before sending again"));
+            applyMessage(
+                target,
+                steer,
+                () -> {
+                  // 未知结果不重放；旧通知的迟到回执不改新轮状态或输入围栏。
+                  fence.compose().sent();
+                  String detail =
+                      UiText.choose(
+                          "发送结果未知；请先核对会话，勿重复发送",
+                          "Send result unknown; check the conversation before sending again");
+                  if (steer) state.failed(detail);
+                  else state.unknown(detail);
+                });
           }
-          changed();
+          if (target == null) changed();
         });
-    return true;
   }
 
   private JSONObject args() throws org.json.JSONException {
@@ -411,8 +483,9 @@ public final class AssistantSessionController implements AutoCloseable {
   private void poll() {
     final PollObservation observed;
     synchronized (this) {
-      if (closed || active != this || state.phase() == AssistantSessionState.Phase.DISCONNECTED)
-        return;
+      if (closed
+          || !owner.isCurrent(this)
+          || state.phase() == AssistantSessionState.Phase.DISCONNECTED) return;
       try {
         observed = new PollObservation(pollRevision, state.turnId(), state.taskId(), args());
       } catch (org.json.JSONException invalid) {
@@ -481,7 +554,7 @@ public final class AssistantSessionController implements AutoCloseable {
   /** Called only under this monitor, also shared with followVerifiedTask/send/close. */
   private boolean pollCurrent(PollObservation observed) {
     return !closed
-        && active == this
+        && owner.isCurrent(this)
         && pollRevision == observed.revision()
         && state.turnId().equals(observed.turnId())
         && state.taskId().equals(observed.taskId());
@@ -566,9 +639,7 @@ public final class AssistantSessionController implements AutoCloseable {
     closed = true;
     worker.shutdown();
     listeners.clear();
-    if (active == this) {
-      active = null;
-      fence.setTurnCancellation(null);
-    }
+    // 围栏只持有应用所有者的派发器；退休后不再引用旧 controller，也不清掉后继回调。
+    owner.release(this);
   }
 }

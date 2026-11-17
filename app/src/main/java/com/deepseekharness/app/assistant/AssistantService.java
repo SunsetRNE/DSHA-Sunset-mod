@@ -15,7 +15,6 @@ import android.os.SystemClock;
 import com.deepseekharness.app.control.PhoneControlCoordinator;
 import com.deepseekharness.app.control.ControlTaskAuthority;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -23,7 +22,7 @@ import org.json.JSONObject;
 
 /** Keeps local conversation status, native confirmations, and Stop available during phone tools. */
 public final class AssistantService extends Service {
-  private record Pending(
+  record Pending(
       AssistantBinding binding,
       AssistantBackend backend,
       Runnable ready,
@@ -54,25 +53,72 @@ public final class AssistantService extends Service {
     }
   }
 
-  private static final ConcurrentHashMap<String, Pending> pending = new ConcurrentHashMap<>();
+  private AssistantWindowOwner owner;
   private AssistantSessionController controller;
   private volatile AssistantWindow window;
   private AssistantConfirmationWindow confirmations;
   static final String REPLY_KEY = "dsha_assistant_reply";
-  private static volatile AssistantService live;
+
+  private static AssistantService live(Context context) {
+    return AssistantWindowOwner.from(context).service();
+  }
+
   private PendingIntent stopAction;
   private Notification taskNotification;
+  private AssistantNotificationTicket notificationTicket;
+  private String replyEpoch = "", showEpoch = "";
+  private AssistantSessionController notificationController;
+  private Object nativeEditorToken;
   private volatile boolean stopAccessArmed;
   private final Runnable stopAccessChanged =
       () -> {
+        refreshTaskNotification();
         var task = PhoneControlCoordinator.get(this).snapshot().binding();
         if (controller != null && task != null && controller.ownsTask(task))
           stopChannelCurrent(this, task);
       };
 
-  static void nativeEditorVisible(boolean visible) {
-    AssistantService service = live;
-    if (service != null && service.window != null) service.window.setEditorVisible(visible);
+  static void nativeEditorVisible(
+      AssistantSessionController expected, Object editorToken, boolean visible) {
+    AssistantWindowOwner owner = AssistantWindowOwner.legacy();
+    AssistantService service = owner == null ? null : owner.service();
+    if (expected == null
+        || owner == null
+        || !owner.isCurrent(expected)
+        || service == null
+        || service.controller != expected
+        || service.window == null) return;
+    // 同一 controller 也可被后继 Activity 接管；旧 onPause 只释放自己的呈现句柄。
+    if (visible) service.nativeEditorToken = editorToken;
+    else if (service.nativeEditorToken != editorToken) return;
+    else service.nativeEditorToken = null;
+    service.window.setEditorVisible(visible);
+  }
+
+  static boolean ownsNativeEditor(AssistantSessionController expected, Object editorToken) {
+    AssistantWindowOwner owner = AssistantWindowOwner.legacy();
+    if (expected == null || owner == null || !owner.isCurrent(expected)) return false;
+    AssistantService service = owner.service();
+    return service == null
+        || (service.controller == expected && service.nativeEditorToken == editorToken);
+  }
+
+  /** 正文导航复用已发布通知的身份；不另造票据或选择后继任务。 */
+  AssistantSessionController notificationTarget(String address) {
+    AssistantSessionController current = controller;
+    if (current == null || owner.service() != this || !owner.isCurrent(current)) return null;
+    synchronized (current) {
+      var snapshot = current.snapshot();
+      AssistantNotificationTicket ticket = notificationTicket;
+      return ticket != null
+              && notificationController == current
+              && owner.service() == this
+              && owner.isCurrent(current)
+              && ticket.addresses(snapshot.binding(), snapshot.turnId())
+              && ticket.forAction("OPEN").identity().equals(address)
+          ? current
+          : null;
+    }
   }
 
   /** Called only by an authenticated physical-phone tool request, never a text listener. */
@@ -149,22 +195,25 @@ public final class AssistantService extends Service {
         new AtomicReference<>(refused("ASSISTANT_UI_UNAVAILABLE"));
     long expiresAt = SystemClock.elapsedRealtime() + 3000;
     String key = UUID.randomUUID().toString();
-    pending.put(
-        key,
-        new Pending(
-            binding,
-            backend,
-            () -> {
-              if (matchesTask(AssistantSessionController.active(), binding, turnId)
-                  && live != null
-                  && live.window != null
-                  && stopNotificationAvailable(context)
-                  && live.window.taskUiAvailable()) outcome.set(new TaskUiResult(true, "READY"));
-              ready.countDown();
-            },
-            turnId,
-            expiresAt,
-            nativeTask));
+    AssistantWindowOwner.from(context)
+        .pending()
+        .put(
+            key,
+            new Pending(
+                binding,
+                backend,
+                () -> {
+                  if (matchesTask(AssistantSessionController.active(), binding, turnId)
+                      && live(context) != null
+                      && live(context).window != null
+                      && stopNotificationAvailable(context)
+                      && live(context).window.taskUiAvailable())
+                    outcome.set(new TaskUiResult(true, "READY"));
+                  ready.countDown();
+                },
+                turnId,
+                expiresAt,
+                nativeTask));
     try {
       startBinding(context, key);
       if (ready.await(3, TimeUnit.SECONDS)) {
@@ -175,7 +224,7 @@ public final class AssistantService extends Service {
           while (stopNotificationAvailable(context)
               && !postedStopNotification(context)
               && System.nanoTime() < postedBy) Thread.sleep(10);
-          AssistantService service = live;
+          AssistantService service = live(context);
           if (service != null) service.stopAccessArmed = true;
         }
         if (!stopChannelCurrent(context, nativeTask)
@@ -188,7 +237,7 @@ public final class AssistantService extends Service {
     } catch (RuntimeException unavailable) {
       return refused("ASSISTANT_UI_UNAVAILABLE");
     } finally {
-      pending.remove(key);
+      AssistantWindowOwner.from(context).pending().remove(key);
     }
     return refused("ASSISTANT_UI_UNAVAILABLE");
   }
@@ -231,7 +280,7 @@ public final class AssistantService extends Service {
   }
 
   private static boolean postedStopNotification(Context context) {
-    AssistantService service = live;
+    AssistantService service = live(context);
     if (service == null || service.stopAction == null) return false;
     try {
       NotificationManager manager = context.getSystemService(NotificationManager.class);
@@ -259,7 +308,7 @@ public final class AssistantService extends Service {
 
   /** Also used in final input validity checks, so revocation while confirming cannot admit input. */
   public static boolean stopChannelCurrent(Context context, ControlTaskAuthority.Binding task) {
-    AssistantService current = live;
+    AssistantService current = live(context);
     boolean postedRequired =
         current != null
             && current.stopAccessArmed
@@ -276,7 +325,7 @@ public final class AssistantService extends Service {
         coordinator.pause("ASSISTANT_STOP_NOTIFICATION_REQUIRED");
       Runnable restore =
           () -> {
-            AssistantService service = live;
+            AssistantService service = live(context);
             if (service != null
                 && service.controller != null
                 && service.window != null
@@ -313,7 +362,7 @@ public final class AssistantService extends Service {
             () -> {
               try {
                 if (SystemClock.elapsedRealtime() >= expiresAt) return;
-                AssistantService service = live;
+                AssistantService service = live(context);
                 if (service == null
                     || service.window == null
                     || service.controller == null
@@ -358,8 +407,9 @@ public final class AssistantService extends Service {
    * A canceled turn may still have a user-visible local pause. Keep that exact task attached so
    * the user can press Continue; a normal completed turn remains eligible for retirement.
    */
-  private static boolean retainLocalTaskAfterTurnEnd(ControlTaskAuthority.Binding task) {
-    AssistantService service = live;
+  private static boolean retainLocalTaskAfterTurnEnd(
+      Context context, ControlTaskAuthority.Binding task) {
+    AssistantService service = live(context);
     if (service == null || service.controller == null || !service.controller.ownsTask(task))
       return false;
     var state = service.controller.snapshot();
@@ -373,19 +423,19 @@ public final class AssistantService extends Service {
     new android.os.Handler(android.os.Looper.getMainLooper())
         .post(
             () -> {
-              AssistantService service = live;
+              AssistantService service = live(context);
               if (service == null
                   || service.controller == null
                   || !service.controller.ownsTask(task)) return;
               // Recheck on the UI thread: expansion may race the turn-end callback after the
               // worker-side decision. A user-visible pause must never be closed by stale cleanup.
-              if (retainLocalTaskAfterTurnEnd(task)) return;
+              if (retainLocalTaskAfterTurnEnd(context, task)) return;
               if (service.controller.snapshot().expanded()) {
                 // 面板展开时本轮结束：等用户收起后再关窗，窗口不在手指下消失。
                 service.controller.deferFinishUntilCollapsed(() -> finishLocalTask(context, task));
                 return;
               }
-              if (service.window != null) service.window.close();
+              service.owner.closeSurface(service);
               service.controller.detachFinishedTask();
               service.stopSelf();
             });
@@ -444,7 +494,7 @@ public final class AssistantService extends Service {
 
   private static void offerOverlayPermission(Context context) {
     // Revoking overlay permission must not replace an active task's stop notification.
-    if (live != null) return;
+    if (live(context) != null) return;
     try {
       NotificationManager manager = context.getSystemService(NotificationManager.class);
       if (Build.VERSION.SDK_INT >= 26)
@@ -494,7 +544,9 @@ public final class AssistantService extends Service {
   public static void bind(
       Context context, AssistantBinding binding, AssistantBackend backend, Runnable ready) {
     String key = UUID.randomUUID().toString();
-    pending.put(key, new Pending(binding, backend, ready, null, 0, null));
+    AssistantWindowOwner.from(context)
+        .pending()
+        .put(key, new Pending(binding, backend, ready, null, 0, null));
     startBinding(context, key);
   }
 
@@ -504,7 +556,7 @@ public final class AssistantService extends Service {
       if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent);
       else context.startService(intent);
     } catch (RuntimeException failure) {
-      pending.remove(key);
+      AssistantWindowOwner.from(context).pending().remove(key);
       throw failure;
     }
   }
@@ -519,7 +571,8 @@ public final class AssistantService extends Service {
   @Override
   public void onCreate() {
     super.onCreate();
-    live = this;
+    owner = AssistantWindowOwner.from(this);
+    owner.attach(this);
     var manager = getSystemService(NotificationManager.class);
     if (Build.VERSION.SDK_INT >= 26)
       manager.createNotificationChannel(
@@ -527,27 +580,31 @@ public final class AssistantService extends Service {
               STOP_CHANNEL,
               UiText.choose("手机任务状态", "Phone task status"),
               NotificationManager.IMPORTANCE_LOW));
-    Intent open = new Intent(this, AssistantActivity.class).putExtra("bound", true);
-    Intent stop = new Intent(this, AssistantService.class).setAction("STOP_TASK");
-    stopAction =
-        PendingIntent.getService(
-            this, 1952, stop, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-    // 直接回复：悬浮窗隐藏时也能从通知栏（或系统支持时的实时活动/岛）回复当前会话。
-    Intent reply = new Intent(this, AssistantService.class).setAction("REPLY");
-    PendingIntent replyAction =
-        PendingIntent.getService(
-            this,
-            1953,
-            reply,
-            PendingIntent.FLAG_UPDATE_CURRENT
-                | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0));
-    Intent showOverlay = new Intent(this, AssistantService.class).setAction("SHOW_OVERLAY");
-    PendingIntent showAction =
-        PendingIntent.getService(
-            this,
-            1954,
-            showOverlay,
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    publishTaskNotification(null, true);
+    confirmations = new AssistantConfirmationWindow(this);
+    PhoneControlCoordinator.get(this).setConfirmationHandler(confirmations::show);
+  }
+
+  private AssistantNotificationTicket actionTicket(
+      AssistantNotificationTicket ticket, String action) {
+    String suffix =
+        "REPLY".equals(action) ? replyEpoch : "SHOW_OVERLAY".equals(action) ? showEpoch : "";
+    return new AssistantNotificationTicket(
+        ticket.binding(), ticket.turnId(), ticket.epoch() + suffix, action);
+  }
+
+  private PendingIntent notificationAction(
+      AssistantNotificationTicket ticket, String action, int requestCode, int flags) {
+    Intent intent =
+        new Intent(this, AssistantService.class)
+            .setAction(action)
+            .setData(android.net.Uri.parse(actionTicket(ticket, action).identity()));
+    return PendingIntent.getService(
+        this, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT | flags);
+  }
+
+  private void publishTaskNotification(AssistantNotificationTicket ticket, boolean foreground) {
+    Intent open = AssistantNotificationNavigation.openIntent(this, ticket);
     Notification.Builder note =
         Build.VERSION.SDK_INT >= 26
             ? new Notification.Builder(this, STOP_CHANNEL)
@@ -559,34 +616,112 @@ public final class AssistantService extends Service {
         .setContentIntent(
             PendingIntent.getActivity(
                 this, 1951, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
-        .addAction(
-            new Notification.Action.Builder(null, UiText.choose("回复", "Reply"), replyAction)
-                .addRemoteInput(
-                    new android.app.RemoteInput.Builder(REPLY_KEY)
-                        .setLabel(UiText.choose("回复当前会话", "Reply to this conversation"))
-                        .build())
-                .setAllowGeneratedReplies(false)
-                .build())
-        .addAction(
-            new Notification.Action.Builder(
-                    null, UiText.choose("显示悬浮窗", "Show floating window"), showAction)
-                .build())
-        .addAction(
-            new Notification.Action.Builder(null, UiText.choose("停止任务", "Stop task"), stopAction)
-                .build())
         .setOngoing(true);
+    if (ticket == null) stopAction = null;
+    if (ticket != null) {
+      stopAction = notificationAction(ticket, "STOP_TASK", 1952, PendingIntent.FLAG_IMMUTABLE);
+      PendingIntent replyAction =
+          notificationAction(
+              ticket, "REPLY", 1953, Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
+      PendingIntent showAction =
+          notificationAction(ticket, "SHOW_OVERLAY", 1954, PendingIntent.FLAG_IMMUTABLE);
+      note.addAction(
+          new Notification.Action.Builder(null, UiText.choose("回复", "Reply"), replyAction)
+              .addRemoteInput(
+                  new android.app.RemoteInput.Builder(REPLY_KEY)
+                      .setLabel(UiText.choose("回复当前会话", "Reply to this conversation"))
+                      .build())
+              .setAllowGeneratedReplies(false)
+              .build());
+      note.addAction(
+          new Notification.Action.Builder(
+                  null, UiText.choose("显示悬浮窗", "Show floating window"), showAction)
+              .build());
+      note.addAction(
+          new Notification.Action.Builder(null, UiText.choose("停止任务", "Stop task"), stopAction)
+              .build());
+    }
     if (Build.VERSION.SDK_INT >= 31)
       note.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
     taskNotification = note.build();
     if (new com.deepseekharness.app.core.ConfigStore(this).isTaskIslandEnabled())
-      // 系统支持实时活动时把同一条通知提升为岛；同一 id、频道与停止入口，不支持时原样返回。
       taskNotification =
           com.deepseekharness.app.IslandSupport.enhance(
               this, taskNotification, UiText.choose("DSH 执行中", "DSH running"), true);
-    startForeground(
-        com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT, taskNotification);
-    confirmations = new AssistantConfirmationWindow(this);
-    PhoneControlCoordinator.get(this).setConfirmationHandler(confirmations::show);
+    if (foreground)
+      startForeground(
+          com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT, taskNotification);
+    else {
+      try {
+        var manager = getSystemService(NotificationManager.class);
+        if (manager != null)
+          manager.notify(
+              com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT, taskNotification);
+      } catch (RuntimeException unavailable) {
+        // 原停止入口可见性核验会暂停手机权威并恢复原生停止按钮，不能把 notify 接受当已可见。
+      }
+    }
+  }
+
+  private void refreshTaskNotification() {
+    refreshTaskNotification(false);
+  }
+
+  private void refreshTaskNotification(boolean force) {
+    AssistantSessionController current = controller;
+    if (current == null || owner.service() != this || !owner.isCurrent(current)) return;
+    synchronized (current) {
+      var snapshot = current.snapshot();
+      boolean same =
+          notificationTicket != null
+              && notificationController == current
+              && notificationTicket.addresses(snapshot.binding(), snapshot.turnId());
+      if (same && !force) return;
+      if (!same) {
+        notificationController = current;
+        replyEpoch = UUID.randomUUID().toString();
+        showEpoch = UUID.randomUUID().toString();
+        notificationTicket =
+            new AssistantNotificationTicket(
+                snapshot.binding(), snapshot.turnId(), UUID.randomUUID().toString(), "STOP_TASK");
+      }
+      publishTaskNotification(notificationTicket, false);
+    }
+  }
+
+  private void dispatchNotification(Intent intent) {
+    AssistantSessionController current = controller;
+    if (current == null || owner.service() != this || !owner.isCurrent(current)) return;
+    boolean admitted = false;
+    try {
+      synchronized (current) {
+        var snapshot = current.snapshot();
+        AssistantNotificationTicket ticket = notificationTicket;
+        String action = intent.getAction();
+        if (ticket == null
+            || notificationController != current
+            || !owner.isCurrent(current)
+            || !ticket.addresses(snapshot.binding(), snapshot.turnId())
+            || !actionTicket(ticket, action).identity().equals(intent.getDataString())) return;
+        // 回复/显示单独轮换；回复不能撤掉仍在异步发布中的真实 Stop 入口。
+        if ("REPLY".equals(action)) replyEpoch = UUID.randomUUID().toString();
+        else if ("SHOW_OVERLAY".equals(action)) showEpoch = UUID.randomUUID().toString();
+        else notificationTicket = null;
+        admitted = true;
+        if ("STOP_TASK".equals(action)) current.stop();
+        else if ("SHOW_OVERLAY".equals(action)) {
+          if (window != null) window.showByUser();
+        } else if ("REPLY".equals(action)) {
+          var results = android.app.RemoteInput.getResultsFromIntent(intent);
+          CharSequence text = results == null ? null : results.getCharSequence(REPLY_KEY);
+          String message = text == null ? "" : text.toString().strip();
+          if (!message.isEmpty() && message.length() <= 32768)
+            current.sendFromNotification(message, ticket.binding(), ticket.turnId());
+        }
+      }
+    } finally {
+      if (admitted) refreshTaskNotification(true);
+    }
   }
 
   @Override
@@ -595,29 +730,14 @@ public final class AssistantService extends Service {
       stopSelf();
       return START_NOT_STICKY;
     }
-    if ("STOP_TASK".equals(intent.getAction())) {
-      if (controller != null) controller.stop();
-      return START_NOT_STICKY;
-    }
-    if ("SHOW_OVERLAY".equals(intent.getAction())) {
-      if (window != null) window.showByUser();
-      return START_NOT_STICKY;
-    }
-    if ("REPLY".equals(intent.getAction())) {
-      var results = android.app.RemoteInput.getResultsFromIntent(intent);
-      CharSequence text = results == null ? null : results.getCharSequence(REPLY_KEY);
-      String message = text == null ? "" : text.toString().strip();
-      if (controller != null && !message.isEmpty() && message.length() <= 32768)
-        controller.send(message);
-      // 重新发出同一条通知，结束系统的“发送中”状态。
-      var manager = getSystemService(NotificationManager.class);
-      if (manager != null && taskNotification != null)
-        manager.notify(
-            com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT, taskNotification);
+    if ("STOP_TASK".equals(intent.getAction())
+        || "SHOW_OVERLAY".equals(intent.getAction())
+        || "REPLY".equals(intent.getAction())) {
+      dispatchNotification(intent);
       return START_NOT_STICKY;
     }
     String key = intent.getStringExtra("binding");
-    Pending selection = key == null ? null : pending.remove(key);
+    Pending selection = key == null ? null : owner.pending().remove(key);
     if (selection == null) {
       if (controller == null) stopSelf();
       return START_NOT_STICKY;
@@ -644,46 +764,40 @@ public final class AssistantService extends Service {
         return START_NOT_STICKY;
       }
       if (controller != null && controller.snapshot().binding().equals(selection.binding)) {
-        if (taskNotification != null
-            && PhoneControlCoordinator.get(this).snapshot().binding() == null)
-          getSystemService(NotificationManager.class)
-              .notify(
-                  com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT,
-                  taskNotification);
         if (controller.followVerifiedTask(selection.verifiedTurn)
             && (window == null || !window.taskUiAvailable())) {
-          if (window != null) window.close();
-          window = new AssistantWindow(this, controller);
-          window.show();
+          window = owner.showSurface(this, controller);
         }
+        refreshTaskNotification();
         selection.ready.run();
         return START_NOT_STICKY;
       }
     }
-    if (window != null) window.close();
+    owner.closeSurface(this);
     if (controller != null) controller.close();
     controller =
         new AssistantSessionController(
             this, selection.binding, selection.backend, selection.verifiedTurn);
     controller.addListener(stopAccessChanged);
-    if (selection.verifiedTurn != null && taskNotification != null)
-      getSystemService(NotificationManager.class)
-          .notify(
-              com.deepseekharness.app.util.NotificationIds.FLOATING_ASSISTANT, taskNotification);
-    com.deepseekharness.app.OverlayController.teardown(this);
-    window = new AssistantWindow(this, controller);
-    window.show();
+    window = owner.showSurface(this, controller);
+    refreshTaskNotification();
     selection.ready.run();
     return START_NOT_STICKY;
   }
 
+  void retirePresentation() {
+    nativeEditorToken = null;
+    owner.closeSurface(this);
+    if (window != null) window.close();
+    if (confirmations != null) confirmations.close();
+  }
+
   @Override
   public void onDestroy() {
-    if (live == this) live = null;
-    if (window != null) window.close();
-    if (controller != null) controller.close();
-    if (confirmations != null) confirmations.close();
-    PhoneControlCoordinator.get(this).setConfirmationHandler(null);
+    boolean current = owner.release(this);
+    retirePresentation();
+    if (current && controller != null) controller.close();
+    if (current) PhoneControlCoordinator.get(this).setConfirmationHandler(null);
     super.onDestroy();
   }
 

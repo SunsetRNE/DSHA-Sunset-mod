@@ -707,5 +707,39 @@ class KotlinBoundaryRulesTest(unittest.TestCase):
         self.assertRegex(call, construction_keyword(True) + r"WebLifecycleController\s*\(")
 
 
+class JvmModulePurityTest(unittest.TestCase):
+    """纯 JVM 生产模块不得依赖 Android 或反射；工程边白名单由 verifyDshaBuildConventions 证明。"""
+
+    ANDROID_IMPORT = re.compile(r"(?m)^\s*import\s+(?:android|androidx)\.")
+    REFLECTION_USE = re.compile(
+        r"(?m)^\s*import\s+java\.lang\.reflect\.|"
+        r"\bClass\s*\.\s*forName\s*\(|"
+        r"\bgetDeclared(?:Method|Field|Constructor|Methods|Fields|Constructors)\s*\("
+    )
+
+    def test_jvm_module_production_sources_are_android_and_reflection_free(self):
+        modules = [module for module in LAYOUT.modules if module.get("kind") == "jvm"]
+        self.assertTrue(modules, "至少一个纯 JVM 生产模块")
+        for module in modules:
+            entries = [entry for entry in LAYOUT.source_files(("main",), SOURCE_SUFFIXES)
+                       if entry.module == module["path"]]
+            self.assertTrue(entries, module["path"])
+            for entry in entries:
+                cleaned = without_comments(entry.path.read_text(encoding="utf-8"),
+                                           kotlin=entry.path.suffix == ".kt")
+                self.assertIsNone(self.ANDROID_IMPORT.search(cleaned), entry.relative)
+                self.assertIsNone(self.REFLECTION_USE.search(cleaned), entry.relative)
+
+    def test_purity_patterns_ignore_comments_and_reject_real_uses(self):
+        self.assertIsNotNone(self.ANDROID_IMPORT.search("package p\nimport android.content.Context\n"))
+        self.assertIsNotNone(self.ANDROID_IMPORT.search("package p\nimport androidx.lifecycle.Observer\n"))
+        self.assertIsNotNone(self.REFLECTION_USE.search("class Y { Object f() { return Class.forName(\"x\"); } }"))
+        self.assertIsNotNone(self.REFLECTION_USE.search("class Y { void f() { o.getDeclaredFields(); } }"))
+        self.assertIsNone(self.ANDROID_IMPORT.search(without_comments("// import android.x\nclass Z\n",
+                                                                      kotlin=True)))
+        self.assertIsNone(self.REFLECTION_USE.search(without_comments("// java.lang.reflect\nclass Z\n",
+                                                                      kotlin=True)))
+
+
 if __name__ == "__main__":
     unittest.main()

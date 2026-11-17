@@ -1,6 +1,6 @@
 # A8 P1：工程门禁准备实现与验证（2026-11-15）
 
-本批已实现共享源码映射、全仓测试身份/新鲜报告门禁和可直接应用的构建约定，**不提取生产类，不创建产品模块，不解锁 P2–P7**。P1 完整出口尚未通过：历史 CI 的正式身份基线已在整改代码提交后导入冻结；最终受管输入登记、归档重建与 descriptor 仍由 main 串行完成。待完成这些步骤后再做候选完整 CI，不能把本页本机夹具测试写成整仓通过。
+当前前置（2026-11-16）：**P1 软件出口已由绑定 `f3f8fc03` 的真实 CI 关闭，P2 本地实现已解锁。** [R2 run 43773301154](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43773301154) 与[正式 run 43775971374](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/43775971374) 成功，full 5,328 / 0 / 0 / 0、冻结基线匹配、七夹具、host Rust required，Lint/APK 门禁通过；本 worker 已独立复核 R2 archived 凭据。当前 main 裁决为 P2 CI/视觉未过不叠 P3、P3 全量未过不搬 P4，见[后续回执](a8-p2-progress-20261116.md)。下文按原实现时点保留：本批工程准备自身不提取生产类、不创建产品模块；本机合成夹具不冒充产品完整 CI。
 
 依据：[A8 基线 §9](a8-task-baseline-20261114.md#9-convention-plugin-与测试数硬门禁)、[§11](a8-task-baseline-20261114.md#11-实现阶段与逐提交回退点待批准)、[ADR-0004](../../adr/0004-kotlin-rust-direction.md)及[工具链](../../kotlin-toolchain.md)。用户本次直接授权的是独立 P1 工程准备；基线的 P2–P7 前置与业务收口不因此获准。
 

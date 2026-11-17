@@ -25,9 +25,15 @@ class UnitRunnerTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.app = self.root / 'app'
+        # 这两个正例只验证旧纯 Java 后备路径，布局是显式受控输入，不继承产品多模块/Kotlin。
+        self.java_layout = {'schema': 1, 'modules': [{
+            'path': ':app', 'directory': 'app', 'kind': 'android-application',
+            'sourceSets': ['main', 'standard', 'debug', 'test'],
+            'formatSourceSets': ['main', 'standard', 'debug', 'test'],
+            'testSourceSets': ['test'], 'testTask': 'testStandardDebugUnitTest',
+        }]}
         (self.root / 'ci').mkdir()
-        (self.root / 'ci/source-layout.json').write_text(
-            (ROOT / 'ci/source-layout.json').read_text(encoding='utf-8'), encoding='utf-8')
+        self.write_layout(self.java_layout)
         lock = self.root / 'tools/backup-dependencies.lock.json'
         lock.parent.mkdir()
         lock.write_text(json.dumps({'version': 1, 'dependencies': []}), encoding='utf-8')
@@ -41,6 +47,9 @@ class UnitRunnerTest(unittest.TestCase):
                  'if(args.length != 1 || !args[0].equals("DependentTest") || '
                  'Class.forName(args[0]).getField("value").getInt(null) != 42) throw new AssertionError(); '
                  'System.out.println("PASS compiled helper invoked from dependent test"); } }')
+
+    def write_layout(self, layout):
+        (self.root / 'ci/source-layout.json').write_text(json.dumps(layout), encoding='utf-8')
 
     def put(self, name, text):
         path = self.app / name
@@ -102,6 +111,79 @@ class UnitRunnerTest(unittest.TestCase):
         with contextlib.redirect_stderr(io.StringIO()) as captured, self.assertRaises(SystemExit):
             runner.collect_test_sources(self.app)
         self.assertIn('JAVA_ONLY_RUNNER_REQUIRES_GRADLE', captured.getvalue())
+
+    def test_single_module_java_path_reaches_launcher_with_mocked_jvm(self):
+        # 仅检查 Python 调度/源清单，不能冒称 javac/JUnit 实跑；原真实 JVM 正例仍保留。
+        compile_calls = []
+
+        def mocked_compile(sources, output, classpath):
+            compile_calls.append((list(sources), list(classpath)))
+            output.mkdir(parents=True)
+            if output.name == 'test':
+                for source in sources:
+                    relative = Path(source).relative_to(self.app / 'src/test/java').with_suffix('.class')
+                    target = output / relative
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(b'non-executable mock class placeholder')
+
+        with patch.object(runner, 'ROOT', self.root), patch.object(runner, 'APP', self.app), \
+                patch.object(runner, 'r_classpath_entry', return_value=str(self.root)), \
+                patch.object(runner, '_javac', side_effect=mocked_compile), \
+                patch.object(runner.subprocess, 'run') as launcher, \
+                patch.dict(os.environ, {'DSHA_ONLY': ''}), contextlib.redirect_stdout(io.StringIO()):
+            launcher.return_value.returncode = 0
+            launcher.return_value.stdout = 'mock launcher observation only'
+            launcher.return_value.stderr = ''
+            self.assertEqual(0, runner.run_compiled_tests(
+                self.root / 'work-mocked', self.root, self.root, self.root, self.root))
+        self.assertEqual(2, len(compile_calls))
+        self.assertIn(str(self.app / 'src/main/java/Production.java'), compile_calls[0][0])
+        self.assertIn(str(self.app / 'build/generated/uiLanguage/UiMessages.java'), compile_calls[0][0])
+        self.assertEqual(set(runner.collect_test_sources(self.app)), set(compile_calls[1][0]))
+        self.assertIn(str(self.app / 'src/test/java/Helper.java'), compile_calls[1][0])
+        launcher.assert_called_once()
+        command = launcher.call_args.args[0]
+        self.assertEqual(['java', '-Dfile.encoding=UTF-8'], command[:2])
+        self.assertEqual('@' + str(self.root / 'work-mocked/junit-args.txt'), command[2])
+        arguments = (self.root / 'work-mocked/junit-args.txt').read_text(
+            encoding='mbcs' if os.name == 'nt' else 'utf-8')
+        self.assertIn('"org.junit.runner.JUnitCore"', arguments)
+        self.assertIn('"DependentTest"', arguments)
+        self.assertNotIn('"Helper"', arguments)
+
+    def assert_layout_refused_without_jvm(self):
+        with patch.object(runner, 'ROOT', self.root), patch.object(runner, 'APP', self.app), \
+                patch.object(runner, 'r_classpath_entry', return_value=str(self.root)), \
+                patch.object(runner, '_javac') as compiler, \
+                patch.object(runner.subprocess, 'run') as launcher, \
+                contextlib.redirect_stderr(io.StringIO()) as captured, self.assertRaises(SystemExit) as raised:
+            runner.run_compiled_tests(self.root / 'refused', self.root, self.root, self.root, self.root)
+        self.assertEqual(1, raised.exception.code)
+        self.assertIn('JAVA_ONLY_RUNNER_REQUIRES_GRADLE', captured.getvalue())
+        compiler.assert_not_called()
+        launcher.assert_not_called()
+
+    def test_real_multimodule_java_layout_is_refused_before_compiler_or_launcher(self):
+        layout = json.loads((ROOT / 'ci/source-layout.json').read_text(encoding='utf-8'))
+        self.assertGreater(len(layout['modules']), 1)
+        self.assertIn(':core:policy', [row['path'] for row in layout['modules']])
+        self.write_layout(layout)
+        policy = self.root / 'core/policy/src/main/java/fixture/PolicyValue.java'
+        policy.parent.mkdir(parents=True)
+        policy.write_text('package fixture; public class PolicyValue {}', encoding='utf-8')
+        # 本夹具全是 Java；拒绝原因必须仍包含多模块，不能只靠碰巧含 Kotlin。
+        entries = runner.SourceLayout(self.root).source_files()
+        self.assertTrue(all(entry.path.suffix == '.java' for entry in entries))
+        self.assertTrue(any(entry.module == ':core:policy' for entry in entries))
+        self.assert_layout_refused_without_jvm()
+
+    def test_single_module_kotlin_production_is_refused_before_compiler_or_launcher(self):
+        self.put('src/main/kotlin/KotlinProduction.kt', 'class KotlinProduction {}')
+        self.assert_layout_refused_without_jvm()
+
+    def test_single_module_kotlin_test_is_refused_before_compiler_or_launcher(self):
+        self.put('src/test/kotlin/KotlinProbeTest.kt', 'class KotlinProbeTest {}')
+        self.assert_layout_refused_without_jvm()
 
     def test_argfile_rejects_control_characters(self):
         for value in ('a\nb', 'a\rb', 'a\0b'):

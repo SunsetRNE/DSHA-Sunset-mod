@@ -37,7 +37,11 @@ public final class AssistantActivity extends AppCompatActivity {
   private boolean pendingInput;
   private boolean controlPermissionMode;
   private boolean notificationPermissionMode;
+  private boolean readyListenerAdded;
   private long editorRevision;
+  private long boundViewRevision;
+  private final Object editorToken = new Object();
+  private final String editorSurface = "editor-" + java.util.UUID.randomUUID();
   private final Runnable localReady =
       () -> {
         if (resumed && bound == null && !controlPermissionMode && !loading) selectLocal();
@@ -62,6 +66,10 @@ public final class AssistantActivity extends AppCompatActivity {
     status.setTextSize(20);
     status.setText(UiText.choose("DSHA 悬浮助手", "DSHA floating assistant"));
     content.addView(status);
+    if (AssistantNotificationNavigation.requested(getIntent())) {
+      showNotification(getIntent());
+      return;
+    }
     if (AssistantService.CONTROL_PERMISSION.equals(getIntent().getAction())) {
       showControlPermission();
       return;
@@ -78,6 +86,10 @@ public final class AssistantActivity extends AppCompatActivity {
   protected void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
     setIntent(intent);
+    if (AssistantNotificationNavigation.requested(intent)) {
+      showNotification(intent);
+      return;
+    }
     if (AssistantService.CONTROL_PERMISSION.equals(intent.getAction())) {
       showControlPermission();
       return;
@@ -92,7 +104,11 @@ public final class AssistantActivity extends AppCompatActivity {
     notificationPermissionMode = getIntent().getBooleanExtra("notification_permission", false);
     loadRevision++;
     loading = false;
-    if (bound != null) bound.removeListener(changed);
+    if (bound != null) {
+      bound.removeListener(changed);
+      AssistantService.nativeEditorVisible(bound, editorToken, false);
+      bound.endComposing(editorSurface);
+    }
     bound = null;
     input = null;
     pendingInput = false;
@@ -127,10 +143,20 @@ public final class AssistantActivity extends AppCompatActivity {
   }
 
   private void selectLocal() {
+    // 只有用户明确选择其它会话才离开通知地址；旧通知拒绝路径不会调用这里。
+    getIntent().setData(null);
+    getIntent().removeExtra("bound");
+    getIntent().removeExtra("focus_input");
+    boundViewRevision++;
     if (bound != null) {
       bound.removeListener(changed);
+      AssistantService.nativeEditorVisible(bound, editorToken, false);
+      bound.endComposing(editorSurface);
       bound = null;
     }
+    input = null;
+    pendingInput = false;
+    editorRevision++;
     if (buttonContainer != null) {
       ((android.view.ViewGroup) status.getParent()).removeView(status);
       content = new LinearLayout(this);
@@ -354,14 +380,42 @@ public final class AssistantActivity extends AppCompatActivity {
     }
   }
 
+  private void showNotification(Intent intent) {
+    AssistantSessionController selected = AssistantNotificationNavigation.resolve(this, intent);
+    if (selected == null) {
+      finish();
+      return;
+    }
+    controlPermissionMode = false;
+    showBound(selected);
+  }
+
+  private boolean boundCurrent() {
+    if (bound == null || AssistantWindowOwner.from(this).current() != bound) return false;
+    return !AssistantNotificationNavigation.requested(getIntent())
+        || AssistantNotificationNavigation.resolve(this, getIntent()) == bound;
+  }
+
+  private boolean editorCurrent() {
+    return boundCurrent() && AssistantService.ownsNativeEditor(bound, editorToken);
+  }
+
   private void showBound() {
+    showBound(AssistantWindowOwner.from(this).current());
+  }
+
+  private void showBound(AssistantSessionController selected) {
+    boundViewRevision++;
     loadRevision++;
     loading = false;
     creating = false;
     editorRevision++;
     if (bound != null) bound.removeListener(changed);
-    bound = AssistantSessionController.active();
-    if (bound == null) return;
+    bound = selected;
+    if (!boundCurrent()) {
+      finish();
+      return;
+    }
     ((android.view.ViewGroup) status.getParent()).removeView(status);
     content = new LinearLayout(this);
     content.setOrientation(LinearLayout.VERTICAL);
@@ -401,42 +455,57 @@ public final class AssistantActivity extends AppCompatActivity {
     content.addView(actions, new LinearLayout.LayoutParams(-1, -2));
     setContentView(content);
     draftRevision = -1;
+    long composingRevision = boundViewRevision;
     input.addTextChangedListener(
         new android.text.TextWatcher() {
           public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
           public void onTextChanged(CharSequence s, int start, int before, int count) {
-            bound.setDraft(s.toString());
+            synchronized (selected) {
+              if (composingRevision == boundViewRevision && bound == selected && editorCurrent())
+                selected.setDraft(s.toString());
+            }
           }
 
           public void afterTextChanged(android.text.Editable value) {}
         });
-    bound.collapse();
-    bound.beginComposing("editor");
-    AssistantService.nativeEditorVisible(true);
+    synchronized (selected) {
+      if (bound != selected || !boundCurrent()) {
+        finish();
+        return;
+      }
+      bound.collapse();
+      bound.beginComposing(editorSurface);
+      AssistantService.nativeEditorVisible(bound, editorToken, true);
+    }
     pendingInput = getIntent().getBooleanExtra("focus_input", false);
     input.setOnFocusChangeListener(
         (v, focus) -> {
-          if (focus) bound.beginComposing("editor");
+          synchronized (selected) {
+            if (focus
+                && composingRevision == boundViewRevision
+                && bound == selected
+                && editorCurrent()) selected.beginComposing(editorSurface);
+          }
         });
     sendButton =
         button(
             UiText.choose("发送", "Send"),
             () -> {
-              if (bound.send(input.getText().toString())) finish();
+              if (AssistantNotificationNavigation.send(
+                  this, getIntent(), bound, input.getText().toString())) finish();
             });
     button(
         UiText.choose("语音输入", "Voice input"),
         () -> {
-          bound.beginComposing("voice");
-          startActivity(new Intent(this, AssistantVoiceActivity.class));
+          startActivity(AssistantNotificationNavigation.voiceIntent(this, getIntent()));
         });
     button(UiText.choose("暂停", "Pause"), () -> bound.pause("USER_PAUSED"));
     resumeButton =
         button(
             UiText.choose("继续", "Continue"),
             () -> {
-              if (bound.resume()) finish();
+              if (AssistantNotificationNavigation.resume(this, getIntent(), bound)) finish();
             });
     button(UiText.choose("停止当前任务", "Stop current task"), bound::stop);
     button(
@@ -491,6 +560,10 @@ public final class AssistantActivity extends AppCompatActivity {
 
   private void renderBound() {
     if (bound == null || messages == null || isDestroyed()) return;
+    if (!boundCurrent()) {
+      finish();
+      return;
+    }
     var state = bound.snapshot();
     status.setText(
         UiText.format("%s · %s", UiText.choose("本机", "Local"), AssistantWindow.label(state.phase()))
@@ -520,19 +593,42 @@ public final class AssistantActivity extends AppCompatActivity {
     Button button = new Button(this);
     button.setText(label);
     (buttonContainer == null ? content : buttonContainer).addView(button);
-    button.setOnClickListener(v -> action.run());
+    AssistantSessionController expected = bound;
+    long expectedRevision = boundViewRevision;
+    button.setOnClickListener(
+        v -> {
+          if (expected == null) {
+            action.run();
+            return;
+          }
+          synchronized (expected) {
+            if (bound != expected || boundViewRevision != expectedRevision || !editorCurrent())
+              return;
+            action.run();
+          }
+        });
     return button;
   }
 
   @Override
   protected void onStart() {
     super.onStart();
-    if (!controlPermissionMode) HarnessController.get(this).addReadyWebPageListener(localReady);
+    if (!controlPermissionMode && !isFinishing()) {
+      HarnessController.get(this).addReadyWebPageListener(localReady);
+      readyListenerAdded = true;
+    }
   }
 
   @Override
   protected void onResume() {
     super.onResume();
+    if (isFinishing()) return;
+    if ((bound != null && !boundCurrent())
+        || (AssistantNotificationNavigation.requested(getIntent())
+            && AssistantNotificationNavigation.resolve(this, getIntent()) != bound)) {
+      finish();
+      return;
+    }
     resumed = true;
     content.setDescendantFocusability(android.view.ViewGroup.FOCUS_AFTER_DESCENDANTS);
     if (controlPermissionMode) {
@@ -556,9 +652,15 @@ public final class AssistantActivity extends AppCompatActivity {
       input.setShowSoftInputOnFocus(true);
     }
     if (bound != null) {
-      // 从语音或其他界面回到编辑器：继续标记“用户正在输入”（不暂停、不取消）。
-      bound.beginComposing("editor");
-      AssistantService.nativeEditorVisible(true);
+      synchronized (bound) {
+        if (!boundCurrent()) {
+          finish();
+          return;
+        }
+        // 从语音或其他界面回到编辑器时，在同轮复核后重新取得呈现。
+        bound.beginComposing(editorSurface);
+        AssistantService.nativeEditorVisible(bound, editorToken, true);
+      }
       if (pendingInput && input != null) input.post(this::focusComposer);
     }
     if (bound == null && !loading) selectLocal();
@@ -582,17 +684,22 @@ public final class AssistantActivity extends AppCompatActivity {
       ime.hideSoftInputFromWindow(input.getWindowToken(), 0);
     }
     if (bound != null) {
-      bound.collapse();
-      AssistantService.nativeEditorVisible(false);
-      // 编辑器未发送就离开：放开等待中的手机动作（仍要求先重新观察）。
-      bound.endComposing("editor");
+      synchronized (bound) {
+        if (editorCurrent()) bound.collapse();
+        AssistantService.nativeEditorVisible(bound, editorToken, false);
+        // 仅释放本 Activity 的输入来源；旧 onPause 不碰后继的输入闸。
+        bound.endComposing(editorSurface);
+      }
     }
     super.onPause();
   }
 
   @Override
   protected void onStop() {
-    if (!controlPermissionMode) HarnessController.get(this).removeReadyWebPageListener(localReady);
+    if (readyListenerAdded) {
+      HarnessController.get(this).removeReadyWebPageListener(localReady);
+      readyListenerAdded = false;
+    }
     super.onStop();
   }
 

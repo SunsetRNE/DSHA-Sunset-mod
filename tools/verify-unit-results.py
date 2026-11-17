@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """核对 Standard JUnit XML 并写出单测回执（CI 各节点共用）。
 
-full：旧单目录 API 要求 0 failure / 0 error / 0 skipped；仅为定向运行汇总。
+full：对显式 --reports（可重复）目录做 0 failure / 0 error / 0 skipped 汇总；
       --require-fixtures 额外要求七个外部夹具用例各恰好执行一次并通过。
+      没有 --state 的汇总仍只是下载 XML 的复核，不冒充全仓 fresh 聚合。
 source-only：仅汇总（Gradle 已对失败返回非零）；给出 --max-skips 时才限制跳过数。
 全仓 full：使用 --state/--run-id 接入 unit_test_contract；不能用旧 summary 冒充聚合。
 """
 import argparse
 import json
 import os
+from collections import Counter
 from pathlib import Path
 import sys
 import xml.etree.ElementTree as ET
@@ -22,9 +24,15 @@ DEFAULT_REPORTS = Path("app/build/test-results/testStandardDebugUnitTest")
 
 
 def collect(reports):
-    files = sorted(reports.glob("TEST-*.xml"))
-    if not files:
-        raise ValueError("JUNIT_MISSING: " + str(reports))
+    if isinstance(reports, (str, Path)):
+        reports = [Path(reports)]
+    files = []
+    for directory in reports:
+        directory = Path(directory)
+        current = sorted(directory.glob("TEST-*.xml"))
+        if not current:
+            raise ValueError("JUNIT_MISSING: " + str(directory))
+        files.extend(current)
     suites = [ET.parse(path).getroot() for path in files]
     counts = {key: sum(int(suite.get(key, "0")) for suite in suites)
               for key in ("tests", "failures", "errors", "skipped")}
@@ -34,6 +42,10 @@ def collect(reports):
     if counts["tests"] != len(cases) or counts["skipped"] != actual["skipped"] \
             or counts["failures"] != actual["failure"] or counts["errors"] != actual["error"]:
         raise ValueError("JUNIT_COUNTS: report counts disagree with testcases " + json.dumps(counts))
+    identities = [(case.get("classname"), case.get("name")) for case in cases]
+    duplicates = sorted(pair for pair, count in Counter(identities).items() if count != 1)
+    if duplicates:
+        raise ValueError("JUNIT_DUPLICATE_IDENTITY: " + json.dumps(duplicates, ensure_ascii=False))
     return counts, cases
 
 
@@ -62,7 +74,8 @@ def verify(reports, mode, require_fixtures=False, max_skips=None):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("full", "source-only"), required=True)
-    parser.add_argument("--reports", type=Path, default=DEFAULT_REPORTS)
+    parser.add_argument("--reports", type=Path, action="append",
+                        help="JUnit 报告目录；可重复传入多个模块任务目录，默认 app 单目录")
     parser.add_argument("--require-fixtures", action="store_true")
     parser.add_argument("--max-skips", type=int)
     parser.add_argument("--output", type=Path, required=True)
@@ -84,7 +97,8 @@ def main(argv=None):
             result = verify_run(args.root, args.state, run_id=args.run_id,
                                 run_attempt=args.run_attempt, baseline=args.baseline)
         else:
-            result = verify(args.reports, args.mode, args.require_fixtures, args.max_skips)
+            result = verify(args.reports or [DEFAULT_REPORTS], args.mode, args.require_fixtures,
+                            args.max_skips)
             result.update(kind="dsha-unit-summary", aggregate=False)
     except ValueError as error:
         raise SystemExit(str(error)) from None

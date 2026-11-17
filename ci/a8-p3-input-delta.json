@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "kind": "a8-p3-integration-input-delta-not-a-descriptor",
+  "baselineCommit": "f3161211d73f983e7443a54ad267904b98b8f9ac",
+  "sourceCommit": "96abb5d61e4b62d545ade7f4504963b90e7c7ffd",
+  "hardeningCommit": "63a8912fef1082a59e71ce6ecedb014967472c78",
+  "baselineRuntimeId": "63adce0a3df6f0c46494dc6adf030f07f80724557f139b3598755caa1607e2ad",
+  "launcherInputCount": 517,
+  "launcherKeysAdded": [],
+  "launcherKeysRemoved": [],
+  "changed": [
+    {
+      "logicalKey": "generator:ci/source-layout.json",
+      "physicalPath": "ci/source-layout.json",
+      "beforeSha256": "4a3ddda20d7e7a3b5064806736b8400a2573ac82eda710e99084a65cfb4590ac",
+      "afterSha256": "2ed67fe829033dcf34ff8c47aaf07cd4d2d4152518e48f6e35fb23d3a1370b21"
+    }
+  ],
+  "movedSources": [
+    {
+      "logicalSourceKey": "main:com/deepseekharness/app/util/NetworkHealthPolicy.kt",
+      "from": "app/src/main/java/com/deepseekharness/app/util/NetworkHealthPolicy.kt",
+      "to": "core/policy/src/main/kotlin/com/deepseekharness/app/util/NetworkHealthPolicy.kt"
+    },
+    {
+      "logicalSourceKey": "test:com/deepseekharness/app/util/NetworkHealthPolicyTest.java",
+      "from": "app/src/test/java/com/deepseekharness/app/util/NetworkHealthPolicyTest.java",
+      "to": "core/policy/src/test/java/com/deepseekharness/app/util/NetworkHealthPolicyTest.java"
+    },
+    {
+      "logicalSourceKey": "test:com/deepseekharness/app/util/NetworkHealthPolicyContractTest.java",
+      "from": "app/src/test/java/com/deepseekharness/app/util/NetworkHealthPolicyContractTest.java",
+      "to": "core/policy/src/test/java/com/deepseekharness/app/util/NetworkHealthPolicyContractTest.java"
+    }
+  ],
+  "recipeInputsToRegenerate": ["app/src/main/assets/dsh-runtime.inputs.json"],
+  "testTasksAdded": [":core:policy:test"],
+  "testReportsAdded": ["core/policy/build/test-results/test"],
+  "descriptorGeneratedByWorker": false,
+  "dataFormatChanged": false,
+  "integrationOwner": "main"
+}

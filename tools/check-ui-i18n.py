@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Bound existing UI translation debt and reject new sinks; never translate user/protocol text.
 
-The inventory is lexical, not an Android screen audit. It only flags direct Chinese
-literals in display sinks, UiText.text/choose literal concatenation, and literal XML text,
-hint or content descriptions. Dynamic translation arguments are counted for review.
+The inventory is lexical, not an Android screen audit. It flags direct Chinese
+literals in display sinks, UiText.text/choose fragments or Kotlin templates, and
+literal XML text, hint or content descriptions. Kotlin receiver scopes are checked
+conservatively without type resolution. Dynamic translation arguments are counted
+for review; unclosed Kotlin strings, templates or comments fail the scan.
 """
 import argparse
 from collections import Counter
@@ -11,6 +13,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+from source_layout import SourceLayout
 
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = ROOT / 'tools/i18n/ui-source-baseline.json'
@@ -29,7 +32,8 @@ def java_tokens(source):
 def chinese_literal(value):
     if not value.startswith('"'):
         return False
-    decoded = re.sub(r'\\u([0-9a-fA-F]{4})', lambda match: chr(int(match[1], 16)), value)
+    decoded = value if getattr(value, 'raw', False) else re.sub(
+        r'\\u([0-9a-fA-F]{4})', lambda match: chr(int(match[1], 16)), value)
     return bool(CJK.search(decoded))
 
 
@@ -57,14 +61,214 @@ def top_level_concat(values):
     return False
 
 
+class KotlinString(str):
+    """字符串仍作为一个调用参数；只附带词法可确定的模板和 raw 标记。"""
+    def __new__(cls, value, raw=False, template=False, expressions=()):
+        result = super().__new__(cls, value)
+        result.raw = raw
+        result.template = template
+        result.expressions = expressions
+        return result
+
+
+class KotlinLexer:
+    """只识别词法边界，不推断类型或执行模板；不确定的未闭合输入直接失败。"""
+    MAX_TEMPLATE_DEPTH = 64
+
+    def __init__(self, source):
+        self.source, self.at, self.line = source, 0, 1
+
+    def advance(self, count=1):
+        end = self.at + count
+        self.line += self.source.count('\n', self.at, end)
+        self.at = end
+
+    def fail(self, kind, line):
+        raise ValueError(f'UI_I18N_KOTLIN_UNTERMINATED_{kind}: line {line}')
+
+    def comment(self):
+        start_line = self.line
+        if self.source.startswith('//', self.at):
+            end = self.source.find('\n', self.at + 2)
+            self.advance((len(self.source) if end < 0 else end) - self.at)
+            return
+        depth = 1
+        self.advance(2)
+        while self.at < len(self.source):
+            if self.source.startswith('/*', self.at):
+                depth += 1
+                self.advance(2)
+            elif self.source.startswith('*/', self.at):
+                depth -= 1
+                self.advance(2)
+                if not depth:
+                    return
+            else:
+                self.advance()
+        self.fail('COMMENT', start_line)
+
+    def quoted(self, depth):
+        start, start_line = self.at, self.line
+        raw = self.source.startswith('"""', self.at)
+        quote = self.source[self.at]
+        self.advance(3 if raw else 1)
+        template, expressions = False, []
+        while self.at < len(self.source):
+            if raw and self.source.startswith('"""', self.at):
+                # raw 字符串末尾允许一两个内容引号紧贴三个结束引号。
+                while self.at < len(self.source) and self.source[self.at] == '"':
+                    self.advance()
+                return KotlinString(self.source[start:self.at], raw=True, template=template,
+                                    expressions=expressions)
+            if not raw and self.source[self.at] == quote:
+                self.advance()
+                value = self.source[start:self.at]
+                return KotlinString(value, template=template, expressions=expressions) if quote == '"' else value
+            if not raw and quote != '`' and self.source[self.at] == '\\':
+                if self.at + 1 >= len(self.source):
+                    self.fail('STRING', start_line)
+                self.advance(2)
+            elif quote == '"' and self.source.startswith('${', self.at):
+                if depth >= self.MAX_TEMPLATE_DEPTH:
+                    raise ValueError(f'UI_I18N_KOTLIN_TEMPLATE_DEPTH: line {self.line}')
+                self.advance(2)
+                expression = self.scan(template_depth=depth + 1, expression=True)
+                expressions.append(expression)
+                # raw 字符串中 ${'$'} 是 Kotlin 表达字面 dollar 的常见写法，不是动态参数。
+                literal_dollar = len(expression) == 1 and expression[0][0] in ("'$'", "'\\u0024'")
+                template = template or not literal_dollar
+            elif quote == '"' and self.source[self.at] == '$' and self.at + 1 < len(self.source) \
+                    and (self.source[self.at + 1] == '_' or self.source[self.at + 1].isalpha()):
+                template = True
+                self.advance()
+            else:
+                if not raw and self.source[self.at] == '\n':
+                    self.fail('STRING', start_line)
+                self.advance()
+        self.fail('STRING', start_line)
+
+    def scan(self, template_depth=0, expression=False):
+        result, braces, start_line = [], 0, self.line
+        while self.at < len(self.source):
+            start, token_line = self.at, self.line
+            if self.source.startswith(('//', '/*'), self.at):
+                self.comment()
+                continue
+            if self.source[self.at] in ('"', "'", '`'):
+                value = self.quoted(template_depth)
+            elif self.source[self.at].isspace():
+                self.advance()
+                continue
+            else:
+                value = self.source[self.at]
+                if expression and value == '}' and not braces:
+                    self.advance()
+                    return result
+                if value == '{':
+                    braces += 1
+                elif value == '}':
+                    braces -= 1
+                identifier = re.match(r'[A-Za-z_$][\w$]*', self.source[self.at:])
+                self.advance(len(identifier[0]) if identifier else 1)
+                value = self.source[start:self.at]
+            result.append((value, token_line))
+        if expression:
+            self.fail('TEMPLATE', start_line)
+        return result
+
+
+def kotlin_tokens(source):
+    return KotlinLexer(source).scan()
+
+
+def kotlin_receiver_properties(tokens, inherited=False):
+    """apply/with/receiver.run 中保守识别隐式属性；不把普通赋值或命名参数当显示。
+
+    不解析接收者的静态类型：业务对象同名属性也可能报告，必须由审阅者判断，不能静默跳过。
+    只认这些标准作用域函数的直接调用，不解析别名、自定义 receiver DSL 或类型重载。
+    """
+    values = [value for value, _ in tokens]
+    receiver_braces = set()
+    for index, value in enumerate(values):
+        receiver_call = value in ('apply', 'run') and index > 0 and values[index - 1] == '.'
+        if receiver_call and values[index + 1:index + 2] == ['{']:
+            receiver_braces.add(index + 1)
+        if (receiver_call or value == 'with') and values[index + 1:index + 2] == ['(']:
+            arguments, end = call_arguments(values, index + 1)
+            if end == index + 1:
+                continue
+            trailing = (receiver_call and arguments == [[]]) or (
+                value == 'with' and len(arguments) == 1 and arguments[0])
+            if trailing and values[end + 1:end + 2] == ['{']:
+                receiver_braces.add(end + 1)
+            # apply({ ... }) / run(block = { ... }) / with(view, { ... })。
+            argument, start, depth = 0, index + 2, 0
+            for pos in range(start, end):
+                token = values[pos]
+                if token == ',' and not depth:
+                    argument, start = argument + 1, pos + 1
+                elif token in ('(', '[', '{'):
+                    if token == '{' and not depth and (values[start:pos] == ['block', '='] or (
+                            argument == (1 if value == 'with' else 0) and not values[start:pos])):
+                        receiver_braces.add(pos)
+                    depth += 1
+                elif token in (')', ']', '}'):
+                    depth -= 1
+    stack = [('{', True, set())] if inherited else []
+    result, contexts = set(), set()
+    for index, value in enumerate(values):
+        if any(entry[1] for entry in stack):
+            contexts.add(index)
+        if value in ('(', '[', '{'):
+            stack.append((value, index in receiver_braces, set()))
+        elif value in (')', ']', '}'):
+            if stack:
+                stack.pop()
+        elif value in ('val', 'var') and stack and index + 1 < len(values):
+            # 简单局部变量的遮蔽；声明和后续同名赋值都不是隐式 View 属性。
+            scope = next((entry for entry in reversed(stack) if entry[0] == '{'), None)
+            if scope is not None:
+                scope[2].add(values[index + 1])
+        elif stack and stack[-1][0] == '{' and any(entry[1] for entry in stack) \
+                and not any(value in entry[2] for entry in stack):
+            result.add(index)
+    return result, contexts
+
+
 def java_findings(source):
-    tokens = java_tokens(source)
+    return source_findings(java_tokens(source))
+
+
+def kotlin_findings(source):
+    def region(tokens, inherited=False):
+        implicit, contexts = kotlin_receiver_properties(tokens, inherited)
+        results, dynamic = source_findings(tokens, kotlin=True, implicit_properties=implicit)
+        # 模板表达式独立扫描，但继续继承外层可见的 receiver，不破坏外层调用参数。
+        for index, (value, _) in enumerate(tokens):
+            for expression in getattr(value, 'expressions', ()):
+                found, count = region(expression, index in contexts)
+                results.extend(found)
+                dynamic += count
+        return results, dynamic
+    results, dynamic = region(kotlin_tokens(source))
+    return sorted(results, key=lambda row: row[2]), dynamic
+
+
+def source_findings(tokens, kotlin=False, implicit_properties=()):
     values = [token[0] for token in tokens]
     results, dynamic = [], 0
+    direct_kind = 'kotlin_direct_display_literal' if kotlin else 'java_direct_display_literal'
+    # TextView/View 的 JavaBean 属性；业务记录的 message 不是显示方法调用。
+    properties = {'text', 'hint', 'contentDescription', 'title'}
     for index, (value, line) in enumerate(tokens):
+        if kotlin and value in properties and index \
+                and (values[index - 1] == '.' or index in implicit_properties) \
+                and values[index + 1:index + 2] == ['='] \
+                and index + 2 < len(values) and chinese_literal(values[index + 2]):
+            results.append((direct_kind, value + '=' + values[index + 2], line))
         if value in DISPLAY and values[index + 1:index + 2] == ['(']:
             if index + 2 < len(values) and chinese_literal(values[index + 2]):
-                results.append(('java_direct_display_literal', value + '(' + values[index + 2], line))
+                results.append((direct_kind, value + '(' + values[index + 2], line))
         if value == 'makeText' and values[index + 1:index + 2] == ['(']:
             depth = 0
             for pos in range(index + 2, len(values)):
@@ -75,13 +279,15 @@ def java_findings(source):
                     depth -= 1
                 if current == ',' and depth == 0:
                     if pos + 1 < len(values) and chinese_literal(values[pos + 1]):
-                        results.append(('java_direct_display_literal', 'makeText(_, ' + values[pos + 1], line))
+                        results.append((direct_kind, 'makeText(_, ' + values[pos + 1], line))
                     break
         if value == 'UiText' and values[index + 1:index + 4] == ['.', 'text', '(']:
             if index + 4 >= len(values): continue
             argument = values[index + 4]
             if not argument.startswith('"'):
                 dynamic += 1
+            elif kotlin and chinese_literal(argument) and getattr(argument, 'template', False):
+                results.append(('translated_template_literal', 'UiText.text(' + argument + ')', line))
             elif values[index + 5:index + 7] == [')', '+'] and chinese_literal(argument):
                 results.append(('translated_fragment_concat', 'UiText.text(' + argument + ')+', line))
         if value == 'UiText' and values[index + 1:index + 4] == ['.', 'choose', '(']:
@@ -97,34 +303,46 @@ def java_findings(source):
                 start -= 2
             before = start > 0 and values[start - 1] == '+'
             inner = any(top_level_concat(argument) for argument in arguments)
-            if before or after or inner:
+            template = kotlin and any(getattr(item, 'template', False)
+                                      for argument in arguments for item in argument)
+            if before or after or inner or template:
                 call = ''.join(values[index:end + 1])
                 signature = call + '+' if after else '+' + call
-                if inner and not (before or after): signature = call
-                kind = 'translated_choose_argument_concat' if inner else 'translated_choose_fragment_concat'
+                if (inner or template) and not (before or after): signature = call
+                kind = ('translated_choose_argument_template' if template else
+                        'translated_choose_argument_concat' if inner else 'translated_choose_fragment_concat')
                 results.append((kind, signature, line))
     return results, dynamic
 
 
 def inventory(root):
     rows, dynamic = [], 0
-    for source_set in ('main', 'standard'):
-        source_root = root / 'app/src' / source_set
-        for path in sorted((source_root / 'java').rglob('*.java')):
-            content = path.read_bytes()
-            found, count = java_findings(content.decode('utf-8'))
-            dynamic += count
-            rows.extend({'kind': kind, 'file': path.relative_to(root).as_posix(),
-                         'signature': signature, 'line': line,
-                         'sourceSha256': hashlib.sha256(content).hexdigest()} for kind, signature, line in found)
-        for path in sorted((source_root / 'res').glob('layout*/*.xml')):
-            source = path.read_text(encoding='utf-8')
-            for match in XML_LITERAL.finditer(source):
-                value = match[3]
-                if not value or value.startswith(('@', '?')): continue
-                rows.append({'kind': 'xml_literal', 'file': path.relative_to(root).as_posix(),
-                             'signature': match[1] + '=' + value,
-                             'line': source.count('\n', 0, match.start()) + 1})
+    layout = SourceLayout(root)
+    for entry in layout.source_files(('main', 'standard'), suffixes=('.java', '.kt')):
+        path = entry.path
+        content = path.read_bytes()
+        scanner = kotlin_findings if path.suffix == '.kt' else java_findings
+        try:
+            found, count = scanner(content.decode('utf-8'))
+        except ValueError as error:
+            raise ValueError(f'{entry.relative}: {error}') from error
+        dynamic += count
+        rows.extend({'kind': kind, 'file': entry.relative,
+                     'signature': signature, 'line': line,
+                     'sourceSha256': hashlib.sha256(content).hexdigest()} for kind, signature, line in found)
+    for module in layout.modules:
+        for source_set in ('main', 'standard'):
+            if source_set not in module['sourceSets']:
+                continue
+            source_root = root / module['directory'] / 'src' / source_set
+            for path in sorted((source_root / 'res').glob('layout*/*.xml')):
+                source = path.read_text(encoding='utf-8')
+                for match in XML_LITERAL.finditer(source):
+                    value = match[3]
+                    if not value or value.startswith(('@', '?')): continue
+                    rows.append({'kind': 'xml_literal', 'file': path.relative_to(root).as_posix(),
+                                 'signature': match[1] + '=' + value,
+                                 'line': source.count('\n', 0, match.start()) + 1})
     return rows, dynamic
 
 
