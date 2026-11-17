@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "task": "T12 / plugins S3b",
+  "base": "fb68097f1b7dc5d55daa3935f5b4ddd63d779366",
+  "scope": "pure Kotlin rules and isolated legacy Python oracle; no production wiring or writer",
+  "jvmWindow": {
+    "firstJvmAt": "2026-11-16T17:00:30.942793Z",
+    "finalBatchStartedAt": "2026-11-16T17:06:21.361512Z",
+    "completedAt": "2026-11-16T17:07:30.463098Z",
+    "releasedAfterActualArgvJvmCount": 0
+  },
+  "results": {
+    "legacyReviewBaseline": {"run": 26, "failed": 0},
+    "legacyDefaultDisabledBaseline": {"run": 26, "failed": 0},
+    "isolatedPythonOracle": {"cases": 59, "migrate": 23, "register": 36, "failed": 0, "legacyAssetsVerified": 7},
+    "initialJunit": {"run": 82, "failed": 1, "ignored": 0, "assumptions": 0, "reason": "known missing dependency caused complete=false; fixed by classifying known missing before unknown completeness"},
+    "finalJunit": {"run": 85, "failed": 0, "ignored": 0, "assumptions": 0},
+    "kotlinCompile": {"productionFiles": 3, "testFiles": 4, "exitCode": 0},
+    "javacAndRealJavaCaller": {"compileExitCode": 0, "runExitCode": 0},
+    "kotlinFormatTree": {"files": 95, "needsFormatting": 0, "jobs": 1},
+    "javaFixtureFormat": {"files": 1, "needsFormatting": 0, "exactTokensPreserved": true},
+    "classMajorVersion": 61,
+    "coreBoundaries": {"run": 25, "failed": 0},
+    "runtimeInputContract": {"run": 18, "errors": 1, "status": "not passed", "reason": "RUNTIME_INPUT_MISSING_OR_OUTSIDE: app/src/main/assets/dsh-runtime.bin"},
+    "sourceHygiene": "PASS",
+    "documentLinks": {"documents": 56, "ok": 1340, "warning": 0, "error": 0}
+  },
+  "testedSourcesSha256": {
+    "app/src/main/java/com/deepseekharness/app/plugins/PluginPreparationSnapshot.kt": "788be38bfa719c791ae3fbb4bd22ade64d2ba71e2b4aae62c742157f0ffb94fc",
+    "app/src/main/java/com/deepseekharness/app/plugins/PluginLegacyReviewPlan.kt": "68f6ad7eb60ed11725db6c00997dbae8854bd4450c927811d4168a38f14d8d15",
+    "app/src/main/java/com/deepseekharness/app/plugins/PluginBuiltinRegistrationPlan.kt": "050c9bcf7607a25f74c0d3473798bf9823e34b8f2cda89ba6733a2cede99449e",
+    "app/src/test/java/com/deepseekharness/app/plugins/PluginPreparationSnapshotTest.kt": "b9ac756dac302fe30764b3f7a589b5e09490696e09d1b5592ce2f22ebb2bf023",
+    "app/src/test/java/com/deepseekharness/app/plugins/PluginLegacyReviewPlanTest.kt": "7d18304a3ebe79f782794d409da93471d70524ae48fd14617b7dd0092668912d",
+    "app/src/test/java/com/deepseekharness/app/plugins/PluginBuiltinRegistrationPlanTest.kt": "cbd2e776285d6b81dd6db78ff38945e4d03884ba671cc9252f282370e9758710",
+    "app/src/test/java/com/deepseekharness/app/plugins/PluginPreparationOracleTest.kt": "bbc46c43c7a9e615e564a47114df07e25c711c2b872f368713eb4f604cdd910a",
+    "app/src/test/resources/plugin-s3b/PluginPreparationJavaCaller.java": "6516e41946bb660f614aa988f7059f14cf11310324c3d7173a5feb10e6b446b2",
+    "app/src/test/resources/plugin-s3b-oracle.json": "499f08837a60017913f8e86b8882f6d21c44ad987ab42880929a5870fe265a69",
+    "tools/test-plugin-s3b-oracle.py": "da5c7fb02d6a6003586a85c8557253d7adb77c93a60588dcf01e8d58e665f6bb"
+  },
+  "toolchain": {
+    "jdk": 17,
+    "kotlin": "2.2.10",
+    "gson": "2.13.1",
+    "junit": "4.13.2",
+    "ktfmt": "0.64",
+    "googleJavaFormat": "1.22.0",
+    "freshClasses": true,
+    "cachedJarsCopiedAndSha256ReadBack": true
+  },
+  "review": {
+    "agent": "47eefff8-8eb1-4f4e-9449-868842705fee",
+    "verdict": "APPROVE",
+    "scope": "read-only final source, tests, oracle and implementation evidence; reviewer did not independently run tests"
+  },
+  "integration": {
+    "launcherTreeAdditions": 3,
+    "descriptorRecalculationOwner": "main",
+    "descriptorModifiedInThisBranch": false,
+    "t11SideBranchDependency": false,
+    "productionProfileDualRun": false,
+    "productionWiringChanged": false,
+    "writerOrCasEnabled": false
+  },
+  "notRun": ["Gradle compilation or unit test tasks", "full CI", "Lint", "APK packaging", "Android or device acceptance", "production Kotlin plan execution"]
+}
