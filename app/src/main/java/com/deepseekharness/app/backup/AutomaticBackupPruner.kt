@@ -10,7 +10,10 @@ class AutomaticBackupPruner private constructor() {
         fun prune(fs: BackupFileSystem, copies: List<VerifiedBackupCopy>, control: BackupControl) {
             val automatic = ArrayList<VerifiedBackupCopy>()
             for (copy in copies) {
-                if (true == copy.metadata["automatic"] && copy.result(true) in setOf("COMPLETE", "DATA_SAVED_PLUGIN_WARNINGS")) {
+                if (
+                    true == copy.metadata["automatic"] &&
+                        copy.result(true) in setOf("COMPLETE", "DATA_SAVED_PLUGIN_WARNINGS")
+                ) {
                     copy.verify(fs, control)
                     automatic.add(copy)
                 }
@@ -20,9 +23,11 @@ class AutomaticBackupPruner private constructor() {
                 val copy = automatic[index]
                 val directory = copy.artifact.parentFile
                 val parent = directory.parentFile
-                val record = BackupJson.read(fs.small(fs.child(directory, "operation.json"), 16384), 16384)
+                val record =
+                    BackupJson.read(fs.small(fs.child(directory, "operation.json"), 16384), 16384)
                 if (true == record["busy"] || "FINISHED" != record["stage"]) continue
-                val allowed = setOf("portable.dshbak", "verified.json", "operation.json", "source-checks")
+                val allowed =
+                    setOf("portable.dshbak", "verified.json", "operation.json", "source-checks")
                 if (!fs.list(directory).all { it in allowed }) continue
                 copy.verify(fs, control)
                 fs.removeOwned(parent, copy.id)

@@ -62,7 +62,9 @@ class AutomaticBackupService : JobService() {
             val reschedule = retry
             val failure = error
             try {
-                handedOff = main.post { completePreparation(ticket, prepared, reschedule, failure, producer) }
+                handedOff = main.post {
+                    completePreparation(ticket, prepared, reschedule, failure, producer)
+                }
             } finally {
                 if (!handedOff) {
                     erase(prepared)
@@ -81,7 +83,7 @@ class AutomaticBackupService : JobService() {
         producer: WorkerQuiescence.Lease,
     ) {
         try {
-            owner.accept(ticket) submission@ {
+            owner.accept(ticket) submission@{
                 if (error.isNotEmpty()) {
                     AutomaticBackups.recordError(this, error)
                     finish(ticket, false)
@@ -123,14 +125,16 @@ class AutomaticBackupService : JobService() {
         val state: NativeBackupJobs.State
         synchronized(jobs) {
             state = jobs.state()
-            if (!AutomaticBackups.enabled(this) && state.busy && owner.owns(ticket, state.id)) jobs.cancel()
+            if (!AutomaticBackups.enabled(this) && state.busy && owner.owns(ticket, state.id))
+                jobs.cancel()
         }
         if (!owner.owns(ticket, state.id) || !state.busy) {
-            if (owner.owns(ticket, state.id) && state.error.isNotEmpty()) AutomaticBackups.recordError(this, state.error)
+            if (owner.owns(ticket, state.id) && state.error.isNotEmpty())
+                AutomaticBackups.recordError(this, state.error)
             finish(ticket, false)
             return
         }
-        main.postDelayed(poll, 300)
+        main.postDelayed(poll!!, 300)
     }
 
     private fun finish(ticket: ScheduledBackupOwner.Ticket<JobParameters>, retry: Boolean) {
@@ -177,6 +181,7 @@ class AutomaticBackupService : JobService() {
 
         @JvmStatic
         private fun failureCode(failure: Throwable): String =
-            if (failure is Exception) NativeBackupJobs.code(failure) else "RUNTIME_LINKAGE_UNAVAILABLE"
+            if (failure is Exception) NativeBackupJobs.code(failure)
+            else "RUNTIME_LINKAGE_UNAVAILABLE"
     }
 }

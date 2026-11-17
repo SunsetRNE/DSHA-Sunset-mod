@@ -20,7 +20,8 @@ class AutomaticBackupPolicy private constructor() {
             val since = maxOf(anchor, last)
             if (now < since) return false
             if (mode == "stop") return stopped > since && now >= stopped
-            if (mode == "interval") return now - since >= intervalHours.coerceIn(1, 168) * 3_600_000L
+            if (mode == "interval")
+                return now - since >= intervalHours.coerceIn(1, 168) * 3_600_000L
             val start = Instant.ofEpochMilli(since).atZone(zone)
             val minute = minuteOfDay.coerceIn(0, 1439)
             var next = start.toLocalDate().atTime(minute / 60, minute % 60).atZone(zone)

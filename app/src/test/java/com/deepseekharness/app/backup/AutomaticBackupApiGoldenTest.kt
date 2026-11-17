@@ -15,12 +15,30 @@ import org.junit.Test
 
 /** 冻结 Java 调用方可见的名称、static 入口、返回值和 checked exception；允许 Kotlin 编译器的合成成员。 */
 class AutomaticBackupApiGoldenTest {
-    private fun method(owner: Class<*>, name: String, result: Class<*>, vararg args: Class<*>): java.lang.reflect.Method {
+    private fun method(
+        owner: Class<*>,
+        name: String,
+        result: Class<*>,
+        vararg args: Class<*>,
+    ): java.lang.reflect.Method {
         val method = owner.getDeclaredMethod(name, *args)
         assertEquals("$name return", result, method.returnType)
         assertTrue("$name static", Modifier.isStatic(method.modifiers))
-        if (owner != AutomaticBackups::class.java || name !in setOf("factoryResetSuspended", "factoryResetPending", "beginProducer", "recordError", "idleForOwner")) {
-            assertTrue("$name remains callable from other Java packages", Modifier.isPublic(method.modifiers))
+        if (
+            owner != AutomaticBackups::class.java ||
+                name !in
+                    setOf(
+                        "factoryResetSuspended",
+                        "factoryResetPending",
+                        "beginProducer",
+                        "recordError",
+                        "idleForOwner",
+                    )
+        ) {
+            assertTrue(
+                "$name remains callable from other Java packages",
+                Modifier.isPublic(method.modifiers),
+            )
         }
         return method
     }
@@ -29,29 +47,67 @@ class AutomaticBackupApiGoldenTest {
     fun automaticBackupsRetainsItsJavaStaticSurface() {
         val owner = AutomaticBackups::class.java
         System.getProperty("dsha.t14.compiled")?.let { compiled ->
-            for (type in listOf(owner, AutomaticBackupService::class.java, AutomaticBackupPruner::class.java, AutomaticBackupPolicy::class.java)) {
-                assertEquals("must load freshly compiled ${type.name}", java.io.File(compiled).canonicalFile, java.io.File(type.protectionDomain.codeSource.location.toURI()).canonicalFile)
+            for (type in
+                listOf(
+                    owner,
+                    AutomaticBackupService::class.java,
+                    AutomaticBackupPruner::class.java,
+                    AutomaticBackupPolicy::class.java,
+                )) {
+                assertEquals(
+                    "must load freshly compiled ${type.name}",
+                    java.io.File(compiled).canonicalFile,
+                    java.io.File(type.protectionDomain.codeSource.location.toURI()).canonicalFile,
+                )
             }
         }
         val context = Context::class.java
         val nothing = Void.TYPE
         assertTrue(Modifier.isFinal(owner.modifiers))
         assertEquals(0, owner.constructors.size)
-        assertTrue(owner.declaredConstructors.filterNot { it.isSynthetic }.all { Modifier.isPrivate(it.modifiers) })
+        assertTrue(
+            owner.declaredConstructors
+                .filterNot { it.isSynthetic }
+                .all { Modifier.isPrivate(it.modifiers) }
+        )
         assertEquals(9137, owner.getField("JOB").getInt(null))
         assertEquals(9138, owner.getField("NOW").getInt(null))
         for (name in listOf("JOB", "NOW")) {
             val modifiers = owner.getField(name).modifiers
-            assertTrue(Modifier.isPublic(modifiers) && Modifier.isStatic(modifiers) && Modifier.isFinal(modifiers))
+            assertTrue(
+                Modifier.isPublic(modifiers) &&
+                    Modifier.isStatic(modifiers) &&
+                    Modifier.isFinal(modifiers)
+            )
         }
         method(owner, "prefs", SharedPreferences::class.java, context)
-        for (name in listOf("enabled", "due")) method(owner, name, Boolean::class.javaPrimitiveType!!, context)
-        for (name in listOf("schedule", "stopped", "abortFactoryReset", "completeFactoryReset")) method(owner, name, nothing, context)
+        for (name in listOf("enabled", "due")) method(
+            owner,
+            name,
+            Boolean::class.javaPrimitiveType!!,
+            context,
+        )
+        for (name in
+            listOf("schedule", "stopped", "abortFactoryReset", "completeFactoryReset")) method(
+            owner,
+            name,
+            nothing,
+            context,
+        )
         method(owner, "request", nothing, context, Boolean::class.javaPrimitiveType!!)
         method(owner, "completed", nothing, context, String::class.java)
-        for (name in listOf("idle", "idleForOwner")) assertArrayEquals(arrayOf(IOException::class.java), method(owner, name, Boolean::class.javaPrimitiveType!!, context).exceptionTypes)
-        assertArrayEquals(arrayOf(IOException::class.java), method(owner, "password", CharArray::class.java, context).exceptionTypes)
-        for (name in listOf("prune", "suspendForFactoryReset")) assertArrayEquals(arrayOf(IOException::class.java), method(owner, name, nothing, context, BackupControl::class.java).exceptionTypes)
+        for (name in listOf("idle", "idleForOwner")) assertArrayEquals(
+            arrayOf(IOException::class.java),
+            method(owner, name, Boolean::class.javaPrimitiveType!!, context).exceptionTypes,
+        )
+        assertArrayEquals(
+            arrayOf(IOException::class.java),
+            method(owner, "password", CharArray::class.java, context).exceptionTypes,
+        )
+        for (name in listOf("prune", "suspendForFactoryReset")) assertArrayEquals(
+            arrayOf(IOException::class.java),
+            method(owner, name, nothing, context, BackupControl::class.java).exceptionTypes,
+        )
         method(owner, "factoryResetSuspended", Boolean::class.javaPrimitiveType!!)
         method(owner, "factoryResetPending", Boolean::class.javaPrimitiveType!!, context)
         method(owner, "beginProducer", WorkerQuiescence.Lease::class.java)
@@ -77,7 +133,9 @@ class AutomaticBackupApiGoldenTest {
         val root = Files.createTempDirectory("automatic-backup-java-caller-")
         try {
             val source = root.resolve("AutomaticBackupJavaCaller.java")
-            Files.writeString(source, """
+            Files.writeString(
+                source,
+                """
                 package com.deepseekharness.app.backup;
                 import android.content.Context;
                 import android.content.SharedPreferences;
@@ -110,15 +168,41 @@ class AutomaticBackupApiGoldenTest {
                     AutomaticBackupService service = new AutomaticBackupService();
                   }
                 }
-            """.trimIndent())
-            val classpath = listOf(AutomaticBackups::class.java, AutomaticBackupPolicy::class.java, BackupControl::class.java, Context::class.java, kotlin.Unit::class.java)
-                .map { java.io.File(it.protectionDomain.codeSource.location.toURI()).absolutePath }
-                .distinct().joinToString(java.io.File.pathSeparator)
+                """
+                    .trimIndent(),
+            )
+            val classpath =
+                listOf(
+                        AutomaticBackups::class.java,
+                        AutomaticBackupPolicy::class.java,
+                        BackupControl::class.java,
+                        Context::class.java,
+                        kotlin.Unit::class.java,
+                    )
+                    .map {
+                        java.io.File(it.protectionDomain.codeSource.location.toURI()).absolutePath
+                    }
+                    .distinct()
+                    .joinToString(java.io.File.pathSeparator)
             val diagnostics = java.io.ByteArrayOutputStream()
-            val result = ToolProvider.getSystemJavaCompiler().run(null, diagnostics, diagnostics, "-proc:none", "-classpath", classpath, "-d", root.toString(), source.toString())
+            val result =
+                ToolProvider.getSystemJavaCompiler()
+                    .run(
+                        null,
+                        diagnostics,
+                        diagnostics,
+                        "-proc:none",
+                        "-classpath",
+                        classpath,
+                        "-d",
+                        root.toString(),
+                        source.toString(),
+                    )
             assertEquals(diagnostics.toString("UTF-8"), 0, result)
         } finally {
-            Files.walk(root).use { paths -> paths.sorted(java.util.Comparator.reverseOrder()).forEach { Files.delete(it) } }
+            Files.walk(root).use { paths ->
+                paths.sorted(java.util.Comparator.reverseOrder()).forEach { Files.delete(it) }
+            }
         }
     }
 
@@ -126,9 +210,32 @@ class AutomaticBackupApiGoldenTest {
     fun policyAndPrunerKeepStaticDescriptors() {
         val policy = AutomaticBackupPolicy::class.java
         assertEquals(0, policy.constructors.size)
-        method(policy, "due", Boolean::class.javaPrimitiveType!!, String::class.java, Integer.TYPE, Integer.TYPE, java.lang.Long.TYPE, java.lang.Long.TYPE, java.lang.Long.TYPE, java.lang.Long.TYPE, ZoneId::class.java)
+        method(
+            policy,
+            "due",
+            Boolean::class.javaPrimitiveType!!,
+            String::class.java,
+            Integer.TYPE,
+            Integer.TYPE,
+            java.lang.Long.TYPE,
+            java.lang.Long.TYPE,
+            java.lang.Long.TYPE,
+            java.lang.Long.TYPE,
+            ZoneId::class.java,
+        )
         val pruner = AutomaticBackupPruner::class.java
         assertEquals(0, pruner.constructors.size)
-        assertArrayEquals(arrayOf(IOException::class.java), method(pruner, "prune", Void.TYPE, BackupFileSystem::class.java, List::class.java, BackupControl::class.java).exceptionTypes)
+        assertArrayEquals(
+            arrayOf(IOException::class.java),
+            method(
+                    pruner,
+                    "prune",
+                    Void.TYPE,
+                    BackupFileSystem::class.java,
+                    List::class.java,
+                    BackupControl::class.java,
+                )
+                .exceptionTypes,
+        )
     }
 }

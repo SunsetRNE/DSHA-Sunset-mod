@@ -25,10 +25,11 @@ class AutomaticBackupsAndroidGoldenTest {
     private lateinit var scheduler: JobScheduler
     private lateinit var prefs: SharedPreferences
 
-    private fun resetFlag(): AtomicBoolean = AutomaticBackups::class.java.getDeclaredField("FACTORY_RESET").let {
-        it.isAccessible = true
-        it.get(null) as AtomicBoolean
-    }
+    private fun resetFlag(): AtomicBoolean =
+        AutomaticBackups::class.java.getDeclaredField("FACTORY_RESET").let {
+            it.isAccessible = true
+            it.get(null) as AtomicBoolean
+        }
 
     @Before
     fun reset() {
@@ -61,7 +62,11 @@ class AutomaticBackupsAndroidGoldenTest {
 
     @Test
     fun existingPeriodicJobIsNotReplaced() {
-        scheduler.schedule(JobInfo.Builder(9137, ComponentName(context, AutomaticBackupService::class.java)).setPeriodic(1_800_000).build())
+        scheduler.schedule(
+            JobInfo.Builder(9137, ComponentName(context, AutomaticBackupService::class.java))
+                .setPeriodic(1_800_000)
+                .build()
+        )
         AutomaticBackups.schedule(context)
         assertEquals(1_800_000L, scheduler.getPendingJob(9137)!!.intervalMillis)
     }
@@ -137,13 +142,17 @@ class AutomaticBackupsAndroidGoldenTest {
     @Test
     fun passwordErrorAndCompletionUseTheOriginalJavaClassMonitor() {
         var observed = 0
-        val checked = object : ContextWrapper(context) {
-            override fun getSharedPreferences(name: String, mode: Int): SharedPreferences {
-                assertTrue("must share AutomaticBackups.class with Java callers", Thread.holdsLock(AutomaticBackups::class.java))
-                observed++
-                return prefs
+        val checked =
+            object : ContextWrapper(context) {
+                override fun getSharedPreferences(name: String, mode: Int): SharedPreferences {
+                    assertTrue(
+                        "must share AutomaticBackups.class with Java callers",
+                        Thread.holdsLock(AutomaticBackups::class.java),
+                    )
+                    observed++
+                    return prefs
+                }
             }
-        }
         AutomaticBackups.recordError(checked, "under-class-lock")
         AutomaticBackups.completed(checked, "under-class-lock")
         prefs.edit().putBoolean("factoryResetPending", true).commit()

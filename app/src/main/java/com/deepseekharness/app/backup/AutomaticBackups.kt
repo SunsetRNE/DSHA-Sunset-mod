@@ -31,7 +31,9 @@ class AutomaticBackups private constructor() {
         @JvmStatic
         fun enabled(context: Context): Boolean {
             val saved = prefs(context)
-            return !FACTORY_RESET.get() && !saved.getBoolean("factoryResetPending", false) && saved.getBoolean("enabled", true)
+            return !FACTORY_RESET.get() &&
+                !saved.getBoolean("factoryResetPending", false) &&
+                saved.getBoolean("enabled", true)
         }
 
         @JvmStatic
@@ -52,7 +54,8 @@ class AutomaticBackups private constructor() {
         @JvmName("recordError")
         internal fun recordError(context: Context, error: String?) {
             synchronized(AutomaticBackups::class.java) {
-                if (!factoryResetPending(context)) prefs(context).edit().putString("error", error ?: "").commit()
+                if (!factoryResetPending(context))
+                    prefs(context).edit().putString("error", error ?: "").commit()
             }
         }
 
@@ -65,7 +68,8 @@ class AutomaticBackups private constructor() {
                 return
             }
             val settings = prefs(context)
-            if (!settings.contains("anchor")) settings.edit().putLong("anchor", System.currentTimeMillis()).commit()
+            if (!settings.contains("anchor"))
+                settings.edit().putLong("anchor", System.currentTimeMillis()).commit()
             if (!enabled(context)) {
                 scheduler.cancel(JOB)
                 scheduler.cancel(NOW)
@@ -85,16 +89,17 @@ class AutomaticBackups private constructor() {
         @JvmStatic
         fun due(context: Context): Boolean {
             val p = prefs(context)
-            return enabled(context) && AutomaticBackupPolicy.due(
-                p.getString("mode", "daily"),
-                p.getInt("hours", 24),
-                p.getInt("minute", 180),
-                System.currentTimeMillis(),
-                p.getLong("anchor", System.currentTimeMillis()),
-                p.getLong("last", 0),
-                p.getLong("stopped", 0),
-                ZoneId.systemDefault(),
-            )
+            return enabled(context) &&
+                AutomaticBackupPolicy.due(
+                    p.getString("mode", "daily"),
+                    p.getInt("hours", 24),
+                    p.getInt("minute", 180),
+                    System.currentTimeMillis(),
+                    p.getLong("anchor", System.currentTimeMillis()),
+                    p.getLong("last", 0),
+                    p.getLong("stopped", 0),
+                    ZoneId.systemDefault(),
+                )
         }
 
         @JvmStatic
@@ -125,9 +130,13 @@ class AutomaticBackups private constructor() {
         @Throws(IOException::class)
         fun idle(context: Context): Boolean {
             val c = HarnessController.get(context)
-            return c.config().isWelcomed() && !NativeBackupJobs.get(context).state().busy &&
-                !c.isStarting() && !c.isStopping() && c.getWebAuthUrl().isEmpty() &&
-                !RuntimeTasks.isBusy() && !HostMaintenancePending.blocked(context.filesDir) &&
+            return c.config().isWelcomed() &&
+                !NativeBackupJobs.get(context).state().busy &&
+                !c.isStarting() &&
+                !c.isStopping() &&
+                c.getWebAuthUrl().isEmpty() &&
+                !RuntimeTasks.isBusy() &&
+                !HostMaintenancePending.blocked(context.filesDir) &&
                 c.isWebStoppedForMaintenance()
         }
 
@@ -136,8 +145,11 @@ class AutomaticBackups private constructor() {
         @Throws(IOException::class)
         internal fun idleForOwner(context: Context): Boolean {
             val c = HarnessController.get(context)
-            return !c.isStarting() && !c.isStopping() && c.getWebAuthUrl().isEmpty() &&
-                !RuntimeTasks.hasOtherTasks() && c.isWebStoppedForMaintenance()
+            return !c.isStarting() &&
+                !c.isStopping() &&
+                c.getWebAuthUrl().isEmpty() &&
+                !RuntimeTasks.hasOtherTasks() &&
+                c.isWebStoppedForMaintenance()
         }
 
         /** 先阻止新生产者，再取消并等现有作业退出，保留原格式化屏障及失败回退顺序。 */
@@ -158,12 +170,10 @@ class AutomaticBackups private constructor() {
                     // 门禁已持久化；保留 ROM 拒绝 cancel 时仍可进入私有数据维护的行为。
                     try {
                         scheduler.cancel(JOB)
-                    } catch (_: SecurityException) {
-                    }
+                    } catch (_: SecurityException) {}
                     try {
                         scheduler.cancel(NOW)
-                    } catch (_: SecurityException) {
-                    }
+                    } catch (_: SecurityException) {}
                 }
                 val jobs = NativeBackupJobs.get(context)
                 jobs.beginFactoryResetQuiescence(control, 30_000)
@@ -208,36 +218,49 @@ class AutomaticBackups private constructor() {
 
         @JvmStatic
         @Throws(IOException::class)
-        fun password(context: Context): CharArray = synchronized(AutomaticBackups::class.java) {
-            if (factoryResetPending(context)) throw IOException("FACTORY_RESET_QUIESCING")
-            val fs = AndroidBackupFileSystem()
-            val root = context.noBackupFilesDir.canonicalFile
-            val file = File(root, "automatic-backup-key")
-            val vault = com.deepseekharness.app.data.KeyVault(context)
-            if (fs.stat(file).type == "FILE") {
-                return@synchronized vault.decryptChecked(String(fs.small(file, 8192), StandardCharsets.UTF_8)).toCharArray()
+        fun password(context: Context): CharArray =
+            synchronized(AutomaticBackups::class.java) {
+                if (factoryResetPending(context)) throw IOException("FACTORY_RESET_QUIESCING")
+                val fs = AndroidBackupFileSystem()
+                val root = context.noBackupFilesDir.canonicalFile
+                val file = File(root, "automatic-backup-key")
+                val vault = com.deepseekharness.app.data.KeyVault(context)
+                if (fs.stat(file).type == "FILE") {
+                    return@synchronized vault
+                        .decryptChecked(String(fs.small(file, 8192), StandardCharsets.UTF_8))
+                        .toCharArray()
+                }
+                if (fs.stat(file).type != "MISSING") throw IOException("AUTOMATIC_KEY_UNAVAILABLE")
+                for (copy in NativeBackupJobs.get(context).verifiedCopies().valid) {
+                    if (true == copy.metadata["automatic"])
+                        throw IOException("AUTOMATIC_KEY_MISSING")
+                }
+                val random = ByteArray(32)
+                SecureRandom().nextBytes(random)
+                val plain =
+                    android.util.Base64.encodeToString(
+                        random,
+                        android.util.Base64.NO_WRAP or android.util.Base64.URL_SAFE,
+                    )
+                val encrypted = vault.encrypt(plain)
+                if (encrypted.isEmpty() || plain != vault.decryptChecked(encrypted))
+                    throw IOException("AUTOMATIC_KEY_UNAVAILABLE")
+                fs.atomic(root, file.name, encrypted.toByteArray(StandardCharsets.UTF_8))
+                vault
+                    .decryptChecked(String(fs.small(file, 8192), StandardCharsets.UTF_8))
+                    .toCharArray()
             }
-            if (fs.stat(file).type != "MISSING") throw IOException("AUTOMATIC_KEY_UNAVAILABLE")
-            for (copy in NativeBackupJobs.get(context).verifiedCopies().valid) {
-                if (true == copy.metadata["automatic"]) throw IOException("AUTOMATIC_KEY_MISSING")
-            }
-            val random = ByteArray(32)
-            SecureRandom().nextBytes(random)
-            val plain = android.util.Base64.encodeToString(random, android.util.Base64.NO_WRAP or android.util.Base64.URL_SAFE)
-            val encrypted = vault.encrypt(plain)
-            if (encrypted.isEmpty() || plain != vault.decryptChecked(encrypted)) throw IOException("AUTOMATIC_KEY_UNAVAILABLE")
-            fs.atomic(root, file.name, encrypted.toByteArray(StandardCharsets.UTF_8))
-            vault.decryptChecked(String(fs.small(file, 8192), StandardCharsets.UTF_8)).toCharArray()
-        }
 
         @JvmStatic
         fun completed(context: Context, id: String?) {
             synchronized(AutomaticBackups::class.java) {
-                if (!FACTORY_RESET.get()) prefs(context).edit()
-                    .putLong("last", System.currentTimeMillis())
-                    .putString("lastId", id)
-                    .putString("error", "")
-                    .commit()
+                if (!FACTORY_RESET.get())
+                    prefs(context)
+                        .edit()
+                        .putLong("last", System.currentTimeMillis())
+                        .putString("lastId", id)
+                        .putString("error", "")
+                        .commit()
             }
         }
 
@@ -246,7 +269,11 @@ class AutomaticBackups private constructor() {
         @Throws(IOException::class)
         fun prune(context: Context, control: BackupControl) {
             val fs = AndroidBackupFileSystem()
-            AutomaticBackupPruner.prune(fs, NativeBackupJobs.get(context).verifiedCopies().valid, control)
+            AutomaticBackupPruner.prune(
+                fs,
+                NativeBackupJobs.get(context).verifiedCopies().valid,
+                control,
+            )
         }
     }
 }
