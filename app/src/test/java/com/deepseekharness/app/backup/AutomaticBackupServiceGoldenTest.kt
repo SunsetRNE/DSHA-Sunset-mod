@@ -187,6 +187,22 @@ class AutomaticBackupServiceGoldenTest {
         assertEquals(listOf(p to true), Callbacks.finished)
         assertFalse(owner.current(ticket))
         assertEquals(0, Jobs.exports)
+
+        // 已提交后的轮询只取消 owned 作业，原生退出后发布该作业的错误并完成一次。
+        Backups.enabled = true
+        val runningParams = params()
+        val running = owner.begin(runningParams)
+        complete(running, "synthetic-secret".toCharArray())
+        shadowOf(Looper.getMainLooper()).idle()
+        assertTrue(owner.current(running))
+        Backups.enabled = false
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(300))
+        assertEquals(1, Jobs.cancellations)
+        Jobs.current = NativeBackupJobs.State("owned-native-id", "FINISHED", "", "NATIVE_FAILURE", "", 0, 0, false)
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(300))
+        assertEquals(listOf("NATIVE_FAILURE"), Backups.errors)
+        assertEquals(listOf(p to true, runningParams to false), Callbacks.finished)
+        assertFalse(owner.current(running))
     }
 
     @Test
@@ -196,6 +212,8 @@ class AutomaticBackupServiceGoldenTest {
         complete(ticket, "synthetic-secret".toCharArray())
         assertEquals("owned-native-id", owner.jobId(ticket))
         assertEquals(1, Jobs.exports)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertTrue(owner.current(ticket))
         Jobs.current = NativeBackupJobs.State("unrelated-user-id", "RUNNING", "", "", "", 0, 0, true)
         assertFalse(service.onStopJob(p))
         assertEquals(0, Jobs.cancellations)
@@ -219,6 +237,7 @@ class AutomaticBackupServiceGoldenTest {
     fun preparationErrorFinishesExactlyOnceWithoutNativeSubmission() {
         val p = params()
         val ticket = owner.begin(p)
+        assertFalse("active scheduler ticket rejects a duplicate start", service.onStartJob(params()))
         complete(ticket, null, error = "PREPARATION_FAILED")
         complete(ticket, null, error = "LATE_FAILURE")
         assertEquals(listOf("PREPARATION_FAILED"), Backups.errors)

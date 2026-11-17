@@ -19,6 +19,9 @@ class AutomaticBackupApiGoldenTest {
         val method = owner.getDeclaredMethod(name, *args)
         assertEquals("$name return", result, method.returnType)
         assertTrue("$name static", Modifier.isStatic(method.modifiers))
+        if (owner != AutomaticBackups::class.java || name !in setOf("factoryResetSuspended", "factoryResetPending", "beginProducer", "recordError", "idleForOwner")) {
+            assertTrue("$name remains callable from other Java packages", Modifier.isPublic(method.modifiers))
+        }
         return method
     }
 
@@ -29,8 +32,13 @@ class AutomaticBackupApiGoldenTest {
         val nothing = Void.TYPE
         assertTrue(Modifier.isFinal(owner.modifiers))
         assertEquals(0, owner.constructors.size)
+        assertTrue(owner.declaredConstructors.filterNot { it.isSynthetic }.all { Modifier.isPrivate(it.modifiers) })
         assertEquals(9137, owner.getField("JOB").getInt(null))
         assertEquals(9138, owner.getField("NOW").getInt(null))
+        for (name in listOf("JOB", "NOW")) {
+            val modifiers = owner.getField(name).modifiers
+            assertTrue(Modifier.isPublic(modifiers) && Modifier.isStatic(modifiers) && Modifier.isFinal(modifiers))
+        }
         method(owner, "prefs", SharedPreferences::class.java, context)
         for (name in listOf("enabled", "due")) method(owner, name, Boolean::class.javaPrimitiveType!!, context)
         for (name in listOf("schedule", "stopped", "abortFactoryReset", "completeFactoryReset")) method(owner, name, nothing, context)
