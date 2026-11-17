@@ -35,8 +35,16 @@ class AutomaticBackupServiceGoldenTest {
             var idle = true
             var passwordCalls = 0
             var preparedSecret: CharArray? = null
+            var entered: java.util.concurrent.CountDownLatch? = null
+            var preparationThread: Thread? = null
             val errors = ArrayList<String>()
-            @Implementation @JvmStatic fun enabled(context: Context): Boolean = enabled
+            @Implementation @JvmStatic fun enabled(context: Context): Boolean {
+                if (Thread.currentThread().name == "automatic-backup-schedule") {
+                    preparationThread = Thread.currentThread()
+                    entered?.countDown()
+                }
+                return enabled
+            }
             @Implementation @JvmStatic fun due(context: Context): Boolean = due
             @Implementation @JvmStatic fun idle(context: Context): Boolean = idle
             @Implementation @JvmStatic fun password(context: Context): CharArray {
@@ -95,6 +103,8 @@ class AutomaticBackupServiceGoldenTest {
         Backups.idle = true
         Backups.passwordCalls = 0
         Backups.preparedSecret = null
+        Backups.entered = null
+        Backups.preparationThread = null
         Backups.errors.clear()
         Callbacks.finished.clear()
         Jobs.instance = Shadow.newInstanceOf(NativeBackupJobs::class.java)
@@ -139,6 +149,17 @@ class AutomaticBackupServiceGoldenTest {
             assertEquals(0, producers.active())
             assertEquals(p to manual, Callbacks.finished.last())
         }
+        val actual = params()
+        org.robolectric.util.ReflectionHelpers.setField(actual, "extras", android.os.PersistableBundle().apply { putBoolean("manual", true) })
+        val entered = java.util.concurrent.CountDownLatch(1)
+        Backups.entered = entered
+        assertTrue("real framework entry starts preparation", service.onStartJob(actual))
+        assertTrue("preparation reaches the controlled host facts", entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+        val worker = Backups.preparationThread!!
+        worker.join(5_000)
+        assertFalse("real preparation hands off before queue inspection", worker.isAlive)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(actual to true, Callbacks.finished.last())
         assertEquals(0, Backups.passwordCalls)
         assertEquals(0, Jobs.exports)
         assertEquals(0, Jobs.cancellations)

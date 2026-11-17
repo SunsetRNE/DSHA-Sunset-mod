@@ -50,7 +50,7 @@ Java 基线（`8965d15b` → 补强 `6ea83741` → 夹具修复 `0ce7d0d3`）：
 
 基线独审指出的两项 P1 已实修。两项 P2 又补强原 API 的 public/static/final/私有构造断言，及真实 poll 的 busy/disable/原生error完成、onStartJob 已有票据的拒绝分支；原39个方法身份保留。下一槽先从 `127ae7bf` Git 对象取回原 Java 到独立临时目录，对补强后的同一组39项完整复跑，再以新4 Kotlin 重新编译和执行相同39项，避免以迁移后结果反推 Java 基线。
 
-非 JVM 门禁：源码卫生通过；core-boundaries 首跑25项中1失败，原因仅旧边登记仍写 AutomaticBackups.java，实际同 FQCN 两个宿主协调边改成 .kt 后被识别成新边。两条 file 扩展名登记同步已报 main，尚未修改 checker 或扩充 type 集合。
+非 JVM 门禁：源码卫生通过；core-boundaries 首跑25项中1失败，原因仅旧边登记仍写 AutomaticBackups.java，实际同 FQCN 两个宿主协调边改成 .kt 后被识别成新边。现 main30ff6029 明确许可仅两条 file 后缀同步；JSON 深比较证明仍为17边、type/schema/其它边完全一致，未修改 checker。修正后25项全通过。
 
 尚未执行：迁移后编译/完整39项、双语格式、Gradle、Lint、APK、完整 CI、设备。无 UNKNOWN 动作；无推送/合入/安装/手机操作。
 
