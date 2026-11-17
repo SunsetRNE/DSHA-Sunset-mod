@@ -3,11 +3,11 @@
   "scope": "17 explicit Android coordinator/native-settings adapter edges after retiring FactoryReset. Removed business dependencies cannot be reintroduced; pure file/format/transaction algorithms use explicit ports.",
   "edges": [
     {
-      "file": "app/src/main/java/com/deepseekharness/app/backup/AutomaticBackups.java",
+      "file": "app/src/main/java/com/deepseekharness/app/backup/AutomaticBackups.kt",
       "type": "com.deepseekharness.app.core.HarnessController"
     },
     {
-      "file": "app/src/main/java/com/deepseekharness/app/backup/AutomaticBackups.java",
+      "file": "app/src/main/java/com/deepseekharness/app/backup/AutomaticBackups.kt",
       "type": "com.deepseekharness.app.core.RuntimeTasks"
     },
     {

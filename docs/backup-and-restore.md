@@ -38,11 +38,11 @@ API29+ 一键保存到系统 `Download/DSHA`，使用 MediaStore 创建新文件
 
 ## 自动备份设置
 
-[AutomaticBackupActivity](../app/src/main/java/com/deepseekharness/app/ui/AutomaticBackupActivity.java) 中的开关和计划保存后由 [AutomaticBackups](../app/src/main/java/com/deepseekharness/app/backup/AutomaticBackups.java) 重新安排本机 JobScheduler。默认开启，默认每日本地时间 03:00；另可选每隔 1–168 小时或停止 DSH 后。每日计划使用当前本地时区；更改时间不是精准闹钟保证，系统调度、省电和繁忙状态都可能延后。
+[AutomaticBackupActivity](../app/src/main/java/com/deepseekharness/app/ui/AutomaticBackupActivity.java) 中的开关和计划保存后由 [AutomaticBackups](../app/src/main/java/com/deepseekharness/app/backup/AutomaticBackups.kt) 重新安排本机 JobScheduler。默认开启，默认每日本地时间 03:00；另可选每隔 1–168 小时或停止 DSH 后。每日计划使用当前本地时区；更改时间不是精准闹钟保证，系统调度、省电和繁忙状态都可能延后。
 
-到期检查要求首启完成、没有其他备份、没有启动/停止过程、没有活动 Web 鉴权会话、没有运行任务、没有待恢复维护日志，并确认 Web 已停止。界面“现在创建自动备份”仍须先开启且满足闲时条件，不能借此强停 DSH。[AutomaticBackupService](../app/src/main/java/com/deepseekharness/app/backup/AutomaticBackupService.java) 只取消自己持有 ID 的作业，旧回调不能取消后来手动导出。关闭开关取消未来调度、保留已有副本；已被该自动服务持有的作业在后续轮询看到关闭时取消。
+到期检查要求首启完成、没有其他备份、没有启动/停止过程、没有活动 Web 鉴权会话、没有运行任务、没有待恢复维护日志，并确认 Web 已停止。界面“现在创建自动备份”仍须先开启且满足闲时条件，不能借此强停 DSH。[AutomaticBackupService](../app/src/main/java/com/deepseekharness/app/backup/AutomaticBackupService.kt) 只取消自己持有 ID 的作业，旧回调不能取消后来手动导出。关闭开关取消未来调度、保留已有副本；已被该自动服务持有的作业在后续轮询看到关闭时取消。
 
-[AutomaticBackupPruner](../app/src/main/java/com/deepseekharness/app/backup/AutomaticBackupPruner.java) 只轮换明确标记为自动、已验证、结果为 `COMPLETE` 或 `DATA_SAVED_PLUGIN_WARNINGS` 的副本，保留最新三份。它还重新验证内容和已完成作业记录；有未知额外文件或仍 busy 的目录不删除。手动、未知、部分结果以及公共导出不参加这轮清理。已有加密自动副本但本机密钥缺失时不会生成替代密钥伪装正常。
+[AutomaticBackupPruner](../app/src/main/java/com/deepseekharness/app/backup/AutomaticBackupPruner.kt) 只轮换明确标记为自动、已验证、结果为 `COMPLETE` 或 `DATA_SAVED_PLUGIN_WARNINGS` 的副本，保留最新三份。它还重新验证内容和已完成作业记录；有未知额外文件或仍 busy 的目录不删除。手动、未知、部分结果以及公共导出不参加这轮清理。已有加密自动副本但本机密钥缺失时不会生成替代密钥伪装正常。
 
 ## 从文件或私有副本恢复
 
