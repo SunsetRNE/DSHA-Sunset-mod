@@ -135,3 +135,177 @@ jobs:
             out/rust-native/rust-receipt.json
           if-no-files-found: error
           retention-days: 14
+  windows-native-producer-probe:
+    # 仅验证 Windows 宿主假设；不证明历史 producer，不参与 package 的验收或依赖。
+    name: DIAGNOSTIC_ONLY Windows native producer probe
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: DIAGNOSTIC_ONLY locked Windows byte comparison
+        shell: python -B {0}
+        run: |
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import platform
+          import re
+          import subprocess
+          import sys
+
+          root = Path.cwd().resolve()
+          evidence = root / "app/build" / ("windows-native-producer-" + os.environ["GITHUB_RUN_ID"]
+                                            + "-" + os.environ["GITHUB_RUN_ATTEMPT"])
+          evidence.mkdir(parents=True, exist_ok=False)
+          frozen = ("tools/native-session/session-launcher.c", "tools/native-session/build.py",
+                    "ci/toolchain.lock.json", "app/src/main/jniLibs/arm64-v8a/libdsha-session.so")
+          receipt = {"schema": 1, "scope": "DIAGNOSTIC_ONLY", "status": "STARTED",
+                     "historicalProducer": "unknown", "packageVerified": False,
+                     "ci": {key: os.environ[key] for key in ("GITHUB_SHA", "GITHUB_RUN_ID",
+                            "GITHUB_RUN_ATTEMPT", "GITHUB_REPOSITORY")},
+                     "host": {"system": platform.system(), "machine": platform.machine(),
+                              "python": platform.python_version(), "pythonExecutable": sys.executable},
+                     "implicitInputs": "unknown: known default paths only; no driver/linker dependency trace, headers or implicit configuration attestation",
+                     "toolchainInventoryComplete": False, "commands": [], "errors": [],
+                     "knownInputs": [], "knownInputGaps": ["inventory not collected"],
+                     "checkReturncode": None, "builderFailureEvidencePresent": False}
+
+          def persist():
+              (evidence / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+
+          def identity(path):
+              result = {"path": str(path), "available": False}
+              try:
+                  digest = hashlib.sha256()
+                  size = 0
+                  with path.open("rb") as stream:
+                      for block in iter(lambda: stream.read(1024 * 1024), b""):
+                          digest.update(block)
+                          size += len(block)
+                  result.update(available=True, size=size, sha256=digest.hexdigest())
+              except OSError as error:
+                  result["error"] = type(error).__name__
+              return result
+
+          def snapshot():
+              rows = []
+              for name in frozen:
+                  row = identity(root / name)
+                  blob = subprocess.check_output(["git", "show", "HEAD:" + name])
+                  row["gitBlobSha256"] = hashlib.sha256(blob).hexdigest()
+                  row["matchesGitBlob"] = row.get("sha256") == row["gitBlobSha256"]
+                  rows.append(row)
+              return rows
+
+          def run(stage, argv, timeout):
+              record = {"stage": stage, "argv": argv, "returncode": None}
+              receipt["commands"].append(record)
+              persist()
+              try:
+                  with (evidence / (stage + ".log")).open("xb") as log:
+                      result = subprocess.run(argv, stdout=log, stderr=subprocess.STDOUT,
+                                              stdin=subprocess.DEVNULL, timeout=timeout)
+                  record["returncode"] = result.returncode
+                  return result.returncode
+              except Exception as error:
+                  record["error"] = type(error).__name__
+                  raise
+              finally:
+                  try:
+                      persist()
+                  except OSError as error:
+                      receipt["errors"].append({"type": type(error).__name__, "message": "command receipt unavailable"})
+
+          code = 1
+          persist()
+          try:
+              receipt["gitHeadBefore"] = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+              receipt["frozenBefore"] = snapshot()
+              receipt["gitAttributes"] = subprocess.check_output(
+                  ["git", "check-attr", "text", "eol", "--", *frozen], text=True)
+              persist()
+              if receipt["gitHeadBefore"] != os.environ["GITHUB_SHA"]:
+                  raise ValueError("PROBE_CHECKOUT_SHA_MISMATCH")
+              if not all(row["matchesGitBlob"] for row in receipt["frozenBefore"]):
+                  raise ValueError("PROBE_CHECKOUT_BYTES_MISMATCH")
+              lock = json.loads((root / "ci/toolchain.lock.json").read_text(encoding="utf-8"))
+              if platform.system() != "Windows" or platform.python_version_tuple()[:2] != tuple(lock["python"].split(".")):
+                  raise ValueError("PROBE_HOST_OR_PYTHON_VERSION")
+              revision = lock["ndk"]
+              if not re.fullmatch(r"\d+\.\d+\.\d+", revision):
+                  raise ValueError("PROBE_NDK_REVISION_FORMAT")
+              sdk_value = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
+              if not sdk_value:
+                  raise ValueError("PROBE_ANDROID_SDK_ROOT_MISSING")
+              sdk = Path(sdk_value).resolve(strict=True)
+              ndk = sdk / "ndk" / revision
+              properties = ndk / "source.properties"
+              receipt["ndk"] = {"path": str(ndk), "requiredRevision": revision,
+                                "alreadyPresent": properties.is_file()}
+              if not properties.is_file():
+                  manager = sdk / "cmdline-tools/latest/bin/sdkmanager.bat"
+                  if not manager.is_file():
+                      managers = sorted(sdk.glob("cmdline-tools/*/bin/sdkmanager.bat"))
+                      if len(managers) != 1:
+                          raise ValueError("PROBE_SDKMANAGER_NOT_UNIQUE")
+                      manager = managers[0]
+                  status = run("sdkmanager", [str(manager), "--sdk_root=" + str(sdk), "ndk;" + revision], 600)
+                  if status:
+                      code = status
+                      raise ValueError("PROBE_NDK_INSTALL_FAILED")
+              receipt["ndk"]["properties"] = properties.read_text(encoding="utf-8")
+              match = re.search(r"^Pkg.Revision\s*=\s*(\S+)\s*$", receipt["ndk"]["properties"], re.M)
+              if not match or match[1] != revision:
+                  raise ValueError("PROBE_NDK_VERSION_MISMATCH")
+              prebuilt = ndk / "toolchains/llvm/prebuilt/windows-x86_64"
+              library = prebuilt / "sysroot/usr/lib/aarch64-linux-android/23"
+              known = [properties, *(prebuilt / "bin" / (name + ".exe") for name in
+                       ("clang", "ld.lld", "llvm-strip", "llvm-readelf")),
+                       *(library / name for name in ("crtbegin_dynamic.o", "crtend_android.o", "libc.so", "libdl.so"))]
+              builtins = sorted(path for base in ("lib/clang", "lib64/clang") for path in
+                                (prebuilt / base).glob("*/lib/linux/libclang_rt.builtins-aarch64-android.a"))
+              receipt["knownInputs"] = [identity(path) for path in known + builtins]
+              receipt["knownInputGaps"] = [row["path"] for row in receipt["knownInputs"] if not row["available"]]
+              if not builtins:
+                  receipt["knownInputGaps"].append("builtins-discovery: no known default path matched")
+              failure_evidence = evidence / "builder-failure"
+              receipt["status"] = "COMPARISON_RUNNING"
+              persist()
+              code = run("build-check", [sys.executable, "-B", "tools/native-session/build.py",
+                         "--ndk", str(ndk), "--check", "--evidence-dir", str(failure_evidence)], 300)
+              receipt["checkReturncode"] = code
+          except Exception as error:
+              receipt["errors"].append({"type": type(error).__name__, "message": str(error)})
+          finally:
+              try:
+                  receipt["gitHeadAfter"] = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+                  receipt["frozenAfter"] = snapshot()
+                  receipt["frozenInputsUnchanged"] = (receipt.get("frozenBefore") == receipt["frozenAfter"]
+                      and all(row["matchesGitBlob"] for row in receipt["frozenAfter"])
+                      and receipt.get("gitHeadBefore") == receipt["gitHeadAfter"] == os.environ["GITHUB_SHA"])
+                  if (not receipt["frozenInputsUnchanged"] or receipt["errors"]) and code == 0:
+                      code = 1
+                  receipt["builderFailureEvidencePresent"] = (evidence / "builder-failure/report.json").is_file()
+                  receipt["status"] = "BYTE_MATCH" if code == 0 and not receipt["errors"] else "FAILED"
+                  receipt["exitCode"] = code
+                  persist()
+              except Exception as error:
+                  print("PROBE_FINAL_RECEIPT_FAILED:", type(error).__name__, file=sys.stderr)
+                  if code == 0:
+                      code = 1
+          print("DIAGNOSTIC_ONLY Windows byte probe exit:", code)
+          sys.exit(code)
+      - name: Upload DIAGNOSTIC_ONLY Windows producer evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: DIAGNOSTIC_ONLY-windows-native-producer-${{ github.run_id }}-${{ github.run_attempt }}
+          path: app/build/windows-native-producer-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 14
