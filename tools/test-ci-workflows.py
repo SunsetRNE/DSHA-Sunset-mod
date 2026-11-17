@@ -623,7 +623,7 @@ class RustGraph(unittest.TestCase):
     def test_package_checks_actual_apk_and_cannot_use_budget_only_as_evidence(self):
         graph = jobs(text("ci-package.yml"))
         package = graph["package"]
-        self.assertEqual(needs(package), {"inputs", "native-repro", "rust-repro", "rust-native"})
+        self.assertEqual(needs(package), {"inputs", "descriptor-assets", "native-repro", "rust-repro", "rust-native"})
         self.assertIn("ORG_GRADLE_PROJECT_dsha.rust.mode", package)
         self.assertIn("ORG_GRADLE_PROJECT_dsha.rust.artifactDir", package)
         self.assertIn("needs.rust-native.outputs.artifact", package)

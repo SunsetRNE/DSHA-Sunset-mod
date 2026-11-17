@@ -36,8 +36,8 @@ jobs:
       asset_archive_format: ${{ inputs.asset_archive_format }}
       rebuild_runtime: false
       artifact: package-inputs
-  native-repro:
-    name: Descriptor bytes, notices and native reproducibility
+  descriptor-assets:
+    name: Descriptor bytes and notices
     needs: inputs
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -46,28 +46,15 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-toolchain
-      - uses: ./.github/actions/android-sdk
-        with:
-          ndk: 'true'
       - uses: ./.github/actions/restore-handoff
         with:
           artifact: ${{ needs.inputs.outputs.artifact }}
-      - name: Full descriptor bytes, notices and native reproducibility
+      - name: Full descriptor bytes and notices
         run: |
           set -eu
-          ndk=$(python3 tools/ci-toolchain.py --field ndk)
           python3 tools/prepare-runtime-descriptor.py --check
           python3 tools/generate-third-party-notices.py --check
           python3 tools/check-third-party-notices.py --archive app/src/main/assets/dsh-runtime.bin
-          python3 tools/native-session/build.py --ndk "$ANDROID_HOME/ndk/$ndk" --check --evidence-dir "app/build/native-session-repro-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-      - name: Upload native-session failure diagnostics (successful check creates no evidence)
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: native-session-repro-${{ github.run_id }}-${{ github.run_attempt }}
-          path: app/build/native-session-repro-${{ github.run_id }}-${{ github.run_attempt }}
-          if-no-files-found: warn
-          retention-days: 14
   rust-repro:
     name: Rust vendor regeneration and host byte reproducibility
     needs: inputs
@@ -84,7 +71,7 @@ jobs:
       artifact: package-rust-native
   package:
     name: Complete Standard unit, lint, assets and package checks
-    needs: [inputs, native-repro, rust-repro, rust-native]
+    needs: [inputs, descriptor-assets, native-repro, rust-repro, rust-native]
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
@@ -135,9 +122,9 @@ jobs:
             out/rust-native/rust-receipt.json
           if-no-files-found: error
           retention-days: 14
-  windows-native-producer-probe:
-    # 仅验证 Windows 宿主假设；不证明历史 producer，不参与 package 的验收或依赖。
-    name: DIAGNOSTIC_ONLY Windows native producer probe
+  native-repro:
+    # 选用已实证的 Windows 整文件字节复现器；历史 producer 仍未知，单项通过不代表 package 验收。
+    name: Windows native session byte reproduction
     runs-on: windows-2022
     timeout-minutes: 30
     steps:
@@ -147,7 +134,7 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.12'
-      - name: DIAGNOSTIC_ONLY locked Windows byte comparison
+      - name: Locked Windows native session byte reproduction
         shell: python -B {0}
         run: |
           import hashlib
@@ -160,12 +147,12 @@ jobs:
           import sys
 
           root = Path.cwd().resolve()
-          evidence = root / "app/build" / ("windows-native-producer-" + os.environ["GITHUB_RUN_ID"]
+          evidence = root / "app/build" / ("native-session-repro-" + os.environ["GITHUB_RUN_ID"]
                                             + "-" + os.environ["GITHUB_RUN_ATTEMPT"])
           evidence.mkdir(parents=True, exist_ok=False)
           frozen = ("tools/native-session/session-launcher.c", "tools/native-session/build.py",
                     "ci/toolchain.lock.json", "app/src/main/jniLibs/arm64-v8a/libdsha-session.so")
-          receipt = {"schema": 1, "scope": "DIAGNOSTIC_ONLY", "status": "STARTED",
+          receipt = {"schema": 1, "scope": "native-session-byte-reproduction", "status": "STARTED",
                      "historicalProducer": "unknown", "packageVerified": False,
                      "ci": {key: os.environ[key] for key in ("GITHUB_SHA", "GITHUB_RUN_ID",
                             "GITHUB_RUN_ATTEMPT", "GITHUB_REPOSITORY")},
@@ -231,18 +218,18 @@ jobs:
                   ["git", "check-attr", "text", "eol", "--", *frozen], text=True)
               persist()
               if receipt["gitHeadBefore"] != os.environ["GITHUB_SHA"]:
-                  raise ValueError("PROBE_CHECKOUT_SHA_MISMATCH")
+                  raise ValueError("NATIVE_REPRO_CHECKOUT_SHA_MISMATCH")
               if not all(row["matchesGitBlob"] for row in receipt["frozenBefore"]):
-                  raise ValueError("PROBE_CHECKOUT_BYTES_MISMATCH")
+                  raise ValueError("NATIVE_REPRO_CHECKOUT_BYTES_MISMATCH")
               lock = json.loads((root / "ci/toolchain.lock.json").read_text(encoding="utf-8"))
               if platform.system() != "Windows" or platform.python_version_tuple()[:2] != tuple(lock["python"].split(".")):
-                  raise ValueError("PROBE_HOST_OR_PYTHON_VERSION")
+                  raise ValueError("NATIVE_REPRO_HOST_OR_PYTHON_VERSION")
               revision = lock["ndk"]
               if not re.fullmatch(r"\d+\.\d+\.\d+", revision):
-                  raise ValueError("PROBE_NDK_REVISION_FORMAT")
+                  raise ValueError("NATIVE_REPRO_NDK_REVISION_FORMAT")
               sdk_value = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
               if not sdk_value:
-                  raise ValueError("PROBE_ANDROID_SDK_ROOT_MISSING")
+                  raise ValueError("NATIVE_REPRO_ANDROID_SDK_ROOT_MISSING")
               sdk = Path(sdk_value).resolve(strict=True)
               ndk = sdk / "ndk" / revision
               properties = ndk / "source.properties"
@@ -253,16 +240,16 @@ jobs:
                   if not manager.is_file():
                       managers = sorted(sdk.glob("cmdline-tools/*/bin/sdkmanager.bat"))
                       if len(managers) != 1:
-                          raise ValueError("PROBE_SDKMANAGER_NOT_UNIQUE")
+                          raise ValueError("NATIVE_REPRO_SDKMANAGER_NOT_UNIQUE")
                       manager = managers[0]
                   status = run("sdkmanager", [str(manager), "--sdk_root=" + str(sdk), "ndk;" + revision], 600)
                   if status:
                       code = status
-                      raise ValueError("PROBE_NDK_INSTALL_FAILED")
+                      raise ValueError("NATIVE_REPRO_NDK_INSTALL_FAILED")
               receipt["ndk"]["properties"] = properties.read_text(encoding="utf-8")
               match = re.search(r"^Pkg.Revision\s*=\s*(\S+)\s*$", receipt["ndk"]["properties"], re.M)
               if not match or match[1] != revision:
-                  raise ValueError("PROBE_NDK_VERSION_MISMATCH")
+                  raise ValueError("NATIVE_REPRO_NDK_VERSION_MISMATCH")
               prebuilt = ndk / "toolchains/llvm/prebuilt/windows-x86_64"
               library = prebuilt / "sysroot/usr/lib/aarch64-linux-android/23"
               known = [properties, *(prebuilt / "bin" / (name + ".exe") for name in
@@ -274,6 +261,8 @@ jobs:
               receipt["knownInputGaps"] = [row["path"] for row in receipt["knownInputs"] if not row["available"]]
               if not builtins:
                   receipt["knownInputGaps"].append("builtins-discovery: no known default path matched")
+              if receipt["knownInputGaps"]:
+                  raise ValueError("NATIVE_REPRO_KNOWN_INPUTS_MISSING")
               failure_evidence = evidence / "builder-failure"
               receipt["status"] = "COMPARISON_RUNNING"
               persist()
@@ -296,16 +285,16 @@ jobs:
                   receipt["exitCode"] = code
                   persist()
               except Exception as error:
-                  print("PROBE_FINAL_RECEIPT_FAILED:", type(error).__name__, file=sys.stderr)
+                  print("NATIVE_REPRO_FINAL_RECEIPT_FAILED:", type(error).__name__, file=sys.stderr)
                   if code == 0:
                       code = 1
-          print("DIAGNOSTIC_ONLY Windows byte probe exit:", code)
+          print("Windows native byte reproduction exit:", code)
           sys.exit(code)
-      - name: Upload DIAGNOSTIC_ONLY Windows producer evidence
+      - name: Upload native session byte reproduction proof (successful check creates no builder-failure evidence)
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: DIAGNOSTIC_ONLY-windows-native-producer-${{ github.run_id }}-${{ github.run_attempt }}
-          path: app/build/windows-native-producer-${{ github.run_id }}-${{ github.run_attempt }}
-          if-no-files-found: warn
+          name: native-session-repro-${{ github.run_id }}-${{ github.run_attempt }}
+          path: app/build/native-session-repro-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
           retention-days: 14

@@ -474,21 +474,144 @@ class NativeSessionDiagnosticsTest(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'REAL_PROCESS_FORBIDDEN'):
             subprocess.Popen(['never-executed'])
 
+    def windows_tools(self):
+        # 只构造不可执行的工具链夹具，真实进程仍由模块级 Popen 守卫阻断。
+        tools = self.ndk / 'toolchains/llvm/prebuilt/windows-x86_64/bin'
+        tools.mkdir(parents=True)
+        for name in ('clang', 'ld.lld', 'llvm-strip', 'llvm-readelf'):
+            (tools / (name + '.exe')).write_bytes(b'MOCK-NOT-EXECUTABLE')
+        library = tools.parent / 'sysroot/usr/lib/aarch64-linux-android/23'
+        library.mkdir(parents=True)
+        for name in ('crtbegin_dynamic.o', 'crtend_android.o', 'libc.so', 'libdl.so'):
+            (library / name).write_bytes(b'MOCK-LINK-INPUT')
+        builtins = tools.parent / 'lib/clang/17/lib/linux/libclang_rt.builtins-aarch64-android.a'
+        builtins.parent.mkdir(parents=True)
+        builtins.write_bytes(b'MOCK-BUILTINS')
+        return tools
+
+    def test_windows_check_keeps_exact_argv_alignment_and_original_bytes(self):
+        tools = self.windows_tools()
+        self.candidate = self.original
+        with patch.object(builder.platform, 'system', return_value='Windows'):
+            digest = builder.build(self.ndk, self.output, check=True, evidence_dir=self.evidence)
+        self.assertEqual(builder.byte_identity(self.original)['sha256'], digest)
+        self.assertEqual(self.original, self.output.read_bytes())
+        self.assertFalse(self.evidence.exists())
+        self.assertEqual(3, self.run.call_count)
+        argv = self.calls[0][0]
+        self.assertEqual([str(tools / 'clang.exe'), '--target=aarch64-linux-android23',
+            '-std=c11', '-D_GNU_SOURCE', '-O2', '-fPIE', '-pie', '-fstack-protector-strong',
+            '-D_FORTIFY_SOURCE=2', '-ffile-prefix-map=' + str(self.root) + '=/src',
+            '-Wl,-z,relro', '-Wl,-z,now', '-Wl,-z,max-page-size=16384',
+            '-Wl,-z,common-page-size=4096', str(Path(builder.__file__).with_name('session-launcher.c')),
+            '-o', argv[-1]], argv)
+        self.assertEqual([str(tools / 'llvm-strip.exe'), '--strip-unneeded', argv[-1]], self.calls[1][0])
+        self.assertEqual([str(tools / 'llvm-readelf.exe'), '--program-headers', '--wide', argv[-1]], self.calls[2][0])
+        self.assertTrue(all(options['check'] and set(options) == {'check', 'stdout', 'stderr'}
+                            for _, options in self.calls))
+        self.assertNotEqual(self.output, Path(argv[-1]))
+        self.assertFalse(Path(argv[-1]).exists())
+
+    def test_windows_mismatch_keeps_header_trailing_bytes_and_original_evidence(self):
+        tools = self.windows_tools()
+        header = bytearray(self.original)
+        header[48] = 1  # ELF flags；代码与 LOAD 字节不变也必须拒绝整文件差异。
+        for label, candidate, offset in (('header', bytes(header), 48),
+                ('trailing', self.original + b'compiler comment', len(self.original))):
+            with self.subTest(difference=label), patch.object(builder.platform, 'system', return_value='Windows'):
+                self.candidate = candidate
+                self.evidence = self.root / ('app/build/windows-' + label)
+                self.calls.clear()
+                report = self.mismatch()
+            self.assertEqual('COMPLETE', report['status'])
+            self.assertEqual('Windows', report['host']['system'])
+            self.assertEqual(self.original, self.output.read_bytes())
+            self.assertEqual(self.original, (self.evidence / 'expected.elf').read_bytes())
+            self.assertEqual(candidate, (self.evidence / 'candidate.elf').read_bytes())
+            self.assertEqual(offset, report['firstDifference']['offset'])
+            self.assertEqual(builder.byte_identity(candidate)['sha256'], report['files']['candidate']['sha256'])
+            self.assertEqual([str(tools / name) for name in ('clang.exe', 'llvm-strip.exe', 'llvm-readelf.exe')],
+                             [argv[0] for argv, _ in self.calls[:3]])
+            self.assertTrue(all(argv[0] == str(tools / 'llvm-readelf.exe') for argv, _ in self.calls[3:]))
+            self.assertEqual(7, len(self.calls))
+            self.assertFalse(Path(self.calls[0][0][-1]).exists())
+
+    def test_windows_tool_failures_keep_original_exception_and_bytes(self):
+        tools = self.windows_tools()
+        for index, stage in enumerate(('compile', 'strip', 'readelf')):
+            with self.subTest(stage=stage), patch.object(builder.platform, 'system', return_value='Windows'):
+                self.evidence = self.root / ('app/build/windows-failure-' + stage)
+                self.calls.clear()
+                failure = subprocess.CalledProcessError(19, ['mock-' + stage])
+                def fail(argv, **options):
+                    if len(self.calls) == index:
+                        self.calls.append((argv, options))
+                        raise failure
+                    return self.fake_run(argv, **options)
+                self.run.side_effect = fail
+                with self.assertRaises(subprocess.CalledProcessError) as caught:
+                    builder.build(self.ndk, self.output, check=True, evidence_dir=self.evidence)
+                self.assertIs(failure, caught.exception)
+                report = json.loads((self.evidence / 'report.json').read_text())
+                self.assertFalse(report['comparisonPerformed'])
+                self.assertEqual(stage, report['failure']['stage'])
+                self.assertEqual(19, report['commands'][index]['returncode'])
+                self.assertEqual(self.original, self.output.read_bytes())
+                self.assertTrue(all(Path(argv[0]).parent == tools and argv[0].endswith('.exe')
+                                    for argv, _ in self.calls))
+                self.assertFalse(Path(self.calls[0][0][-1]).exists())
+
     def test_ci_seam_is_in_native_job_and_preserves_failure_dependencies(self):
         workflow = Path(__file__).resolve().parents[1] / '.github/workflows/ci-package.yml'
         text = workflow.read_text()
-        native = text.split('  native-repro:\n', 1)[1].split('  rust-repro:\n', 1)[0]
-        command = 'python3 tools/native-session/build.py --ndk "$ANDROID_HOME/ndk/$ndk" --check --evidence-dir "app/build/native-session-repro-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"'
+        self.assertIn('  descriptor-assets:\n', text)
+        assets = text.split('  descriptor-assets:\n', 1)[1].split('  rust-repro:\n', 1)[0]
+        native = text.split('  native-repro:\n', 1)[1]
+        package = text.split('  package:\n', 1)[1].split('  native-repro:\n', 1)[0]
+        for command in ('python3 tools/prepare-runtime-descriptor.py --check',
+                        'python3 tools/generate-third-party-notices.py --check',
+                        'python3 tools/check-third-party-notices.py --archive app/src/main/assets/dsh-runtime.bin'):
+            self.assertIn(command, assets)
+        self.assertIn('runs-on: ubuntu-24.04', assets)
+        self.assertIn('needs: inputs', assets)
+        self.assertIn('uses: ./.github/actions/setup-toolchain', assets)
+        self.assertIn('uses: ./.github/actions/restore-handoff', assets)
+        self.assertIn('artifact: ${{ needs.inputs.outputs.artifact }}', assets)
+        self.assertNotIn('android-sdk', assets)
+        self.assertNotIn('native-session/build.py', assets)
+        self.assertIn('runs-on: windows-2022', native)
+        self.assertIn('actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1', native)
+        self.assertIn("python-version: '3.12'", native)
+        self.assertIn('shell: python -B {0}', native)
+        command = 'code = run("build-check", [sys.executable, "-B", "tools/native-session/build.py",\n' \
+                  '                         "--ndk", str(ndk), "--check", "--evidence-dir", str(failure_evidence)], 300)'
         self.assertIn(command, native)
         self.assertIn('if: always()', native)
         self.assertIn('uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9', native)
         self.assertIn('path: app/build/native-session-repro-${{ github.run_id }}-${{ github.run_attempt }}', native)
-        self.assertIn('if-no-files-found: warn', native)
-        self.assertIn('successful check creates no evidence', native)
-        self.assertIn('needs: inputs', native)
-        self.assertIn('needs: [inputs, native-repro, rust-repro, rust-native]', text)
+        self.assertIn('if-no-files-found: error', native)
+        self.assertIn('successful check creates no builder-failure evidence', native)
+        self.assertIn('needs: [inputs, descriptor-assets, native-repro, rust-repro, rust-native]', package)
+        self.assertNotRegex(package, r'(?m)^    if:')
         self.assertNotIn('continue-on-error', text)
         self.assertLess(native.index(command), native.index('uses: actions/upload-artifact@'))
+        self.assertNotIn('windows-native-producer-probe:', text)
+        self.assertNotIn('DIAGNOSTIC_ONLY', native)
+        self.assertIn('"scope": "native-session-byte-reproduction"', native)
+        self.assertIn('"historicalProducer": "unknown", "packageVerified": False', native)
+        self.assertIn('"implicitInputs": "unknown:', native)
+        self.assertIn('"toolchainInventoryComplete": False', native)
+        for fragment in ('ci/toolchain.lock.json', 'revision = lock["ndk"]', 'sdkmanager.bat',
+                         'match[1] != revision', 'prebuilt/windows-x86_64',
+                         '"gitHeadBefore"', '"gitHeadAfter"', '"gitBlobSha256"',
+                         '"frozenInputsUnchanged"', 'receipt["knownInputGaps"]',
+                         'if (not receipt["frozenInputsUnchanged"] or receipt["errors"]) and code == 0:',
+                         'if code == 0:\n                      code = 1', 'sys.exit(code)'):
+            self.assertIn(fragment, native)
+        for forbidden in ('needs:', './.github/actions/', 'build.ps1', '--output', 'continue-on-error'):
+            self.assertNotIn(forbidden, native)
+        self.assertEqual(1, text.count('code = run("build-check",'))
+        self.assertIn('uses: ./.github/actions/android-sdk\n        with:\n          ndk: \'true\'', package)
 
 
 if __name__ == '__main__':
