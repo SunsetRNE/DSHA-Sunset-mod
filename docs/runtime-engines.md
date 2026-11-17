@@ -162,7 +162,7 @@ proot 的实际 argv 包含 `--kill-on-exit`；proroot 当前集成没有这一�
 
 **有界 proroot 命令与安装会话：** `RuntimeExecution.bounded()` 要求随包 `libdsha-session.so`，先用 [BoundedGuestSessions](../app/src/main/java/com/deepseekharness/app/runtime/BoundedGuestSessions.java) 登记操作，再由 [IsolatedInstallProcess](../app/src/main/java/com/deepseekharness/app/runtime/IsolatedInstallProcess.java) 包装。[session-launcher.c](../tools/native-session/session-launcher.c) 建立 setsid 会话，设置父进程死亡信号，先发出生身份、等宿主二次核验并写 `DSHA_START`，才允许 guest 派发。壳前台状态发布后仍保留组长，关闭时核验会话、回收成员及 supervisor；不能把一个前台退出码当作整组为空。
 
-[BoundedGuestLifetime.finish()](../app/src/main/java/com/deepseekharness/app/runtime/BoundedGuestLifetime.java) 在解释结果前关闭所属 guest 会话；失败登记不确定并保留工作锁。PTY/简易终端则由会话所有者与 [TerminalProcessCloser](../app/src/main/java/com/deepseekharness/app/runtime/TerminalProcessCloser.java) 负责本次身份/会话回收。不能用独立会话启动器的一次成功，宣称所有 Web、终端和设备后台状态都已证明。
+[BoundedGuestLifetime.finish()](../app/src/main/java/com/deepseekharness/app/runtime/BoundedGuestLifetime.java) 在解释结果前关闭所属 guest 会话；失败登记不确定并保留工作锁。PTY/简易终端则由会话所有者与 [TerminalProcessCloser](../app/src/main/java/com/deepseekharness/app/runtime/TerminalProcessCloser.kt) 负责本次身份/会话回收。不能用独立会话启动器的一次成功，宣称所有 Web、终端和设备后台状态都已证明。
 
 ## 7. 超时、UNKNOWN、fallback 和冷检查
 

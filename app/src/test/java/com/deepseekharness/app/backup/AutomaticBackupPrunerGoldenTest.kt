@@ -11,7 +11,7 @@ import org.junit.rules.TemporaryFolder
 
 /** 轮换 golden 使用独立临时副本；不把来源自述或手动/未知记录当自动删除证明。 */
 class AutomaticBackupPrunerGoldenTest {
-    @get:Rule val temp = TemporaryFolder()
+    @Rule @JvmField val temp = TemporaryFolder()
     private val control = BackupControl(null)
     private val fs = JvmBackupFileSystem()
 
