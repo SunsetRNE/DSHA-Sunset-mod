@@ -2,6 +2,15 @@
   "schema": 1,
   "tests": [
     {
+      "path": "tools/test-plugin-s3b-oracle.py",
+      "stage": "fast",
+      "reason": "Run 59 isolated legacy Python migrate/register cases and compare frozen S3b facts and outcomes; never load plugins or use production profiles, JVM, Node or package managers.",
+      "args": ["--check"],
+      "timeoutSeconds": 120,
+      "requires": ["python39"],
+      "environment": {}
+    },
+    {
       "path": "tools/test-plugin-lock-interop.py",
       "stage": "support",
       "reason": "Run separately after compiling the real Kotlin PluginLockFixture and pass --kotlin-classpath; exercise the actual Python flock/PID backend and pinned Node atomic-write module. Support registration does not imply default CI execution.",
