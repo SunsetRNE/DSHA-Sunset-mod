@@ -60,6 +60,12 @@ def main():
     if modules is None:
         selected = json.loads((ROOT / 'app/build/test-runtimes/current.json').read_text(encoding='utf8'))
         modules = Path(selected['raw']) / 'node_modules'
+    from rc5_recipe_check import check_rc5
+    if check_rc5(modules, ['plugin-manager-policy-patch.json'], not args.write):
+        registry = json.loads((ASSETS / 'runtime-patches.json').read_text())
+        if NAME not in {row['asset'] for row in registry['retired']}:
+            raise ValueError('RC5_PNPM_WORKAROUND_NOT_RETIRED')
+        return
     text = json.dumps(generate(modules), ensure_ascii=False, indent=2) + '\n'
     target = ASSETS / NAME
     if args.write:

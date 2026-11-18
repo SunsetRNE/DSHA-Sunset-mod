@@ -17,7 +17,7 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def verify(modules):
+def verify(modules, assets=None):
     modules = Path(modules).resolve()
     lock = json.loads((ROOT / 'tools/dsh-runtime/package-lock.json').read_text())
     registry = json.loads((ASSETS / 'runtime-patches.json').read_text())
@@ -25,7 +25,13 @@ def verify(modules):
         raise ValueError('RC5_PATCH_VERSION')
     chains, _ = load_chains(ASSETS, VERSION)
     rows = []
+    selected = None if assets is None else set(assets)
+    seen = set()
+    selected_modules = set()
     for row in registry['active']:
+        if selected is not None and row['asset'] not in selected:
+            continue
+        seen.add(row['asset'])
         recipe = json.loads((ASSETS / row['asset']).read_text())
         module = row.get('module', recipe.get('module'))
         data = (modules / module).read_bytes()
@@ -37,9 +43,14 @@ def verify(modules):
         locked = lock['packages']['node_modules/' + package_name]
         if package['version'] != locked['version'] or recipe.get('packageIntegrity') != locked['integrity']:
             raise ValueError('RC5_PATCH_PACKAGE_CHANGED: ' + row['asset'])
+        selected_modules.add(module)
         rows.append(dict(asset=row['asset'], module=module, sourceSha256=digest,
                          packageVersion=package['version'], integrity=locked['integrity']))
+    if selected is not None and seen != selected:
+        raise ValueError('RC5_PATCH_FAMILY_MISSING: ' + repr(sorted(selected - seen)))
     for module, chain in chains.items():
+        if module not in selected_modules:
+            continue
         data = (modules / module).read_bytes()
         fixed = apply(data, chain)
         if apply(fixed, chain) != fixed:
@@ -61,7 +72,7 @@ def verify(modules):
             raise ValueError('RC5_CHANGED_ANCHOR_ACCEPTED: ' + module)
     return dict(status='PASS_EXACT_RC5_PATCH_ADMISSION', behaviorVerified=False,
                 version=VERSION, lockSha256=sha((ROOT / 'tools/dsh-runtime/package-lock.json').read_bytes()),
-                active=len(rows), modules=len(chains), recipes=rows)
+                active=len(rows), modules=len(selected_modules), recipes=rows)
 
 
 def main():

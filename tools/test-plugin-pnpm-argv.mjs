@@ -101,12 +101,15 @@ try {
         const result = spawnSync(process.execPath, [cli, '--config.update-notifier=false', 'view', 'dsh-market', 'name', 'version', 'description', 'dsh', '--json', '--config.fetch-retries=0'],
             { cwd: dir, env, encoding: 'utf8', windowsHide: true, timeout: 15000 });
         fs.writeFileSync(path.join(out, 'negative-query.log'), (result.stdout ?? '') + (result.stderr ?? ''));
-        assert.equal(result.status, 1); assert.match(result.stdout, /ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL/); assert.match(result.stdout, /view/);
+        // pnpm reports this exact command-not-found failure as 254 on Linux and
+        // 1 on the historical Windows fixture. Require failure plus its exact
+        // protocol code and zero npm dispatch, not one shell's exit encoding.
+        assert.notEqual(result.status, 0); assert.match(result.stdout, /ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL/); assert.match(result.stdout, /view/);
         assert.equal(fs.existsSync(spyLog), false);
     });
     await check('real official registry inspection keeps view first and honors executable-prefix arguments', async () => {
         const dir = profile('positive-query');
-        const view = await after.viewProfilePackage(dir, 'dsha-registry-fixture', { command: process.execPath, args: [cli], env, timeoutMs: 15000, registry: 'https://registry.npmjs.org/' });
+        const view = await after.viewProfilePackage(dir, 'dsha-registry-fixture', { command: process.execPath, args: [cli], fields: ['name', 'version', 'description', 'dsh'], env, timeoutMs: 15000, registry: 'https://registry.npmjs.org/' });
         fs.writeFileSync(path.join(out, 'positive-query.json'), JSON.stringify(view, null, 2));
         assert.equal(view.exitCode, 0, JSON.stringify(view)); assert.equal(JSON.parse(view.stdout).name, 'dsha-registry-fixture');
         const args = JSON.parse(fs.readFileSync(spyLog, 'utf8').trim().split('\n').at(-1));

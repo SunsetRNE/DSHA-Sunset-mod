@@ -177,6 +177,9 @@ def main():
     if modules is None:
         pointer = json.loads((ROOT / 'app/build/test-runtimes/current.json').read_text(encoding='utf8'))
         modules = Path(pointer['raw']) / 'node_modules'
+    from rc5_recipe_check import check_rc5
+    if check_rc5(modules, [ASSET], args.check):
+        return
     expected = generate(modules)
     target = ROOT / 'app/src/main/assets' / ASSET
     if args.check:

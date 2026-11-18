@@ -6,7 +6,8 @@ import {createHash} from 'node:crypto';
 
 const ROOT=path.resolve(import.meta.dirname,'..');
 const patched=process.argv.includes('--managed');
-const MODULES=path.join(ROOT,'app/build/rc5-candidate/node_modules/@deepseek-ai');
+const RUNTIME=path.resolve(process.env.DSHA_TEST_RUNTIME??path.join(ROOT,'app/build/rc5-candidate'));
+const MODULES=path.join(RUNTIME,'node_modules/@deepseek-ai');
 const OUT=path.join(ROOT,'app/build/rc5-upgrade/regressions');
 fs.mkdirSync(OUT,{recursive:true});
 const LIMIT=5_000_000_000;
@@ -116,6 +117,6 @@ ui.exported.ToolCall({callId:'valid-call',toolName:ui.exported.callName(validCal
 assert.equal(validSlot,'read');assert.equal(validOwner.block,validState.root);assert.equal(typeof validOwner.inspect,'function');
 records.push({case:'Valid identity retains original block, named slot and inspector',outcome:'PRESERVE_API'});
 for(const row of records)if(patched&&row.outcome!=='PRESERVE_API')row.outcome='PASS_FIXED_BEHAVIOR';
-const report={status:patched?'PASS_MANAGED_RC5_REGRESSION':'PASS_RAW_RC5_NEGATIVE_CONTROL',frozenLockSha256:sha(fs.readFileSync(path.join(ROOT,'app/build/rc5-candidate/package-lock.json'))),scope:'Pure VM evaluation of exact rc5 browser bundles; only synthetic data, React/transport stubs; no profile/service/network/listen or real user files; no worktree writes',sources:[u.source,ui.source,chat.source],records};
+const report={status:patched?'PASS_MANAGED_RC5_REGRESSION':'PASS_RAW_RC5_NEGATIVE_CONTROL',frozenLockSha256:sha(fs.readFileSync(path.join(ROOT,'tools/dsh-runtime/package-lock.json'))),scope:'Pure VM evaluation of exact rc5 browser bundles; only synthetic data, React/transport carriers; no profile/service/network/listen or real user files; reports confined to app/build',sources:[u.source,ui.source,chat.source],records};
 fs.writeFileSync(path.join(OUT,patched?'managed-browser-regression.json':'raw-browser-control.json'),JSON.stringify(report,null,2)+'\n');
 console.log(JSON.stringify(report,null,2));
