@@ -43,6 +43,7 @@ jobs:
     uses: ./.github/workflows/_node-unit-tests.yml
     with:
       mode: source-only
+      rust_host: true
       handoff: ${{ needs.inputs.outputs.artifact }}
       sunset_test: false
       forks: 2

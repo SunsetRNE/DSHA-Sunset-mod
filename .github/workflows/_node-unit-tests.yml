@@ -44,10 +44,10 @@ on:
         type: number
         default: 1
       rust_host:
-        description: Build the host Rust .so and pass -Pdsha.rust.hostLib (full runs need 0 skipped)
+        description: Build the host Rust .so for native golden tests in full and source-only runs
         required: false
         type: boolean
-        default: false
+        default: true
       artifact:
         description: Name of the uploaded JUnit/receipt artifact
         required: false
@@ -70,8 +70,8 @@ jobs:
           ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
       - uses: ./.github/actions/setup-toolchain
-      # R1：full 单测要求 0 skipped，RustDigestDifferentialTest 需要主机目标 .so。
-      # rust_host=true 时用锁定工具链构建主机 .so 并把路径传给测试 JVM；source-only 不构建。
+      # 原生黄金用例缺库硬失败；source-only 仅省略归档夹具，不省略 JNI 回归。
+      # 默认构建锁定 host .so；显式 filtered 调用可按其筛选范围关闭。
       - name: Restore pinned Rust toolchain cache (host differential)
         if: inputs.rust_host
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

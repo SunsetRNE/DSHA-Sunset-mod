@@ -1,6 +1,7 @@
 name: Fixed inputs health
 
-# 定时巡检：源码锁指向的固定输入预发布资产仍可下载，SHA-256 与逐项 pin 仍一致。
+# 定时巡检：公开基础输入包仍可下载，整包 SHA 与基础/应急逐项 pin 一致。
+# 不声称旧包内正式 DSH 等于当前版本；正式 DSH 由 _node-inputs 按 npm 锁重建。
 # 只下载与校验，不重建运行时、不上传 artifact、不写仓库。
 on:
   schedule:
@@ -20,14 +21,14 @@ jobs:
       - name: Resolve source-locked input pair
         id: resolve
         run: python3 tools/sunset-ci-inputs.py --github-output
-      - name: Download and verify every pinned input
+      - name: Download and verify pinned base and recovery inputs
         env:
           INPUT_URL: ${{ steps.resolve.outputs.url }}
           INPUT_SHA: ${{ steps.resolve.outputs.sha256 }}
           INPUT_FORMAT: ${{ steps.resolve.outputs.format }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          args=(--url "$INPUT_URL" --sha256 "$INPUT_SHA")
+          args=(--url "$INPUT_URL" --sha256 "$INPUT_SHA" --base-only)
           if [ "$INPUT_FORMAT" = source-archive ]; then args+=(--source-archive); fi
           python3 tools/ci-assets.py "${args[@]}"
       - name: Report

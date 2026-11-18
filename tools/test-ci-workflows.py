@@ -504,6 +504,7 @@ class SourceAndServices(unittest.TestCase):
         source = text("inputs-health.yml")
         self.assertIn("schedule:", source)
         self.assertIn("tools/ci-assets.py", source)
+        self.assertIn('--base-only', source)
         self.assertNotIn("upload-artifact", source)
 
 
@@ -550,21 +551,22 @@ class RustGraph(unittest.TestCase):
         self.assertIn("mode: repro", package["rust-repro"])
         self.assertIn("mode: native", package["rust-native"])
 
-    def test_full_unit_runs_build_the_host_library_for_rust_differential(self):
-        # R1：full 单测要求 0 skipped；RustDigestDifferentialTest 需要主机目标 .so，
-        # 所有 full 调用方都必须传 rust_host=true（source-only 的 unit-source 不传）。
+    def test_full_and_source_unit_runs_supply_real_host_native_golden_input(self):
+        # source-only 只省略归档夹具；缺库硬失败的 JNI 黄金也必须拿到真实 host .so。
         node = text("_node-unit-tests.yml")
         for fragment in ("rust_host:", "tools/rust/build.py --host --expect-lock",
                          "-Pdsha.rust.hostLib=$PWD/out/rust-host/libdsha_rs.so",
                          "-Pdsha.rust.required=true"):
             with self.subTest(fragment=fragment):
                 self.assertIn(fragment, node)
+        request = node.split("      rust_host:", 1)[1].split("      artifact:", 1)[0]
+        self.assertIn("default: true", request)
         for name in ("release-production.yml", "release-upstream.yml", "test-package.yml",
-                     "test-package-variants.yml"):
+                     "test-package-variants.yml", "unit-tests.yml", "ci-fast.yml"):
             with self.subTest(workflow=name):
                 self.assertIn("rust_host: true", text(name))
-        self.assertIn("rust_host: ${{ inputs.mode == 'full' }}", text("unit-tests.yml"))
-        self.assertNotIn("rust_host: true", text("ci-fast.yml"))
+        self.assertNotIn("rust_host: ${{ inputs.mode == 'full' }}", text("unit-tests.yml"))
+        self.assertNotIn("Assume", (ROOT / "app/src/test/java/com/deepseekharness/app/util/RustBridgeNativeGoldenTest.java").read_text())
 
     def test_artifact_lock_is_registered_for_every_build_target(self):
         # R1：产物摘要口径固定；跨 run 复现证据不足时保持 pending，不得写死不可复现字段。
