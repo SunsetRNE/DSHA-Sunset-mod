@@ -26,9 +26,12 @@ final class RuntimeTools {
 
   private static final Object LOCK = new Object();
 
-  /** Host mirror 字节契约在 rc5 与 0.2.2-rc.1 之间不变，但代次门仍须精确识别。 */
+  /** 按精确运行时代次选择 Host mirror 字节契约；rc.5 的紧凑 bundle 使用独立证明。 */
   private static final Map<String, String> LAN_SETTINGS_CONTRACT_VERSIONS =
-      Map.of("0.2.1-rc.5", "0.2.1-rc.5", "0.2.2-rc.1", "0.2.1-rc.5");
+      Map.of(
+          "0.2.1-rc.5", "0.2.1-rc.5",
+          "0.2.2-rc.1", "0.2.1-rc.5",
+          "0.2.2-rc.5", "0.2.2-rc.5");
 
   private static String preparedRoot;
   private static String preparedApk;
@@ -935,9 +938,13 @@ final class RuntimeTools {
       String version = fileObject(pkg).getString("version");
       String contractVersion = LAN_SETTINGS_CONTRACT_VERSIONS.get(version);
       if (contractVersion != null) {
-        // rc5 与 0.2.2-rc.1 暴露相同 Host mirror 字节；保留签名的精确契约，
-        // 但按运行时版本表选择对应的契约族，不能让未知版本复用旧摘要。
-        var contract = assetObject(context, "lan-settings-upstream-contract.json");
+        // 旧族原字节继续绑定旧证明；0.2.2-rc.5 的紧凑 bundle 绑定新证明。
+        // 版本只能来自上表，未知版本不能复用任何已知族的摘要。
+        String contractAsset =
+            "0.2.2-rc.5".equals(contractVersion)
+                ? "lan-settings-upstream-contract-rc5.json"
+                : "lan-settings-upstream-contract.json";
+        var contract = assetObject(context, contractAsset);
         if (contract.getInt("schema") != 1
             || !contractVersion.equals(contract.getString("dshVersion"))
             || !"@deepseek-ai/dsh-client-ui-settings/lib/client.js"

@@ -132,7 +132,8 @@ public final class RuntimeToolsRegistryAndroidTest {
           "web-integration/startup.js",
           "client-combo-cache/package.json",
           "client-combo-cache/index.js",
-          "lan-settings-upstream-contract.json"
+          "lan-settings-upstream-contract.json",
+          "lan-settings-upstream-contract-rc5.json"
         }) content.put(name, Files.readAllBytes(source.resolve(name)));
     for (var entry : overrides.entrySet())
       content.put(entry.getKey(), entry.getValue().toString().getBytes(StandardCharsets.UTF_8));
@@ -491,6 +492,45 @@ public final class RuntimeToolsRegistryAndroidTest {
           "@deepseek-ai/dsh-client-ui-deliverables/lib/client.js", "DSHA_FILE_DELIVERABLES_RC2_V1",
           "@deepseek-ai/dsh-client-ui-file-actions/lib/client.js", "DSHA_IMAGE_GALLERY_MENU_V1");
   private static final String LAN = "@deepseek-ai/dsh-client-ui-settings/lib/client.js";
+  private static final String LAN_LEGACY_CONTRACT = "lan-settings-upstream-contract.json";
+  private static final String LAN_RC5_CONTRACT = "lan-settings-upstream-contract-rc5.json";
+
+  private static String lanContractAsset(String version) {
+    return switch (version) {
+      case "0.2.1-rc.5", "0.2.2-rc.1" -> LAN_LEGACY_CONTRACT;
+      case "0.2.2-rc.5" -> LAN_RC5_CONTRACT;
+      default -> throw new IllegalArgumentException("Unknown LAN fixture version: " + version);
+    };
+  }
+
+  /** Admission-only samples; real bundle behavior is exercised by test-lan-settings-host.mjs. */
+  private String lanContractSample(String asset) throws Exception {
+    var anchors = json(asset).getJSONArray("requiredAnchors");
+    var source = new StringBuilder();
+    for (int i = 0; i < anchors.length(); i++) source.append(anchors.getString(i)).append('\n');
+    return source.toString();
+  }
+
+  private JSONObject lanSampleProof(String asset, String sample) throws Exception {
+    return json(asset)
+        .put(
+            "sourceSha256",
+            java.util.HexFormat.of()
+                .formatHex(
+                    java.security.MessageDigest.getInstance("SHA-256")
+                        .digest(sample.getBytes(StandardCharsets.UTF_8))));
+  }
+
+  private File lanSampleRoot(String version, String sample) throws Exception {
+    Path guest = Files.createTempDirectory(temporary, "lan-contract-");
+    Path dsh = guest.resolve(DSH);
+    Path module = dsh.resolve("node_modules/" + LAN);
+    Files.createDirectories(module.getParent());
+    Files.writeString(
+        dsh.resolve("package.json"), new JSONObject().put("version", version).toString());
+    Files.writeString(module, sample);
+    return guest.toFile();
+  }
 
   private static String sha256(Path file) throws Exception {
     return java.util.HexFormat.of()
@@ -693,31 +733,84 @@ public final class RuntimeToolsRegistryAndroidTest {
   }
 
   @Test
-  public void lanHostMirrorContractSupportsRc5AndRc1FamilyOnly() throws Exception {
-    Context context = apkAssets(Map.of());
-    File guest = actualManagedModuleClosure(context);
-    Path pkg = guest.toPath().resolve(DSH + "package.json");
-    Path module = guest.toPath().resolve(DSH + "node_modules/" + LAN);
-    String originalPackage = Files.readString(pkg);
-    byte[] originalModule = Files.readAllBytes(module);
-    for (String version : List.of("0.2.1-rc.5", "0.2.2-rc.1")) {
-      Files.writeString(pkg, new JSONObject(originalPackage).put("version", version).toString());
+  public void lanHostMirrorContractsSelectLegacyAndRc5Families() throws Exception {
+    for (String version : List.of("0.2.1-rc.5", "0.2.2-rc.1", "0.2.2-rc.5")) {
+      String asset = lanContractAsset(version);
+      String sample = lanContractSample(asset);
+      JSONObject proof = lanSampleProof(asset, sample);
+      Context context = apkAssets(Map.of(asset, proof));
+      File guest = lanSampleRoot(version, sample);
+      Path module = guest.toPath().resolve(DSH + "node_modules/" + LAN);
+      byte[] original = Files.readAllBytes(module);
+      RuntimeTools.patchLanSettingsPersistence(context, guest);
       RuntimeTools.patchLanSettingsPersistence(context, guest);
       assertArrayEquals(
           "Host mirror must remain byte-exact for " + version,
-          originalModule,
+          original,
           Files.readAllBytes(module));
+      Context wrongFamily =
+          apkAssets(
+              Map.of(asset, new JSONObject(proof.toString()).put("dshVersion", "0.2.2-rc.2")));
+      IOException family =
+          assertThrows(
+              IOException.class,
+              () -> RuntimeTools.patchLanSettingsPersistence(wrongFamily, guest));
+      assertEquals("LAN_SETTINGS_CONTRACT", family.getMessage());
+      assertArrayEquals(original, Files.readAllBytes(module));
     }
-    Files.writeString(pkg, new JSONObject(originalPackage).put("version", "0.2.2-rc.1").toString());
-    Context wrongFamily =
+  }
+
+  @Test
+  public void lanRc5ContractRejectsLegacyBytesAndModifiedSource() throws Exception {
+    String legacy = lanContractSample(LAN_LEGACY_CONTRACT);
+    String current = lanContractSample(LAN_RC5_CONTRACT);
+    Context context =
         apkAssets(
             Map.of(
-                "lan-settings-upstream-contract.json",
-                json("lan-settings-upstream-contract.json").put("dshVersion", "0.2.2-rc.1")));
-    IOException family =
-        assertThrows(
-            IOException.class, () -> RuntimeTools.patchLanSettingsPersistence(wrongFamily, guest));
-    assertEquals("LAN_SETTINGS_CONTRACT", family.getMessage());
+                LAN_LEGACY_CONTRACT, lanSampleProof(LAN_LEGACY_CONTRACT, legacy),
+                LAN_RC5_CONTRACT, lanSampleProof(LAN_RC5_CONTRACT, current)));
+    File guest = lanSampleRoot("0.2.2-rc.5", legacy);
+    Path module = guest.toPath().resolve(DSH + "node_modules/" + LAN);
+    for (String rejected : List.of(legacy, current + "\n// drift")) {
+      Files.writeString(module, rejected);
+      IOException error =
+          assertThrows(
+              IOException.class, () -> RuntimeTools.patchLanSettingsPersistence(context, guest));
+      assertEquals("LAN_SETTINGS_SOURCE_MISMATCH", error.getMessage());
+      assertEquals(rejected, Files.readString(module));
+    }
+  }
+
+  @Test
+  public void lanRc5ContractRejectsMalformedProofAndMissingHostSemantics() throws Exception {
+    String sample = lanContractSample(LAN_RC5_CONTRACT);
+    File guest = lanSampleRoot("0.2.2-rc.5", sample);
+    Path module = guest.toPath().resolve(DSH + "node_modules/" + LAN);
+    for (JSONObject damaged :
+        List.of(
+            lanSampleProof(LAN_RC5_CONTRACT, sample).put("schema", 2),
+            lanSampleProof(LAN_RC5_CONTRACT, sample).put("module", "other/module.js"),
+            lanSampleProof(LAN_RC5_CONTRACT, sample).put("dshVersion", "0.2.1-rc.5"))) {
+      Context context = apkAssets(Map.of(LAN_RC5_CONTRACT, damaged));
+      IOException error =
+          assertThrows(
+              IOException.class, () -> RuntimeTools.patchLanSettingsPersistence(context, guest));
+      assertEquals("LAN_SETTINGS_CONTRACT", error.getMessage());
+      assertEquals(sample, Files.readString(module));
+    }
+    for (String changed :
+        List.of(
+            sample.replace("this.pendingRevision", "this.staleRevision"),
+            sample + "\nctx.remote.$host.isLoopback")) {
+      Files.writeString(module, changed);
+      Context context =
+          apkAssets(Map.of(LAN_RC5_CONTRACT, lanSampleProof(LAN_RC5_CONTRACT, changed)));
+      IOException error =
+          assertThrows(
+              IOException.class, () -> RuntimeTools.patchLanSettingsPersistence(context, guest));
+      assertEquals("LAN_SETTINGS_HOST_SEMANTICS", error.getMessage());
+      assertEquals(changed, Files.readString(module));
+    }
   }
 
   @Test
@@ -725,20 +818,19 @@ public final class RuntimeToolsRegistryAndroidTest {
     Context context = apkAssets(Map.of());
     File guest = actualManagedModuleClosure(context);
     Path pkg = guest.toPath().resolve(DSH + "package.json");
-    Files.writeString(
-        pkg, new JSONObject(Files.readString(pkg)).put("version", "0.2.2").toString());
-    IOException version =
-        assertThrows(
-            IOException.class, () -> RuntimeTools.patchLanSettingsPersistence(context, guest));
-    assertEquals("LAN_SETTINGS_VERSION", version.getMessage());
+    for (String unknown : List.of("0.2.2", "0.2.2-rc.4", "0.2.2-rc.6", "0.2.2-rc.5+local")) {
+      Files.writeString(
+          pkg, new JSONObject(Files.readString(pkg)).put("version", unknown).toString());
+      IOException version =
+          assertThrows(
+              IOException.class, () -> RuntimeTools.patchLanSettingsPersistence(context, guest));
+      assertEquals("LAN_SETTINGS_VERSION", version.getMessage());
+    }
     Files.writeString(
         pkg,
         new JSONObject(Files.readString(pkg)).put("version", Constants.DSH_VERSION).toString());
-    Context bad =
-        apkAssets(
-            Map.of(
-                "lan-settings-upstream-contract.json",
-                json("lan-settings-upstream-contract.json").put("schema", 2)));
+    String asset = lanContractAsset(Constants.DSH_VERSION);
+    Context bad = apkAssets(Map.of(asset, json(asset).put("schema", 2)));
     IOException contract =
         assertThrows(IOException.class, () -> RuntimeTools.patchLanSettingsPersistence(bad, guest));
     assertEquals("LAN_SETTINGS_CONTRACT", contract.getMessage());
