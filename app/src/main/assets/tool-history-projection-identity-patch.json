@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-chat/lib/client.js",
+  "sourceSha256": "eef53e82b8cd584d2f0e543a4a93395f9d90df3bba1218891bd99d07d788de5c",
+  "packageIntegrity": "sha512-ZEw+3zt3+ENW7OpfnHBoEoU7jRCT9js8UZSe9gEYoRvVgAxO8/JKhNAXf1NCL0HLFD3fgkD0v4OkRZ2JXybSXw==",
+  "purpose": "Preserve malformed retained identity provenance before upstream display stringification; never change persisted events.",
+  "patches": [
+    {
+      "before": "callId:String(match.event.data.callId),name:match.event.data.name,",
+      "after": "callId:String(match.event.data.callId),dshaInvalidIdentity:typeof match.event.data.callId!==\"string\"||!match.event.data.callId.trim()||typeof match.event.data.name!==\"string\"||!match.event.data.name.trim(),name:match.event.data.name,"
+    },
+    {
+      "before": "callId:String(chunk.id),name:chunk.name,",
+      "after": "callId:String(chunk.id),dshaInvalidIdentity:typeof chunk.id!==\"string\"||!chunk.id.trim()||typeof chunk.name!==\"string\"||!chunk.name.trim(),name:chunk.name,"
+    },
+    {
+      "before": "callId:String(message.source.callId),name:previous?.name??``,",
+      "after": "callId:String(message.source.callId),dshaInvalidIdentity:previous?.dshaInvalidIdentity===true||typeof message.source.callId!==\"string\"||!message.source.callId.trim(),name:previous?.name??``,"
+    }
+  ]
+}

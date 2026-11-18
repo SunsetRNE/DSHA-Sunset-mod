@@ -21,7 +21,10 @@ const moduleName='@deepseek-ai/dsh-config-editor/lib/index.js';
 const original=fs.readFileSync(path.join(raw,'node_modules',moduleName),'utf8').replaceAll('\r\n','\n');
 const hmrModule='@deepseek-ai/dsh-hmr/lib/index.js';
 const hmrSource=fs.readFileSync(path.join(raw,'node_modules',hmrModule),'utf8').replaceAll('\r\n','\n');
-assert.equal(sha(hmrSource),'143b445f1b303be83d56f9e7d3992e1a4885850c08f1082065d332ba7a70ae0a','review the pinned HMR AsyncLocalStorage contract when upgrading');
+// rc5 runExclusive still rejects nested AsyncLocalStorage admission before queueing;
+// runReload now additionally waits applicationReady. Real nested/rollback cases below
+// verify the retained contract rather than accepting any future module.
+assert.equal(sha(hmrSource),'d4990a34a9874f94fa1e045563e016526e4fefe5a72a4945532043188a65dfde','review the pinned HMR AsyncLocalStorage contract when upgrading');
 assert.match(hmrSource,/executing = new AsyncLocalStorage\(\);/);
 assert.match(hmrSource,/if \(this\.executing\.getStore\(\)\) return Promise\.reject\(.*HMR transactions cannot be nested/);
 const recipe=JSON.parse(fs.readFileSync(path.join(source,'app/src/main/assets/config-editor-lock-order-patch.json')));

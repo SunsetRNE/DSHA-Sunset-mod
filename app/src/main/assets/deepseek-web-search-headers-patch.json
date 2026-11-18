@@ -46,5 +46,6 @@
       "before": "resolveApiKey: () => resolveDeepSeekApiKey(ctx, apiKeyEnv),",
       "after": "resolveApiKey: () => {\n\t\t\t// rc5 owns credential precedence and endpoint binding; do not duplicate its resolver.\n\t\t\tdshaApiKeySource = \"credential-service\";\n\t\t\treturn resolveDeepSeekApiKey(ctx, apiKeyEnv);\n\t\t},"
     }
-  ]
+  ],
+  "patchedSha256": "dbad2e7f14b4c150574321d3c2c233909aa5fddd1137abd23ae99c40b9afd8dd"
 }

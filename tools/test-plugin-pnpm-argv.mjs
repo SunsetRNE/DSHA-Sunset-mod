@@ -38,9 +38,9 @@ const build = execFileSync(python, ['-c', [
     'version=json.loads((root/"tools/dsh-runtime/package.json").read_text(encoding="utf8"))["dependencies"]["@deepseek-ai/dsh"]',
     'chains,_=load_chains(root/"app/src/main/assets",version)',
     'source=(runtime/"node_modules"/module).read_bytes()',
-    'previous=[row for row in chains[module] if row[0]!="plugin-pnpm-argv-patch.json"]',
+    'assert all(row[0]!="plugin-pnpm-argv-patch.json" for row in chains[module]), "retired argv workaround returned"',
     'dependencies={name:apply((runtime/"node_modules"/name).read_bytes(),chain).decode() for name,chain in chains.items() if name!=module}',
-    'print(json.dumps({"before":apply(source,previous).decode(),"after":apply(source,chains[module]).decode(),"dependencies":dependencies}))'
+    'print(json.dumps({"after":apply(source,chains[module]).decode(),"dependencies":dependencies}))'
 ].join('\n'), root, runtime, moduleName], { encoding: 'utf8', windowsHide: true, maxBuffer: 32 * 1024 * 1024 });
 const sources = JSON.parse(build);
 // Full-chain dependency exports (notably readPluginEntries) must agree with the
@@ -58,7 +58,7 @@ for (const entry of fs.readdirSync(path.join(runtime, 'node_modules'), { withFil
     } else if (entry.isDirectory()) fs.symlinkSync(path.join(runtime, 'node_modules', entry.name), path.join(modules, entry.name), process.platform === 'win32' ? 'junction' : 'dir');
 }
 for (const [name, source] of Object.entries(sources.dependencies)) fs.writeFileSync(path.join(modules, name), source);
-for (const name of ['before', 'after']) fs.writeFileSync(path.join(out, name + '.mjs'), sources[name] + '\nexport { namedSpecManifest, viewProfilePackage, runProfilePnpm };\n');
+for (const name of ['after']) fs.writeFileSync(path.join(out, name + '.mjs'), sources[name] + '\nexport { namedSpecManifest, viewProfilePackage, runProfilePnpm };\n');
 const after = await import(pathToFileURL(path.join(out, 'after.mjs')));
 const privateHome = path.join(out, 'home'); fs.mkdirSync(privateHome);
 const bin = path.join(out, 'bin'); fs.mkdirSync(bin);
@@ -185,7 +185,8 @@ try {
     const result = { status: 'PASS', checks, output: out, runtime, productionModule: moduleName,
         canonicalSha256: sha(path.join(runtime, 'node_modules', moduleName)),
         patchedSha256: createHash('sha256').update(sources.after).digest('hex'), pnpmVersion: '10.34.5', pnpmArchiveSha256: sha(packed),
-        recipeSha256: sha(path.join(root, 'app/src/main/assets/plugin-pnpm-argv-patch.json')),
+        recipeSha256: sha(path.join(root, 'app/src/main/assets/plugin-manager-policy-patch.json')),
+        retiredRecipe: 'plugin-pnpm-argv-patch.json',
         scope: 'isolated host only; no production profile, phone, real marketplace activation or Android/proot claim' };
     fs.writeFileSync(path.join(out, 'result.json'), JSON.stringify(result, null, 2) + '\n');
     console.log(JSON.stringify(result));
