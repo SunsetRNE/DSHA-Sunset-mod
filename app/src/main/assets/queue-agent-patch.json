@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-api-session-controller/lib/index.js",
   "patches": [
     {
@@ -11,5 +11,7 @@
       "before": "case \"steer\":\n\t\t\t\tagent.inbox.remove(request.itemId);\n\t\t\t\tagent.steer(message);\n\t\t\t\tbreak;",
       "after": "case \"steer\":\n\t\t\t\tagent.inbox.remove(request.itemId);\n\t\t\t\t// A queued row remains actionable after a run ends: steer while the\n\t\t\t\t// agent is busy, otherwise follow up and wake a fresh turn.\n\t\t\t\tif (agent.status === \"running\") agent.steer(message);\n\t\t\t\telse agent.followup(message);\n\t\t\t\tbreak;"
     }
-  ]
+  ],
+  "sourceSha256": "c6ce8f8014d943c8f2dceaf7a9b184a56b2de757de6097938646549d2d2a9087",
+  "packageIntegrity": "sha512-LFCjaLsKMXnbnc4Rkdgu6bBS+vaFZ+kmPr1xMYw3OyHCoraA9x35ahHmurwHOnEi9KDh/nfdlrBDGButxdMhBQ=="
 }

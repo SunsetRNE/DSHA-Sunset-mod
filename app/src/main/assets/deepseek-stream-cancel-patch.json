@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-llm-deepseek/lib/index.js",
   "patches": [
     {
@@ -11,5 +11,7 @@
       "before": "\t\t\t\tyield* translate(parseSse(response.body, activity), options.model);",
       "after": "\t\t\t\tyield* translate(parseSse(response.body, activity, signal), options.model);"
     }
-  ]
+  ],
+  "sourceSha256": "aa4de6cf5136d17534ee7c2c0cc43d9b17b2f1e0c9dc250c2b44a7f694d26258",
+  "packageIntegrity": "sha512-DkbksxKGJPVAak4lUDBU8Yj3mrgEA2wOeSEWKyFp/hp3wyQjdbgnltt1LMfV0PCYPMkYM+jGKBx2hClvxMBlhg=="
 }

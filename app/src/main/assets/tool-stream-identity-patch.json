@@ -1,8 +1,8 @@
 {
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-llm-pi-ai/lib/index.js",
-  "packageVersion": "0.2.2-rc.1",
-  "canonicalSourceSha256": "1a3ae58f9b4493e15459cc5000ec80f21b5d3f4a9dea6ffb6bc28e5b8817ae8a",
+  "packageVersion": "0.2.2-rc.5",
+  "canonicalSourceSha256": "e956da3d7300e1426e13e14f47e6f981dd1ca345633a406568ee5058ad93e9d8",
   "patches": [
     {
       "before": "\t\t\tconst known = toolIds.get(event.contentIndex);",
@@ -12,5 +12,7 @@
       "before": "function assertSupportedHistory(messages) {\n\tfor (const message of messages) {",
       "after": "function assertSupportedHistory(messages) {\n\t// DSHA_TOOL_HISTORY_READ_ONLY_RC2_V1: reject malformed legacy protocol before HTTP; never rewrite it.\n\tfor (const message of messages) {\n\t\tif (message.role === \"assistant\" && message.content.some(block => block.type === \"tool-call\" && !(typeof block.id === \"string\" && block.id.trim() !== \"\" && typeof block.name === \"string\" && block.name.trim() !== \"\")))\n\t\t\tthrow new LlmError(\"DSHA_INVALID_TOOL_HISTORY: incomplete tool identity; retained history is read only. Start a new session.\", \"INVALID_REQUEST\");\n\t\tif (message.role === \"tool\" && (typeof message.toolCallId !== \"string\" || !message.toolCallId.trim()))\n\t\t\tthrow new LlmError(\"DSHA_INVALID_TOOL_HISTORY: missing result call id; retained history is read only.\", \"INVALID_REQUEST\");"
     }
-  ]
+  ],
+  "sourceSha256": "e956da3d7300e1426e13e14f47e6f981dd1ca345633a406568ee5058ad93e9d8",
+  "packageIntegrity": "sha512-ZlogoAxvaKT2UJsFsNZEQU9/JZbpE7KK+/bmIM+QaGrGVoSjVbaA10VHijJuux5/phxFUariv0NCoznHrTpyNg=="
 }

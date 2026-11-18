@@ -1,10 +1,12 @@
 {
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/libreoffice-kit/lib/index.js",
   "patches": [
     {
       "before": "...shared.map((path) => posix.join(path, \"fonts\")),",
       "after": "...shared.map((path) => posix.join(path, \"fonts\")),\n        // DSHA_ANDROID_FONTS_V1: 使用已有的只读 Android 字体，不复制一份字体库。\n        ...(env.DSHA_ANDROID_RUNTIME === \"1\" ? [\"/system/fonts\"] : []),"
     }
-  ]
+  ],
+  "sourceSha256": "8e8003c76fde812d90f64e486f2e9d7b40370def6c2bcb305996f0e316cec50b",
+  "packageIntegrity": "sha512-MbpucYPrZpeec/smy7u8Z066JeQU6lMVK6A1oysUv1R/OATDvtlVmrsIlfcIz6bVbfJVpgregIK86dOdat9qdA=="
 }

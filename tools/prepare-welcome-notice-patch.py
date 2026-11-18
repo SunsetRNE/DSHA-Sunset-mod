@@ -80,6 +80,9 @@ def main():
     if module is None:
         selected = json.loads((ROOT / 'app/build/test-runtimes/current.json').read_text(encoding='utf8'))
         module = Path(selected['raw']) / 'node_modules' / MODULE
+    from rc5_recipe_check import check_rc5
+    if check_rc5(module.parents[3], ['welcome-notice-patch.json'], args.check):
+        return
     expected = generate(module, args.lock)
     target = ASSETS / 'welcome-notice-patch.json'
     if args.check:

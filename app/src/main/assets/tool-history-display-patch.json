@@ -1,12 +1,26 @@
 {
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-client-ui-tool/lib/client.js",
-  "packageVersion": "0.2.2-rc.1",
-  "canonicalSourceSha256": "d4b0ee6d04a583f63e5e701de989b7d1645d17d09a85b43338e4a11748ea23ac",
+  "packageVersion": "0.2.2-rc.5",
+  "canonicalSourceSha256": "f3de614452e676d2afde6c8e5305f17e1f8784f672c3208a5366c8bf132d667b",
   "patches": [
     {
-      "before": "\t\t\treturn call.phase === \"result\" ? call.block.call?.name ?? \"\" : call.block.name;",
+      "before": "return call.phase===`result`?call.block.call?.name??``:call.block.name",
       "after": "\t\t\t// DSHA_TOOL_HISTORY_DISPLAY_RC2_V1: no named tool view/action for malformed retained rows.\n\t\t\tconst name = call.phase === \"result\" ? call.block.call?.name ?? \"\" : call.block.name;\n\t\t\tconst id = call.block.callId;\n\t\t\treturn typeof name === \"string\" && name.trim() && typeof id === \"string\" && id.trim() ? name : \"DSHA_INVALID_TOOL_CALL (read only)\";"
+    },
+    {
+      "before": "function callName(call){",
+      "after": "function dshaToolIdentityInvalid(block) {\n const name = block.call?.name ?? block.name;\n return block.dshaInvalidIdentity === true || typeof block.callId !== \"string\" || !block.callId.trim()\n  || typeof name !== \"string\" || !name.trim();\n}\nfunction dshaReadOnlyToolHistory(block) {\n // DSHA_TOOL_HISTORY_READ_ONLY_RC5_V2: plain retained text only; no named view,\n // semantic card, inspector, file opener, image loader or action callbacks.\n const retained = [block.argsRaw ?? block.call?.argsRaw, ...(block.content ?? []).filter(item => item.type === \"text\").map(item => item.text)]\n  .filter(value => typeof value === \"string\").join(\"\\n\");\n return (0, react_jsx_runtime.jsx)(\"pre\", { \"data-dsha-invalid-tool-history\": true,\n  style: { whiteSpace: \"pre-wrap\", overflowWrap: \"anywhere\" },\n  children: \"[DSHA_INVALID_TOOL_CALL] Retained record is read only.\\n\" + retained });\n}\nfunction callName(call){"
+    },
+    {
+      "before": "function GenericToolCard({toolName,block,cwd,home,openFile,getFileTriggerProps,inspect,useDisclosure,t}){",
+      "after": "function GenericToolCard({toolName,block,cwd,home,openFile,getFileTriggerProps,inspect,useDisclosure,t}){if(dshaToolIdentityInvalid(block))return dshaReadOnlyToolHistory(block);"
+    },
+    {
+      "before": "[toolName,call]);return(0,react_jsx_runtime.jsxs)(`div`,{className:ToolCallTree_module_css_default.callRow,",
+      "after": "[toolName,call]);if(dshaToolIdentityInvalid(call.block))return dshaReadOnlyToolHistory(call.block);return(0,react_jsx_runtime.jsxs)(`div`,{className:ToolCallTree_module_css_default.callRow,"
     }
-  ]
+  ],
+  "sourceSha256": "f3de614452e676d2afde6c8e5305f17e1f8784f672c3208a5366c8bf132d667b",
+  "packageIntegrity": "sha512-CmSv4FFM6kEWRS0DkhvDUps/opy3zMFrJEYL1GO9oVrFwS0IojXL3x0Ysb9MSns70F/Gu2KFeHsmAsxE+/xrMg=="
 }

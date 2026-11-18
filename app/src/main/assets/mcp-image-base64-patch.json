@@ -1,11 +1,13 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-mcp-client/lib/index.js",
   "patches": [
     {
       "before": "const CANONICAL_BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;",
       "after": "const CANONICAL_BASE64 = /^[A-Za-z0-9+/]*={0,2}$/;"
     }
-  ]
+  ],
+  "sourceSha256": "879b2364e28563626697dd5e3dcf64dcae61dd215dc8f21b283cb7616a672bde",
+  "packageIntegrity": "sha512-XDDdZFcWMtxcyKHnrjxj4AxbKSdePFg81YxgGSREhO9XL8HLovr6sO026isiPiZP4IPDetfaqPhfBVhkpuQKsQ=="
 }

@@ -1,10 +1,9 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-web-search-deepseek/lib/index.js",
-  "sourceSha256": "6bde60f4f8a8bf807d588ae3630d7374358a417b241887716fda9deb67b79ea4",
-  "packageIntegrity": "sha512-wTOUSDd4fqnJUZ0jnN3Vo4RU4OLxcapw4+fNVG8zVQnAJqACICOEaGSAoj/iCAKayDzLRyjoYpo8l4EVGNFcVQ==",
-  "patchedSha256": "cd70f1c98083c4c92077781f981175fcb3cc4eac2601ab7ea172494740af0cde",
+  "sourceSha256": "f7a40239f12e8185ce28bb1ee3411881d05592ccab70835da7d5f94a31601e42",
+  "packageIntegrity": "sha512-yNtmi+EZ5xhFhKSTJLnb/Dk83IzbGM4Yo/l7sgxaGeg6JRSXnneFP+7IDf80RPdWzI2dxGnB3mttO79zEY4maA==",
   "purpose": "Validate each search header without changing credentials or precedence; report only fixed source/category and offending index/code point; distinguish local construction from fetch invocation.",
   "patches": [
     {
@@ -16,8 +15,8 @@
       "after": "\t\t// Build Headers and Request before recording a dispatch: fetch otherwise hides\n\t\t// synchronous ByteString/URL/body errors behind a rejected promise.\n\t\tlet prepared;\n\t\ttry {\n\t\t\tconst headers = new Headers({\n\t\t\t\t...auth.headers,\n\t\t\t\t\"anthropic-version\": dshaSearchHeader(options.apiVersion, \"anthropic-version\", \"plugin-config.apiVersion\", \"api-version\"),\n\t\t\t\t\"content-type\": dshaSearchHeader(\"application/json\", \"content-type\", \"provider-constant\"),\n\t\t\t\t\"accept\": dshaSearchHeader(\"application/json\", \"accept\", \"provider-constant\"),\n\t\t\t\t\"user-agent\": dshaSearchHeader(USER_AGENT, \"user-agent\", \"provider-constant\")\n\t\t\t});\n\t\t\tprepared = new Request(endpoint, {\n\t\t\t\tmethod: \"POST\",\n\t\t\t\tredirect: \"error\",\n\t\t\t\theaders,\n\t\t\t\tbody: JSON.stringify(body),\n\t\t\t\t...signal !== void 0 ? { signal } : {}\n\t\t\t});\n\t\t} catch (error) {\n\t\t\tif (signal?.aborted === true || isAbortError(error)) throw searchAborted(signal, error);\n\t\t\tif (error instanceof WebError) throw error;\n\t\t\tthrow dshaSearchPreflightError(\"request\", \"provider-config\", \"request-construction\");\n\t\t}\n\t\tthrowIfSearchAborted(signal);\n\t\tlet response;\n\t\ttry {\n\t\t\tconst pending = fetch(prepared);\n\t\t\t// This event records entering fetch, not proof of delivery or a reply.\n\t\t\t// A failed observer must not abandon the already-started promise.\n\t\t\ttry {\n\t\t\t\toptions.recordRequest?.({ endpoint, apiVersion: options.apiVersion, body, dispatchState: \"fetch-invoked\" });\n\t\t\t} catch {\n\t\t\t\tconsole.error(\"[deepseek-web-search] request event unavailable after fetch invocation\");\n\t\t\t}\n\t\t\tresponse = await pending;\n\t\t} catch (error) {\n\t\t\tif (signal?.aborted === true || isAbortError(error)) throw searchAborted(signal, error);\n\t\t\t// Exceptions may quote header values. Keep transport failure content fixed.\n\t\t\tthrow new WebError(\"DeepSeek search fetch failed without an HTTP response; network transmission is unconfirmed. Review network availability and the configured search endpoint locally.\", \"WEB_PROVIDER_ERROR\");\n\t\t}"
     },
     {
-      "before": "\t\tif (token !== void 0 && token.length > 0) return {\n\t\t\tkind: \"account\",\n\t\t\theaders: { \"x-dsh-auth-token\": token }\n\t\t};",
-      "after": "\t\tif (token !== void 0 && token !== \"\") return {\n\t\t\tkind: \"account\",\n\t\t\theaders: { \"x-dsh-auth-token\": dshaSearchHeader(token, \"x-dsh-auth-token\", \"deepseek-account\", \"credential\") }\n\t\t};"
+      "before": "\t\tif (token !== void 0 && token.length > 0) return {\n\t\t\tkind: \"account\",\n\t\t\theaders: { \"x-dsh-auth-token\": token },\n\t\t\t...rejectAccountToken === void 0 ? {} : { reject: () => rejectAccountToken(token) }\n\t\t};",
+      "after": "\t\tif (token !== void 0 && token !== \"\") return {\n\t\t\tkind: \"account\",\n\t\t\theaders: { \"x-dsh-auth-token\": dshaSearchHeader(token, \"x-dsh-auth-token\", \"deepseek-account\", \"credential\") },\n\t\t\t...rejectAccountToken === void 0 ? {} : { reject: () => rejectAccountToken(token) }\n\t\t};"
     },
     {
       "before": "\t\tconst apiKey = await this.apiKey(options, signal);\n\t\treturn {",
@@ -44,8 +43,9 @@
       "after": "\tconst literalApiKey = config.apiKey !== void 0 && config.apiKey.length > 0 ? config.apiKey : void 0;\n\t// Per-operation metadata only: the credential resolver still supplies the\n\t// unchanged value once, under the original precedence and cancellation rules.\n\tlet dshaApiKeySource;\n\treturn {\n\t\tdshaApiKeySource: () => dshaApiKeySource,"
     },
     {
-      "before": "\t\t\tif (credentials !== void 0) return (await credentials.resolve(apiKeyEnv))?.value;\n\t\t\tconst ambient = launchEnvironmentOf(ctx).get(apiKeyEnv);\n\t\t\treturn ambient !== void 0 && ambient.value.length > 0 ? ambient.value : void 0;",
-      "after": "\t\t\tif (credentials !== void 0) {\n\t\t\t\tconst resolved = await credentials.resolve(apiKeyEnv);\n\t\t\t\tdshaApiKeySource = resolved?.source;\n\t\t\t\treturn resolved?.value;\n\t\t\t}\n\t\t\tconst ambient = launchEnvironmentOf(ctx).get(apiKeyEnv);\n\t\t\tdshaApiKeySource = ambient?.source;\n\t\t\treturn ambient !== void 0 && ambient.value.length > 0 ? ambient.value : void 0;"
+      "before": "resolveApiKey: () => resolveDeepSeekApiKey(ctx, apiKeyEnv),",
+      "after": "resolveApiKey: () => {\n\t\t\t// rc5 owns credential precedence and endpoint binding; do not duplicate its resolver.\n\t\t\tdshaApiKeySource = \"credential-service\";\n\t\t\treturn resolveDeepSeekApiKey(ctx, apiKeyEnv);\n\t\t},"
     }
-  ]
+  ],
+  "patchedSha256": "dbad2e7f14b4c150574321d3c2c233909aa5fddd1137abd23ae99c40b9afd8dd"
 }

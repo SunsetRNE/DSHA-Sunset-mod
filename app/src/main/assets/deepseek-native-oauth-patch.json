@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-client-ui-settings-account/lib/client.js",
-  "sourceSha256": "0482b179466e1aaae6d7ff5738f679a8a62b39a0f1c496bda64bef342eb7b7e0",
-  "packageIntegrity": "sha512-lqUd3fEaEYB9q9qCM7dXxS0VWn2Hmya0YHEdvvKc/8bcWO0HRqYncvE9MS4k734oEPMrq/K3L+BjjxCPO2aMWQ==",
+  "sourceSha256": "cca3d74cad33dba9947f94046bd91afb0de7d2e48b775a314dcb8a7776d21013",
+  "packageIntegrity": "sha512-AJsPNVVtJAE2TVSd3HxVhfL6Op9rjXEIDoY+1emPfZ+6zeUECpgz138JALEg70qgm0AGUX+YmkSO7QK/Kw57Rg==",
   "purpose": "Keep the native authenticated DSH page alive while the host opens the exact DeepSeek authorization endpoint; preserve the official ordinary-browser popup and all state/PKCE/account protocol behavior.",
   "patches": [
     {
-      "before": "\t\t\tbegin() {\n\t\t\t\tthis.dispose();\n\t\t\t\tthis.popup = window.open(\"about:blank\", \"_blank\");\n\t\t\t\tif (this.popup) this.popup.opener = null;\n\t\t\t}",
+      "before": "begin(){this.dispose();this.popup=window.open(`about:blank`,`_blank`);if(this.popup)this.popup.opener=null}",
       "after": "\t\t\tbegin() {\n\t\t\t\tthis.dispose();\n\t\t\t\t// DSHA_NATIVE_OAUTH_NAVIGATION_V1: the native host consumes only the fixed\n\t\t\t\t// Platform authorize navigation, leaving this authenticated page alive.\n\t\t\t\t// No blank window is created: embedded engines cannot retain the Web\n\t\t\t\t// popup that the plain browser path preopens during the original click.\n\t\t\t\tif (globalThis.__DSHA_NATIVE_PLUGINS__ === true || globalThis.__DSHA_NATIVE_OAUTH__ === true) {\n\t\t\t\t\tconst popup = {\n\t\t\t\t\t\tclosed: false,\n\t\t\t\t\t\tclose() { this.closed = true; },\n\t\t\t\t\t\tlocation: { replace(url) { if (!popup.closed) window.location.assign(url); } }\n\t\t\t\t\t};\n\t\t\t\t\tthis.popup = popup;\n\t\t\t\t\treturn;\n\t\t\t\t}\n\t\t\t\tthis.popup = window.open(\"about:blank\", \"_blank\");\n\t\t\t\tif (this.popup) this.popup.opener = null;\n\t\t\t}"
     }
   ]

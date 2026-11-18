@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "active": [
     {
       "asset": "web-fetch-http-surrogate-patch.json"
@@ -77,12 +77,6 @@
     },
     {
       "asset": "plugin-manager-policy-patch.json"
-    },
-    {
-      "asset": "plugin-pnpm-argv-patch.json",
-      "markers": [
-        "DSHA_PLUGIN_PNPM_ARGV_V3"
-      ]
     },
     {
       "asset": "plugin-manager-auto-enable-patch.json"
@@ -321,6 +315,9 @@
       "markers": [
         "DSHA_FIRST_CONNECT_SILENT_V1"
       ]
+    },
+    {
+      "asset": "tool-history-projection-identity-patch.json"
     }
   ],
   "specialized": [
@@ -362,6 +359,10 @@
     {
       "asset": "tooltip-entry-patch.json",
       "reason": "Cache-busting query for the retired tooltip-interaction bundle; 0.2.2-rc.1 renamed the entry and upstream owns touch tooltip dismissal."
+    },
+    {
+      "asset": "plugin-pnpm-argv-patch.json",
+      "reason": "rc5 policy now appends lifecycle flags directly to command args while preserving executable-prefix options.args. The old prefix-injection/suffix-removal workaround is historical only; real pnpm argv regression remains required."
     }
   ]
 }

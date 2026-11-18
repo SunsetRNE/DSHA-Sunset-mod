@@ -114,6 +114,9 @@ def main():
     if modules is None:
         pointer = json.loads((ROOT / 'app/build/test-runtimes/current.json').read_text(encoding='utf8'))
         modules = Path(pointer['raw']) / 'node_modules'
+    from rc5_recipe_check import check_rc5
+    if check_rc5(modules, ['deepseek-account-requests-patch.json', 'deepseek-account-client-diagnostic-patch.json'], args.check):
+        return
     for name, expected in generate(modules).items():
         target = ASSETS / name
         if args.check:

@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-client-ui-plugin-manager/lib/client.js",
-  "sourceSha256": "15316b20356d8109ddafb7c866928ad3f8dc8adf26c8f27f692c8a5e3d2b120a",
+  "sourceSha256": "ec1e18683032730be2f97e76847fc1638e59f86df937af727e9b885991983064",
   "patches": [
     {
-      "before": "\t\t\t\t\t\tconst inventory = await this.ctx.remote.pluginInventory.list();",
+      "before": "const inventory=await this.ctx.remote.pluginInventory.list();",
       "after": "\t\t\t\t\t\t// DSHA_PLUGIN_MANAGEMENT_PROBE_V1: this page consumes only the\n\t\t\t\t\t\t// live manager capability; full preset diagnostics stay opt-in elsewhere.\n\t\t\t\t\t\tconst inventory = await this.ctx.remote.pluginInventory.management();"
     }
   ],
-  "packageIntegrity": "sha512-7BK/GjW28g8eU2dY8AHx/mD2Hv+wZXAJ6XU/3j2D1Pef2eOyZyiO4o71rMPaQUBzMawujpoIQj/MgOvu3hHcIw=="
+  "packageIntegrity": "sha512-XhwV/mz/3K8zK8OIN7Map8FeNSX/QnF4y/HcKKkfv0CvlabbpOVGgFI72oSNqlYhWdVuQx3xt+lbRFMjKje6tA=="
 }
