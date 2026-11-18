@@ -1,5 +1,26 @@
 # 固定构建输入（公开仓库预发布资产）
 
+## build370 / DSH 0.2.2-rc.5 开发候选
+
+公开锁仍指向已存在且已核验的 `fixed-inputs-20261113`。它供应 Ubuntu、工具和独立应急环境的基础字节，**其中的正式 DSH rc.1 不作为当前 rc.5 运行时还原**。本候选没有假设未上传的 Release URL；完整 rc.5 bundle 只有按当前源码实际生成并核验后才可用于 `rebuild_runtime=false`。
+
+从干净克隆准备当前输入：
+
+```bash
+python3 tools/ci-assets.py --archive <fixed-inputs-20261113.zip> \
+  --sha256 2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad --base-only
+python3 tools/prepare-dsh-runtime.py
+python3 tools/prepare-backup-assets.py --write
+python3 tools/prepare-runtime-descriptor.py --write
+python3 tools/verify-runtime-descriptor-source.py
+```
+
+`--base-only` 仍验证整包 SHA、完整白名单/路径/类型/重复/总大小，再仅还原除正式 `dsh-runtime.bin` 与 `dsh-runtime.inputs.json` 之外的 10 项。基础及 recovery 的每项摘要都必须匹配当前独立 pin；正式 DSH 和源码的配方元数据保持不动，缺失正式 DSH 不会因此被宣布为完整输入。默认完整恢复和 `--pack` 仍要求所有当前 pin，通过旧包绕过新版 runtime 核验不可用。
+
+共享 `_node-inputs` 的 `rebuild_runtime=true` 使用此模式，随后按当前 npm lock 重建并核验；完整未签名包工作流的 `rebuild_runtime=false` 继续要求显式提供当前完整 bundle。定时输入健康检查只证明公开基础/应急输入仍可用，不宣称已验证最新 DSH 归档。独立 recovery 保持 rc.1，不能因正式 DSH 升级自动换锁。
+
+以下发布资产身份与大小保留其历史来源，不能当作 build370 完整运行时的摘要。
+
 更新：2026-11-05（build328 gh 根因修复：新增第 12 项固定输入 `gh-cli.tar.gz`，官方 GitHub CLI v2.103.3 linux-arm64 归档，作为受管 `opt/gh/bin/gh` 的唯一来源；S1 的 0.2.2-rc.1 运行时与应急归档保持不变；build330 起 APK 内把同一字节改名为 `gh-cli.bin` 打包，源固定输入名不变、bundle 不重建）。当前为已上传并发布（prerelease）的 `fixed-inputs-20261113` 归档（2026-11-13 更新，对齐 build364 的 recipe provenance；发布核验见下）；
 锁文件为 [`ci/sunset-inputs.lock.json`](../ci/sunset-inputs.lock.json)。
 

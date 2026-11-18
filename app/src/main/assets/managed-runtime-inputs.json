@@ -589,6 +589,7 @@
     "web-integration/permission-full-access.js",
     "web-integration/session-interaction.js",
     "lan-settings-upstream-contract.json",
+    "lan-settings-upstream-contract-rc5.json",
     "deepseek-account-client-diagnostic-patch.json",
     "deepseek-account-requests-patch.json",
     "deepseek-native-oauth-patch.json",

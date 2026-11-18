@@ -53,6 +53,7 @@
     "install-basic-tools.sh",
     "install-ubuntu-tools.sh",
     "lan-settings-upstream-contract.json",
+    "lan-settings-upstream-contract-rc5.json",
     "language-patch.json",
     "legacy-preset-convert.cjs",
     "lexical-claim-patch.json",

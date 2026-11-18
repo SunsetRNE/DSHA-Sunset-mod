@@ -2,7 +2,25 @@
   "schema": 1,
   "tests": [
     {
-      "path": "tools/rust/test_host_jvm_sources.py",
+      "path": "tools/test-dsh-data-compat-guards.mjs",
+      "stage": "fast",
+      "reason": "Exercise real subprocess timeout-with-zero-exit, protected-root/runtime path aliases and optimized-Python rejection before synthetic data compatibility writes.",
+      "args": [],
+      "timeoutSeconds": 30,
+      "requires": ["node24", "python39"],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-dsh-rc5-data-compat.mjs",
+      "stage": "support",
+      "reason": "Explicit rc1-to-rc5 archive-bound synthetic data compatibility; requires --old/--new isolated roots and both exact archives/SHA256. Runs 23 checks including real writes/reopens, read-only tree hashes and profile retirement; not an implicit default runtime or rollback approval.",
+      "args": [],
+      "timeoutSeconds": 1800,
+      "requires": ["node24", "python39"],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-rust-host-jvm-sources.py",
       "stage": "fast",
       "reason": "Verify mixed Java/Kotlin Rust bridge discovery and exact compiler closure pins; reject missing, duplicate, linked, foreign-version and corrupted compiler inputs without building or loading JNI.",
       "args": [],

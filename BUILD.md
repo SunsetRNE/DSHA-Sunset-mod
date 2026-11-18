@@ -1,7 +1,7 @@
 # DSHA 现行构建说明
 
-> 当前发布身份（build369）：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1` / versionCode 369。
-> build369 已发布（tag `dsha-a-su-build369-20261116-080147` @ `82eb958d`）；正式 CI 43828110344 通过，七资产与三包签名/来源已独立复核；本版设备验收待完成。
+> 当前开发候选（build370）：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261118.1400-dsh0.2.2-rc.5` / versionCode 370。
+> build370 未发布、未进行设备安装验收；上一正式版 build369（tag `dsha-a-su-build369-20261116-080147` @ `82eb958d`）的 CI 与资产记录仅作历史证据。
 > 单一 Standard 变体：minSdk 30（Android 11+）、arm64-v8a、系统 WebView。原 `low`/GeckoView 兼容线与独立上岛包已删除。
 > 签名：Mod 自有新建证书（SHA-256 `a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d`），不再使用原版 E7E3。
 > 固定构建输入：公开仓库预发布 Release 资产，SHA-256 锁定；流程见 [docs/fixed-build-inputs.md](docs/fixed-build-inputs.md)。
@@ -35,7 +35,7 @@ build369 的 517 项受管启动输入中含 414 个 Java + 43 个 Kotlin 文件
 
 Git保留完整应用、资源、锁定生成/校验脚本，以及构建必需且有notice/锁的小型JNI/vendor/解释器预编译依赖；大型rootfs、DSH和recovery生成归档不入Git。来源未知或闭源的vendor限制按实际材料保留，不能宣称所有vendor native均可从源码复现。精确边界与9个显式审计JSON白名单见[CONTRIBUTING](CONTRIBUTING.md)：原6项构建输入元数据加3项历史文档/来源元数据，不开放整个audit目录。
 
-当前固定输入（build209 起）以公开仓库的**预发布 Release 资产**分发，`ci/sunset-inputs.lock.json` 记录 URL、SHA-256、字节数、格式与 Release/asset 名；还原命令见 [docs/fixed-build-inputs.md](docs/fixed-build-inputs.md)。更新固定输入时先上传新资产，再更新 lock 并在干净 clone 上重新还原核对，不能只改 lock 不核对字节。
+公开基础输入仍由 `ci/sunset-inputs.lock.json` 锁定的既有 Release 提供。build370 使用 `ci-assets.py --base-only` 保留源码自带的正式 DSH 配方元数据并只还原基础/独立应急输入，再按 rc.5 npm lock 重建正式运行时；默认完整还原必须提供当前完整 bundle。详细命令见 [固定构建输入](docs/fixed-build-inputs.md)。未上传的新资产不得填写为可用 Release URL。
 
 Release完整源码ZIP额外包含固定输入包`locked-current-build-inputs.zip`中的原始文件，按项目路径直接展开，不嵌套该ZIP。F13固定输入包为738,101,893 bytes，SHA-256 `da3a87e9782469136f08d37143582fec845af1a69406b9a534f8cb7f68249ed8`，由`tools/ci-assets.py --pack`逐SHA核对；该大小不是完整源码ZIP大小。旧738,099,607/738,099,619-byte输入包及12字节行尾差异属于F10及更早历史，不能代替本轮输入身份。配置工具链后按当前recipe构建，无需独立bundle；Git clone可做source-only检查，完整打包仍需固定原始输入。APK中的变换层不能逆还原全部原始rootfs，不提供从APK恢复所有输入的保证。
 

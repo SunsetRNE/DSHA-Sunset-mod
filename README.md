@@ -8,9 +8,9 @@
 | 项目 | 值 |
 |---|---|
 | 应用名 | **DSH-A-Su**（测试变体为 `DSH-A-Su Test`） |
-| 版本 | `0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1` |
-| versionCode | 369 |
-| 发布状态 | [build369 已发布](https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/tag/dsha-a-su-build369-20261116-080147)；正式 CI 通过，七资产与三包签名/来源已独立复核；本版设备验收待完成 |
+| 版本 | `0.2.1-rc.5-20261118.1400-dsh0.2.2-rc.5`（开发候选） |
+| versionCode | 370 |
+| 发布状态 | build370 尚未发布或设备验收；上一正式版为 [build369](https://github.com/SunsetRNE/DSHA-Sunset-mod/releases/tag/dsha-a-su-build369-20261116-080147)，其历史 CI 结果不代表本候选通过 |
 | 包名 | `io.github.sunsetrne.dsha`（测试变体 `io.github.sunsetrne.dsha.test`） |
 | 并行安装 | 与原版 `dsh.android.client`、更早的 `com.dsh.client` 完全独立，数据与系统授权互不继承 |
 | 签名 | Mod 自有发布证书，SHA-256 `a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d` |
@@ -66,14 +66,19 @@ DSHA 把这些封进一个 APK：内置完整的 Ubuntu 环境，`apt`、交互�
 
 ## 从源码构建
 
-需要 JDK 17、Node 24、Python 3.9+、Android SDK 37 与 NDK 26。固定输入用公开预发布资产还原，工具链与签名配置见 [BUILD.md](BUILD.md) 与 [docs/fixed-build-inputs.md](docs/fixed-build-inputs.md)。
+需要 JDK 17、Node 24、Python 3.9+、Android SDK 37 与 NDK 26。含原生黄金用例的单测还需按 `ci/rust-toolchain.lock.json` 安装 Rust 1.100.0 并构建 host JNI 库；source-only 模式也不跳过这些用例。固定输入用公开预发布基础资产还原后重建 rc.5，工具链与签名配置见 [BUILD.md](BUILD.md) 与 [docs/fixed-build-inputs.md](docs/fixed-build-inputs.md)。
 
 ```bash
 python3 tools/ci-assets.py --url "$(python3 -c 'import json;print(json.load(open("ci/sunset-inputs.lock.json"))["url"])')" \
-  --sha256 "$(python3 -c 'import json;print(json.load(open("ci/sunset-inputs.lock.json"))["sha256"])')"
+  --sha256 "$(python3 -c 'import json;print(json.load(open("ci/sunset-inputs.lock.json"))["sha256"])')" --base-only
+python3 tools/prepare-dsh-runtime.py
+python3 tools/prepare-backup-assets.py --write
+python3 tools/prepare-runtime-descriptor.py --write
 python3 tools/run-host-tests.py --check-manifest
 python3 tools/run-host-tests.py --stage fast
-./gradlew :app:testStandardDebugUnitTest :app:lintStandardRelease
+python3 tools/rust/build.py --host --out out/rust-host --receipt out/rust-host/receipt.json
+./gradlew :app:testStandardDebugUnitTest :app:lintStandardRelease \
+  -Pdsha.rust.hostLib="$PWD/out/rust-host/libdsha_rs.so" -Pdsha.rust.required=true
 ./gradlew :app:assembleStandardRelease
 ```
 

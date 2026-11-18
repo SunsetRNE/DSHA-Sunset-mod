@@ -43,6 +43,13 @@ READ_COMPATIBILITY = {
     # profile package.json normalization. See
     # docs/runtime-data-compatibility-0.2.2-rc.1.md. Do not infer older edges.
     '0.2.2-rc.1': ['dsh-0.2.1-rc.5'],
+    # build370: exact managed rc1 c1bd6833... -> managed rc5 f85d88b8...
+    # passed archive-bound real JSON/session/attachment/profile read-write-reopen
+    # checks. Preserve the direct edge only; older labels are not transitive.
+    # rc5 removes retired agent-team-profile from profile bundles on load;
+    # finite reverse-read evidence is not rollback authorization. See
+    # docs/runtime-data-compatibility-0.2.2-rc.5.md for checks and exclusions.
+    '0.2.2-rc.5': ['dsh-0.2.2-rc.1'],
 }
 
 def digest(path):
