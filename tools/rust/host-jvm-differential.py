@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -40,6 +41,10 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 from source_layout import SourceLayout  # noqa: E402
+PREPARE_SPEC = importlib.util.spec_from_file_location(
+    "rust_kotlin_host_prepare", ROOT / "tools/rust/prepare-kotlin-host.py")
+KOTLIN_PREPARER = importlib.util.module_from_spec(PREPARE_SPEC)
+PREPARE_SPEC.loader.exec_module(KOTLIN_PREPARER)
 PROBE_SOURCE = ROOT / "tools/rust/host-jvm"
 APP_SOURCE = ROOT / "app/src/main/java/com/deepseekharness/app"
 MAKE_FIXTURES = ROOT / "tools/rust/make-fixtures.py"
@@ -178,35 +183,15 @@ def bridge_sources(root=ROOT) -> list[Path]:
 
 
 def kotlin_libraries(directory: Path | None, root=ROOT) -> list[Path]:
-    """只接受源码依赖校验元数据锁住的编译器闭包，不下载、不放宽验证。"""
-    if directory is None or not directory.is_dir():
-        raise ProbeError("KOTLIN_COMPILER_REQUIRED: mixed sources require --kotlin-libs DIR")
-    settings = (root / "settings.gradle").read_text(encoding="utf-8")
-    match = re.search(r"gradle\.ext\.kotlinVersion\s*=\s*'([^']+)'", settings)
-    if not match:
-        raise ProbeError("KOTLIN_VERSION_NOT_PINNED")
-    version = match.group(1)
-    metadata = ET.parse(root / "gradle/verification-metadata.xml").getroot()
-    pins = {}
-    for component in metadata.findall("./{*}components/{*}component"):
-        for artifact in component.findall("{*}artifact"):
-            pins[artifact.attrib["name"]] = {row.attrib["value"] for row in artifact.findall("{*}sha256")}
-    required = ["kotlin-compiler-embeddable", "kotlin-stdlib", "kotlin-script-runtime",
-                "kotlin-daemon-embeddable", "kotlin-reflect", "kotlinx-coroutines-core-jvm", "annotations"]
-    selected = []
-    for name in required:
-        matches = sorted(directory.glob(name + "-*.jar"))
-        # 不以 prefix 误选 stdlib-jdk8 等不同 artifact；其版本必须以数字开头。
-        matches = [path for path in matches if re.fullmatch(re.escape(name) + r"-\d[^/]*\.jar", path.name)]
-        if len(matches) != 1 or matches[0].is_symlink():
-            raise ProbeError("KOTLIN_COMPILER_ARTIFACT_AMBIGUOUS: " + name)
-        path = matches[0]
-        if name in required[:4] and path.name != name + "-" + version + ".jar":
-            raise ProbeError("KOTLIN_COMPILER_VERSION: " + path.name)
-        if hashlib.sha256(path.read_bytes()).hexdigest() not in pins.get(path.name, set()):
-            raise ProbeError("KOTLIN_COMPILER_DIGEST: " + path.name)
-        selected.append(path)
-    return selected
+    """与独立准备工具共用逐坐标 SHA 校验；消费者本身从不联网。"""
+    if directory is None:
+        raise ProbeError("KOTLIN_COMPILER_REQUIRED: run tools/rust/prepare-kotlin-host.py first")
+    try:
+        report = KOTLIN_PREPARER.prepare(directory, check=True, root=root)
+    except (KOTLIN_PREPARER.PrepareError, OSError, ET.ParseError) as error:
+        raise ProbeError("KOTLIN_COMPILER_REQUIRED: run tools/rust/prepare-kotlin-host.py "
+                         "--dir <kotlin-libs>; " + str(error)) from error
+    return [Path(report["directory"]) / row["file"] for row in report["files"]]
 
 
 def compile_sources(home: Path, sources: list[Path], classes: Path, temporary: Path,
@@ -241,7 +226,8 @@ def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--lib", type=Path, required=True, help="主机目标 libdsha_rs.so")
     parser.add_argument("--report", type=Path, required=True)
-    parser.add_argument("--kotlin-libs", type=Path, help="混合闭包所需的锁定编译器 JAR 目录")
+    parser.add_argument("--kotlin-libs", type=Path, default=ROOT / "app/build/kotlin-host",
+                        help="prepare-kotlin-host.py 准备的 JAR 目录（默认 app/build/kotlin-host）")
     args = parser.parse_args(argv)
     library = args.lib.resolve()
     if not library.is_file():

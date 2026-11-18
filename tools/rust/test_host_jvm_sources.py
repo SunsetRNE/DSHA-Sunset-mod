@@ -4,6 +4,7 @@ import importlib.util
 from pathlib import Path
 import json
 import hashlib
+import io
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -59,23 +60,25 @@ class HostJvmSourceTest(unittest.TestCase):
         with self.assertRaisesRegex(MODULE.ProbeError, "KOTLIN_COMPILER_REQUIRED"):
             MODULE.kotlin_libraries(None)
 
-    def compiler_fixture(self, root):
+    def compiler_fixture(self, root, populate=True):
         (root / "gradle").mkdir()
         (root / "settings.gradle").write_text("gradle.ext.kotlinVersion = '2.2.10'\n")
         directory = root / "jars"
-        directory.mkdir()
-        names = [name + "-2.2.10.jar" for name in ["kotlin-compiler-embeddable", "kotlin-stdlib",
-            "kotlin-script-runtime", "kotlin-daemon-embeddable"]]
-        names += ["kotlin-reflect-1.6.10.jar", "kotlinx-coroutines-core-jvm-1.8.0.jar", "annotations-13.0.jar"]
-        artifacts = []
-        for name in names:
-            data = name.encode()
-            (directory / name).write_bytes(data)
-            artifacts.append('<artifact name="' + name + '"><sha256 value="' +
-                             hashlib.sha256(data).hexdigest() + '"/></artifact>')
+        if populate:
+            directory.mkdir()
+        components = []
+        for group, name, version in MODULE.KOTLIN_PREPARER.COORDINATES:
+            version = version or "2.2.10"
+            filename = name + "-" + version + ".jar"
+            data = filename.encode()
+            if populate:
+                (directory / filename).write_bytes(data)
+            components.append('<component group="' + group + '" name="' + name +
+                '" version="' + version + '"><artifact name="' + filename +
+                '"><sha256 value="' + hashlib.sha256(data).hexdigest() + '"/></artifact></component>')
         (root / "gradle/verification-metadata.xml").write_text(
             '<verification-metadata xmlns="https://schema.gradle.org/dependency-verification">'
-            '<components><component>' + ''.join(artifacts) + '</component></components></verification-metadata>')
+            '<components>' + ''.join(components) + '</components></verification-metadata>')
         return directory
 
     def test_namespaced_verification_metadata_pins_each_compiler_artifact(self):
@@ -98,6 +101,100 @@ class HostJvmSourceTest(unittest.TestCase):
                     (jars / "kotlin-compiler-embeddable-2.2.11.jar").write_bytes(b"extra")
                 with self.assertRaises(MODULE.ProbeError):
                     MODULE.kotlin_libraries(jars, root)
+
+    def response(self, data, url):
+        value = io.BytesIO(data)
+        value.geturl = lambda: url
+        return value
+
+    def test_prepare_downloads_exact_seven_then_check_is_read_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            jars = self.compiler_fixture(root, populate=False)
+            requests = []
+            def open_fixture(request, timeout):
+                self.assertTrue(request.full_url.startswith(MODULE.KOTLIN_PREPARER.MAVEN))
+                requests.append(request.full_url)
+                return self.response(request.full_url.rsplit('/', 1)[-1].encode(), request.full_url)
+            result = MODULE.KOTLIN_PREPARER.prepare(jars, root=root, opener=open_fixture)
+            self.assertEqual(7, len(requests))
+            self.assertEqual(7, len(result['files']))
+            before = {p.name: p.stat().st_mtime_ns for p in jars.iterdir()}
+            with patch.object(MODULE.KOTLIN_PREPARER.urllib.request, 'build_opener',
+                              side_effect=AssertionError('check must not open network')):
+                checked = MODULE.KOTLIN_PREPARER.prepare(jars, check=True, root=root)
+            self.assertTrue(checked['checkOnly'])
+            self.assertEqual(before, {p.name: p.stat().st_mtime_ns for p in jars.iterdir()})
+
+    def test_check_missing_does_not_create_directory_or_download(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            jars = self.compiler_fixture(root, populate=False)
+            with self.assertRaises(MODULE.KOTLIN_PREPARER.PrepareError):
+                MODULE.KOTLIN_PREPARER.prepare(jars, check=True, root=root)
+            self.assertFalse(jars.exists())
+
+    def test_existing_bad_jar_is_preserved_before_any_network(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            jars = self.compiler_fixture(root)
+            broken = jars / 'kotlin-stdlib-2.2.10.jar'
+            broken.write_bytes(b'keep this evidence')
+            with self.assertRaisesRegex(MODULE.KOTLIN_PREPARER.PrepareError, 'EXISTING_DIGEST'):
+                MODULE.KOTLIN_PREPARER.prepare(jars, root=root,
+                    opener=lambda *a, **kw: self.fail('no download before existing validation'))
+            self.assertEqual(b'keep this evidence', broken.read_bytes())
+
+    def test_download_tamper_or_foreign_redirect_never_publishes(self):
+        for failure in ('digest', 'redirect'):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                jars = self.compiler_fixture(root, populate=False)
+                def bad_response(request, timeout):
+                    data = b'wrong' if failure == 'digest' else request.full_url.rsplit('/', 1)[-1].encode()
+                    url = request.full_url if failure == 'digest' else 'https://example.com/untrusted.jar'
+                    return self.response(data, url)
+                with self.assertRaises(MODULE.KOTLIN_PREPARER.PrepareError):
+                    MODULE.KOTLIN_PREPARER.prepare(jars, root=root, opener=bad_response)
+                self.assertEqual([], list(jars.iterdir()))
+
+    def test_only_official_https_and_pinned_coordinates_are_allowed(self):
+        for url in ('http://repo.maven.apache.org/maven2/x.jar', 'https://example.com/x.jar',
+                    'https://user@repo.maven.apache.org/maven2/x.jar',
+                    'https://repo.maven.apache.org/maven2/x.jar?token=x'):
+            with self.subTest(url=url), self.assertRaises(MODULE.KOTLIN_PREPARER.PrepareError):
+                MODULE.KOTLIN_PREPARER.allowed_url(url)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.compiler_fixture(root)
+            lock = root / 'gradle/verification-metadata.xml'
+            lock.write_text(lock.read_text().replace('group="org.jetbrains.kotlin"', 'group="untrusted"', 1))
+            with self.assertRaisesRegex(MODULE.KOTLIN_PREPARER.PrepareError, 'COORDINATE_PIN'):
+                MODULE.KOTLIN_PREPARER.locked_artifacts(root)
+
+    def test_symlink_jar_and_unsupported_kgp_are_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            jars = self.compiler_fixture(root)
+            target = jars / 'kotlin-stdlib-2.2.10.jar'
+            saved = root / 'original.jar'
+            target.rename(saved)
+            target.symlink_to(saved)
+            with self.assertRaisesRegex(MODULE.KOTLIN_PREPARER.PrepareError, 'LINK'):
+                MODULE.KOTLIN_PREPARER.prepare(jars, check=True, root=root)
+            (root / 'settings.gradle').write_text("gradle.ext.kotlinVersion = '2.2.11'\n")
+            with self.assertRaisesRegex(MODULE.KOTLIN_PREPARER.PrepareError, 'UNSUPPORTED_KGP'):
+                MODULE.KOTLIN_PREPARER.locked_artifacts(root)
+
+    def test_ci_prepares_and_checks_same_directory_before_probe(self):
+        source = (ROOT / '.github/workflows/_node-rust.yml').read_text()
+        prepare = 'python3 tools/rust/prepare-kotlin-host.py --dir out/kotlin-host'
+        check = prepare + ' --check'
+        probe = 'python3 tools/rust/host-jvm-differential.py'
+        self.assertLess(source.index(prepare), source.index(check))
+        self.assertLess(source.index(check), source.index(probe))
+        self.assertIn('--kotlin-libs out/kotlin-host', source)
+        self.assertIn('python3 tools/test-rust-host-jvm-sources.py', source)
 
     def test_java_only_compile_remains_javac(self):
         with tempfile.TemporaryDirectory() as directory:

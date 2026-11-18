@@ -113,3 +113,24 @@ python3 tools/rust/host-jvm-differential.py \
 - 工作树忽略目录 `app/build/rust-bridge-migration/` 保存 baseline/candidate 源摘要、class、javap、API diff、编译/JUnit/host探针与格式日志；主代理可读取核验，但这些本机日志不提交到源码仓库。
 
 未执行 Gradle、APK 构建/安装、Android JNI 真机、4/16KiB 设备验证、发布或 push。GNU host JNI 成功不冒称 Android 上已加载。
+
+## 干净 CI 编译器闭包续修
+
+初版 `c287634f` 要求显式 `--kotlin-libs`，但现有 Rust differential 工作流未准备该目录，干净 runner 会失败。续修新增 [prepare-kotlin-host.py](../../../tools/rust/prepare-kotlin-host.py)，与 host 探针共用校验，不通过 Gradle 解析整个 APK。
+
+- 四个主 Kotlin JAR 版本取自 settings 的固定 `2.2.10`；compiler POM 对应的 reflect `1.6.10`、coroutines `1.8.0` 以及 JVM 注解 `13.0` 组成七 JAR 闭包。未来 KGP 变化必须明确审阅闭包，不静默复用旧辅助版本。
+- 按 group/name/version/filename 精确读取 Gradle verification metadata 中唯一 SHA-256。固定下载源为 `https://repo.maven.apache.org/maven2/`；拒绝 HTTP、非官方域名、凭据/查询参数与外域重定向。逐个验证有界下载内容后独占创建目标，不覆盖已存在坏文件。
+- `--check` 只读校验，不创建目录或联网。已有坏 JAR、符号链接、重复版本拒绝并保留原件；部分输出遇中断后也留作证据，后续调用拒绝而非悄悄替换。
+- [_node-rust.yml](../../../.github/workflows/_node-rust.yml) differential 顺序为专用测试 → prepare → check → host 构建 → `host-jvm-differential.py --kotlin-libs out/kotlin-host`。默认本机目录为 `app/build/kotlin-host`，缺输入明确打印准备命令；消费者不暗中联网。
+- 已核对现有可执行调用：CI 只有该共享节点；主 `run-host-tests.py` 没有直接 host-jvm 调用。现有 RustGraph 的 9 项测试通过。
+- 原子目录测试保留 [test_host_jvm_sources.py](../../../tools/rust/test_host_jvm_sources.py)，新增可被主测试发现的根入口 [test-rust-host-jvm-sources.py](../../../tools/test-rust-host-jvm-sources.py)。主代理应登记根入口，移除误登记的子目录入口；本批不改共享 manifest。
+
+续修专用测试共 14 项通过，含下载流/内容核验、坏原件保留、只读 check、篡改/外域 redirect、同坐标/版本拒绝与 CI 顺序。实际空目录官方下载及紧随的 `--check` 回执在本机 `app/build/rust-bridge-migration/kotlin-host-clean-{download,check}.json`，只作为本轮获取字节证据，不冒充远端 CI 执行。
+
+```bash
+python3 tools/test-rust-host-jvm-sources.py
+python3 tools/rust/prepare-kotlin-host.py --dir out/kotlin-host
+python3 tools/rust/prepare-kotlin-host.py --dir out/kotlin-host --check
+python3 tools/rust/host-jvm-differential.py --lib <本轮host.so> \
+  --kotlin-libs out/kotlin-host --report out/rust-differential.json
+```
