@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-settings/lib/client.js",
+  "sourceSha256": "ebf76f56c79225a3bf484345305ee042f89ed13edd73cc76f8b16766628a17e6",
+  "requiredAnchors": [
+    "const revision=expectedRevision??this.pendingRevision??this.getSnapshot().revision;",
+    "const response=await this.ctx.remote.settings.mutate(this.spec.namespace,ownedOps,revision);",
+    "const response=await this.ctx.remote.settings.describe();",
+    "const inject=[`remote`,`remote.settings`];"
+  ],
+  "forbiddenAnchors": [
+    "ctx.remote.$host.isLoopback",
+    "DSHA patch: LAN 代理场景强制 host 持久化"
+  ],
+  "reason": "DSH 0.2.2-rc.5 preserves the Host describe mirror, serialized revision-fenced settings.mutate and authenticated-browser persistence in a new minified bundle. The exact rc.5 bytes require their own proof; no loopback-only memory store or legacy DSHA rewrite is accepted."
+}
