@@ -17,6 +17,8 @@ NAMES = ["offline-rootfs.bin", "dsh-runtime.bin", "dsh-runtime.inputs.json",
          "ubuntu-tools.bin", "ubuntu-tools.inputs.json", "pnpm-runtime.bin",
          "python-support.bin", "glibc-python.tar.gz", "adb-wheels.tar.gz",
          "gh-cli.tar.gz"]
+# 正式 DSH 可独立升级；基础包与独立应急归档仍按各自 pin 核验。
+RUNTIME_REBUILD_NAMES = {"dsh-runtime.bin", "dsh-runtime.inputs.json"}
 
 
 def check_name(name):
@@ -84,11 +86,11 @@ def separate_input_pins():
             "adb-wheels.tar.gz": (adb["archiveSha256"], None)}
 
 
-def verify_sources(inputs_root=None):
+def verify_sources(inputs_root=None, *, base_only=False):
     descriptor = json.loads((ROOT / "app/src/main/assets/runtime-descriptor.json").read_text(encoding="utf-8"))
     separate = separate_input_pins()
     for name in NAMES:
-        if name.endswith(".inputs.json"):
+        if name.endswith(".inputs.json") or base_only and name in RUNTIME_REBUILD_NAMES:
             continue
         path = bounded("app/src/main/assets/" + name, inputs_root)
         expected = descriptor["inputs"].get(name)
@@ -173,7 +175,7 @@ def selected_members(archive, names, source_archive):
     return selected
 
 
-def restore(package, sha256, source_archive, directory):
+def restore(package, sha256, source_archive, directory, *, base_only=False):
     if package.stat().st_size > 2 * 1024 ** 3:
         raise ValueError("CI_ASSET_DOWNLOAD_LIMIT")
     if digest(package) != sha256:
@@ -181,6 +183,10 @@ def restore(package, sha256, source_archive, directory):
     prepared = Path(directory) / "prepared"
     with zipfile.ZipFile(package) as archive:
         members = selected_members(archive, allowed(), source_archive)
+        if base_only:
+            # 先核完整包成员，再只取基础输入；旧正式 DSH 及其元数据都不覆盖当前源码。
+            skipped = {"app/src/main/assets/" + name for name in RUNTIME_REBUILD_NAMES}
+            members = {name: entry for name, entry in members.items() if name not in skipped}
         # 只用源码白名单选择输出路径；额外源码成员不会被读取或执行。
         for name, entry in sorted(members.items()):
             candidate = bounded(name, prepared)
@@ -189,7 +195,7 @@ def restore(package, sha256, source_archive, directory):
                 for chunk in iter(lambda: source.read(1048576), b""):
                     output.write(chunk)
     # 所有候选先通过当前源码的 pin，任何损坏都不会覆盖原输入。
-    verify_sources(prepared)
+    verify_sources(prepared, base_only=base_only)
     targets = {name: bounded(name) for name in members}
     for name, target in targets.items():
         if target.exists() and not target.is_file():
@@ -206,12 +212,14 @@ def main(argv=None):
     modes.add_argument("--url")
     modes.add_argument("--archive", type=Path, help="复用本地 ZIP，仍需固定 SHA-256")
     parser.add_argument("--source-archive", action="store_true", help="仅恢复完整源码 ZIP 中的固定输入子集")
+    parser.add_argument("--base-only", action="store_true",
+                        help="仅还原基础/应急输入，保留正式 DSH 与元数据；随后必须按 npm 锁重建")
     parser.add_argument("--sha256")
     args = parser.parse_args(argv)
     names = allowed()
     if args.pack:
-        if args.source_archive:
-            parser.error("--source-archive 仅用于恢复")
+        if args.source_archive or args.base_only:
+            parser.error("--source-archive / --base-only 仅用于恢复")
         verify_sources()
         args.pack.parent.mkdir(parents=True, exist_ok=True)
         with zipfile.ZipFile(args.pack, "x", zipfile.ZIP_STORED) as output:
@@ -230,8 +238,11 @@ def main(argv=None):
         package = args.archive or Path(directory) / "inputs.zip"
         if args.url:
             download(args.url, package)
-        restore(package, args.sha256, args.source_archive, directory)
-    print("PASS locked CI asset inputs; source builders must verify their own recipe metadata")
+        restore(package, args.sha256, args.source_archive, directory, base_only=args.base_only)
+    if args.base_only:
+        print("PASS locked base CI inputs; managed DSH NOT restored; rebuild from npm lock required")
+    else:
+        print("PASS locked CI asset inputs; source builders must verify their own recipe metadata")
 
 
 if __name__ == "__main__":

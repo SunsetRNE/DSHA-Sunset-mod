@@ -83,10 +83,13 @@ jobs:
           INPUT_URL: ${{ steps.resolve.outputs.url }}
           INPUT_SHA: ${{ steps.resolve.outputs.sha256 }}
           INPUT_FORMAT: ${{ steps.resolve.outputs.format }}
+          REBUILD_RUNTIME: ${{ inputs.rebuild_runtime }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           args=(--url "$INPUT_URL" --sha256 "$INPUT_SHA")
           if [ "$INPUT_FORMAT" = source-archive ]; then args+=(--source-archive); fi
+          # 旧公开包只供应仍被当前 pin 接受的基础/应急输入；正式 DSH 随后从当前 npm 锁重建。
+          if [ "$REBUILD_RUNTIME" = true ]; then args+=(--base-only); fi
           python3 tools/ci-assets.py "${args[@]}"
       # 受管 dsh 运行时按 npm lock 内容缓存：命中时 npm ci 直接读本地缓存，发布 run 的首个节点
       # 从实测 40-65 s 降到约 20-30 s。缓存键只含 lock 哈希，与源码 / 发布身份无关；

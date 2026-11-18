@@ -488,6 +488,18 @@ class SourceAndServices(unittest.TestCase):
         self.assertIn("tools/ci-handoff.py unpack", restore)
         self.assertIn("verify-runtime-descriptor-source.py", restore)
 
+    def test_rebuild_restores_only_base_before_current_runtime_build(self):
+        source = text("_node-inputs.yml")
+        restore = source.split("- name: Restore exact fixed build inputs", 1)[1].split(
+            "- name: Restore managed runtime npm cache", 1)[0]
+        self.assertIn("REBUILD_RUNTIME: ${{ inputs.rebuild_runtime }}", restore)
+        self.assertIn('if [ "$REBUILD_RUNTIME" = true ]; then args+=(--base-only); fi', restore)
+        rebuild = source.split("- name: Rebuild current managed DSH runtime", 1)[1].split(
+            "- name: Pack input handoff", 1)[0]
+        self.assertIn("if: inputs.rebuild_runtime", rebuild)
+        self.assertIn("tools/prepare-dsh-runtime.py", rebuild)
+        self.assertIn("tools/verify-runtime-descriptor-source.py", rebuild)
+
     def test_scheduled_inputs_health_only_reads(self):
         source = text("inputs-health.yml")
         self.assertIn("schedule:", source)

@@ -82,10 +82,12 @@ class CiAssetsTests(unittest.TestCase):
                     archive.writestr(name, data)
         return package
 
-    def restore(self, package, source=False, sha256=None):
+    def restore(self, package, source=False, sha256=None, base_only=False):
         argv = ['--archive', str(package), '--sha256', sha256 or assets.digest(package)]
         if source:
             argv.append('--source-archive')
+        if base_only:
+            argv.append('--base-only')
         with contextlib.redirect_stdout(io.StringIO()):
             assets.main(argv)
 
@@ -141,6 +143,79 @@ class CiAssetsTests(unittest.TestCase):
             for name, data in self.recovery_blobs.items():
                 self.assertEqual(archive.read('tools/recovery-runtime/archives/' + name), data)
         self.assertNotIn('tools/ci-build-inputs.lock.json', assets.allowed(), 'source lock is already in the source checkout')
+
+    def test_base_restore_preserves_new_runtime_and_provenance(self):
+        package, _ = self.pack()
+        new_runtime = b'new dependency-locked runtime'
+        new_metadata = b'new source recipe provenance'
+        (self.assets / 'dsh-runtime.bin').write_bytes(new_runtime)
+        (self.assets / 'dsh-runtime.inputs.json').write_bytes(new_metadata)
+        self.descriptor['inputs']['dsh-runtime.bin'] = sha(new_runtime)
+        self.save_locks()
+        (self.assets / 'offline-rootfs.bin').unlink()
+        self.restore(package, base_only=True)
+        self.assertEqual((self.assets / 'dsh-runtime.bin').read_bytes(), new_runtime)
+        self.assertEqual((self.assets / 'dsh-runtime.inputs.json').read_bytes(), new_metadata)
+        self.assertEqual((self.assets / 'offline-rootfs.bin').read_bytes(), self.blobs['offline-rootfs.bin'])
+        assets.verify_sources()
+        with self.assertRaisesRegex(ValueError, 'CI_ASSET_SOURCE_MISMATCH: dsh-runtime.bin'):
+            self.restore(package)
+        self.assertEqual((self.assets / 'dsh-runtime.bin').read_bytes(), new_runtime)
+
+    def test_base_restore_does_not_claim_or_materialize_managed_runtime(self):
+        package, _ = self.pack()
+        for name in assets.RUNTIME_REBUILD_NAMES:
+            (self.assets / name).unlink()
+        self.descriptor['inputs']['dsh-runtime.bin'] = sha(b'new not-built runtime')
+        self.save_locks()
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            assets.main(['--archive', str(package), '--sha256', assets.digest(package), '--base-only'])
+        self.assertIn('managed DSH NOT restored', output.getvalue())
+        for name in assets.RUNTIME_REBUILD_NAMES:
+            self.assertFalse((self.assets / name).exists())
+        with self.assertRaisesRegex(ValueError, 'CI_ASSET_NOT_REGULAR: dsh-runtime.bin'):
+            assets.verify_sources()
+        assets.verify_sources(base_only=True)
+
+    def test_base_restore_keeps_digest_member_and_recovery_guards(self):
+        for changed, message in [
+                ('app/src/main/assets/offline-rootfs.bin', 'CI_ASSET_SOURCE_MISMATCH'),
+                ('tools/recovery-runtime/archives/recovery-dsh-runtime.bin', 'CI_RECOVERY_ARCHIVE_MISMATCH')]:
+            with self.subTest(changed=changed):
+                package = self.zip_inputs(changes={changed: b'untrusted bytes'})
+                before = {name: (self.root / name).read_bytes() for name in assets.allowed()}
+                with self.assertRaisesRegex(ValueError, message):
+                    self.restore(package, base_only=True)
+                self.assertEqual(before, {name: (self.root / name).read_bytes() for name in assets.allowed()})
+        package = self.zip_inputs(omitted=['app/src/main/assets/dsh-runtime.bin'])
+        with self.assertRaisesRegex(ValueError, 'CI_ASSET_MEMBER_SET'):
+            self.restore(package, base_only=True)
+        package = self.zip_inputs()
+        with self.assertRaisesRegex(ValueError, 'CI_ASSET_BUNDLE_SHA256'):
+            self.restore(package, sha256='0' * 64, base_only=True)
+
+    def test_base_source_restore_does_not_open_old_runtime_members(self):
+        package = self.zip_inputs('release/', [('release/README.md', b'old source')])
+        opened = []
+        original_open = zipfile.ZipFile.open
+
+        def track_open(archive, name, *args, **kwargs):
+            opened.append(name.filename if isinstance(name, zipfile.ZipInfo) else name)
+            return original_open(archive, name, *args, **kwargs)
+
+        with patch.object(zipfile.ZipFile, 'open', track_open):
+            self.restore(package, source=True, base_only=True)
+        self.assertEqual(len(opened), len(assets.allowed()) - 2)
+        for name in assets.RUNTIME_REBUILD_NAMES:
+            self.assertNotIn('release/app/src/main/assets/' + name, opened)
+
+    def test_base_only_cannot_pack_an_incomplete_release_bundle(self):
+        with contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as failure:
+                assets.main(['--pack', str(self.root / 'forbidden.zip'), '--base-only'])
+        self.assertEqual(failure.exception.code, 2)
+        self.assertFalse((self.root / 'forbidden.zip').exists())
 
     def test_bad_python_digest_and_size_are_rejected(self):
         original = self.blobs['python-support.bin']
