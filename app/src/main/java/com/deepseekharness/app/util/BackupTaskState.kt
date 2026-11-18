@@ -1,3 +1,6 @@
+// 保留原 Java 方法 flags；类本身仍为 final，不开放继承。
+@file:Suppress("NON_FINAL_MEMBER_IN_FINAL_CLASS")
+
 package com.deepseekharness.app.util
 
 /** 页面不拥有任务；等待确认仍占槽位，旧页面不能确认下一次任务。 */
@@ -19,7 +22,7 @@ class BackupTaskState {
     private var status: Status? = Status.IDLE
 
     @Synchronized
-    fun start(kind: String?): Long {
+    open fun start(kind: String?): Long {
         if (busy()) return -1
         id = Math.max(System.currentTimeMillis(), id + 1)
         this.kind = kind
@@ -29,10 +32,10 @@ class BackupTaskState {
         return id
     }
 
-    @Synchronized fun busy(): Boolean = status == Status.RUNNING || status == Status.PREVIEW
+    @Synchronized open fun busy(): Boolean = status == Status.RUNNING || status == Status.PREVIEW
 
     @Synchronized
-    fun update(expected: Long, next: Status?, message: String?) {
+    open fun update(expected: Long, next: Status?, message: String?) {
         if (expected != id || !busy()) return
         status = next
         detail = SensitiveData.redact(message ?: "")
@@ -40,22 +43,22 @@ class BackupTaskState {
     }
 
     @Synchronized
-    fun confirm(expected: Long): Boolean {
+    open fun confirm(expected: Long): Boolean {
         if (id != expected || status != Status.PREVIEW) return false
         status = Status.RUNNING
         detail = UiText.text("正在恢复…")
         return true
     }
 
-    @Synchronized fun snapshot(): Snapshot = Snapshot(id, kind, status, detail, lastStage)
+    @Synchronized open fun snapshot(): Snapshot = Snapshot(id, kind, status, detail, lastStage)
 
     @Synchronized
-    fun restoreStage(stage: String?) {
+    open fun restoreStage(stage: String?) {
         lastStage = SensitiveData.redact(stage ?: "")
     }
 
     @Synchronized
-    fun restore(id: Long, kind: String?, status: Status?, detail: String?) {
+    open fun restore(id: Long, kind: String?, status: Status?, detail: String?) {
         this.id = id
         this.kind = kind
         this.status = status
@@ -68,7 +71,7 @@ class BackupTaskState {
 
     /** 完成的应用内格式化交给欢迎页后，移除旧结果。 */
     @Synchronized
-    fun reset() {
+    open fun reset() {
         id = 0
         kind = ""
         detail = ""
@@ -85,6 +88,6 @@ class BackupTaskState {
         @JvmField val detail: String?,
         @JvmField val lastStage: String?,
     ) {
-        fun busy(): Boolean = status == Status.RUNNING || status == Status.PREVIEW
+        open fun busy(): Boolean = status == Status.RUNNING || status == Status.PREVIEW
     }
 }

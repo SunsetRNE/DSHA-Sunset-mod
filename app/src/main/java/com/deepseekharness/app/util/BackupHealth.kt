@@ -1,3 +1,6 @@
+// 保留原 Java 方法 flags；类本身仍为 final，不开放继承。
+@file:Suppress("NON_FINAL_MEMBER_IN_OBJECT")
+
 package com.deepseekharness.app.util
 
 /**
@@ -20,7 +23,7 @@ class BackupHealth private constructor() {
         private const val DAY: Long = 24L * 60 * 60 * 1000
 
         @JvmStatic
-        fun evaluate(
+        open fun evaluate(
             lastSuccess: Long,
             lastError: String?,
             busy: Boolean,
@@ -38,13 +41,13 @@ class BackupHealth private constructor() {
 
         /** 完整天数；未备份或时钟回拨返回零。 */
         @JvmStatic
-        fun ageDays(lastSuccess: Long, now: Long): Long {
+        open fun ageDays(lastSuccess: Long, now: Long): Long {
             if (lastSuccess <= 0 || now <= lastSuccess) return 0
             return (now - lastSuccess) / DAY
         }
 
         @JvmStatic
-        fun severity(level: Level?): Int =
+        open fun severity(level: Level?): Int =
             when (level ?: throw NullPointerException()) {
                 Level.PROTECTED,
                 Level.RUNNING -> 0

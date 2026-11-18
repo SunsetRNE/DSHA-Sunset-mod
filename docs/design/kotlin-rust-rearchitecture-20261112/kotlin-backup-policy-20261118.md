@@ -35,15 +35,15 @@
 
 冻结并比较 13 个 JVM 类型：8 个顶层类，以及 `BackupExportGuidance$Kind`、`BackupHealth$Level`、`BackupTaskState$Status`、`BackupTaskState$Snapshot`、`ScheduledBackupOwner$Ticket`。
 
-本轮 Python classfile 解析对比 **123 个原非 private / 非 synthetic 成员及 private 构造器**：类继承与泛型、成员名、描述符、泛型签名、checked exceptions、常量值、static/synchronized 标记及字段 final/volatile 没有未登记漂移；新旧 class major version 都为 61。本批原 API 没有 checked exception 声明，候选未添加。
+本轮最终 Python classfile 解析对比 **123 个原非 private / 非 synthetic 成员及 private 构造器**：类 access/继承/泛型、成员名、描述符、泛型签名、checked exceptions、常量值、完整方法 flags（含 final/static/synchronized）及字段 final/volatile 均与 Java 基线一致，只有下述已批准的 Snapshot 构造器可见性差异；新旧 class major version 都为 61。本批原 API 没有 checked exception 声明，候选未添加。
 
 以下字节码差异显式保留，不能称为“整个 API flags 或 class 文件逐字节一致”：
 
 1. **Snapshot 构造器可见性**：原 Java 包级 `(long, String, Status, String, String)` 构造器，在 Kotlin 中写为 `internal constructor`，JVM 为 public。开工时已报告并获主代理明确接受这一项；参数、字段、null 行为和对象身份都由 Java API/黄金测试覆盖。其他原 private 构造器保持 private。
-2. **44 个方法增加 ACC_FINAL**：原所属类本就 final，Java 不存在可继承覆盖的调用路径；Kotlin 生成的 static bridge 和实例方法显式带 final。静态与同步属性没有改变，反射可见的 final 差异没有隐瞒。
+2. **原 44 项方法 ACC_FINAL 差异已消除**：r1 的 Kotlin 默认方法显式带 final，虽原所属类本就 final、不改变继承行为，但反射和 classfile 可观察到。主代理批准有界追加修订后，26 个静态桥使用 `@JvmStatic open fun` 与 `NON_FINAL_MEMBER_IN_OBJECT` 抑制；`BackupTaskState` 的 8 个同步方法、Snapshot 的 `busy` 与 `ScheduledBackupOwner` 的 9 个方法使用 `open fun` 与 `NON_FINAL_MEMBER_IN_FINAL_CLASS` 抑制。保持类 final、函数体、字段、构造器及 `@Synchronized` 不变；锁定 KGP 2.2.10 格式化后实编确认这 44 项 flags 与 Java 完全一致。此项仅记历史修订过程，不再作为最终 API 差异接受。
 3. **Kotlin 编译器辅助成员**：6 个静态工具类增加 Companion，3 个枚举增加 `getEntries()`。`BackupTaskKinds` 的私有 ROWS 产生 synthetic 访问器。Ticket 增加 Companion、internal synthetic 工厂/访问器和带 `DefaultConstructorMarker` 的 synthetic 构造桥；原单参数构造器仍 private。新增票不会绕过 `current` 对活跃票的对象身份检查。synthetic 成员不是旧 Java API 的替代，也不声明为同进程安全隔离。
 
-新增 [BackupPolicyApiTest](../../../app/src/test/java/com/deepseekharness/app/util/BackupPolicyApiTest.java) 从 Java 端直接调用并反射核验静态入口、字段、枚举、构造器、泛型、异常和同步位。Snapshot 唯一批准的 ctor 可见性范围在测试中有明确注释。
+新增 [BackupPolicyApiTest](../../../app/src/test/java/com/deepseekharness/app/util/BackupPolicyApiTest.java) 从 Java 端直接调用并反射核验静态入口、字段、枚举、构造器、泛型、异常和同步位。追加修订在同一 helper 中强制所有原方法不带 final，并补齐状态类及调度 owner 的类 final 断言；没有放宽任何原断言。Snapshot 唯一批准的 ctor 可见性范围在测试中有明确注释。
 
 ## 黄金与实际执行证据
 
@@ -53,7 +53,9 @@
 |---|---|
 | Java 基线 | 8 原 Java 类新编译，原 8 测试 + 新增 2 测试共 **53 tests / 0 failures / 0 errors / 0 skipped / 0 assumptions** |
 | Kotlin 候选 r1 | KGP 2.2.10 新编译全部 8 个 Kotlin 类，再重新编译同一 10 个 Java 测试类；**53 / 0 / 0 / 0 / 0** |
-| API | 13 类型 / 123 原成员与 private ctor；无未登记差异，具体差异见上节 |
+| flags 修订 Java 基线 | 加强方法 non-final/类 final 断言后，重新编译同一 10 测试并对冻结 Java 类执行；**53 / 0 / 0 / 0 / 0** |
+| 最终 Kotlin 候选 flags-r2 | 先锁定格式化，再新编全部 8 Kotlin 类及同一 10 Java 测试；**53 / 0 / 0 / 0 / 0** |
+| 最终严格 API | 13 类型 / 123 原成员与 private ctor；完整 class/member flags 一致，仅保留批准的 Snapshot ctor 可见性差异 |
 | Kotlin 格式 | 锁定 ktfmt 0.64，8 个文件定向格式化并验证幂等，exit 0 |
 | 新 Java 测试格式 | 锁定 google-java-format 1.22.0，2 文件定向格式化，精确 Java tokens 保持不变，exit 0 |
 | 架构边界 | `python3 tools/test-core-boundaries.py`：25 tests 通过，exit 0 |
@@ -73,9 +75,15 @@ JVM 槽由主代理明确分配：javac/JUnit/javap 使用 128 MiB、kotlinc 使
 | `candidate-r1/receipt.json` | `8c551a7b2fb0a8caf26c9db52d6f0760682c1c3acd55ba8ad3490705e2321679` |
 | `candidate-r1/junit.log` | `658d45d0e419edd6cfe44af08b8451450c8647ce61682216e710634d855f41aa` |
 | `candidate-r1/api.log` | `3e36ca7f5a30873bf5a3a5e59a61f53682b1f4132b2e47969936faae8adf1e10` |
-| `api-comparison.json` | `4eea617e6d5d2f6219079fd7c89186c24bc5dceb30a0c3401721a25a51ffaa29` |
+| `api-comparison.json`（历史 r1） | `4eea617e6d5d2f6219079fd7c89186c24bc5dceb30a0c3401721a25a51ffaa29` |
+| `flags-edit-receipt.json` | `a1836645e0eaf8aa42fd149baaaa5efb1518f0109e13f4c523699fe38e7df683` |
+| `flags-java-baseline/receipt.json` | `1dbec4253b0279b9293464dea4aac80c938303810a4ced34550d9ee599b4196e` |
+| `candidate-flags-r2/receipt.json` | `bdedd3b7028a7c3c6fcb2162eaac145d979c4ab0e9e668e0736e4988ddb378e2` |
+| `candidate-flags-r2/junit.log` | `658d45d0e419edd6cfe44af08b8451450c8647ce61682216e710634d855f41aa` |
+| `candidate-flags-r2/api.log` | `22238d11827154608ffe17d987262da6780be0230ae9ab51e08705f19c28a5ca` |
+| `api-comparison-flags-r2.json`（最终） | `476b46bcf00774d036c22e7c7c4b013388000472589998b825e4fe38fe7dc789` |
 
-候选 r1 编译/API 对拍发生在格式化之前；格式化后已验证 ktfmt 幂等与新增 Java 测试精确 token 等价，本 worker 没有重启全流程。格式后最终源码和全项目 Java/Kotlin 调用闭包的编译证据由主代理串行集成补充，不将本次手工闭包结果写成最终 Gradle/CI 通过。
+历史候选 r1 编译/API 对拍发生在初次格式化之前。追加 flags 修订已在最终格式化后重编 8 个 Kotlin 类、重编全部 10 个相关 Java 测试，并重新严格 classfile 对拍；8 个被迁移类的格式后候选验证已补齐。`flags-edit-receipt.json` 记录修订前后 SHA，并在格式化前逆去新增的 `open` 与文件注解头核对函数体原字节不变。复验前对 1080 份依赖源再次 SHA 核对全部一致。全项目 Java/Kotlin 调用闭包仍由主代理串行集成补充，不将本次手工闭包结果写成完整 Gradle/CI 通过。
 
 ## 主代理集成项与未验范围
 
@@ -83,5 +91,5 @@ JVM 槽由主代理明确分配：javac/JUnit/javap 使用 128 MiB、kotlinc 使
 - 根据实际合入源码统一生成与验证最终 descriptor/受管证明。本分支不改运行时依赖、补丁、版本、数据格式、签名或权限。
 - 基线与候选测试 filters：`*BackupExportGuidanceTest`、`*BackupFileNamesTest`、`*BackupHealthTest`、`*BackupScopeTest`、`*BackupScopesTest`、`*BackupTaskKindsTest`、`*BackupTaskStateTest`、`*ScheduledBackupOwnerTest`、`*BackupPolicyGoldenTest`、`*BackupPolicyApiTest`。
 - 建议集成额外 filters：`*DeployDisplayTest`、`*DeployStagesTest`、`*EnvironmentIdentityTest`、`*BackupTaskScopeTest`、`*AutomaticBackupServiceGoldenTest`、`*OverwriteUpgradeGateTest`。这些是调用闭包建议，本 worker 未宣称运行过。
-- 未执行：完整 Gradle/AGP 调用闭包、格式后候选重编、全量单测、全仓 Java 格式登记门禁、最终 descriptor/证明生成、CI、Lint、APK、设备及真实备份恢复。本机手工 JVM 回归不能代替真实数据/设备验收。
+- 未执行：完整 Gradle/AGP 调用闭包、全量单测、全仓 Java 格式登记门禁、最终 descriptor/证明生成、CI、Lint、APK、设备及真实备份恢复。本机手工 JVM 回归不能代替真实数据/设备验收。
 - 没有安装 APK/移动补丁，没有 push 或发布。原数据和既有备份完全未操作。

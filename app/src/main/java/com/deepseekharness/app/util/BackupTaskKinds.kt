@@ -1,3 +1,6 @@
+// 保留原 Java 方法 flags；类本身仍为 final，不开放继承。
+@file:Suppress("NON_FINAL_MEMBER_IN_OBJECT")
+
 package com.deepseekharness.app.util
 
 /** 固定持久化操作标识；历史中英文标签继续可读。 */
@@ -38,21 +41,21 @@ class BackupTaskKinds private constructor() {
             )
 
         @JvmStatic
-        fun normalize(value: String?): String {
+        open fun normalize(value: String?): String {
             if (value == null) return ""
             for (row in ROWS) for (known in row) if (known == value) return row[0]
             return value
         }
 
         @JvmStatic
-        fun display(value: String?, english: Boolean): String? {
+        open fun display(value: String?, english: Boolean): String? {
             val id = normalize(value)
             for (row in ROWS) if (row[0] == id) return row[if (english) 2 else 1]
             return null
         }
 
         @JvmStatic
-        fun `is`(expected: String?, value: String?): Boolean {
+        open fun `is`(expected: String?, value: String?): Boolean {
             // 与 expected.equals(normalize(value)) 一致：先归一化，再因 null 接收者失败。
             val normalized = normalize(value)
             return expected!!.equals(normalized)

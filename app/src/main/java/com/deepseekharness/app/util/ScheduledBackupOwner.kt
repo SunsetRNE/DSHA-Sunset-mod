@@ -1,3 +1,6 @@
+// 保留原 Java 方法 flags；类本身仍为 final，不开放继承。
+@file:Suppress("NON_FINAL_MEMBER_IN_FINAL_CLASS")
+
 package com.deepseekharness.app.util
 
 /** 一个事件线程拥有调度参数，以及每个请求产生的精确原生作业。 */
@@ -18,26 +21,26 @@ class ScheduledBackupOwner<P> {
             throw IllegalStateException("SCHEDULED_BACKUP_OWNER_THREAD")
     }
 
-    fun begin(parameters: P): Ticket<P>? {
+    open fun begin(parameters: P): Ticket<P>? {
         checkThread()
         if (active != null) return null
         active = Ticket.create(parameters)
         return active
     }
 
-    fun current(ticket: Ticket<P>?): Boolean {
+    open fun current(ticket: Ticket<P>?): Boolean {
         checkThread()
         return ticket != null && active === ticket
     }
 
-    fun accept(ticket: Ticket<P>?, submit: Runnable?): Boolean {
+    open fun accept(ticket: Ticket<P>?, submit: Runnable?): Boolean {
         checkThread()
         if (!current(ticket)) return false
         submit!!.run()
         return true
     }
 
-    fun submitted(ticket: Ticket<P>?, jobId: String?): Boolean {
+    open fun submitted(ticket: Ticket<P>?, jobId: String?): Boolean {
         checkThread()
         if (!current(ticket)) return false
         if (jobId == null || jobId.isEmpty() || ticket!!.jobId.isNotEmpty())
@@ -46,25 +49,25 @@ class ScheduledBackupOwner<P> {
         return true
     }
 
-    fun jobId(ticket: Ticket<P>?): String {
+    open fun jobId(ticket: Ticket<P>?): String {
         checkThread()
         return ticket?.jobId ?: ""
     }
 
-    fun owns(ticket: Ticket<P>?, currentJobId: String?): Boolean {
+    open fun owns(ticket: Ticket<P>?, currentJobId: String?): Boolean {
         checkThread()
         val id = jobId(ticket)
         return id.isNotEmpty() && id == currentJobId
     }
 
-    fun finish(ticket: Ticket<P>?): Boolean {
+    open fun finish(ticket: Ticket<P>?): Boolean {
         checkThread()
         if (!current(ticket)) return false
         active = null
         return true
     }
 
-    fun stop(parameters: P): Ticket<P>? {
+    open fun stop(parameters: P): Ticket<P>? {
         checkThread()
         val current = active
         if (current == null || current.parameters !== parameters) return null
@@ -73,7 +76,7 @@ class ScheduledBackupOwner<P> {
         return stopped
     }
 
-    fun stopCurrent(): Ticket<P>? {
+    open fun stopCurrent(): Ticket<P>? {
         checkThread()
         val stopped = active
         active = null
