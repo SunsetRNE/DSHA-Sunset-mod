@@ -29,6 +29,7 @@ public final class BackupPolicyApiTest {
     assertEquals(isStatic, Modifier.isStatic(method.getModifiers()));
     assertEquals(synchronizedMethod, Modifier.isSynchronized(method.getModifiers()));
     assertFalse(Modifier.isAbstract(method.getModifiers()));
+    assertFalse("原 Java 方法不能新增 final: " + method, Modifier.isFinal(method.getModifiers()));
     assertArrayEquals(new Class<?>[0], method.getExceptionTypes());
   }
 
@@ -201,6 +202,7 @@ public final class BackupPolicyApiTest {
 
   @Test
   public void taskStateRetainsInstanceMonitorAndSnapshotFields() throws Exception {
+    assertTrue(Modifier.isFinal(BackupTaskState.class.getModifiers()));
     assertTrue(Modifier.isPublic(BackupTaskState.class.getDeclaredConstructor().getModifiers()));
     method(BackupTaskState.class, "start", long.class, false, true, String.class);
     method(BackupTaskState.class, "busy", boolean.class, false, true);
@@ -251,6 +253,7 @@ public final class BackupPolicyApiTest {
   public void schedulerRetainsGenericTicketAndNullableJavaCallBoundary() throws Exception {
     Class<?> owner = ScheduledBackupOwner.class;
     Class<?> ticket = ScheduledBackupOwner.Ticket.class;
+    assertTrue(Modifier.isFinal(owner.getModifiers()));
     assertTrue(Modifier.isPublic(owner.getDeclaredConstructor().getModifiers()));
     assertEquals("P", owner.getTypeParameters()[0].getName());
     assertEquals("P", ticket.getTypeParameters()[0].getName());

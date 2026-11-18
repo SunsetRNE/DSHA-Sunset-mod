@@ -1,3 +1,6 @@
+// 保留原 Java 方法 flags；类本身仍为 final，不开放继承。
+@file:Suppress("NON_FINAL_MEMBER_IN_OBJECT")
+
 package com.deepseekharness.app.util
 
 import java.util.Locale
@@ -10,10 +13,10 @@ class BackupFileNames private constructor() {
         const val EXTENSION: String = ".tar.gz"
         const val MIME_TYPE: String = "application/gzip"
 
-        @JvmStatic fun portableName(): String = "DSHA-data-v5-" + UUID.randomUUID() + EXTENSION
+        @JvmStatic open fun portableName(): String = "DSHA-data-v5-" + UUID.randomUUID() + EXTENSION
 
         @JvmStatic
-        fun exportMimeType(name: String?): String {
+        open fun exportMimeType(name: String?): String {
             val lower = name?.lowercase(Locale.ROOT) ?: ""
             if (lower.endsWith(EXTENSION)) return MIME_TYPE
             if (lower.endsWith(".txt")) return "text/plain"
@@ -32,7 +35,7 @@ class BackupFileNames private constructor() {
 
         /** 只自动发现全量旧包；部分范围始终要求显式选择。 */
         @JvmStatic
-        fun discoverable(name: String?): Boolean {
+        open fun discoverable(name: String?): Boolean {
             if (name == null) return false
             val normalized =
                 Pattern.compile("\\s*\\(\\d+\\)")

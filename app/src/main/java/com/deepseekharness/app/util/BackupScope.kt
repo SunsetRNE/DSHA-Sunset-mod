@@ -1,3 +1,6 @@
+// 保留原 Java 方法 flags；类本身仍为 final，不开放继承。
+@file:Suppress("NON_FINAL_MEMBER_IN_OBJECT")
+
 package com.deepseekharness.app.util
 
 import java.util.regex.Pattern
@@ -22,7 +25,7 @@ class BackupScope private constructor() {
 
         /** 原生授权只属于本机，不随用户归档导出或恢复。 */
         @JvmStatic
-        fun excludesNativeGrantState(path: String?): Boolean {
+        open fun excludesNativeGrantState(path: String?): Boolean {
             if (path == null) return false
             val normalized = path.replace('\\', '/')
             return normalized == "dsha_device_grants" ||
@@ -33,7 +36,7 @@ class BackupScope private constructor() {
 
         /** 清单标识保持字面量；未知整数沿用原 full 投影。 */
         @JvmStatic
-        fun id(scope: Int): String =
+        open fun id(scope: Int): String =
             when (scope) {
                 SESSIONS -> "sessions"
                 PLUGINS -> "plugins"
@@ -43,7 +46,7 @@ class BackupScope private constructor() {
 
         /** 未知清单范围必须拒绝；只按 Java trim 的 <= U+0020 判据去边缘字符。 */
         @JvmStatic
-        fun fromId(id: String?): Int {
+        open fun fromId(id: String?): Int {
             if (id == null) throw IllegalArgumentException("UNKNOWN_BACKUP_SCOPE")
             val s = id.trim { it <= ' ' }
             if (s == "sessions") return SESSIONS
@@ -54,7 +57,7 @@ class BackupScope private constructor() {
         }
 
         @JvmStatic
-        fun fileNamePrefix(scope: Int): String =
+        open fun fileNamePrefix(scope: Int): String =
             when (scope) {
                 SESSIONS -> "DSHA-sessions-"
                 PLUGINS -> "DSHA-plugins-"
@@ -63,7 +66,7 @@ class BackupScope private constructor() {
             }
 
         @JvmStatic
-        fun archiveName(scope: Int, suffix: String?): String {
+        open fun archiveName(scope: Int, suffix: String?): String {
             if (suffix == null || !Pattern.matches("[A-Za-z0-9][A-Za-z0-9._-]{0,80}", suffix)) {
                 throw IllegalArgumentException(UiText.text("备份文件标识无效"))
             }
@@ -72,7 +75,7 @@ class BackupScope private constructor() {
 
         /** 文件名仅作手选包的范围提示，清单中的范围优先。 */
         @JvmStatic
-        fun fromFileName(name: String?): Int {
+        open fun fromFileName(name: String?): Int {
             if (name == null) return FULL
             var n = name.trim { it <= ' ' }
             val slash = Math.max(n.lastIndexOf('/'), n.lastIndexOf('\\'))
@@ -84,10 +87,10 @@ class BackupScope private constructor() {
         }
 
         @JvmStatic
-        fun visibleToLegacyScan(scope: Int): Boolean = fileNamePrefix(scope) == "DSHA-backup-"
+        open fun visibleToLegacyScan(scope: Int): Boolean = fileNamePrefix(scope) == "DSHA-backup-"
 
         @JvmStatic
-        fun label(scope: Int): String =
+        open fun label(scope: Int): String =
             when (scope) {
                 SESSIONS -> UiText.text("仅备份对话记录")
                 PLUGINS -> UiText.text("仅备份插件")
@@ -96,7 +99,7 @@ class BackupScope private constructor() {
             }
 
         @JvmStatic
-        fun describe(scope: Int): String =
+        open fun describe(scope: Int): String =
             when (scope) {
                 SESSIONS -> UiText.text("只打包会话、索引、附件与工作区结构，恢复时不动设置与插件")
                 PLUGINS -> UiText.text("只打包插件清单、配置和已安装插件数据")
@@ -105,7 +108,7 @@ class BackupScope private constructor() {
             }
 
         @JvmStatic
-        fun restoreImpact(scope: Int): String =
+        open fun restoreImpact(scope: Int): String =
             when (scope) {
                 SESSIONS -> UiText.text("覆盖聊天记录、会话索引与附件，不改设置和插件")
                 SETTINGS -> UiText.text("覆盖设置文件与 profile 配置，不改聊天记录和插件")
@@ -115,7 +118,7 @@ class BackupScope private constructor() {
 
         /** 每次分配独立可变数组；空数组表示整个 .dsh。 */
         @JvmStatic
-        fun dshPaths(scope: Int): Array<String> =
+        open fun dshPaths(scope: Int): Array<String> =
             when (scope) {
                 // 会话与注册表、附件必须同行，避免文件已恢复但 Web UI 无索引。
                 SESSIONS -> arrayOf(".dsh/sessions", ".dsh/storages", ".dsh/attachments")
@@ -133,7 +136,7 @@ class BackupScope private constructor() {
 
         /** 与 dshPaths 的路径一一对应，保留每次调用的新数组身份。 */
         @JvmStatic
-        fun mergeSubdirs(scope: Int): Array<String> =
+        open fun mergeSubdirs(scope: Int): Array<String> =
             when (scope) {
                 SESSIONS -> arrayOf("sessions", "storages", "attachments")
                 PLUGINS ->
@@ -148,12 +151,13 @@ class BackupScope private constructor() {
                 else -> emptyArray()
             }
 
-        @JvmStatic fun includesWorkdirFiles(scope: Int): Boolean = scope == FULL
-
-        @JvmStatic fun includesPluginSrc(scope: Int): Boolean = scope == FULL || scope == PLUGINS
+        @JvmStatic open fun includesWorkdirFiles(scope: Int): Boolean = scope == FULL
 
         @JvmStatic
-        fun needsPublicDataSnapshot(scope: Int): Boolean =
+        open fun includesPluginSrc(scope: Int): Boolean = scope == FULL || scope == PLUGINS
+
+        @JvmStatic
+        open fun needsPublicDataSnapshot(scope: Int): Boolean =
             scope == FULL || scope == SESSIONS || scope == SETTINGS
     }
 }

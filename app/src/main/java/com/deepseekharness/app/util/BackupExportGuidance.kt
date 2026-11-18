@@ -1,3 +1,6 @@
+// 保留原 Java 方法 flags；类本身仍为 final，不开放继承。
+@file:Suppress("NON_FINAL_MEMBER_IN_OBJECT")
+
 package com.deepseekharness.app.util
 
 /**
@@ -23,7 +26,7 @@ class BackupExportGuidance private constructor() {
 
     companion object {
         @JvmStatic
-        fun classify(reason: String?): Kind {
+        open fun classify(reason: String?): Kind {
             if (reason == null) return Kind.UNKNOWN
             return try {
                 Kind.valueOf(reason)
@@ -34,7 +37,7 @@ class BackupExportGuidance private constructor() {
 
         /** 可行动说明不包含路径、凭据或异常原文，按当前语言即时呈现。 */
         @JvmStatic
-        fun message(reason: String?, rescue: Boolean): String =
+        open fun message(reason: String?, rescue: Boolean): String =
             when (classify(reason)) {
                 Kind.NONE -> UiText.text("导出已开始。")
                 Kind.BUSY ->
