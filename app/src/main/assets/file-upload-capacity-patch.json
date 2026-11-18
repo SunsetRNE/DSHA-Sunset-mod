@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-client-file-upload/lib/index.js",
   "sourceSha256": "b17e3621ce127ceb4f68919acdeeac64c54cf64c5d42429be8a7a65b5d20bbfe",
-  "packageIntegrity": "sha512-MipvUhc+bLgexDff+vFNUZodd3WQ9Q+OZnYW8kAv6MU6ieSRUeVxgGOlNsM5rKVZNjxDmmzXaXeXq2d5VnvTTA==",
+  "packageIntegrity": "sha512-hUk7u45A7QQ4e10jYznuqgqkra9yC3THowhJKRK0NRAQG+lieNrqxjFKJrxQn4Lj0SMOAOhmn1cqseRpW+uc9w==",
   "purpose": "Enforce 5,000,000,000 bytes per file, count streamed bytes before storage, retain image budgets and use bounded binary browser transport.",
   "patches": [
     {

@@ -1,12 +1,14 @@
 {
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-client-ui-tool/lib/client.js",
-  "packageVersion": "0.2.2-rc.1",
-  "canonicalSourceSha256": "d4b0ee6d04a583f63e5e701de989b7d1645d17d09a85b43338e4a11748ea23ac",
+  "packageVersion": "0.2.2-rc.5",
+  "canonicalSourceSha256": "f3de614452e676d2afde6c8e5305f17e1f8784f672c3208a5366c8bf132d667b",
   "patches": [
     {
-      "before": "\t\t\treturn call.phase === \"result\" ? call.block.call?.name ?? \"\" : call.block.name;",
+      "before": "return call.phase===`result`?call.block.call?.name??``:call.block.name",
       "after": "\t\t\t// DSHA_TOOL_HISTORY_DISPLAY_RC2_V1: no named tool view/action for malformed retained rows.\n\t\t\tconst name = call.phase === \"result\" ? call.block.call?.name ?? \"\" : call.block.name;\n\t\t\tconst id = call.block.callId;\n\t\t\treturn typeof name === \"string\" && name.trim() && typeof id === \"string\" && id.trim() ? name : \"DSHA_INVALID_TOOL_CALL (read only)\";"
     }
-  ]
+  ],
+  "sourceSha256": "f3de614452e676d2afde6c8e5305f17e1f8784f672c3208a5366c8bf132d667b",
+  "packageIntegrity": "sha512-CmSv4FFM6kEWRS0DkhvDUps/opy3zMFrJEYL1GO9oVrFwS0IojXL3x0Ysb9MSns70F/Gu2KFeHsmAsxE+/xrMg=="
 }

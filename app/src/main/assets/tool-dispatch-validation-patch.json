@@ -1,8 +1,8 @@
 {
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-agent-loop/lib/index.js",
-  "packageVersion": "0.2.2-rc.1",
-  "canonicalSourceSha256": "a6fa8e0c7c90191caf5f4a3bb5c624a86e9845cf3c79d020b71420d0e20ae4c1",
+  "packageVersion": "0.2.2-rc.5",
+  "canonicalSourceSha256": "f09f60814d4e96a880f41b9fc3832f33c56a28f954f48810d8439ce83ad6ffa8",
   "patches": [
     {
       "before": "\t\t\t\tconst message = createAssistantMessage({\n\t\t\t\t\tcontent: live.blocks(),",
@@ -16,5 +16,7 @@
       "before": "\t\t\t\tif (finish.kind === \"max-tokens\") return { kind: \"max-tokens\" };",
       "after": "\t\t\t\t// DSHA_TOOL_FINISH_IDENTITY_V2: dispatch nothing; the step's ToolCallRecovery closes valid calls as not started.\n\t\t\t\tif (invalidIdentity) throw new LlmError(\"DSHA_INVALID_TOOL_CALL: missing name/id; this step was not dispatched. No automatic replay.\", \"INVALID_RESPONSE\");\n\t\t\t\tif (finish.kind === \"max-tokens\") return { kind: \"max-tokens\" };"
     }
-  ]
+  ],
+  "sourceSha256": "f09f60814d4e96a880f41b9fc3832f33c56a28f954f48810d8439ce83ad6ffa8",
+  "packageIntegrity": "sha512-k/WGOe8J81AlqTaG0t+p3AGB+TnQg8TZTEaBRC5eG6F6/zsszDVxycHprqGCwHsn0echFjZtS7V1ft4c1B6kbQ=="
 }

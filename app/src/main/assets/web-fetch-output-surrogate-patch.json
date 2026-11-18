@@ -1,5 +1,5 @@
 {
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-tool-web/lib/index.js",
   "patches": [
     {
@@ -18,5 +18,7 @@
       "before": "\t\ttext: `${prefix.slice(0, maxOutputChars - 78)}${TRUNCATION_FOOTER}`,",
       "after": "\t\ttext: `${dshaWebSafePrefix(prefix, maxOutputChars - 78)}${TRUNCATION_FOOTER}`,"
     }
-  ]
+  ],
+  "sourceSha256": "e66b23e37fe4e33c5ac4f1ce65ce0faf808eedb4f5e8c7e7baf5b7a233ffe77b",
+  "packageIntegrity": "sha512-5LlO1F7YKQLokALxII48jdG09CNUtFWfFTqxHh+DAKfHEK2SW73BPv875sUJ0e9SRYgZKnStOuLNfzL60Xo1Rg=="
 }

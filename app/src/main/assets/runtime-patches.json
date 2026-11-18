@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "active": [
     {
       "asset": "web-fetch-http-surrogate-patch.json"

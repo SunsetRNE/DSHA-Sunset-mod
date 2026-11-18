@@ -1,5 +1,5 @@
 {
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-llm-deepseek/lib/index.js",
   "patches": [
     {
@@ -15,5 +15,7 @@
       "before": "\t\t}] : message.content.flatMap((block) => input([block]));",
       "after": "\t\t}] : message.content.flatMap((block) => block.type === \"tool-result\" ? [{\r\n\t\t\ttype: \"tool_result\",\r\n\t\t\ttool_use_id: block.toolCallId,\r\n\t\t\tcontent: input(block.content),\r\n\t\t\t...block.isError === void 0 ? {} : { is_error: block.isError }\r\n\t\t}] : input([block]));"
     }
-  ]
+  ],
+  "sourceSha256": "aa4de6cf5136d17534ee7c2c0cc43d9b17b2f1e0c9dc250c2b44a7f694d26258",
+  "packageIntegrity": "sha512-DkbksxKGJPVAak4lUDBU8Yj3mrgEA2wOeSEWKyFp/hp3wyQjdbgnltt1LMfV0PCYPMkYM+jGKBx2hClvxMBlhg=="
 }

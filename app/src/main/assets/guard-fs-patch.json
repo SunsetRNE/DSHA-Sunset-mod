@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-tool-fs/lib/index.js",
   "patches": [
     {
@@ -15,5 +15,7 @@
       "before": "\t\t\t\tconst intent = await ctx.waterfall(\"fs/edit-intent\", target, exec, () => void 0);",
       "after": "\t\t\t\tconst intent = await guardIntent(ctx, exec, target, await ctx.waterfall(\"fs/edit-intent\", target, exec, () => void 0), \"edit\");"
     }
-  ]
+  ],
+  "sourceSha256": "f27783bf0d89391ed775b65df47acb6b52adf526f4b9d849a0eeb3937a80d6c1",
+  "packageIntegrity": "sha512-Tx/kK7+GfFy7C7P7Knv9zwaPk/oN0fpE35o9LUyVAUp/1mbWJCmW/upH94wtlkMlz2XCqEDDUbsxdhO8aokk1g=="
 }

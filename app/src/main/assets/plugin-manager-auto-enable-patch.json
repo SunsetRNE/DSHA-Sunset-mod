@@ -1,12 +1,12 @@
 {
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-client-ui-plugin-manager/lib/client.js",
   "patches": [
     {
-      "before": "enabled: subject.selection ?? false,",
-      "after": "enabled: subject.selection ?? true, // DSHA_NEW_INSTALL_ENABLED_V2: retain explicit catalog selection, including false."
+      "before": "enabled:subject.selection??false,",
+      "after": "enabled: subject.selection ?? true, // DSHA_NEW_INSTALL_ENABLED_V2: retain explicit catalog selection, including false.\n"
     }
   ],
-  "sourceSha256": "15316b20356d8109ddafb7c866928ad3f8dc8adf26c8f27f692c8a5e3d2b120a",
-  "packageIntegrity": "sha512-7BK/GjW28g8eU2dY8AHx/mD2Hv+wZXAJ6XU/3j2D1Pef2eOyZyiO4o71rMPaQUBzMawujpoIQj/MgOvu3hHcIw=="
+  "sourceSha256": "ec1e18683032730be2f97e76847fc1638e59f86df937af727e9b885991983064",
+  "packageIntegrity": "sha512-XhwV/mz/3K8zK8OIN7Map8FeNSX/QnF4y/HcKKkfv0CvlabbpOVGgFI72oSNqlYhWdVuQx3xt+lbRFMjKje6tA=="
 }

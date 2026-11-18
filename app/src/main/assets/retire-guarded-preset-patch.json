@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-permission-presets/lib/index.js",
   "sourceSha256": "08f06dac668d2639e963753c127230ec8818b47be72e5aed7f5bf637c9f6c16e",
   "patches": [
@@ -12,5 +12,6 @@
       "before": "defaultOptions: Object.keys(this.presets).map((name) => this.optionOf(name)),",
       "after": "defaultOptions: Object.keys(this.presets).filter(name => name !== \"guarded-full-access\").map((name) => this.optionOf(name)),"
     }
-  ]
+  ],
+  "packageIntegrity": "sha512-r4cLFFe998xwdbDuacjL2bIo4AEojo+wtEBK4mTpOkQ+pFrWLI7uhrwe1LrhsNK2usOoUPAx1KdjZgbf8IToAA=="
 }

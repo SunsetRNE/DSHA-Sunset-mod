@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-tool-skill/lib/index.js",
-  "sourceSha256": "c41b4ea6843d7987927593a872777a7eddb348f66512c20209ab871ebf02a8b7",
-  "packageIntegrity": "sha512-tsLsMoudviQqVYlGFk44o24U43sQ/TpO8Y/BUJ8Hq3bePLGF9TMB//x3jBn3rerRmOQVwa72/7cSjhmd/dTF2w==",
+  "sourceSha256": "f7d83b1a4b7a3ac67766b36758edabdbc719cf995f085da6a0699af99b2eb1da",
+  "packageIntegrity": "sha512-9cknQKFERJ+GHZR5wsOgNvWxbsRSw2SqeqyvSVC8L3ZE/KjTYLAbOimBVJAPgIaWM9dhzhyeiZ99v7j0LzVQ5w==",
   "patches": [
     {
       "before": "function catalogSourceEntries(skills, descriptionMaxLength) {\n\treturn skills.map((skill) => ({\n\t\tname: skill.name,\n\t\tdescription: catalogDescription(skill.description, descriptionMaxLength)\n\t}));\n}",

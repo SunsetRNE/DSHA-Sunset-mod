@@ -1,10 +1,12 @@
 {
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-persona/lib/index.js",
   "patches": [
     {
       "before": "const Config = z.object({\n\tprefix: z.string().required(),\n\tsuffix: z.string().default(\"\"),\n\tcomplete: z.boolean().default(false),\n\tincludeRuntimeContext: z.boolean().default(true)\n});",
       "after": "/* DSHA_PERSONA_TEXT_COMPAT_V1: legacy user presets keep their original text. */\nconst CurrentConfig = z.object({\n\tprefix: z.string().required(),\n\tsuffix: z.string().default(\"\"),\n\tcomplete: z.boolean().default(false),\n\tincludeRuntimeContext: z.boolean().default(true)\n});\nconst Config = z.transform(z.object({\n\tprefix: z.string(),\n\ttext: z.any().hidden(),\n\tsuffix: z.string().default(\"\"),\n\tcomplete: z.boolean().default(false),\n\tincludeRuntimeContext: z.boolean().default(true)\n}), value => CurrentConfig(!Object.hasOwn(value, \"prefix\") && typeof value.text === \"string\" ? { ...value, prefix: value.text } : value), true);"
     }
-  ]
+  ],
+  "sourceSha256": "1e9dd7f0dfd87cbff6486b7ca043d2e1b863a2a56b99106a4bf74831591266d5",
+  "packageIntegrity": "sha512-DzIlCxEb3hpwYtIq9FWyEnSm/0/LDRdRLjMeMRPnILjVDJiTrXp1LksJZvarK4OfR/CICoZW8LHY71l5Fs+UjQ=="
 }

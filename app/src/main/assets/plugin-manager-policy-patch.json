@@ -1,5 +1,5 @@
 {
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-plugin-manager/lib/index.js",
   "patches": [
     {
@@ -47,8 +47,8 @@
       "after": "\t\t\t\t\tname = target;\n\t\t\t\t\tif (dshaSignedPluginNames.has(name)) throw new ManagementFailure(\"not-removable\");\n\t\t\t\t\tconst dir = resolveBundleDir"
     },
     {
-      "before": "\t\tlistBundles() {\n\t\t\treturn Promise.resolve(this.readBundles().map((bundle) => ({\n\t\t\t\t...bundle,\n\t\t\t\tupdatable: typeof updateRefusal(bundle, bundle.name) !== \"string\"\n\t\t\t})));\n\t\t}\n\t\t/** The bundle inventory before update eligibility, which is derived from each listed bundle. */\n\t\treadBundles() {",
-      "after": "\t\tasync listBundles(dshaOnlyName) {\n\t\t\t// DSHA_PLUGIN_PROVENANCE_V2: package proof reads are asynchronous and bounded.\n\t\t\treturn (await this.readBundles(dshaOnlyName)).map((bundle) => ({\n\t\t\t\t...bundle,\n\t\t\t\tupdatable: typeof updateRefusal(bundle, bundle.name) !== \"string\"\n\t\t\t}));\n\t\t}\n\t\t/** The bundle inventory before update eligibility, which is derived from each listed bundle. */\n\t\tasync readBundles(dshaOnlyName) {"
+      "before": "\t\tlistBundles() {\n\t\t\treturn Promise.resolve(this.readBundles().map((bundle) => {\n\t\t\t\tconst target = updateRefusal(bundle, bundle.name);\n\t\t\t\treturn typeof target === \"string\" ? bundle : {\n\t\t\t\t\t...bundle,\n\t\t\t\t\tupdate: target.kind\n\t\t\t\t};\n\t\t\t}));\n\t\t}\n\t\t/** The bundle inventory before update eligibility, which is derived from each listed bundle. */\n\t\treadBundles() {",
+      "after": "\t\tasync listBundles(dshaOnlyName) {\n\t\t\treturn (await this.readBundles(dshaOnlyName)).map((bundle) => {\n\t\t\t\tconst target = updateRefusal(bundle, bundle.name);\n\t\t\t\treturn typeof target === \"string\" ? bundle : {\n\t\t\t\t\t...bundle,\n\t\t\t\t\tupdate: target.kind\n\t\t\t\t};\n\t\t\t});\n\t\t}\n\t\t/** The bundle inventory before update eligibility, which is derived from each listed bundle. */\n\t\tasync readBundles(dshaOnlyName) {"
     },
     {
       "before": "\t\t\tconst bundles = [];\n\t\t\tconst runtimeVersion = getDshRuntimeVersion();\n\t\t\tfor (const name of names) {",
@@ -62,5 +62,7 @@
       "before": "\t\t\t\t\tconst bundle = (await this.listBundles()).find((item) => item.name === name);",
       "after": "\t\t\t\t\tconst bundle = (await this.listBundles(name)).find((item) => item.name === name);"
     }
-  ]
+  ],
+  "sourceSha256": "33cbad2bdce9679a9f4fbebe072db87ecbb162e0ceb93237f6a627de07d3ab74",
+  "packageIntegrity": "sha512-E6Gw0DydPk2uQTpsscGA/JXO85SGKkw4PJFT7dnPvieO0P/9Y91V3c+mFeSl3yzOG8JfbPw2pfylsfWUeN2DSQ=="
 }

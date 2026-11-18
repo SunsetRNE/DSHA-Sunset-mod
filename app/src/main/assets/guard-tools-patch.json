@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-tools/lib/index.js",
   "patches": [
     {
@@ -12,5 +12,6 @@
       "after": "\t\tsuper(ctx, \"tools\");\n\t\tattachPolicy(this, ctx);"
     }
   ],
-  "sourceSha256": "1889cbf718d64518dd83245d4dba1e1f080b2c5326259c3ed5b1be7a7666a2bd"
+  "sourceSha256": "bf71a6ce1e95c5dfba06be7f69827bab19c5d2d9cf272875d92013ba2a8dadb0",
+  "packageIntegrity": "sha512-Zowk7V8KjdJBaE9d6l7q782lre69SI29XP8/ZloVhbyo9+3CH/U7LRmEECDXA3OFN3O0abwm1aZEOAcRGEh4mg=="
 }

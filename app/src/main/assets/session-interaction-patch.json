@@ -1,46 +1,46 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "patches": [
     {
-      "before": "\t\tfunction SearchResultItem({ result, currentId, onOpen, onUnarchive, useSessionAccess, t }) {",
+      "before": "function SearchResultItem({result,currentId,onOpen,onUnarchive,useSessionAccess,t}){",
       "after": "\n        // DSHA_SESSION_INTERACTION_V4：有效单击打开，保留实际输入类型与取消边界。\n        const dshaSessionSelection = createDshaSessionSelection();\n        function useDshaPickedSession(currentId, rowId) {\n            return (0, react.useSyncExternalStore)((listener) => dshaSessionSelection.subscribe(listener, currentId, rowId),\n                () => dshaSessionSelection.selected(currentId, rowId), () => dshaSessionSelection.selected(currentId, rowId));\n        }\n        function dshaSessionClick(event, id, currentId, onOpen) {\n            dshaSessionSelection.click(event, id, currentId, () => {\n                const focused = document.activeElement;\n                if (focused instanceof HTMLElement && focused.closest('[data-composer-input]')) focused.blur();\n                onOpen(id);\n                document.dispatchEvent(new CustomEvent('dsha-session-open', { detail: { id } }));\n            });\n        }\n\t\tfunction SearchResultItem({ result, currentId, onOpen, onUnarchive, useSessionAccess, t }) {",
       "prependAsset": "web-integration/session-interaction.js"
     },
     {
-      "before": "\t\t\tconst selected = result.id === currentId;",
+      "before": "const selected=result.id===currentId;",
       "after": "\t\t\tconst selected = useDshaPickedSession(currentId, result.id);"
     },
     {
-      "before": "\t\t\tconst selected = node.id === currentId;",
+      "before": "const selected=node.id===currentId;",
       "after": "\t\t\tconst selected = useDshaPickedSession(currentId, node.id);"
     },
     {
-      "before": "\t\t\t\tonClick: () => {\n\t\t\t\t\tonOpen(result.id);\n\t\t\t\t},",
+      "before": "onClick:()=>{onOpen(result.id)},",
       "after": "\t\t\t\t\"data-dsha-session-select\": result.id,\n\t\t\t\t\"aria-description\": [t(\"row.selectHint\"), result.archived ? t(\"toast.archivedNotOpenable\") : \"\"].filter(Boolean).join(\". \"),\n                tabIndex: 0,\n                onKeyDown: (event) => { if (event.target === event.currentTarget && (event.key === \"Enter\" || event.key === \" \")) { event.preventDefault(); if (!event.repeat) dshaSessionClick({detail:0}, result.id, currentId, onOpen); } },\n\t\t\t\tstyle: { touchAction: \"manipulation\" },\n\t\t\t\tonPointerDown: (event) => dshaSessionSelection.pointerDown(event, result.id, currentId),\n                    onPointerMove: (event) => dshaSessionSelection.pointerMove(event, result.id, currentId),\n                    onPointerCancel: (event) => dshaSessionSelection.pointerCancel(event, result.id, currentId),\n                    onContextMenu: (event) => dshaSessionSelection.pointerCancel(event, result.id, currentId),\n                    onClick: (event) => dshaSessionClick(event, result.id, currentId, onOpen),"
     },
     {
-      "before": "\t\t\t\t\tonClick: () => {\n\t\t\t\t\t\tonOpen(node.id);\n\t\t\t\t\t},",
+      "before": "onClick:()=>{onOpen(node.id)},",
       "after": "\t\t\t\t\t\"data-dsha-session-select\": node.id,\n\t\t\t\t\t\"aria-description\": [t(\"row.selectHint\"), node.archived ? t(\"toast.archivedNotOpenable\") : \"\"].filter(Boolean).join(\". \"),\n\t\t\t\t\tstyle: { touchAction: \"manipulation\" },\n\t\t\t\t\tonPointerDown: (event) => dshaSessionSelection.pointerDown(event, node.id, currentId),\n                    onPointerMove: (event) => dshaSessionSelection.pointerMove(event, node.id, currentId),\n                    onPointerCancel: (event) => dshaSessionSelection.pointerCancel(event, node.id, currentId),\n                    onClick: (event) => dshaSessionClick(event, node.id, currentId, onOpen),"
     },
     {
-      "before": "\"row.archived\": \"已归档\",",
+      "before": "\"row.archived\":`已归档`,",
       "after": "\"row.archived\": \"已归档\",\n            \"row.selectHint\": \"单击或轻触打开；Enter 或空格打开\","
     },
     {
-      "before": "\"row.archived\": \"Archived\",",
+      "before": "\"row.archived\":`Archived`,",
       "after": "\"row.archived\": \"Archived\",\n            \"row.selectHint\": \"Click or tap to open. Enter or Space opens.\","
     },
     {
-      "before": "\t\t\t\t\tonDragStart: !draggable ? void 0 : (e) => {",
+      "before": "onDragStart:!draggable?void 0:e=>{",
       "after": "\t\t\t\t\tonDragStart: !draggable ? void 0 : (e) => {\n                        dshaSessionSelection.pointerCancel(e, node.id, currentId);"
     },
     {
-      "before": "\t\t\t\t\t}, { onKeyDown: (event) => {\n\t\t\t\t\t\tif (event.target !== event.currentTarget || event.key !== \"Enter\" && event.key !== \" \") return;\n\t\t\t\t\t\tif (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;\n\t\t\t\t\t\tevent.preventDefault();\n\t\t\t\t\t\tonOpen(node.id);\n\t\t\t\t\t} }),",
+      "before": "},{onKeyDown:event=>{if(event.target!==event.currentTarget||event.key!==`Enter`&&event.key!==` `)return;if(event.altKey||event.ctrlKey||event.metaKey||event.shiftKey)return;event.preventDefault();onOpen(node.id)}}),",
       "after": "\t\t\t\t\t}, {\n\t\t\t\t\t\t// DSHA_SESSION_INTERACTION_V4: getTriggerProps spreads after the row props, so the\n\t\t\t\t\t\t// DSHA long-press cancel and keyboard open must enter through its handlers.\n\t\t\t\t\t\tonContextMenu: (event) => dshaSessionSelection.pointerCancel(event, node.id, currentId),\n\t\t\t\t\t\tonKeyDown: (event) => {\n\t\t\t\t\t\t\tif (event.target !== event.currentTarget || event.key !== \"Enter\" && event.key !== \" \") return;\n\t\t\t\t\t\t\tif (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;\n\t\t\t\t\t\t\tevent.preventDefault();\n\t\t\t\t\t\t\tif (!event.repeat) dshaSessionClick({ detail: 0 }, node.id, currentId, onOpen);\n\t\t\t\t\t\t}\n\t\t\t\t\t}),"
     }
   ],
   "module": "@deepseek-ai/dsh-client-ui-workspace/lib/client.js",
-  "sourceSha256": "bb31f7870381f737b2cb45db4c7911a08a4949856bc86b648a10d3e85a3e9f89",
-  "packageIntegrity": "sha512-bNMWv2VyMNOLom5sxZv0AArhEQVphAeFGy+PYWQz/X+8vQhcfEoCHFleUmQzXKnmZM4GZFbNOU+K6rW4znxstA=="
+  "sourceSha256": "3ff4116dc91b7dc5cc57e7672e0d7935f992b339be3444a7a72992df218765ba",
+  "packageIntegrity": "sha512-A4JdPuxOZ7fY/tF9YZ2lO/Ooc1oz5MugaBq4OoDvr4glBxU0qEVTfLulOxns/zUBHIms5a0hyHOBG62mYPElMQ=="
 }

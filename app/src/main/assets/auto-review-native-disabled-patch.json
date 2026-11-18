@@ -1,5 +1,5 @@
 {
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-plugin-manager/lib/index.js",
   "patches": [
     {
@@ -14,5 +14,7 @@
       "before": "\t\t\t\tconst enabled = selected.includes(name);",
       "after": "\t\t\t\tconst enabled = name === \"@deepseek-ai/dsh-experimental-auto-review\"\n\t\t\t\t\t? selected.some(alias => [\"dsh-auto-review\", name].includes(alias)) : selected.includes(name);"
     }
-  ]
+  ],
+  "sourceSha256": "33cbad2bdce9679a9f4fbebe072db87ecbb162e0ceb93237f6a627de07d3ab74",
+  "packageIntegrity": "sha512-E6Gw0DydPk2uQTpsscGA/JXO85SGKkw4PJFT7dnPvieO0P/9Y91V3c+mFeSl3yzOG8JfbPw2pfylsfWUeN2DSQ=="
 }

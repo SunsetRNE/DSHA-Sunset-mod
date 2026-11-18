@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-host-frontend-static/lib/index.js",
   "sourceSha256": "6bb17c239f48fc26d4cf990af3139e7b64ae9f06fc5249bce7b58a3130edaed4",
   "patches": [
@@ -16,5 +16,6 @@
       "before": "\t\t\theaders = { \"content-type\": HTML_MIME };",
       "after": "\t\t\theaders = { \"content-type\": HTML_MIME, \"cache-control\": \"no-store\" };"
     }
-  ]
+  ],
+  "packageIntegrity": "sha512-Z84AaOT64TPmetiuunwT1S5HqYyJSbqw5qhOI0fFgkKgrGaVQLIZ0mdC+wdlB/Jwfty9HU3efCKyWad2s4Ue5w=="
 }
