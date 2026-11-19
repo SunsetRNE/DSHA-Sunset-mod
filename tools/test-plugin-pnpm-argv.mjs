@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync, spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { testRuntime } from './test-runtime-fixture.mjs';
 
@@ -98,14 +98,36 @@ const previousUnlocked = process.env.DSHA_PLUGIN_UNLOCKED;
 try {
     await check('negative: real bundled pnpm flags-before-view reproduces recursive exec failure with zero registry traffic', async () => {
         const dir = profile('negative-query');
-        const result = spawnSync(process.execPath, [cli, '--config.update-notifier=false', 'view', 'dsh-market', 'name', 'version', 'description', 'dsh', '--json', '--config.fetch-retries=0'],
-            { cwd: dir, env, encoding: 'utf8', windowsHide: true, timeout: 15000 });
-        fs.writeFileSync(path.join(out, 'negative-query.log'), (result.stdout ?? '') + (result.stderr ?? ''));
-        // pnpm reports this exact command-not-found failure as 254 on Linux and
-        // 1 on the historical Windows fixture. Require failure plus its exact
-        // protocol code and zero npm dispatch, not one shell's exit encoding.
-        assert.notEqual(result.status, 0); assert.match(result.stdout, /ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL/); assert.match(result.stdout, /view/);
-        assert.equal(fs.existsSync(spyLog), false);
+        let registryRequests = 0;
+        const negativeRegistry = createServer((_request, response) => {
+            registryRequests++; response.writeHead(500).end('negative control must not contact registry');
+        });
+        await new Promise(resolve => negativeRegistry.listen(0, '127.0.0.1', resolve));
+        let result;
+        try {
+            result = await new Promise((resolve, reject) => {
+                const child = spawn(process.execPath, [cli, '--config.update-notifier=false', 'view', 'dsh-market', 'name', 'version', 'description', 'dsh', '--json', '--config.fetch-retries=0',
+                    '--registry=http://127.0.0.1:' + negativeRegistry.address().port], { cwd: dir, env, windowsHide: true });
+                let stdout = '', stderr = '';
+                const timer = setTimeout(() => child.kill(), 15000);
+                child.stdout.setEncoding('utf8'); child.stderr.setEncoding('utf8');
+                child.stdout.on('data', value => stdout += value); child.stderr.on('data', value => stderr += value);
+                child.once('error', error => { clearTimeout(timer); reject(error); });
+                child.once('close', (status, signal) => { clearTimeout(timer); resolve({ status, signal, stdout, stderr }); });
+            });
+            fs.writeFileSync(path.join(out, 'negative-query.log'), result.stdout + result.stderr);
+            // Actual pinned pnpm reports 254 on Linux, 1 in the retained Windows fixture.
+            // Require the exact protocol failure and independent zero-request evidence.
+            assert.equal(result.signal, null);
+            assert.equal(result.status, process.platform === 'linux' ? 254 : 1);
+            assert.match(result.stdout + result.stderr, /ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL/);
+            assert.match(result.stdout + result.stderr, /Command "view" not found/);
+            assert.equal(fs.existsSync(spyLog), false);
+            assert.equal(registryRequests, 0);
+        } finally {
+            negativeRegistry.closeAllConnections();
+            await new Promise(resolve => negativeRegistry.close(resolve));
+        }
     });
     await check('real official registry inspection keeps view first and honors executable-prefix arguments', async () => {
         const dir = profile('positive-query');

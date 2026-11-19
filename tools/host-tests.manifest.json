@@ -2,6 +2,24 @@
   "schema": 1,
   "tests": [
     {
+      "path": "tools/test-dsh-rc5-browser-regressions.mjs",
+      "stage": "runtime",
+      "reason": "Execute exact pinned rc5 browser bundles with managed upload/history projection patches; assert binary upload bounds, worker cleanup and invalid-history read-only rendering without real DOM or network.",
+      "args": ["--managed"],
+      "timeoutSeconds": 180,
+      "requires": ["node24", "raw"],
+      "environment": {"DSHA_TEST_RUNTIME": "{raw}"}
+    },
+    {
+      "path": "tools/test-dsh-rc5-stream-regressions.mjs",
+      "stage": "runtime",
+      "reason": "Compare exact raw and managed rc5 watchdog/SSE cancellation with real ReadableStream and AbortController; preserve caller cancellation reason and cancel pending body reads.",
+      "args": [],
+      "timeoutSeconds": 120,
+      "requires": ["node24", "raw"],
+      "environment": {"DSHA_TEST_RUNTIME": "{raw}"}
+    },
+    {
       "path": "tools/test-dsh-data-compat-guards.mjs",
       "stage": "fast",
       "reason": "Exercise real subprocess timeout-with-zero-exit, protected-root/runtime path aliases and optimized-Python rejection before synthetic data compatibility writes.",

@@ -17,6 +17,10 @@
     {
       "before": "callId:String(message.source.callId),name:previous?.name??``,",
       "after": "callId:String(message.source.callId),dshaInvalidIdentity:previous?.dshaInvalidIdentity===true||typeof message.source.callId!==\"string\"||!message.source.callId.trim(),name:previous?.name??``,"
+    },
+    {
+      "before": "time:interruptedAt.time,callId:block.callId,",
+      "after": "time:interruptedAt.time,callId:block.callId,dshaInvalidIdentity:block.dshaInvalidIdentity===true,"
     }
   ]
 }

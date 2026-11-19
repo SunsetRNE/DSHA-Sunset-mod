@@ -1,5 +1,7 @@
 # DSH-A-Su · DSHA Sunset Mod
 
+> **开发交接快照（2026-11-19）**：本分支保存 rc.5／Kotlin 本地进度及未提交续修，仍有编译和验证阻塞。接手请先读 [交接说明](docs/handoff/20261119/README.md) 与 [文件来源清单](docs/handoff/20261119/snapshot-manifest.json)；不得将本分支视为已验收发布版。
+
 > 基于 [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA) 的第三方 **Mod 版本**，不是 DSHA 官方发行版。
 > 在 Android 手机上运行完整的 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)：免 ROOT、免 Termux，装完即用。
 

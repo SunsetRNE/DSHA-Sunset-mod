@@ -92,6 +92,22 @@ for(const [id,name] of [['','read'],['   ','read'],['ok',''],['ok','   '],[undef
 assert.equal(invalidCases[0].selectedSlot,patched?'DSHA_INVALID_TOOL_CALL (read only)':'read');assert.equal(invalidCases[1].selectedSlot,patched?'DSHA_INVALID_TOOL_CALL (read only)':'read');
 assert.equal(invalidCases[4].projectedCallId,'undefined');assert.equal(invalidCases[5].projectedCallId,'17');
 records.push({case:'Retained malformed identities reach named tool dispatch',outcome:'REQUIRES_ADAPT',cases:invalidCases});
+for(const id of [17,undefined,null,'valid-interrupted']){
+  const event=callEvent(id,'read');
+  const location={kind:'step',turn:{turn:1,status:'closed',end:{seq:10,time:10}},step:{step:1,status:'closed',end:{seq:9,time:9}}};
+  const match={event,location,id:String(id),role:'start'};
+  const state=chat.exported.toolDefinition.start({},match);
+  const node=chat.exported.toolDefinition.buildViewNode({key:'synthetic-interrupted',id:String(id),state,current:new Map(),start:match,matches:[match]});
+  const block=node.data.root;const call={phase:'result',block};let selectedSlot,inspector;
+  const view=ui.exported.ToolCall({callId:block.callId,toolName:ui.exported.callName(call),call,
+    renderSlot:(_slot,owner,options)=>{selectedSlot=options.entryKey;inspector=owner.inspect;return null;},
+    renderFallback:()=>null,openFile(){},inspectCall(){},useDisclosure(){}});
+  assert.equal(block.kind,'tool-result');assert.equal(block.error.code,'interrupted');
+  if(patched&&id!=='valid-interrupted'){
+    assert.equal(block.dshaInvalidIdentity,true);assert.equal(selectedSlot,undefined);assert.equal(inspector,undefined);assert.equal(view.type,'pre');
+  }else{assert.equal(selectedSlot,'read');assert.equal(typeof inspector,'function');}
+  records.push({case:'Interrupted synthetic result retains identity provenance',inputId:String(id),outcome:patched?'PASS_FIXED_BEHAVIOR':'REQUIRES_ADAPT',selectedSlot:selectedSlot??null});
+}
 const event=callEvent('','read');const match={event,location:{kind:'outside'},id:'',role:'start'};
 const start=chat.exported.toolDefinition.start({state:emptyState},match);
 const resultEvent={type:'tool/result',seq:2,time:1,data:{message:{source:{callId:''},content:[{type:'text',text:'<path>/synthetic/a.txt</path>\n<type>file</type>\n<content>\n1: synthetic\n</content>'}]},meta:{path:'/synthetic/a.txt',offset:1,lines:[{number:1,text:'synthetic'}],totalLines:1}}};

@@ -24,7 +24,7 @@ from test_runtime_fixture import runtime as verified_runtime
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'app/src/main/assets'
 MODULE = '@deepseek-ai/dsh-client-locale/lib/client.js'
-SOURCE_SHA256 = '769747aa79323075eba9545ff9982770c0163e0bba3cabcc49ff56581c0f3613'
+SOURCE_SHA256 = 'c0b7e8edd44cfbe9f10d17ade90aee2a2d36e1e4f2c2cbb86a79660494673196'
 # Upstream addLanguage order in dsh-client-locale apply(); used only to order the allow-list.
 UPSTREAM_LANGUAGES = ('ja', 'es', 'fr', 'de', 'ru', 'pt')
 # 实验包（forge/liveshare/stats 等）文案允许 null：显式沿用语言回退链（zh-Hant→zh，其余→en）。
@@ -136,12 +136,12 @@ def outputs(catalog, translations):
     tags = json.dumps(language_tags(catalog))
     lock = json.loads((ROOT / 'tools/dsh-runtime/package-lock.json').read_text(encoding='utf8'))
     recipe = dict(dshVersion=VERSION, module=MODULE, patches=[
-        dict(before='ctx.provide("locale", locale);',
+        dict(before='ctx.provide(`locale`,locale);',
              after='ctx.provide("locale", locale);\n            ctx.effect(() => installDshaLanguageBridge(locale), "DSHA application language");',
              prependAsset='web-integration/language.js'),
-        dict(before='resolveActive() {\n\t\t\t\tif (this.preference === void 0) return this.provisional;',
+        dict(before='resolveActive(){if(this.preference===void 0)return this.provisional;',
              after='resolveActive() {\n                if (typeof window !== "undefined") { const dshaLanguage = typeof window.__dshaEffectiveLanguage === "function" ? window.__dshaEffectiveLanguage() : window.__DSHA_LANGUAGE__; if (' + tags + '.includes(dshaLanguage) && this.catalog.has(localeKey(dshaLanguage))) return dshaLanguage; }\n\t\t\t\tif (this.preference === void 0) return this.provisional;'),
-        dict(before='this.preference = match.id;\n\t\t\t\tif (this.snapshot.active !== match.id)',
+        dict(before='this.preference=match.id;if(this.snapshot.active!==match.id)',
              after='this.preference = match.id;\n                if (typeof window !== "undefined") { if (typeof window.__dshaSelectWebLanguage === "function") window.__dshaSelectWebLanguage(match.id); else if (window.__DSHA_LANGUAGE__ && window.__DSHA_LANGUAGE__ !== match.id) { window.__DSHA_LANGUAGE__ = match.id; window.dispatchEvent(new CustomEvent("dsha-language-selected", { detail: match.id })); } }\n\t\t\t\tif (this.snapshot.active !== match.id)')
     ], sourceSha256=SOURCE_SHA256,
         packageIntegrity=lock['packages']['node_modules/@deepseek-ai/dsh-client-locale']['integrity'])

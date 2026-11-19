@@ -1,11 +1,11 @@
 # 构建、验证与提交
 
-> 当前候选身份：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261116.0500-dsh0.2.2-rc.1` / versionCode 368 / 单一 Standard；使用 Mod 自有发布证书。完整身份与签名入口见 [README](README.md)、[AGENTS](AGENTS.md) 与 [ci/release-identity.json](ci/release-identity.json)。
-> build367 已发布；build368 完整 CI 与设备验收待完成，候选身份不代表发布或验收通过。
+> 当前开发候选：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261118.1400-dsh0.2.2-rc.5` / versionCode 370 / 单一 Standard；使用 Mod 自有发布证书。完整身份与签名入口见 [README](README.md)、[AGENTS](AGENTS.md) 与 [ci/release-identity.json](ci/release-identity.json)。
+> build370 尚未发布或设备验收；旧版本的完整 CI 记录不能作为本候选结果。
 
 先读 [README](README.md)、[AGENTS](AGENTS.md)、[BUILD](BUILD.md) 与[文档总索引](docs/documentation-index.md)。F10–F13、build190 等记录只描述各自当时的源码、APK、测试与设备状态，不能覆盖当前要求，也不能当作本版证据。
 
-当前固定输入由 [ci/sunset-inputs.lock.json](ci/sunset-inputs.lock.json) 锁定：公开预发布资产 `fixed-inputs-20261113`，716,787,167 B，SHA-256 `2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad`，由 `tools/ci-assets.py` 还原。大归档与离线 rootfs 不入 Git；只有源码的检出不能构建完整 APK。
+公开基础输入由 [ci/sunset-inputs.lock.json](ci/sunset-inputs.lock.json) 锁定：既有资产 `fixed-inputs-20261113`，716,787,167 B，SHA-256 `2c8dc3fa494a5faf6f65cafa966b47d234a3331c30396198005cedfccca82cad`。build370 以 `ci-assets.py --base-only` 只还原仍匹配当前 pin 的基础/应急输入，再按 rc.5 npm lock 重建正式 DSH；参见[固定构建输入](docs/fixed-build-inputs.md)。不将旧包内 rc.1 正式运行时当作 rc.5，不编造尚未上传的新 Release 地址。大归档与离线 rootfs 不入 Git。
 
 项目特有操作见[接手指南](docs/接手指南.md)，职责见[模块图](docs/module-map.md)，约束见[工程规范](docs/engineering-standard.md)与[ADR 0001](docs/adr/0001-build154-boundaries.md)。`tools/history` 只保留退休工具与原件，不进入 APK 或自动测试。
 

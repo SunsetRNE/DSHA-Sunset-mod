@@ -1,0 +1,193 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-11-19T05:07:18.554443+00:00",
+  "purpose": "Unverified local WIP handoff, not release acceptance",
+  "mainAtCapture": "2cc4e646f8ab232eef0070c9d844b806241caf6e",
+  "integrationBase": "12f96168ee3bae48544ced7895966e6345e655b2",
+  "sourceHeads": [
+    {
+      "worktree": "toolchain-arm64",
+      "head": "2cc4e646f8ab232eef0070c9d844b806241caf6e",
+      "includedInBase": true
+    },
+    {
+      "worktree": "kotlin-backup-policy",
+      "head": "a242dabc6e2bd0b33d6f13957a425177d38d4840",
+      "includedInBase": true
+    },
+    {
+      "worktree": "kotlin-rust-bridge",
+      "head": "5fca5696912bf13633849a817f1a0d9b7e9e2f1f",
+      "includedInBase": true
+    },
+    {
+      "worktree": "rc5-lan-contract",
+      "head": "26fa29987b4c023a41d197f6d91430534ba80144",
+      "includedInBase": true
+    },
+    {
+      "worktree": "dsh-rc5",
+      "head": "a1dbd574c50329140592eb6078972e4d7b5842db",
+      "includedInBase": true
+    },
+    {
+      "worktree": "rc5-web-languages",
+      "head": "12f96168ee3bae48544ced7895966e6345e655b2",
+      "includedInBase": true
+    },
+    {
+      "worktree": "rc5-kotlin-integration",
+      "head": "12f96168ee3bae48544ced7895966e6345e655b2",
+      "includedInBase": true
+    }
+  ],
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "sourceWorktree": "rc5-kotlin-integration",
+      "sourceBranch": "rc5-kotlin-integration",
+      "sourceHead": "12f96168ee3bae48544ced7895966e6345e655b2",
+      "baseBlob": "a586b4c8c2e6303d72deef7325b6f5c9ac61fac0",
+      "bytes": 33991,
+      "sha256": "a1d235bca9ef098534a2e2dc004e77e763358d2479e3c0bd541a31a70819f4ad",
+      "status": "modified"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "sourceWorktree": "rc5-kotlin-integration",
+      "sourceBranch": "rc5-kotlin-integration",
+      "sourceHead": "12f96168ee3bae48544ced7895966e6345e655b2",
+      "baseBlob": "d9e38c095013bbd690d5b5eb2cb2418752dba619",
+      "bytes": 9623,
+      "sha256": "22166d5c36da8680f5bba028c00c68de39425211469b284881d6ae1acbe9884e",
+      "status": "modified"
+    },
+    {
+      "path": "app/src/main/assets/managed-package-proofs.json",
+      "sourceWorktree": "rc5-kotlin-integration",
+      "sourceBranch": "rc5-kotlin-integration",
+      "sourceHead": "12f96168ee3bae48544ced7895966e6345e655b2",
+      "baseBlob": "caa6a882e9c23ae5a24a2bcb215fe8dbe5faa295",
+      "bytes": 77561,
+      "sha256": "a36e2b5736cdc652dee4608b56587434b503a53b80afb79c282e2cee745e228a",
+      "status": "modified"
+    },
+    {
+      "path": "app/src/main/assets/managed-runtime-inputs.json",
+      "sourceWorktree": "rc5-kotlin-integration",
+      "sourceBranch": "rc5-kotlin-integration",
+      "sourceHead": "12f96168ee3bae48544ced7895966e6345e655b2",
+      "baseBlob": "75252b1090619e3451950f777e7ab785770eea36",
+      "bytes": 29701,
+      "sha256": "719620485a24cedfe382eaa3767907aeb00acb6a77dacd986bb248f715f04dd4",
+      "status": "modified"
+    },
+    {
+      "path": "app/src/main/assets/runtime-descriptor.json",
+      "sourceWorktree": "rc5-kotlin-integration",
+      "sourceBranch": "rc5-kotlin-integration",
+      "sourceHead": "12f96168ee3bae48544ced7895966e6345e655b2",
+      "baseBlob": "ad333b2064b270fca78b6c7d768eac795a0069cf",
+      "bytes": 79258,
+      "sha256": "39d58e08580e5040dd827e226925880204f01ea8c17a3b296c65aae1b07c88aa",
+      "status": "modified"
+    },
+    {
+      "path": "tools/asset-deployment.json",
+      "sourceWorktree": "rc5-kotlin-integration",
+      "sourceBranch": "rc5-kotlin-integration",
+      "sourceHead": "12f96168ee3bae48544ced7895966e6345e655b2",
+      "baseBlob": "1c1ca84d5911bfff78dc18b3eb584719dfbf380a",
+      "bytes": 11164,
+      "sha256": "fc7800ee1eefabe8564903b8892cd36441598a79885a54ea7a8c437974cf5d3b",
+      "status": "modified"
+    },
+    {
+      "path": "tools/host-tests.manifest.json",
+      "sourceWorktree": "rc5-kotlin-integration",
+      "sourceBranch": "rc5-kotlin-integration",
+      "sourceHead": "12f96168ee3bae48544ced7895966e6345e655b2",
+      "baseBlob": "5d7d66b9ff953dc770f3b044d425083b2c0deb3f",
+      "bytes": 124416,
+      "sha256": "f6525254e57eb3715a6b086b1b2b78de3443c1848dffc7bce9896bee05210165",
+      "status": "modified"
+    },
+    {
+      "path": "app/src/main/assets/plugin-bundle-proof-workers-patch.json",
+      "sourceWorktree": "dsh-rc5",
+      "sourceBranch": "task/dsh-rc5",
+      "sourceHead": "a1dbd574c50329140592eb6078972e4d7b5842db",
+      "baseBlob": "b33da7e8c6b5ffcdc2021e990c0c25274b8ca33d",
+      "bytes": 14421,
+      "sha256": "cbcc6110455ab5e781b423a6a6c0f2a71cda30edff0906f8a5fd0477f880f993",
+      "status": "modified"
+    },
+    {
+      "path": "app/src/main/assets/tool-history-projection-identity-patch.json",
+      "sourceWorktree": "dsh-rc5",
+      "sourceBranch": "task/dsh-rc5",
+      "sourceHead": "a1dbd574c50329140592eb6078972e4d7b5842db",
+      "baseBlob": "8c4c084e07bddf0a41e5487c2f0575c79cd8989a",
+      "bytes": 1572,
+      "sha256": "24f550e95b09a12d44e8646e44c09409a429131799c3966adb17c0c696066b71",
+      "status": "modified"
+    },
+    {
+      "path": "tools/test-dsh-rc5-browser-regressions.mjs",
+      "sourceWorktree": "dsh-rc5",
+      "sourceBranch": "task/dsh-rc5",
+      "sourceHead": "a1dbd574c50329140592eb6078972e4d7b5842db",
+      "baseBlob": "6a4a3cbbc0d148cffd548c8f0fff6f2c15d3ce1c",
+      "bytes": 15248,
+      "sha256": "2ba59610fb70cd21b15f8d9a18e028810ffac638c835428feb9f3974e0ce1eb1",
+      "status": "modified"
+    },
+    {
+      "path": "tools/test-plugin-pnpm-argv.mjs",
+      "sourceWorktree": "dsh-rc5",
+      "sourceBranch": "task/dsh-rc5",
+      "sourceHead": "a1dbd574c50329140592eb6078972e4d7b5842db",
+      "baseBlob": "4d14823b83544b613470b73141ba7c7dd6808cc5",
+      "bytes": 18170,
+      "sha256": "49210afd206f72890ad87feca37f14b41f5dec76ed036adb386a6f391957fef4",
+      "status": "modified"
+    },
+    {
+      "path": "tools/test-dsh-rc5-proof-cancellation.mjs",
+      "sourceWorktree": "dsh-rc5",
+      "sourceBranch": "task/dsh-rc5",
+      "sourceHead": "a1dbd574c50329140592eb6078972e4d7b5842db",
+      "baseBlob": null,
+      "bytes": 3681,
+      "sha256": "7db509737ab2b74cf33ecb1d26c52a772bfeca422e7e631a8f3cff621756277d",
+      "status": "untracked"
+    },
+    {
+      "path": "tools/prepare-web-languages.py",
+      "sourceWorktree": "rc5-web-languages",
+      "sourceBranch": "task/rc5-web-languages",
+      "sourceHead": "12f96168ee3bae48544ced7895966e6345e655b2",
+      "baseBlob": "a620df9cbb2c2577fff8d6a1195f5aa712ec0442",
+      "bytes": 11639,
+      "sha256": "1cdad3453f1cccad5a31ab121af82c7e85c18fc4db33dbe88e803e90d6cadc6c",
+      "status": "modified"
+    },
+    {
+      "path": "tools/web_language_catalog.py",
+      "sourceWorktree": "rc5-web-languages",
+      "sourceBranch": "task/rc5-web-languages",
+      "sourceHead": "12f96168ee3bae48544ced7895966e6345e655b2",
+      "baseBlob": "76ba2da97658266995a91e983b2b69bed7f88bab",
+      "bytes": 11656,
+      "sha256": "4a9275b5a91ee8b3d9119ff9bb0aa76bdf840c5ea3be1d9018f9cefa890738d2",
+      "status": "modified"
+    }
+  ],
+  "exclusions": [
+    "Ignored build outputs and caches",
+    "Large fixed-input/runtime binaries",
+    "User profiles, credentials and device diagnostics",
+    "Separate ed3bad17 phone-source archive",
+    "Original worktree ownership markers"
+  ]
+}
