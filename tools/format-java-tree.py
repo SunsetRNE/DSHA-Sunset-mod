@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+from source_layout import SourceLayout, PACKAGE
 
 ROOT = Path(__file__).resolve().parents[1]
 SETS = ("main", "standard", "debug", "androidTest", "test")
@@ -42,19 +43,22 @@ def inventory(root=ROOT, protected=(), generated=()):
     protected = set(protected)
     generated = set(generated)
     result = []
-    for source_set in SETS:
-        directory = root / "app/src" / source_set / SOURCE
-        if not directory.is_dir():
-            raise TreeFormatError("FORMAT_SOURCE_SET_MISSING: " + str(directory))
-        for path in directory.rglob("*.java"):
-            relative = path.relative_to(root).as_posix()
-            if EXCLUDED_PARTS.intersection(path.relative_to(directory).parts):
-                continue
-            if relative in protected or relative in generated:
-                continue
-            if path.is_symlink() or not path.is_file():
-                raise TreeFormatError("FORMAT_SOURCE_LINK_OR_NONFILE: " + relative)
-            result.append(relative)
+    layout = SourceLayout(root)
+    for module in layout.modules:
+        for source_set in module['formatSourceSets']:
+            roots = [root / module['directory'] / 'src' / source_set / language / PACKAGE
+                     for language in ('java', 'kotlin')]
+            if not any(directory.is_dir() for directory in roots):
+                raise TreeFormatError('FORMAT_SOURCE_SET_MISSING: ' + str(roots[0]))
+    for entry in layout.format_files(('.java',)):
+        path, relative = entry.path, entry.relative
+        if not entry.logical_path.startswith(PACKAGE + '/'):
+            continue
+        if EXCLUDED_PARTS.intersection(Path(entry.logical_path).parts):
+            continue
+        if relative in protected or relative in generated:
+            continue
+        result.append(relative)
     if TOOL_SOURCE not in protected:
         if not (root / TOOL_SOURCE).is_file():
             raise TreeFormatError("FORMAT_TOOL_SOURCE_MISSING")
@@ -77,12 +81,12 @@ def declared_files(manifest):
 def batch_key(name):
     if name == TOOL_SOURCE:
         return ("tools", "java-format")
-    parts = Path(name).parts
-    if len(parts) < 8 or parts[:2] != ("app", "src") or parts[2] not in SETS:
-        raise TreeFormatError("FORMAT_UNEXPECTED_SOURCE: " + name)
-    if parts[3:7] != ("java", "com", "deepseekharness", "app"):
-        raise TreeFormatError("FORMAT_UNEXPECTED_PACKAGE: " + name)
-    return (parts[2], parts[7] if len(parts) > 8 else "(root)")
+    entry = SourceLayout(ROOT).classify(name)
+    if not entry.logical_path.startswith(PACKAGE + '/') or Path(name).suffix != '.java':
+        raise TreeFormatError('FORMAT_UNEXPECTED_PACKAGE: ' + name)
+    inner = entry.logical_path[len(PACKAGE) + 1:].split('/')
+    source_set = entry.source_set if entry.module == ':app' else entry.module + '/' + entry.source_set
+    return (source_set, inner[0] if len(inner) > 1 else '(root)')
 
 
 def package_batches(names):

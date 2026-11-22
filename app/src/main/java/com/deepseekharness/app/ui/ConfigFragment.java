@@ -84,6 +84,9 @@ public class ConfigFragment extends Fragment {
     v.findViewById(R.id.config_restore_port_drafts)
         .setOnClickListener(x -> BrowserOriginRestore.show(requireContext()));
     CompoundButton checkUpdate = v.findViewById(R.id.config_check_update);
+    // APK 自动检查入口已退休；旧偏好仍按原键读写，导入/保存不迁移或抹掉历史值。
+    checkUpdate.setVisibility(View.GONE);
+    checkUpdate.setEnabled(false);
     CompoundButton desktop = v.findViewById(R.id.config_desktop_mode);
     bindEntryTarget(v);
     pictureEnabled = v.findViewById(R.id.config_picture_in_picture);

@@ -1,6 +1,7 @@
 """The signed manifest is shared by installation, runtime identity and Gradle inputs."""
 import json
 from pathlib import Path, PurePosixPath
+from source_layout import SourceLayout, PACKAGE
 
 MANIFEST = 'app/src/main/assets/managed-runtime-inputs.json'
 ASSETS = 'app/src/main/assets'
@@ -104,34 +105,53 @@ def _launcher(key, path, result):
     result[key] = path
 
 
-def launcher_paths(root, spec=None):
-    """受管启动输入：显式源码不限扩展名，launcherTrees 内 Java 源根同时枚举 .java/.kt。
-
-    本函数只承诺 app/src/main/java 源根。若将来新增 main/kotlin 源根，键映射、
-    重名处理与 Gradle 输入必须同批扩展；未知源码根按 .so 树处理会静默漏掉身份，
-    因此这里直接失败。键是相对 Java 源根的路径（保留扩展名），字典按键排序。
-    """
+def launcher_source_paths(root, spec=None):
+    """旧 launcher 键保持；Java/Kotlin 与模块物理迁移仅经共享布局解析。"""
     root = Path(root)
     spec = spec or load(root)
+    layout = SourceLayout(root)
     result = {}
     for name in spec['launcherSources']:
-        result[name] = _file(root, JAVA + '/' + name)
+        _launcher(name, layout.resolve(PACKAGE + '/' + name), result)
     for name in spec['launcherTrees']:
+        # 签名契约中的旧路径现在是逻辑树名，不能按其物理目录是否存在来缩扫描范围。
+        logical = None
+        for source_root in ('app/src/main/java/', 'app/src/main/kotlin/'):
+            if name == source_root.rstrip('/') or name.startswith(source_root):
+                logical = name[len(source_root):] if name.startswith(source_root) else ''
+                break
+        if logical is None:
+            if '/java/' in name or '/kotlin/' in name:
+                raise ValueError('RUNTIME_LAUNCHER_SOURCE_ROOT_UNSUPPORTED: ' + name)
+            continue
+        if logical != PACKAGE and not logical.startswith(PACKAGE + '/'):
+            raise ValueError('RUNTIME_LAUNCHER_SOURCE_ROOT_UNSUPPORTED: ' + name)
+        prefix = logical + '/'
+        entries = [entry for entry in layout.source_files(('main',), ('.java', '.kt'))
+                   if entry.logical_path.startswith(prefix)]
+        if not entries and not any((layout.root / module['directory'] / 'src/main' / language / logical).is_dir()
+                                   for module in layout.modules for language in ('java', 'kotlin')):
+            raise ValueError('RUNTIME_LAUNCHER_TREE: ' + name)
+        for entry in entries:
+            key = entry.logical_path[len(PACKAGE) + 1:]
+            _launcher(key, entry.path, result)
+    return dict(sorted(result.items()))
+
+
+def launcher_paths(root, spec=None):
+    """受管启动输入；所有消费者共用逻辑身份到物理路径映射，键保留扩展名。"""
+    root = Path(root)
+    spec = spec or load(root)
+    result = launcher_source_paths(root, spec)
+    for name in spec['launcherTrees']:
+        if '/java/' in name or '/kotlin/' in name:
+            continue
         directory = root / name
         if not directory.is_dir():
             raise ValueError('RUNTIME_LAUNCHER_TREE: ' + name)
-        if name == JAVA or name.startswith(JAVA + '/'):
-            for path in sorted(directory.rglob('*')):
-                if path.suffix not in ('.java', '.kt'):
-                    continue
-                key = path.relative_to(root / JAVA).as_posix()
-                _launcher(key, _file(root, path.relative_to(root).as_posix()), result)
-        else:
-            if '/java/' in name or '/kotlin/' in name:
-                raise ValueError('RUNTIME_LAUNCHER_SOURCE_ROOT_UNSUPPORTED: ' + name)
-            for path in sorted(directory.rglob('*.so')):
-                key = path.relative_to(root).as_posix()
-                _launcher(key, _file(root, path.relative_to(root).as_posix()), result)
+        for path in sorted(directory.rglob('*.so')):
+            key = path.relative_to(root).as_posix()
+            _launcher(key, _file(root, path.relative_to(root).as_posix()), result)
     for name in spec.get('generatorSources', []):
-        result['generator:'+name]=_file(root,name)
+        result['generator:'+name] = _file(root, name)
     return dict(sorted(result.items()))

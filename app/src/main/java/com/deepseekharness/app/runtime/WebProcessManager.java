@@ -599,6 +599,8 @@ public class WebProcessManager {
     private final java.util.List<InputCheck> inputChecks = new java.util.ArrayList<>();
     private File trialHome;
     private java.util.List<String> trialEntries;
+    private final java.util.List<StopCompletion.ProcessKey> exitedGuests =
+        new java.util.ArrayList<>();
 
     private record InputCheck(
         File path, com.deepseekharness.app.backup.BackupFileSystem.Node node, byte[] bytes) {}
@@ -689,6 +691,7 @@ public class WebProcessManager {
       } catch (NumberFormatException unknown) {
         return;
       }
+      exitedGuests.add(new StopCompletion.ProcessKey(boot, pid, started));
       facts.put(
           StopCompletion.Scope.GUEST,
           new StopCompletion.Fact(
@@ -721,7 +724,7 @@ public class WebProcessManager {
   public StopObservation finishStopObservation(StopTrace trace) {
     try {
       String root = stopRootIdentity(), boot = recoveryBoot();
-      if (!trace.verifyInputs(new com.deepseekharness.app.backup.AndroidBackupFileSystem()))
+      if (!trace.verifyInputs(stopFileSystem()))
         trace.mark(
             StopCompletion.Scope.TRIALS,
             StopCompletion.Outcome.UNKNOWN,
@@ -739,7 +742,84 @@ public class WebProcessManager {
     }
   }
 
-  private String stopRootIdentity() throws IOException {
+  /** 无信号、无退休的现场复核；不能单独授权启动。 */
+  public interface StopRecheck {
+    boolean unchanged() throws IOException;
+  }
+
+  com.deepseekharness.app.backup.BackupFileSystem stopFileSystem() {
+    return new com.deepseekharness.app.backup.AndroidBackupFileSystem();
+  }
+
+  /**
+   * 同步收尾后冻结本次停止的剩余输入。历史 inputs 摘要仍属于原 trace，不能用新空 trace 代替。
+   * 返回 null 只表示尚未选择交接时缺证据；选中之后任何读取失败都必须阻断续启。
+   */
+  public StopRecheck prepareStopRecheck(StopTrace trace, StopCompletion completion)
+      throws IOException {
+    if (trace == null || completion == null || !completion.complete()) return null;
+    if (!trace.root.equals(completion.environment().getRoot())
+        || !trace.boot.equals(completion.environment().getBoot())
+        || !digest(trace.inputs.toString()).equals(completion.environment().getInputs()))
+      return () -> false;
+    var fs = stopFileSystem();
+    if (!trace.verifyInputs(fs)) return () -> false;
+    StopTrace frozen = new StopTrace(trace.root, trace.boot);
+    frozen.inputChecks.addAll(trace.inputChecks);
+    frozen.trialHome = trace.trialHome;
+    frozen.trialEntries = trace.trialEntries;
+    java.util.List<File> roots = new java.util.ArrayList<>();
+    roots.add(root());
+    for (var input : trace.inputChecks)
+      if (input.path().getName().equals("payload") && input.node().type.equals("DIRECTORY"))
+        roots.add(input.path());
+    for (File directory : roots) {
+      for (String name :
+          java.util.List.of(".dsha-web.pid", ".dsha-web.identity", ".dsha-web.pid.stale")) {
+        File path = fs.child(directory, name);
+        var node = fs.stat(path);
+        if (!node.type.equals("FILE") && !node.type.equals("MISSING")) return () -> false;
+        // 原停止已退休所有活动记录。完成后再出现的记录属于新对象，不能签成post-stop基线。
+        if (!name.equals(".dsha-web.pid.stale") && !node.type.equals("MISSING")) return () -> false;
+        byte[] bytes = null;
+        if (node.type.equals("FILE")) {
+          try (var in = fs.read(path, node);
+              var out = new java.io.ByteArrayOutputStream()) {
+            byte[] buffer = new byte[128];
+            int count;
+            while ((count = in.read(buffer)) != -1) {
+              if (out.size() + count > 128) return () -> false;
+              out.write(buffer, 0, count);
+            }
+            bytes = out.toByteArray();
+          }
+        }
+        frozen.rememberInput(path, node, bytes);
+      }
+    }
+    var guests = new java.util.ArrayList<>(trace.exitedGuests);
+    var guest = completion.facts().get(StopCompletion.Scope.GUEST).getTarget();
+    if (guest == null) return null;
+    if (!guests.contains(guest)) guests.add(guest);
+    if (!frozen.verifyInputs(fs)
+        || !stopRootIdentity().equals(trace.root)
+        || !recoveryBoot().equals(trace.boot)) return () -> false;
+    return () -> {
+      if (!stopRootIdentity().equals(frozen.root)
+          || !recoveryBoot().equals(frozen.boot)
+          || !frozen.verifyInputs(stopFileSystem())) return false;
+      for (var saved : guests)
+        if (!saved.getBoot().equals(frozen.boot)
+            || !recordedProcessExited(saved.getPid(), saved.getStarted())) return false;
+      // 每次重新核对真实全域；进程内 spawn 计数不能覆盖终端或其它创建源。
+      if (!ownedWebFacts().isEmpty()) return false;
+      return frozen.verifyInputs(stopFileSystem())
+          && stopRootIdentity().equals(frozen.root)
+          && recoveryBoot().equals(frozen.boot);
+    };
+  }
+
+  String stopRootIdentity() throws IOException {
     var node =
         new com.deepseekharness.app.backup.AndroidBackupFileSystem().stat(proot.getRootfsDir());
     var home = new com.deepseekharness.app.backup.AndroidBackupFileSystem().stat(root());
@@ -1599,6 +1679,7 @@ public class WebProcessManager {
                   WebRecordedStop.run(trialManager.recordedStopIo(false, child));
               if (trace != null) {
                 trace.inputs.append(payload.getName()).append(child.record).append(child.birth);
+                trace.exitedGuests.addAll(child.exitedGuests);
                 if (!child.facts.containsKey(StopCompletion.Scope.GUEST)) trace.inputsKnown = false;
               }
               if (stopped != null) errors.add(stopped);

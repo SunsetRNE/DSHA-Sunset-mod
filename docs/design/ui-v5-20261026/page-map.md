@@ -58,7 +58,7 @@
 | 外观与体验 `appearance` | 主题、玻璃、字号、密度、动效、省电 | `SettingsFragment` 的外观/语言/省电入口 + `ThemeController` | **沿用**；原型“字号滑杆/悬浮预览”暂缓 |
 | 悬浮条 `overlay` | 悬浮条样式/内容/位置 | [OverlayFragment](../../../app/src/main/java/com/deepseekharness/app/ui/OverlayFragment.java#L18) | **沿用** |
 | 语言 `language` | 10 语言弹窗，文案仍简体中文 | `SettingsFragment` 语言弹窗 + [LanguageController](../../../app/src/main/java/com/deepseekharness/app/ui/LanguageController.java#L22) | **沿用**；语言内容与 RTL 暂缓 |
-| 版本更新 `updates` | 通道、检查、变更记录、回退条件 | [UpdateActivity](../../../app/src/main/java/com/deepseekharness/app/ui/UpdateActivity.java) | **沿用** |
+| 版本更新 `updates` | 通道、检查、变更记录、回退条件 | [UpdateActivity](../../../app/src/main/java/com/deepseekharness/app/ui/UpdateActivity.kt) | **沿用** |
 | 自检与诊断 `diagnostics` | 自检、维护日志、启动状态、任务 | [DiagnosticActivity](../../../app/src/main/java/com/deepseekharness/app/ui/DiagnosticActivity.java) | **沿用** |
 | 使用指南 `guide` | 按当前需要找入口 | 无独立页 | **暂缓** |
 | 手机连接方式 `connection` | Shizuku/无线 ADB/Root 指引 | `DeviceGrantsFragment` + `AdbPairActivity` | **沿用**；原型为目录直达 |

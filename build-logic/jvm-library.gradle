@@ -1,0 +1,11 @@
+// 纯 JVM 首模块入口：Gradle 内置 Java Library 插件，不新增外部插件解析。
+apply plugin: 'java-library'
+ext.dshaBuildConvention = 'jvm'
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+apply from: rootProject.file('build-logic/test.gradle')

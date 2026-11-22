@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Real Linux syscall negative controls for SAF container-path anchoring.
 
-Mirrors the production invariant in app/src/main/java/com/deepseekharness/app/saf/SafLocalFiles.java:
+Mirrors the production invariant in app/src/main/java/com/deepseekharness/app/saf/SafLocalFiles.kt:
+整域迁移注记（2026-11-15）：SAF 15 个生产类已从 Java 等价迁移 Kotlin，原 FQCN 与
+文件身份/FD 不变量不变；本脚本仅运行 Linux syscall 镜像，生产行为由 SAF JVM 测试另验。
 a canonical/policy check followed by a path-based open is not stable when an ancestor directory is
 replaced by a symlink. This test uses the same syscalls (O_PATH|O_NOFOLLOW directory walk,
 /proc/self/fd/<fd>/<name> opens, /proc/self/fd/<fd> readlink) and proves:
@@ -9,7 +11,7 @@ replaced by a symlink. This test uses the same syscalls (O_PATH|O_NOFOLLOW direc
 1. the attack is real: after swapping an allowed ancestor for a symlink, a plain
    O_NOFOLLOW open still reads the credential file;
 2. the opened descriptor's real path (readlink /proc/self/fd) no longer equals the expected path,
-   which is what the Java code rejects as PATH_CHANGED;
+   which is what the Kotlin code rejects as PATH_CHANGED;
 3.逐级 anchored 遍历在祖先被换成符号链接时直接 ELOOP；
 4. 已锚定的目录 fd 在目录被 rename 后仍指向同一目录，发布不会改写到路径重新解析的位置。
 """

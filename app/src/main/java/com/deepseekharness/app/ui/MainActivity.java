@@ -27,8 +27,6 @@ public class MainActivity extends AppCompatActivity {
     return activity instanceof MainActivity ? (MainActivity) activity : null;
   }
 
-  private com.deepseekharness.app.core.UpdateEngine startupUpdates;
-  private com.google.android.material.snackbar.Snackbar updateNotice;
   private boolean requestingLocalNetwork;
   private boolean restoreProbeStarted;
   private boolean discardedLauncherEntry;
@@ -624,10 +622,6 @@ public class MainActivity extends AppCompatActivity {
     syncShellRail(nav.getSelectedItemId());
     releaseGatedPages(!unresolved);
     consumeTaskTarget(getIntent());
-    // 只订阅后台检查；提示不切换导航，也不自动打开更新页或 Web。
-    startupUpdates = com.deepseekharness.app.core.UpdateEngine.get(this);
-    startupUpdates.state().observe(this, state -> showStartupUpdate());
-    startupUpdates.checkOnStartup(config.isCheckUpdate());
     scheduleFirstRunWeb();
     recoveryHandler.removeCallbacks(refreshRecovery);
     recoveryHandler.post(refreshRecovery);
@@ -757,62 +751,11 @@ public class MainActivity extends AppCompatActivity {
             });
   }
 
-  private void showStartupUpdate() {
-    if (startupUpdates == null
-        || updateNotice != null
-        || isFinishing()
-        || !hasWindowFocus()
-        || !getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)
-        || !new ConfigStore(this).isCheckUpdate()) return;
-    com.deepseekharness.app.util.UpdatePolicy.Release release = startupUpdates.startupNotice();
-    if (release == null) return;
-    updateNotice =
-        com.google.android.material.snackbar.Snackbar.make(
-                findViewById(android.R.id.content),
-                com.deepseekharness.app.util.UiText.format(
-                    "发现新版本 %s · %s",
-                    release.version,
-                    com.deepseekharness.app.core.UpdateEngine.channelName(
-                        startupUpdates.channel())),
-                com.google.android.material.snackbar.Snackbar.LENGTH_LONG)
-            .setAction(
-                com.deepseekharness.app.util.UiText.text("查看更新"),
-                view -> startActivity(new Intent(this, UpdateActivity.class)));
-    // 平板形态的底栏是隐藏的：锚到隐藏视图会把提示顶出可视区，隐藏时交给内容区默认定位。
-    android.view.View navAnchor = findViewById(R.id.bottom_nav);
-    if (navAnchor != null && navAnchor.getVisibility() == android.view.View.VISIBLE)
-      updateNotice.setAnchorView(R.id.bottom_nav);
-    updateNotice.addCallback(
-        new com.google.android.material.snackbar.Snackbar.Callback() {
-          @Override
-          public void onShown(com.google.android.material.snackbar.Snackbar bar) {
-            if (hasWindowFocus()
-                && getLifecycle()
-                    .getCurrentState()
-                    .isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED))
-              startupUpdates.markStartupNoticeShown(release);
-          }
-
-          @Override
-          public void onDismissed(com.google.android.material.snackbar.Snackbar bar, int event) {
-            if (updateNotice == bar) updateNotice = null;
-          }
-        });
-    updateNotice.show();
-  }
-
   @Override
   protected void onPostResume() {
     super.onPostResume();
     if (mainReady && getIntent().getBooleanExtra(FirstRunWebStart.EXTRA, false))
       scheduleFirstRunWeb();
-    showStartupUpdate();
-  }
-
-  @Override
-  public void onWindowFocusChanged(boolean hasFocus) {
-    super.onWindowFocusChanged(hasFocus);
-    if (hasFocus) showStartupUpdate();
   }
 
   @Override
@@ -824,10 +767,6 @@ public class MainActivity extends AppCompatActivity {
     }
     recoveryHandler.removeCallbacks(releaseWebCover);
     recoveryHandler.removeCallbacks(refreshRecovery);
-    if (updateNotice != null) {
-      updateNotice.dismiss();
-      updateNotice = null;
-    }
     super.onPause();
   }
 

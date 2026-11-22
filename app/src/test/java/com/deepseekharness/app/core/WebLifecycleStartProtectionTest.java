@@ -85,6 +85,19 @@ public final class WebLifecycleStartProtectionTest {
             "fixture",
             "");
     f.state.lastStopError = "";
+    // 旧准入夹具只模拟缺完整证明时的原链回退；完整交接另用真实coordinator+IO集成夹具。
+    var receipt = f.state.stopReceipt;
+    receipt
+        .completion()
+        .complete(
+            new com.deepseekharness.app.util.StopCompletion(
+                receipt.operation(),
+                new com.deepseekharness.app.util.StopCompletion.Environment("", "", ""),
+                java.util.List.of(),
+                0,
+                com.deepseekharness.app.util.StopCompletion.Finish.SUCCEEDED,
+                true,
+                confirmed));
     stop.complete();
   }
 

@@ -17,7 +17,7 @@
 
 ## 两个兼容开关的适用边界
 
-[ContainerRuntime](../app/src/main/java/com/deepseekharness/app/runtime/ContainerRuntime.java)根据运行mode、系统API与静态加载器偏好组装实际调用；[RuntimeExecution](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeExecution.java)选择本轮mode。静态加载器分支和源码中的动态分支不能仅因存在就宣称都能由当前UI到达；当前可达性和vendor输入限制见[运行引擎](runtime-engines.md)。
+[ContainerRuntime](../app/src/main/java/com/deepseekharness/app/runtime/ContainerRuntime.kt)根据运行mode、系统API与静态加载器偏好组装实际调用；[RuntimeExecution](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeExecution.kt)选择本轮mode。静态加载器分支和源码中的动态分支不能仅因存在就宣称都能由当前UI到达；当前可达性和vendor输入限制见[运行引擎](runtime-engines.md)。
 
 禁用seccomp只作用于proot的对应启动参数，不能改变proroot的路径翻译方式。静态加载器只属于proroot，不会把proot变成“零ptrace”。无当前同设备对照数据时不承诺加速或慢多少，也不把历史vivo基准迁成F10结果。
 

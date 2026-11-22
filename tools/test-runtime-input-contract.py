@@ -18,6 +18,7 @@ class RuntimeInputContractTest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix='runtime-input-test-')
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        self.write('ci/source-layout.json', (ROOT / 'ci/source-layout.json').read_text(encoding='utf8'))
         self.spec = {'schema': 1, 'installs': [{'asset': 'plugin.py', 'target': 'root/.dsh/plugin.py', 'executable': False}], 'assetFiles': ['offline-rootfs.version'], 'assetTrees': ['web'], 'launcherSources': ['util/Policy.java'], 'launcherTrees': [JAVA + '/runtime', 'app/src/main/jniLibs']}
         self.write(MANIFEST, json.dumps(self.spec))
         for path, text in {ASSETS + '/plugin.py': 'pass\n', ASSETS + '/offline-rootfs.version': '10', ASSETS + '/web/compat.js': 'true;', JAVA + '/util/Policy.java': 'policy', JAVA + '/runtime/Runner.java': 'runner', 'app/src/main/jniLibs/arm64-v8a/liba.so': 'elf', 'tools/dsh-runtime/package.json': '{"dependencies":{"@deepseek-ai/dsh":"0.1.7-rc.2"}}'}.items():
@@ -67,6 +68,7 @@ class RuntimeInputContractTest(unittest.TestCase):
             self.assertIn(key, selected)
     def test_explicit_kotlin_source_is_identified_without_tree_enumeration(self):
         self.spec['launcherSources'] = ['util/Policy.kt']
+        (self.root / JAVA / 'util/Policy.java').unlink()
         self.write(JAVA + '/util/Policy.kt', 'package com.deepseekharness.app.util\nclass Policy\n')
         self.write(MANIFEST, json.dumps(self.spec))
         self.assertIn('util/Policy.kt', launcher_paths(self.root))
@@ -78,8 +80,8 @@ class RuntimeInputContractTest(unittest.TestCase):
         self.write(JAVA + '/ui/Page.kt', 'package com.deepseekharness.app.ui\nclass Page\n')
         self.assertEqual(before, self.identity())
     def test_unknown_kotlin_source_root_fails_closed_instead_of_becoming_native(self):
-        self.spec['launcherTrees'].append('app/src/main/kotlin/com/deepseekharness/app/runtime')
-        self.write('app/src/main/kotlin/com/deepseekharness/app/runtime/Guard.kt', 'class Guard\n')
+        self.spec['launcherTrees'].append('unknown/src/main/kotlin/com/deepseekharness/app/runtime')
+        self.write('unknown/src/main/kotlin/com/deepseekharness/app/runtime/Guard.kt', 'class Guard\n')
         self.write(MANIFEST, json.dumps(self.spec))
         with self.assertRaisesRegex(ValueError, 'RUNTIME_LAUNCHER_SOURCE_ROOT_UNSUPPORTED'):
             launcher_paths(self.root)

@@ -1,7 +1,7 @@
 name: "Node: Standard unit tests"
 
-# 可复用节点：Standard JVM 单测。full 使用交接的固定输入并要求 0 失败 / 0 跳过；
-# source-only 跳过资产准备，仅汇总（不是完整固定输入运行）。
+# 可复用节点：layout 声明的所有 JVM 单测。full 使用固定输入、新鲜任务/报告及冻结基线。
+# filtered/source-only 单独汇总，不产生全仓 full PASS 或改写基线。
 on:
   workflow_call:
     inputs:
@@ -39,7 +39,7 @@ on:
         type: boolean
         default: false
       forks:
-        description: Test JVM forks (maxParallelForks, 1-4); same tests and fresh reports
+        description: Test JVM forks (full requires 1; filtered/source-only allow 1-4)
         required: false
         type: number
         default: 1
@@ -109,7 +109,39 @@ jobs:
           key: robolectric-android-all-${{ hashFiles('tools/robolectric-sdk.lock.json') }}
       - name: Prepare pinned Robolectric android-all jars
         run: python3 tools/prepare-robolectric-sdks.py --dir "$RUNNER_TEMP/robolectric-deps"
-      - name: Run Standard unit tests
+      - name: Enumerate expected unit tasks from source layout
+        env:
+          MODE: ${{ inputs.mode }}
+          TESTS: ${{ inputs.tests }}
+          REQUIRE_FIXTURES: ${{ inputs.require_fixtures }}
+          RUST_HOST: ${{ inputs.rust_host }}
+          FORKS: ${{ inputs.forks }}
+        run: |
+          set -euf
+          case "$MODE" in full|source-only) ;; *) echo "unknown mode: $MODE"; exit 2 ;; esac
+          if [ "$REQUIRE_FIXTURES" = true ] && { [ "$MODE" != full ] || [ -n "$TESTS" ]; }; then
+            echo "require_fixtures needs a full, unfiltered run"; exit 2
+          fi
+          if [ "$MODE" = full ] && [ -z "$TESTS" ]; then
+            if [ "$RUST_HOST" != true ]; then
+              echo "full contract requires the host Rust library and receipt"; exit 2
+            fi
+            if [ "$FORKS" != 1 ]; then
+              echo "full contract requires the default single test fork"; exit 2
+            fi
+          fi
+          python3 tools/source_layout.py --test-tasks --output out/unit-layout-tasks.json
+          python3 tools/unit_test_contract.py plan --root "$PWD" --output out/unit-plan.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          tasks = json.loads(Path('out/unit-layout-tasks.json').read_text(encoding='utf-8'))
+          if not tasks:
+              raise SystemExit('UNIT_LAYOUT_TASKS_EMPTY')
+          Path('out/unit-tasks.txt').write_text(''.join(row['task'] + '\n' for row in tasks), encoding='utf-8')
+          Path('out/unit-report-dirs.txt').write_text(''.join(row['reports'] + '\n' for row in tasks), encoding='utf-8')
+          PY
+      - name: Run layout unit tests
         env:
           DSHA_ROBOLECTRIC_DEPENDENCY_DIR: ${{ runner.temp }}/robolectric-deps
           MODE: ${{ inputs.mode }}
@@ -120,7 +152,20 @@ jobs:
           RUST_HOST: ${{ inputs.rust_host }}
         run: |
           set -euf
-          args=(:app:testStandardDebugUnitTest --no-daemon --max-workers=2)
+          mapfile -t unit_tasks < out/unit-tasks.txt
+          if [ "${#unit_tasks[@]}" -eq 0 ]; then echo "layout has no unit tasks"; exit 2; fi
+          # 多模块也串行调度 Test，避免每模块单 fork 累积成并行大堆 JVM。
+          args=(--no-daemon --max-workers=2 --no-parallel)
+          if [ "$MODE" = full ] && [ -z "$TESTS" ]; then
+            args+=(verifyDshaBuildConventions)
+          fi
+          for task in "${unit_tasks[@]}"; do
+            args+=("$task")
+            for pattern in $TESTS; do
+              case "$pattern" in *[!A-Za-z0-9_.*\$-]*) echo "unsafe --tests pattern"; exit 2 ;; esac
+              args+=(--tests "$pattern")
+            done
+          done
           case "$MODE" in
             full) args+=(-Pdsha.sourceOnlyTests=false) ;;
             source-only) args+=(-Pdsha.sourceOnlyTests=true -x :app:prepareStandardAssets -x :app:prepareRecoveryAssets) ;;
@@ -131,7 +176,16 @@ jobs:
             args+=("-Pdsha.rust.hostLib=$PWD/out/rust-host/libdsha_rs.so")
             args+=(-Pdsha.rust.required=true)
           fi
-          if [ "$RERUN" = true ]; then args+=(--rerun-tasks); fi
+          if [ "$MODE" = full ] && [ -z "$TESTS" ]; then
+            export DSHA_UNIT_TEST_STATE="$PWD/out/unit-run"
+            python3 tools/unit_test_contract.py begin --root "$PWD" --plan out/unit-plan.json \
+              --state "$DSHA_UNIT_TEST_STATE" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+              --rust-library out/rust-host/libdsha_rs.so --rust-receipt out/rust-host/receipt.json
+            # full 必须实际执行每个 Test；UP-TO-DATE/NO-SOURCE 没有成功凭据。
+            args+=(--rerun-tasks)
+          elif [ "$RERUN" = true ]; then
+            args+=(--rerun-tasks)
+          fi
           case "$FORKS" in 1|2|3|4) ;; *) echo "forks must be 1-4"; exit 2 ;; esac
           if [ "$FORKS" != 1 ]; then
             # 与 tools/verify-stability.py --test-forks 相同：init 脚本放在仓库外，只改 fork 数。
@@ -139,34 +193,69 @@ jobs:
             printf '%s\n' "gradle.projectsEvaluated { rootProject.allprojects { p -> p.tasks.withType(org.gradle.api.tasks.testing.Test).configureEach { t -> t.maxParallelForks = $FORKS } } }" > "$init"
             args+=(--init-script "$init")
           fi
-          for pattern in $TESTS; do
-            case "$pattern" in *[!A-Za-z0-9_.*\$-]*) echo "unsafe --tests pattern"; exit 2 ;; esac
-            args+=(--tests "$pattern")
-          done
           chmod +x gradlew
           ./gradlew "${args[@]}"
-      - name: Verify unit-test results
-        if: always()
+      - name: Verify complete fresh unit-test contract
+        if: ${{ always() && inputs.mode == 'full' && inputs.tests == '' }}
+        run: |
+          set -euf
+          python3 tools/unit_test_contract.py verify --root "$PWD" --state out/unit-run \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --baseline ci/unit-test-baseline.json --output out/unit-tests.json
+      - name: Summarize filtered or source-only tests separately
+        if: ${{ always() && (inputs.mode != 'full' || inputs.tests != '') }}
         env:
           MODE: ${{ inputs.mode }}
           TESTS: ${{ inputs.tests }}
-          REQUIRE_FIXTURES: ${{ inputs.require_fixtures }}
         run: |
-          args=(--mode "$MODE" --output out/unit-tests.json)
-          if [ "$REQUIRE_FIXTURES" = true ]; then
-            if [ -n "$TESTS" ]; then echo "require_fixtures needs an unfiltered run"; exit 2; fi
-            args+=(--require-fixtures)
-          fi
-          python3 tools/verify-unit-results.py "${args[@]}"
-      - name: Annotate failing unit tests
+          set -euf
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          tasks = json.loads(Path('out/unit-layout-tasks.json').read_text(encoding='utf-8'))
+          summaries = Path('out/unit-summaries')
+          summaries.mkdir(parents=True, exist_ok=True)
+          rows = []
+          # 旧验证器保留其计数、失败/跳过检查；每个 layout 报告目录均须存在。
+          env = dict(os.environ, GITHUB_STEP_SUMMARY='')
+          for index, row in enumerate(tasks):
+              output = summaries / f'{index:03d}.json'
+              subprocess.run([sys.executable, 'tools/verify-unit-results.py', '--mode', os.environ['MODE'],
+                              '--reports', row['reports'], '--output', str(output)], env=env, check=True)
+              rows.append(dict(row, summary=json.loads(output.read_text(encoding='utf-8'))))
+          mode = 'filtered' if os.environ['TESTS'] else 'source-only'
+          result = dict(mode=mode, completeFixedInputRun=False, modules=rows)
+          Path('out/unit-tests.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as stream:
+              stream.write(f'### {mode} unit tests (not a complete fixed-input run)\n')
+              for row in rows:
+                  stream.write(f"- {row['task']}: {json.dumps(row['summary']['flavors']['Standard'])}\n")
+          PY
+      - name: Annotate failing unit tests across layout modules
         if: failure()
-        run: python3 tools/annotate-junit-failures.py app/build/test-results/testStandardDebugUnitTest
+        run: |
+          set -euf
+          if [ -f out/unit-report-dirs.txt ]; then
+            while IFS= read -r reports; do
+              python3 tools/annotate-junit-failures.py "$reports"
+            done < out/unit-report-dirs.txt
+          fi
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: ${{ inputs.artifact }}
           path: |
-            app/build/test-results/testStandardDebugUnitTest
+            **/build/test-results/**
             out/unit-tests.json
+            out/unit-summaries
+            out/unit-plan.json
+            out/unit-layout-tasks.json
+            out/unit-tasks.txt
+            out/unit-report-dirs.txt
+            out/unit-run
+            ci/unit-test-baseline.json
           if-no-files-found: error
           retention-days: 14

@@ -25,4 +25,6 @@ dependencyResolutionManagement {
 // 根 build.gradle 的 buildscript 读取同一个值。
 gradle.ext.kotlinVersion = '2.2.10'
 rootProject.name = "deepseekharness"
+// build-logic/ 是复用根 classpath 的 applied Groovy 约定，不是产品模块或 included build。
+// Android 用 AGP built-in Kotlin；纯 JVM Kotlin 入口复用上面的固定 KGP 2.2.10。
 include ':app'

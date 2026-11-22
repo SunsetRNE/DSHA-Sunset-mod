@@ -254,8 +254,8 @@ S1–S4 已独立 APPROVE，S5 已提交 `cf13d360`；S4 的 5 条非阻塞 P2 �
 [semantic]: ../../../app/src/main/java/com/deepseekharness/app/vscreen/VirtualScreenSemanticAdapter.java#L24
 [anchored]: ../../../app/src/main/java/com/deepseekharness/app/vscreen/VirtualScreenObservedControl.java#L272
 [external-plan]: ../../../app/src/main/java/com/deepseekharness/app/util/ExternalInstallPlan.java#L103
-[module-desc]: ../../../app/src/main/java/com/deepseekharness/app/contract/ModuleDescriptor.java#L9
-[contract-result]: ../../../app/src/main/java/com/deepseekharness/app/contract/ContractResult.java
+[module-desc]: ../../../app/src/main/java/com/deepseekharness/app/contract/ModuleDescriptor.kt#L12
+[contract-result]: ../../../app/src/main/java/com/deepseekharness/app/contract/ContractResult.kt
 [descriptor]: ../../../app/src/main/assets/runtime-descriptor.json#L1
 [managed]: ../../../app/src/main/assets/managed-runtime-inputs.json#L623
 [test-native]: ../../../tools/test-native-device-policy.py

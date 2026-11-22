@@ -1,13 +1,15 @@
 # AGENTS.md — English contributor and agent guide
 
 
-> **Status**: `0.2.1-rc.5-20261114.1717-dsh0.2.2-rc.1` / build366 / `io.github.sunsetrne.dsha` / DSH-A-Su / single Standard.
+> **Current candidate**: `0.2.1-rc.5-20261116.0500-dsh0.2.2-rc.1` / build368 / `io.github.sunsetrne.dsha` / DSH-A-Su / single Standard.
+> build367 is released (tag `dsha-a-su-build367-20261115-230955`); build368 full CI and device acceptance are pending. Historical receipts do not establish this build's results.
 > Main branch `main`; Android 11+ (API 30) / arm64; proot by default, proroot optional; bundled DSH 0.2.2-rc.1.
 > The island feature is folded into the regular package; the old low/GeckoView line and the separate island package are removed; signing uses the Mod-owned certificate (see BUILD.en.md).
+> Rust release assembly defaults to prebuilt and the runtime backend is enabled after startup; with a missing .so or a load failure it stays on the JVM with typed reasons.
 
 DSHA's entry point for AI agents and new contributors — read [README](README.en.md) first, then this file, so you do not need to scan the whole repository.
 
-**Repository facts**: Java 17 / `:app` / arm64; mobile UI 3.3.5; proot by default with optional proroot; pinned offline inputs are restored by `tools/ci-assets.py`. Build, signing and gates are documented in [BUILD.md](BUILD.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+**Repository facts**: Java 17 / Kotlin (AGP 9.1.1 built-in, KGP pinned to 2.2.10) / `:app` / arm64; build368's 517 managed launcher inputs include 439 Java + 18 Kotlin files; mobile UI 3.3.5; proot by default with optional proroot; pinned offline inputs are restored by `tools/ci-assets.py`. Build, signing and gates are documented in [BUILD.md](BUILD.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Maintenance entry points: [documentation index](docs/en/index.md), [project handbook](docs/en/project-architecture-handbook.md), [permissions](docs/en/device-permissions-architecture.md), [runtime/data/plugins](docs/en/runtime-data-plugin-architecture.md), [runtime engines](docs/en/runtime-engines.md), [ports](docs/en/ports-and-networking.md), [virtual display](docs/en/virtual-screen-architecture.md), [ADR0003](docs/en/adr/0003-virtual-screen-lifecycle-and-input.md), [provenance](docs/en/references-and-provenance.md).
 
@@ -108,7 +110,7 @@ Read the [security model](docs/en/security-model.md) first. Essential boundaries
 
 ### Versions and builds
 
-- **Current identity comes from `app/build.gradle`, `ci/release-identity.json` and [CHANGELOG.md](CHANGELOG.md).** build366 / DSHA revision `0.2.1-rc.5` (bundled DSH 0.2.2-rc.1) / `io.github.sunsetrne.dsha` / DSH-A-Su / single Standard. Earlier code/build numbers, the old `dsh.android.client` package and the historical E7E3 signature are records only, not current build or signing inputs.
+- **Current identity comes from `app/build.gradle`, `ci/release-identity.json` and [CHANGELOG.md](CHANGELOG.md).** build368 / DSHA revision `0.2.1-rc.5` (bundled DSH 0.2.2-rc.1) / `io.github.sunsetrne.dsha` / DSH-A-Su / single Standard. Earlier code/build numbers, the old `dsh.android.client` package and the historical E7E3 signature are records only, not current build or signing inputs.
 - `standard`: minSdk 30 (Android 11+), system WebView, arm64-v8a. It is the only build line; the task is `assembleStandardRelease`. The `low`/GeckoView line and legacy proot/loader are deleted (`assembleLowRelease` no longer exists), so **Android 10 and below are no longer supported**. The test variant only changes the package via `-Pdsha.sunsetTest=true` (`io.github.sunsetrne.dsha.test`).
 - Offline rootfs (`assets/offline-rootfs.bin`) is **not committed**; preparation scripts generate it. `offline-rootfs.layout=split-runtime-v1` marks separate Ubuntu and `dsh-runtime.bin` packages; builds check both digests.
 - `tools/dsh-runtime/package-lock.json` locks new dsh dependencies. `tools/prepare-runtime-descriptor.py` generates independent managed-contract descriptors; the APK version is diagnostic context only. Update managed trees within the same base while keeping personal data in place. **UI-only APK updates do not replace the environment; ordinary dsh updates do not increment the Ubuntu base.**

@@ -110,6 +110,24 @@ public final class UpdateEngineCheckTest {
   }
 
   @Test
+  public void legacyStartupHooksNeverCheckOrPromptButManualCheckStillWorks() throws Exception {
+    Response source = new Response(200, feed("[" + release() + "]"));
+    UpdateEngine engine = new UpdateEngine(app, source);
+    engine.checkOnStartup(true);
+    engine.checkOnStartup(false);
+    engine.checkOnStartup(true);
+    assertEquals(0, source.opened);
+    assertFalse(engine.state().getValue().busy);
+    assertNull(engine.startupNotice());
+    engine.markStartupNoticeShown(null);
+    assertNotNull(check(engine).release);
+    assertEquals(1, source.opened);
+    assertNull(engine.startupNotice());
+    engine.markStartupNoticeShown(engine.state().getValue().release);
+    assertNull(engine.startupNotice());
+  }
+
+  @Test
   public void absentFeedAndNoPublishedReleaseHaveNormalEmptyStates() throws Exception {
     for (int status : new int[] {404, 410, 200}) {
       Response source = new Response(status, feed("[]"));
@@ -235,6 +253,7 @@ public final class UpdateEngineCheckTest {
 
   private static final class Response implements UpdateEngine.Transport {
     int status;
+    int opened;
     final String body;
     Exception failure;
     boolean disconnected, bodyOpened;
@@ -246,6 +265,7 @@ public final class UpdateEngineCheckTest {
 
     @Override
     public HttpURLConnection open(String target, long offset) throws Exception {
+      opened++;
       assertEquals(UpdateEngine.FEED, target);
       assertEquals(0, offset);
       if (failure != null) throw failure;

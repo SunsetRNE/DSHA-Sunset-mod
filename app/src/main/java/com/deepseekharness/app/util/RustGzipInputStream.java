@@ -12,7 +12,8 @@ import java.nio.ByteBuffer;
  * 尾随字节与多成员；{@code FNAME}/{@code FCOMMENT} 各 ≤ 8192 字节（含终止 0）。
  * 解压输出累计上限 16 GiB + 256 MiB，与现有读取器一致。
  *
- * <p>纯 Java、零 Android import。R3 不接生产调用点（A3 slice4 由 Lead 串行安排）。
+ * <p>纯 Java、零 Android import。A3 slice4 已接入生产（{@code StrictGzipInputStream.open}），
+ * 运行层开关由 {@code DshaApp} 启动时默认启用；关或库不可用时留在 JVM 读取器。
  * 构造时会推进头部并尽量取出第一块明文：对小载荷/一次性读块，这一步可能已经解完 body 并
  * 校验尾部，因此**构造期也可能抛出** {@code GZIP_TRAILER}/{@code GZIP_DEFLATE}/
  * {@code GZIP_TRAILING_DATA}（JVM 的 {@code StrictGzipInputStream} 把 body/尾部错误推迟到

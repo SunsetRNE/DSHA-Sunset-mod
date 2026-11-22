@@ -1,0 +1,59 @@
+// 共用测试 JVM 约定；调用方先应用 Android 或 Java 插件。
+// 资产路径相对于当前模块解析，不能把 rootProject 或约定脚本目录当成测试资产根。
+if (project.ext.has('dshaTestConventionApplied'))
+    throw new GradleException('DSHA_TEST_CONVENTION_ALREADY_APPLIED')
+ext.dshaTestConventionApplied = true
+
+// 配置期解析，避免 Groovy 4 在嵌套闭包内声明同名 def 时的作用域冲突。
+def sourceOnlyTests = providers.gradleProperty('dsha.sourceOnlyTests').orElse('false').get()
+if (!(sourceOnlyTests in ['true', 'false']))
+    throw new GradleException('dsha.sourceOnlyTests 只接受 true 或 false')
+def rustHostLibProperty = providers.gradleProperty('dsha.rust.hostLib').orNull
+def rustRequiredProperty = providers.gradleProperty('dsha.rust.required').orElse('false').get()
+if (!(rustRequiredProperty in ['true', 'false']))
+    throw new GradleException('dsha.rust.required 只接受 true 或 false')
+def frameworkDirectory = System.getenv('DSHA_ROBOLECTRIC_DEPENDENCY_DIR')
+def testAssetsDirectory = file('src/main/assets').absolutePath
+// 搬迁测试可显式登记其实际源夹具所有者；不会自动依赖或复制 :app 的生产资产。
+// File/绝对路径应指向具体源资产树，默认不存在的本模块资产目录对无资产 JVM 模块合法。
+def assetsOverride = project.ext.has('dshaTestAssetsDirectory') ? project.ext.dshaTestAssetsDirectory : null
+def configuredAssetsDirectory = assetsOverride instanceof File ? assetsOverride :
+        assetsOverride instanceof String ? new File(assetsOverride) : null
+if (project.ext.has('dshaTestAssetsDirectory')) {
+    if (configuredAssetsDirectory == null || !configuredAssetsDirectory.isAbsolute()
+            || !configuredAssetsDirectory.isDirectory()
+            || configuredAssetsDirectory.canonicalFile == rootProject.projectDir.canonicalFile
+            || configuredAssetsDirectory.canonicalFile == projectDir.canonicalFile)
+        throw new GradleException('DSHA_TEST_ASSETS_DIRECTORY_REQUIRES_CONCRETE_ABSOLUTE_SOURCE_TREE')
+    testAssetsDirectory = configuredAssetsDirectory.absolutePath
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+}
+
+tasks.withType(Test).configureEach { testTask ->
+    // 完整 Standard 套件含大位图与多组 Robolectric 沙箱，保持原 2048m 上限。
+    // 默认一个 fork，避免同机测试 JVM 争抢内存；压力验证仍可用仓库外 init 脚本覆盖。
+    testTask.maxHeapSize = '2048m'
+    testTask.maxParallelForks = 1
+    testTask.useJUnit()
+    testTask.reports.junitXml.required = true
+    testTask.systemProperty 'dsha.assetsDir', testAssetsDirectory
+    testTask.systemProperty 'dsha.sourceOnlyTests', sourceOnlyTests
+    // 切换到完整测试时不得复用 source-only 的跳过结果。
+    testTask.inputs.property 'dsha.sourceOnlyTests', sourceOnlyTests
+    // Rust 主机差分测试读取 FileDescriptor.fd；保持对所有 Test JVM 的 java.io 开放。
+    testTask.jvmArgs '--add-opens=java.base/java.io=ALL-UNNAMED'
+    if (rustHostLibProperty) {
+        testTask.systemProperty 'dsha.rust.hostLib', rustHostLibProperty.toString()
+        testTask.systemProperty 'dsha.rust.required', rustRequiredProperty
+    } else if (rustRequiredProperty == 'true') {
+        testTask.systemProperty 'dsha.rust.required', 'true'
+    }
+    // SDK 由 prepare-robolectric-sdks.py 按锁文件准备；不让测试中途自行下载。
+    if (frameworkDirectory) {
+        testTask.systemProperty 'robolectric.offline', 'true'
+        testTask.systemProperty 'robolectric.dependency.dir', frameworkDirectory
+    }
+}

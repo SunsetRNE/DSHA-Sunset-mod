@@ -27,7 +27,7 @@ Main 的“终端”是打开同 task、非导出的 [TerminalActivity](<../app/
 
 返回键顺序为对话框 → 可收起的侧栏（抽屉或极简内联）→ 终端选择/IME → 关闭页面；工作台常驻内联侧栏不占用返回层级。
 
-选择保存在本机 `term_pty`；切换模式保留另一种模式的既有会话，并非把同一 shell 转换成另一种协议。两组标签由进程级 [TerminalSessionOwner](<../app/src/main/java/com/deepseekharness/app/core/TerminalSessionOwner.java>) 持有，Fragment 只附着观察者；切页、旋转、语言重建和 Main 普通销毁均不会请求结束终端。应用进程被系统结束后不承诺恢复原 shell；旧 Bundle 的 ownerEpoch 不能认领新进程中的同号标签，不重放输入。
+选择保存在本机 `term_pty`；切换模式保留另一种模式的既有会话，并非把同一 shell 转换成另一种协议。两组标签由进程级 [TerminalSessionOwner](<../app/src/main/java/com/deepseekharness/app/core/TerminalSessionOwner.kt>) 持有，Fragment 只附着观察者；切页、旋转、语言重建和 Main 普通销毁均不会请求结束终端。应用进程被系统结束后不承诺恢复原 shell；旧 Bundle 的 ownerEpoch 不能认领新进程中的同号标签，不重放输入。
 
 首次进入每种模式最多发起一次默认创建；取消、失败或所有标签已结束后再次进入保持空态，需用户明确新建。侧栏的“返回主界面”和返回键仅关闭页面，与“结束进程”分开。侧栏的打开意图随 Activity 保存并按新窗口形态重投影，但不会持久化会话或命令；关闭工作台常驻侧栏不通过返回键完成。
 
@@ -56,9 +56,9 @@ Main 的“终端”是打开同 task、非导出的 [TerminalActivity](<../app/
 
 ## 会话、编号与命令状态
 
-[TerminalTabs](../app/src/main/java/com/deepseekharness/app/util/TerminalTabs.java) 的内部 ID 在同一 `(ownerEpoch, kind)` 内永久递增，显示编号复用已成功关闭的空缺。ID 在 fork/后端启动前预留；取消预留不会回退计数，long 耗尽会明确拒绝新建，已预留的未确认 PTY 仍可用同一 ID 发布并关闭。关闭中或关闭失败的标签继续占号；不能根据显示编号向新会话投递旧回调。PTY 与简易模式各自保存标签与当前选择；应用进程退出后换新 epoch，不从磁盘恢复 shell。
+[TerminalTabs](../app/src/main/java/com/deepseekharness/app/util/TerminalTabs.kt) 的内部 ID 在同一 `(ownerEpoch, kind)` 内永久递增，显示编号复用已成功关闭的空缺。ID 在 fork/后端启动前预留；取消预留不会回退计数，long 耗尽会明确拒绝新建，已预留的未确认 PTY 仍可用同一 ID 发布并关闭。关闭中或关闭失败的标签继续占号；不能根据显示编号向新会话投递旧回调。PTY 与简易模式各自保存标签与当前选择；应用进程退出后换新 epoch，不从磁盘恢复 shell。
 
-简易终端的 [TerminalSession](../app/src/main/java/com/deepseekharness/app/util/TerminalSession.java) 状态为 `STOPPED → STARTING → READY/BUSY → STOPPING`，失败进入 `FAILED`。启动握手先核验固定 bootstrap 的 PID、会话与出生身份，才允许发送用户命令。尚未发送的命令可等待就绪；初始化超时不表示执行过用户命令。
+简易终端的 [TerminalSession](../app/src/main/java/com/deepseekharness/app/util/TerminalSession.kt) 状态为 `STOPPED → STARTING → READY/BUSY → STOPPING`，失败进入 `FAILED`。启动握手先核验固定 bootstrap 的 PID、会话与出生身份，才允许发送用户命令。尚未发送的命令可等待就绪；初始化超时不表示执行过用户命令。
 
 “中止”会终止本次简易 shell 的进程组，确认退出后创建新 shell；`cd`、`export` 等 shell 内状态随之清除。尚未发送的命令保留，已经发送的命令不会自动重放。部分写入失败属于结果未知，界面提示先核查结果，不能以“重试”自动重复可能有副作用的操作。关闭标签会取消未发送队列。
 
@@ -66,7 +66,7 @@ Main 的“终端”是打开同 task、非导出的 [TerminalActivity](<../app/
 
 ## 关闭、维护与失败
 
-“结束进程”先明确确认目标类型与 ID，标记 `CLOSING`，再在工作线程等待退出。只有 [TerminalSessionOwner](<../app/src/main/java/com/deepseekharness/app/core/TerminalSessionOwner.java>) 核验成功才移除标签；失败持久保存 `UNCONFIRMED`、脱敏错误及原 ID，停止接受新输入，不自动重复结束请求。用户可显式选择“核验并结束”。PTY 自然退出后经真实清理核验可释放保护但保留历史；仅启动器退出仍展示清理待核验，不能画成成功。环境维护仍先关闭 PTY（含未发布 pending）及简易会话，再停止 Web 并取得维护屏障；遇错即止。
+“结束进程”先明确确认目标类型与 ID，标记 `CLOSING`，再在工作线程等待退出。只有 [TerminalSessionOwner](<../app/src/main/java/com/deepseekharness/app/core/TerminalSessionOwner.kt>) 核验成功才移除标签；失败持久保存 `UNCONFIRMED`、脱敏错误及原 ID，停止接受新输入，不自动重复结束请求。用户可显式选择“核验并结束”。PTY 自然退出后经真实清理核验可释放保护但保留历史；仅启动器退出仍展示清理待核验，不能画成成功。环境维护仍先关闭 PTY（含未发布 pending）及简易会话，再停止 Web 并取得维护屏障；遇错即止。
 
 ### 独立后台保护
 
@@ -74,7 +74,7 @@ Main 的“终端”是打开同 task、非导出的 [TerminalActivity](<../app/
 
 PTY 在底层核验 guest 为空后释放保护。简易标签的 `STOPPED/FAILED` 不能证明整个生命周期已清理，保守保留至用户显式结束核验成功；该状态与“页面已返回”不同。原有 RuntimeTasks 维护与 CPU 锁策略保留，本次没有新增整段 CPU 锁或宣称功耗改善。停止 Web 不改变终端服务原因。
 
-[TerminalProcessCloser](../app/src/main/java/com/deepseekharness/app/runtime/TerminalProcessCloser.java) 提供 Android 观察与信号适配，[TerminalExitPolicy](../app/src/main/java/com/deepseekharness/app/util/TerminalExitPolicy.java) 使用保存的进程身份、UID 与会话关系决定退出顺序。每次 guest 信号前复查 leader，信号前再核验该进程；guest 两次扫描为空后才结束 launcher，随后继续等待空会话。不能把 `/proc` 暂时不可读、超时或启动器退出等同于整个 guest 已退出；核验失败继续保留环境占用，不按裸 PID、端口、名称或旧 PGID 强杀。双扫不提供任意持续派生或逃离会话进程的原子退出保证；自然退出后的空会话检查也在 20ms 观察间隔前后各扫描一次，中断时仍保留未确认。leader 已消失但会话仍有残留时只报告未确认。现用环境不能在该屏障未解除时移动或重建。
+[TerminalProcessCloser](../app/src/main/java/com/deepseekharness/app/runtime/TerminalProcessCloser.kt) 提供 Android 观察与信号适配，[TerminalExitPolicy](../app/src/main/java/com/deepseekharness/app/util/TerminalExitPolicy.kt) 使用保存的进程身份、UID 与会话关系决定退出顺序。每次 guest 信号前复查 leader，信号前再核验该进程；guest 两次扫描为空后才结束 launcher，随后继续等待空会话。不能把 `/proc` 暂时不可读、超时或启动器退出等同于整个 guest 已退出；核验失败继续保留环境占用，不按裸 PID、端口、名称或旧 PGID 强杀。双扫不提供任意持续派生或逃离会话进程的原子退出保证；自然退出后的空会话检查也在 20ms 观察间隔前后各扫描一次，中断时仍保留未确认。leader 已消失但会话仍有残留时只报告未确认。现用环境不能在该屏障未解除时移动或重建。
 
 终端、插件和 DSH 处于应用的 Android UID 运行域。原生终端允许执行 shell；设备桥的命令白名单不构成终端的强沙箱。输入命令前应按真实工作目录和权限判断影响，详见[安全模型](security-model.md)。
 

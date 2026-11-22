@@ -12,6 +12,7 @@ import sys
 import tempfile
 import urllib.request
 from git_guard import git_output
+from source_layout import SourceLayout
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCK_PATH = ROOT / "tools/ktfmt.lock.json"
@@ -52,10 +53,14 @@ def checked_path(name, root=ROOT, protected=()):
         raise FormatError("FORMAT_REDIRECTED_PATH_REFUSED: " + str(name))
     spelling = relative.as_posix()
     parts = relative.parts
-    own_app = (
-        len(parts) >= 5 and parts[:2] == ("app", "src")
-        and parts[2] in SETS and parts[3] in SOURCE_ROOTS
-    )
+    own_app = False
+    try:
+        layout = SourceLayout(root)
+        entry = layout.classify(spelling)
+        module = next(m for m in layout.modules if m['path'] == entry.module)
+        own_app = entry.source_set in module['formatSourceSets']
+    except ValueError:
+        pass
     forbidden = {"history", "upstream", "vendor", "third_party", "third-party", "generated"}
     if (not own_app or forbidden.intersection(parts)
             or spelling.casefold() in {item.casefold() for item in protected}

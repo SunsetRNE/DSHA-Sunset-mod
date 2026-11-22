@@ -1,0 +1,371 @@
+// A8 P1：真实源码根与编译有效输入门禁。只复用当前 AGP/KGP，不引入第二套编译插件。
+// 配置审计允许尚未完成的精确 AGP generator provider；编译前 / Test 前必须完整解析。
+def sourceComponents = [:]
+def sourcePython = System.getenv('DSHA_PYTHON') ?: 'python3'
+def sourceRoot = rootProject.projectDir.canonicalFile.toPath()
+def sourceFail = { detail -> throw new GradleException('DSHA_SOURCE_INPUT: ' + detail) }
+def isKotlinCompile = { task ->
+    def type = task.getClass()
+    while (type != null) {
+        if (type.name == 'org.jetbrains.kotlin.gradle.tasks.KotlinCompile') return true
+        type = type.superclass
+    }
+    false
+}
+def isCompile = { task -> task instanceof JavaCompile || isKotlinCompile(task) }
+def sha256 = { File file ->
+    def digest = java.security.MessageDigest.getInstance('SHA-256')
+    file.withInputStream { stream ->
+        byte[] buffer = new byte[65536]
+        int count
+        while ((count = stream.read(buffer)) != -1) digest.update(buffer, 0, count)
+    }
+    digest.digest().encodeHex().toString()
+}
+def relativePath = { File file ->
+    def declared = file.absoluteFile.toPath().normalize()
+    def canonical = file.canonicalFile.toPath()
+    if (!declared.startsWith(sourceRoot) || declared != canonical) sourceFail('outside/link source ' + file)
+    sourceRoot.relativize(declared).toString().replace(File.separator, '/')
+}
+def snapshot = {
+    def execution = rootProject.providers.exec {
+        workingDir rootProject.projectDir
+        commandLine sourcePython, '-B', rootProject.file('tools/source_layout.py').absolutePath,
+                '--root', rootProject.projectDir.absolutePath, '--compile-inputs'
+    }
+    execution.result.get().assertNormalExitValue()
+    def value = new groovy.json.JsonSlurper().parseText(execution.standardOutput.asText.get())
+    if (value.schema != 1 || !(value.modules instanceof List) || !(value.sources instanceof List))
+        sourceFail('compile inventory schema')
+    value
+}
+def verifyHead = {
+    def execution = rootProject.providers.exec {
+        workingDir rootProject.projectDir
+        commandLine sourcePython, '-B', rootProject.file('tools/source_layout.py').absolutePath,
+                '--root', rootProject.projectDir.absolutePath, '--verify-compile-head'
+    }
+    def result = execution.result.get()
+    if (result.exitValue != 0) rootProject.logger.error(execution.standardError.asText.get())
+    result.assertNormalExitValue()
+    new groovy.json.JsonSlurper().parseText(execution.standardOutput.asText.get())
+}
+def writeExclusive = { File output, value ->
+    output.parentFile.mkdirs()
+    java.nio.file.Files.writeString(output.toPath(), groovy.json.JsonOutput.toJson(value) + '\n',
+            java.nio.charset.StandardCharsets.UTF_8, java.nio.file.StandardOpenOption.CREATE_NEW)
+}
+def taskDigest = { path -> java.security.MessageDigest.getInstance('SHA-256')
+        .digest(path.getBytes('UTF-8')).encodeHex().toString() }
+def compileStarts = [:]
+def executionFile = { File state, task -> new File(state, 'compile-executions/' + taskDigest(task.path) + '.json') }
+def moduleIsFixture = { module ->
+    module.ext.has('dshaConventionFixture') && module.ext.dshaConventionFixture == true
+            && !module.projectDir.canonicalFile.toPath().startsWith(sourceRoot)
+}
+def moduleSources = { module, inventory ->
+    if (!moduleIsFixture(module)) return inventory.sources.findAll { it.module == module.path }
+    // 测试夹具不属于产品 HEAD，不进入 full proof；配置审计仍完整核其标准输入。
+    def sets = module.extensions.findByName('android')?.sourceSets ?: module.extensions.getByName('sourceSets')
+    sets.collectMany { sourceSet ->
+        ['java', 'kotlin'].collectMany { language ->
+            module.fileTree("src/${sourceSet.name}/${language}").matching {
+                include '**/*.java', '**/*.kt', '**/*.kts'
+            }.files.collect { file ->
+                [module: module.path, sourceSet: sourceSet.name, path: file.absolutePath,
+                 logicalPath: module.file("src/${sourceSet.name}/${language}").toPath().relativize(file.toPath()).toString()]
+            }
+        }
+    }
+}
+def rootRows = { module ->
+    def android = module.extensions.findByName('android')
+    def kotlin = module.extensions.findByName('kotlin')
+    def sets = android != null ? android.sourceSets : module.extensions.getByName('sourceSets')
+    def rows = []
+    def checkRoots = { name, api, actual, expected ->
+        def actualPaths = actual.collect { it.absoluteFile.toPath().normalize().toString() }.sort()
+        def expectedPaths = expected.collect { it.absoluteFile.toPath().normalize().toString() }.sort()
+        if (actualPaths != expectedPaths) sourceFail("${module.path} ${name} ${api} roots ${actualPaths} != ${expectedPaths}")
+        actual.each { file ->
+            def expectedCanonical = module.projectDir.canonicalFile.toPath().resolve(
+                    module.projectDir.absoluteFile.toPath().normalize().relativize(file.absoluteFile.toPath().normalize()))
+            if (file.canonicalFile.toPath() != expectedCanonical) sourceFail('source root link ' + file)
+        }
+        rows += [module: module.path, sourceSet: name, api: api,
+                 roots: actual.collect { moduleIsFixture(module) ? it.absolutePath : relativePath(it) }.sort()]
+    }
+    sets.each { sourceSet ->
+        def javaRoots = [module.file("src/${sourceSet.name}/java")]
+        if (android != null && module.path == ':app' && sourceSet.name == 'main')
+            javaRoots += module.layout.buildDirectory.dir('generated/uiLanguage').get().asFile
+        checkRoots(sourceSet.name, android != null ? 'android-java' : 'jvm-java', sourceSet.java.srcDirs, javaRoots)
+        if (android != null || kotlin != null) checkRoots(sourceSet.name, 'kotlin', sourceSet.kotlin.srcDirs,
+                [module.file("src/${sourceSet.name}/java"), module.file("src/${sourceSet.name}/kotlin")])
+    }
+    if (kotlin != null) kotlin.sourceSets.each { sourceSet ->
+        // AGP built-in Kotlin 的扩展源集是 variant 且默认无附加根；真正目录由 Android sourceSets 持有。
+        def expected = android != null ? [] : [module.file("src/${sourceSet.name}/java"), module.file("src/${sourceSet.name}/kotlin")]
+        checkRoots(sourceSet.name, 'kotlin-extension', sourceSet.kotlin.srcDirs, expected)
+    }
+    rows
+}
+def taskClosure = { task ->
+    def visited = [] as Set
+    def pending = [task]
+    while (!pending.isEmpty()) {
+        def current = pending.remove(0)
+        if (visited.add(current)) pending.addAll(current.taskDependencies.getDependencies(current))
+    }
+    visited
+}
+// 使用实际 AGP component 给出的静态目录和任务名，不从任务字符串猜 sourceSet/variant。
+allprojects { module ->
+    ['com.android.application', 'com.android.library'].each { pluginId ->
+        module.plugins.withId(pluginId) {
+            def androidComponents = module.extensions.getByName('androidComponents')
+            androidComponents.onVariants(androidComponents.selector().all(), { variant ->
+                ([variant] + variant.nestedComponents).each { component ->
+                    [component.computeTaskName('compile', 'JavaWithJavac'), component.computeTaskName('compile', 'Kotlin')].each { name ->
+                        sourceComponents[module.path + ':' + name] = component
+                    }
+                }
+            } as org.gradle.api.Action)
+        }
+    }
+}
+def compileContext = { task ->
+    def module = task.project
+    def android = module.extensions.findByName('android')
+    if (android == null) {
+        def sourceSets = module.extensions.getByName('sourceSets')
+        def matches = sourceSets.findAll { sourceSet ->
+            task.name == sourceSet.compileJavaTaskName || (isKotlinCompile(task)
+                    && task.name == sourceSet.getCompileTaskName('kotlin'))
+        }
+        if (matches.size() != 1) sourceFail('unmapped JVM compile ' + task.path)
+        return [sets: [matches[0].name], component: null]
+    }
+    def component = sourceComponents[task.path]
+    if (component == null) sourceFail('unmapped Android compile ' + task.path)
+    def staticRoots = component.sources.java.static.get().collect { it.asFile } +
+            component.sources.kotlin.static.get().collect { it.asFile }
+    def sets = [] as Set
+    staticRoots.each { file ->
+        def name = module.projectDir.toPath().relativize(file.toPath()).toString().replace(File.separator, '/')
+        def matcher = name =~ /^src\/([A-Za-z][\w]*)\/(java|kotlin)$/
+        if (matcher.matches()) sets.add(matcher[0][1])
+        else if (!(module.path == ':app' && file == module.layout.buildDirectory.dir('generated/uiLanguage').get().asFile))
+            sourceFail('nonstandard component root ' + file)
+    }
+    if (sets.isEmpty()) sourceFail('empty component roots ' + task.path)
+    [sets: sets.toList().sort(), component: component]
+}
+def componentRow = { task, context ->
+    def component = context.component
+    if (component == null) return null
+    def module = task.project
+    def path = { name -> module.tasks.findByName(name) == null ? null : module.path + ':' + name }
+    def roots = { directories -> directories.get().collect { directory ->
+        moduleIsFixture(module) ? directory.asFile.absolutePath : relativePath(directory.asFile)
+    }.sort() }
+    [name: component.name, buildType: component.buildType,
+     productFlavors: component.productFlavors.collect { [dimension: it.first, name: it.second] },
+     namespace: component.namespace.get(),
+     compileJavaTask: path(component.computeTaskName('compile', 'JavaWithJavac')),
+     compileKotlinTask: path(component.computeTaskName('compile', 'Kotlin')),
+     aidlTask: path(component.computeTaskName('compile', 'Aidl')),
+     buildConfigTask: path(component.computeTaskName('generate', 'BuildConfig')),
+     javaStatic: roots(component.sources.java.static), kotlinStatic: roots(component.sources.kotlin.static)]
+}
+def generatorsFor = { task, context ->
+    def module = task.project
+    def dependencies = taskClosure(task)
+    def specs = []
+    if (context.component != null && module.path == ':app' && context.sets.contains('main')) {
+        def producer = module.tasks.getByName('prepareUiLanguages')
+        def output = module.layout.buildDirectory.dir('generated/uiLanguage').get().asFile
+        if (!dependencies.contains(producer) || producer.outputs.files.files != ([output] as Set))
+            sourceFail('UiLanguage producer/output mismatch')
+        def execution = rootProject.providers.exec {
+            workingDir rootProject.projectDir
+            commandLine sourcePython, '-B', '-c',
+                    "import sys,json;sys.path.insert(0,'tools');from ui_language_catalog import LANGUAGES;print(json.dumps(['UiMessages']+['UiMessages_'+v.replace('-','_') for v in LANGUAGES]))"
+        }
+        def names = new groovy.json.JsonSlurper().parseText(execution.standardOutput.asText.get())
+        specs += [task: producer.path, root: output,
+                  files: names.collect { new File(output, 'com/deepseekharness/app/util/' + it + '.java') }]
+    }
+    task.taskDependencies.getDependencies(task).findAll { it.project == module }.each { producer ->
+        def type = producer.getClass().name
+        if (type.startsWith('com.android.build.gradle.tasks.GenerateBuildConfig')) {
+            def output = producer.sourceOutputDir.orNull?.asFile
+            if (output != null) {
+                def component = context.component
+                def flavorPath = component.productFlavors.collect { it.second }.join('/')
+                def testPrefix = context.sets.any { it.startsWith('androidTest') } ? 'androidTest/' : ''
+                def suffix = testPrefix + (flavorPath ? flavorPath + '/' : '') + component.buildType
+                def expectedRoot = new File(module.buildDir, 'generated/source/buildConfig/' + suffix)
+                if (producer.name != component.computeTaskName('generate', 'BuildConfig') || output != expectedRoot)
+                    sourceFail('BuildConfig owner/output ' + output)
+                specs += [task: producer.path, root: output,
+                          files: [new File(output, producer.namespace.get().replace('.', '/') + '/BuildConfig.java')]]
+            }
+        } else if (type.startsWith('com.android.build.gradle.tasks.AidlCompile')) {
+            def output = producer.sourceOutputDir.get().asFile
+            def expectedRoot = new File(module.buildDir, "generated/aidl_source_output_dir/${context.component.name}/out")
+            if (producer.name != context.component.computeTaskName('compile', 'Aidl') || output != expectedRoot)
+                sourceFail('AIDL owner/output ' + output)
+            def inputs = producer.sourceFiles.get().files
+            inputs.each { file ->
+                if (!context.sets.any { file.toPath().startsWith(module.file("src/${it}/aidl").toPath()) })
+                    sourceFail('AIDL source outside selected sets ' + file)
+            }
+            def generated = inputs.collect { input ->
+                def body = input.getText('UTF-8')
+                def pkg = (body =~ /(?m)^\s*package\s+([\w.]+)\s*;/)
+                def declaration = (body =~ /\binterface\s+([A-Za-z][\w]*)/)
+                if (pkg.count != 1 || declaration.count != 1) sourceFail('unsupported AIDL declaration ' + input)
+                new File(output, pkg[0][1].replace('.', '/') + '/' + declaration[0][1] + '.java')
+            }
+            specs += [task: producer.path, root: output, files: generated]
+        }
+    }
+    specs.unique { it.task }.each { spec ->
+        def actual = module.fileTree(spec.root).matching { include '**/*.java', '**/*.kt', '**/*.kts' }.files
+        if (!spec.files.containsAll(actual)) sourceFail('extra generated source ' + (actual - spec.files))
+    }
+    specs.unique { it.task }
+}
+def auditCompile
+// strict=false 仅用于配置审计；generated provider 延后必须能指向本任务依赖中的精确生产者。
+auditCompile = { task, inventory, strict ->
+    def context = compileContext(task)
+    def rows = moduleSources(task.project, inventory).findAll { context.sets.contains(it.sourceSet) }
+    def sourceFiles = rows.collect { row -> moduleIsFixture(task.project) ? new File(row.path) : rootProject.file(row.path) }
+    def specs = generatorsFor(task, context)
+    def generatedFiles = specs.collectMany { it.files }
+    def expectedJava = (sourceFiles.findAll { it.name.endsWith('.java') } + generatedFiles).toSet()
+    def expectedKotlin = sourceFiles.findAll { it.name.endsWith('.kt') || it.name.endsWith('.kts') }.toSet()
+    def kotlin = isKotlinCompile(task)
+    def defaultKotlinIncludes = ['kt', 'kts'].collectMany { extension ->
+        (0..<(1 << extension.size())).collect { mask ->
+            '**/*.' + (0..<extension.size()).collect { index ->
+                (mask & (1 << index)) != 0 ? extension[index].toUpperCase() : extension[index]
+            }.join('')
+        }
+    } as Set
+    if (task.excludes || (kotlin ? (task.includes as Set) != defaultKotlinIncludes : !task.includes.isEmpty()))
+        sourceFail('compiler include/exclude filter ' + task.path)
+    def actualSources
+    def actualJava = [] as Set
+    try {
+        actualSources = (kotlin ? task.sources.files : task.source.files) as Set
+        if (kotlin) actualJava = task.javaSources.files as Set
+    } catch (org.gradle.api.InvalidUserCodeException error) {
+        if (strict || !specs.any { error.message?.contains("before task '${it.task}' has completed") }) throw error
+        return [task: task.path, module: task.project.path, compiler: kotlin ? 'kotlin' : 'java',
+                sourceSets: context.sets, pendingGenerated: specs.collect { it.task }]
+    }
+    def expectedSources = kotlin ? expectedKotlin : expectedJava
+    def existingExpected = strict ? expectedSources : expectedSources.findAll { it.exists() }.toSet()
+    def existingJava = strict ? expectedJava : expectedJava.findAll { it.exists() }.toSet()
+    if (actualSources != existingExpected || (kotlin && actualJava != existingJava))
+        sourceFail("${task.path} effective sources mismatch missing=${existingExpected - actualSources} extra=${actualSources - existingExpected} javaMissing=${existingJava - actualJava} javaExtra=${actualJava - existingJava}")
+    if (moduleIsFixture(task.project)) return [task: task.path, sourceSets: context.sets]
+    def fileRows = { files -> files.toList().sort { it.absolutePath }.collect { file ->
+        def path = relativePath(file)
+        def hash = sha256(file)
+        if (!generatedFiles.contains(file)) {
+            def owner = rows.find { it.path == path }
+            if (owner == null) sourceFail('source missing from layout inventory ' + path)
+        }
+        [path: path, sha256: hash, origin: generatedFiles.contains(file) ? 'generated' : 'source']
+    } }
+    [task: task.path, module: task.project.path, compiler: kotlin ? 'kotlin' : 'java', sourceSets: context.sets,
+     component: componentRow(task, context),
+     sources: fileRows(actualSources), javaSources: fileRows(actualJava), generators: specs.collect { spec ->
+        [task: spec.task, root: relativePath(spec.root), files: fileRows(spec.files.findAll { it.exists() })]
+     }]
+}
+ext.dshaAuditSourceInputs = { strict = false ->
+    def inventory = snapshot()
+    def roots = []
+    def compileRows = []
+    allprojects.findAll { it != rootProject }.each { module ->
+        roots += rootRows(module)
+        module.tasks.findAll { isCompile(it) }.each { task -> compileRows += auditCompile(task, inventory, strict) }
+    }
+    [inventory: inventory, sourceRoots: roots, compileTasks: compileRows]
+}
+ext.dshaWriteCompileProof = { testTask, state ->
+    def head = verifyHead()
+    def inventory = snapshot()
+    def closure = taskClosure(testTask)
+    def compileTasks = closure.findAll { isCompile(it) }.toList()
+    // AGP 的 Test 任务可能经 bundle/文件集合间接引用主 Java 编译，taskDependencies
+    // 不暴露该边时，主 Java 虽已执行并写出 receipt，却不会进入 compile proof，
+    // full 契约会因缺少主 Java 编译行而拒绝。补入同一 state 内已实际执行的本模块
+    // Compile 任务；只认有 execution receipt 的成功任务，不放宽任何源码/编译证明。
+    testTask.project.tasks.matching { isCompile(it) && executionFile(state, it).isFile() }.each { task ->
+        if (!compileTasks.contains(task)) compileTasks.add(task)
+    }
+    compileTasks = compileTasks.sort { it.path }
+    if (compileTasks.isEmpty()) sourceFail('Test has no real Compile dependency ' + testTask.path)
+    def modules = compileTasks.collect { it.project }.unique()
+    def run = new groovy.json.JsonSlurper().parse(new File(state, 'run.json'))
+    if (head.commit != run.commit) sourceFail('compile proof HEAD/run mismatch')
+    def rows = compileTasks.collect { task ->
+        def row = auditCompile(task, inventory, true)
+        if (row.sources.isEmpty()) return row + [execution: null]
+        def receiptFile = executionFile(state, task)
+        if (!receiptFile.isFile()) sourceFail('compile execution missing ' + task.path)
+        def receipt = new groovy.json.JsonSlurper().parse(receiptFile)
+        if (receipt.kind != 'dsha-compile-execution' || receipt.schema != 1
+                || receipt.compileTask != task.path || receipt.outcome != 'SUCCESS'
+                || receipt.before != row || receipt.after != row
+                || ['commit', 'runId', 'runAttempt', 'planSha256'].any { receipt[it] != run[it] })
+            sourceFail('compile execution/input drift ' + task.path)
+        row + [execution: [file: 'compile-executions/' + receiptFile.name, sha256: sha256(receiptFile)]]
+    }
+    def proof = [schema: 1, kind: 'dsha-compile-proof', commit: run.commit, runId: run.runId,
+            runAttempt: run.runAttempt, planSha256: run.planSha256, testTask: testTask.path,
+            createdNs: System.currentTimeMillis() * 1000000L, inventory: inventory,
+            sourceRoots: modules.collectMany { rootRows(it) }, compileTasks: rows]
+    def output = new File(state, 'compile-proofs/' + taskDigest(testTask.path) + '.json')
+    writeExclusive(output, proof)
+    output
+}
+allprojects { module ->
+    module.tasks.configureEach { task ->
+        if (isCompile(task)) {
+            task.doFirst {
+                if (!moduleIsFixture(module)) verifyHead()
+                rootRows(module)
+                def before = auditCompile(task, snapshot(), true)
+                def statePath = System.getenv('DSHA_UNIT_TEST_STATE')
+                if (statePath && !moduleIsFixture(module)) {
+                    if (compileStarts.containsKey(task.path)) sourceFail('compile replay ' + task.path)
+                    def run = new groovy.json.JsonSlurper().parse(new File(statePath, 'run.json'))
+                    compileStarts[task.path] = [before: before, run: run,
+                                               startedNs: System.currentTimeMillis() * 1000000L]
+                }
+            }
+            task.doLast {
+                def start = compileStarts[task.path]
+                if (start != null) {
+                    def after = auditCompile(task, snapshot(), true)
+                    if (start.before != after) sourceFail('source bytes changed during compile ' + task.path)
+                    def run = start.run
+                    def receipt = [schema: 1, kind: 'dsha-compile-execution', commit: run.commit,
+                            runId: run.runId, runAttempt: run.runAttempt, planSha256: run.planSha256,
+                            compileTask: task.path, module: module.path, compiler: after.compiler,
+                            startedNs: start.startedNs, finishedNs: System.currentTimeMillis() * 1000000L,
+                            outcome: 'SUCCESS', before: start.before, after: after]
+                    writeExclusive(executionFile(new File(System.getenv('DSHA_UNIT_TEST_STATE')), task), receipt)
+                }
+            }
+        }
+    }
+}

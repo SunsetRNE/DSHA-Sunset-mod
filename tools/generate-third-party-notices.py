@@ -94,8 +94,13 @@ def sync_rust_licenses(root=ROOT):
 
 
 def gradle_coordinates(root=ROOT):
-    build = (root / 'app/build.gradle').read_text(encoding='utf-8')
-    return sorted(set(re.findall(r"^\s*(?:implementation|standardImplementation|coreLibraryDesugaring)\s+'([^']+)'", build, re.M)))
+    sources = [root / 'app/build.gradle']
+    logic = root / 'build-logic'
+    if logic.is_dir():
+        sources.extend(sorted(logic.glob('*.gradle')))
+    pattern = re.compile(r"^\s*(?:implementation|standardImplementation|coreLibraryDesugaring)\s+'([^']+)'", re.M)
+    return sorted({coordinate for path in sources
+                   for coordinate in pattern.findall(path.read_text(encoding='utf-8'))})
 
 
 def native_members(root=ROOT):

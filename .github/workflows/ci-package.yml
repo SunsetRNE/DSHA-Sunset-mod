@@ -1,12 +1,7 @@
 name: Complete unsigned package checks
 
-# 节点图：
-#   inputs（只还原、不重建运行时）─┬─► native-repro（描述符字节、第三方声明、原生可复现）
-#                                  ├─► rust-repro（vendor 重生成 + 主机字节复现）
-#                                  ├─► rust-native（arm64 .so + receipt；R0 不接 APK 打包）
-#                                  └─► package（verify-stability --stage package 的单一回执）
-# package 节点保持一次完整回执：单测 / Lint / 资产 / 包检查共享同一源码快照，
-# 由 tools/verify-ci-package.py 按 run 路径与 commit 复核。
+# 固定输入、原生复现与 Rust 产物在同一提交；package 显式选择 off 或 prebuilt。
+# prebuilt 的 APK 静态验收不等于 Android 加载；设备候选走 release-production dry_run + debug。
 on:
   workflow_dispatch:
     inputs:
@@ -24,6 +19,12 @@ on:
         type: choice
         default: bundle
         options: [bundle, source-archive]
+      rust_native_mode:
+        description: 'off preserves released APK contents; prebuilt injects verified same-run Android Rust bytes'
+        required: false
+        type: choice
+        default: off
+        options: [off, prebuilt]
 permissions:
   contents: read
 jobs:
@@ -53,6 +54,7 @@ jobs:
           artifact: ${{ needs.inputs.outputs.artifact }}
       - name: Full descriptor bytes, notices and native reproducibility
         run: |
+          set -eu
           ndk=$(python3 tools/ci-toolchain.py --field ndk)
           python3 tools/prepare-runtime-descriptor.py --check
           python3 tools/generate-third-party-notices.py --check
@@ -66,7 +68,7 @@ jobs:
       mode: repro
       artifact: package-rust-repro
   rust-native:
-    name: Rust arm64 native artifact and byte reproduction (R0 evidence only)
+    name: Rust arm64 native artifact and byte reproduction
     needs: inputs
     uses: ./.github/workflows/_node-rust.yml
     with:
@@ -74,9 +76,14 @@ jobs:
       artifact: package-rust-native
   package:
     name: Complete Standard unit, lint, assets and package checks
-    needs: inputs
+    needs: [inputs, native-repro, rust-repro, rust-native]
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    env:
+      RUST_NATIVE_MODE: ${{ inputs.rust_native_mode }}
+      # verify-stability 的既有 Gradle 调用继承这些显式项目属性，不修改其门禁或受管输入。
+      ORG_GRADLE_PROJECT_dsha.rust.mode: ${{ inputs.rust_native_mode }}
+      ORG_GRADLE_PROJECT_dsha.rust.artifactDir: ${{ inputs.rust_native_mode == 'prebuilt' && format('{0}/out/rust-native', github.workspace) || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -89,8 +96,27 @@ jobs:
         with:
           artifact: ${{ needs.inputs.outputs.artifact }}
           fixture: 'true'
+      - name: Download same-run Rust native artifact
+        if: inputs.rust_native_mode == 'prebuilt'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ needs.rust-native.outputs.artifact }}
+          path: out/rust-native
       - name: Complete Standard unit, lint, assets and package checks without signing secrets
         run: python3 tools/verify-stability.py --stage package --flavors standard --java-home "$JAVA_HOME" --sdk "$ANDROID_HOME"
+      - name: Verify Rust bytes and provenance in the actual unsigned APK
+        run: |
+          set -eu
+          shopt -s nullglob
+          apks=(app/build/outputs/apk/standard/release/*-unsigned.apk)
+          test "${#apks[@]}" -eq 1
+          rust_args=(--mode "$RUST_NATIVE_MODE" --commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID"
+            --run-attempt "$GITHUB_RUN_ATTEMPT" --repository "$GITHUB_REPOSITORY")
+          if [ "$RUST_NATIVE_MODE" = prebuilt ]; then
+            rust_args+=(--receipt out/rust-native/rust-receipt.json)
+          fi
+          python3 tools/check-rust-native-apk.py --apk "${apks[0]}" "${rust_args[@]}" \
+            --output app/build/stability-acceptance/rust-apk-unsigned.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
@@ -98,5 +124,6 @@ jobs:
           path: |
             app/build/outputs/apk/standard/release/*-unsigned.apk
             app/build/stability-acceptance
+            out/rust-native/rust-receipt.json
           if-no-files-found: error
           retention-days: 14

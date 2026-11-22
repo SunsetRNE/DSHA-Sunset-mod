@@ -1,6 +1,6 @@
 # 构建、签名、源码分发与证据
 
-核验日期：2026-11-01。当前为 build366 / `0.2.1-rc.5-20261114.1717-dsh0.2.2-rc.1` / `io.github.sunsetrne.dsha` / 单一 Standard（android-low 历史记录保留在 releases 归档）。可执行构建步骤以 [BUILD](../BUILD.md) 为入口；身份与签名细节见 [Mod 身份、包名与签名](mod-identity-and-signing.md)；固定输入见 [fixed-build-inputs](fixed-build-inputs.md)。本轮测试与实际 APK 结果以仓库回执与 Release 为准，不把历史记录当作本轮证据。
+核验基线日期：2026-11-01。当前候选为 build368 / `0.2.1-rc.5-20261116.0500-dsh0.2.2-rc.1` / `io.github.sunsetrne.dsha` / 单一 Standard；build367 已发布（tag `dsha-a-su-build367-20261115-230955`），build368 完整 CI 与设备验收待完成（android-low 历史记录保留在 releases 归档）。可执行构建步骤以 [BUILD](../BUILD.md) 为入口；身份与签名细节见 [Mod 身份、包名与签名](mod-identity-and-signing.md)；固定输入见 [fixed-build-inputs](fixed-build-inputs.md)。本轮测试与实际 APK 结果以仓库回执与 Release 为准，不把历史记录当作本轮证据。
 
 ## 身份分别来自哪里
 

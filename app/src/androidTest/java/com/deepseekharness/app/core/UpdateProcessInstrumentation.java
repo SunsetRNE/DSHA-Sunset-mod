@@ -60,11 +60,8 @@ public final class UpdateProcessInstrumentation extends Instrumentation {
 
   private void open() throws Exception {
     Context base = getTargetContext();
-    // 本夹具恢复/注入固定清单；打开主界面时不能被启动自动检查改写。
-    Field startupChecked = UpdateEngine.class.getDeclaredField("startupChecked");
-    startupChecked.setAccessible(true);
-    startupChecked.setBoolean(engine, true);
-    shell("am start -W -n com.dsh.client/com.deepseekharness.app.ui.MainActivity");
+    // APK 自动检查已退休，夹具不再修改全局检查状态。
+    shell("am start -W -n " + base.getPackageName() + "/com.deepseekharness.app.ui.MainActivity");
     page =
         startActivitySync(
             new Intent(base, UpdateActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -100,9 +97,12 @@ public final class UpdateProcessInstrumentation extends Instrumentation {
       require(!file.exists() || file.delete(), "测试归档清理失败");
     }
     require(control.delete(), "测试控制文件清理失败");
-    Field singleton = UpdateEngine.class.getDeclaredField("instance");
-    singleton.setAccessible(true);
-    singleton.set(null, null);
+    Field owner = com.deepseekharness.app.DshaApp.class.getDeclaredField("updateOwner");
+    owner.setAccessible(true);
+    Object slot = owner.get(com.deepseekharness.app.DshaApp.from(base));
+    Field value = com.deepseekharness.app.util.ApplicationOwner.class.getDeclaredField("value");
+    value.setAccessible(true);
+    value.set(slot, null);
     base.getSystemService(android.app.NotificationManager.class).cancel(1004);
   }
 

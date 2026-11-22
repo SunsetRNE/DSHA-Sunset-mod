@@ -83,7 +83,7 @@ public final class RuntimeStartupAudit extends Instrumentation {
         ProotBootstrap proot =
             new ProotBootstrap(isolated) {
               @Override
-              Process execRootfsForColdInstall(String command) throws java.io.IOException {
+              public Process execRootfsForColdInstall(String command) throws java.io.IOException {
                 String runtime = args.getString("install_runtime", "automatic");
                 if (runtime.equals("proot")) return super.execRootfsForInstall(command);
                 if (runtime.equals("fail"))

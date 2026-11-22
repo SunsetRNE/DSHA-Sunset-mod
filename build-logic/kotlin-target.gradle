@@ -1,0 +1,7 @@
+// applied script 的编译 classloader 不继承 plugins DSL 的 Kotlin 类型可见性。
+// 从已经应用的 Kotlin 扩展取得同一 KGP 的枚举类型；不解析或加载另一套插件。
+def kotlinExtension = extensions.getByName('kotlin')
+def jvmTargetType = kotlinExtension.getClass().getClassLoader().loadClass(
+        'org.jetbrains.kotlin.gradle.dsl.JvmTarget')
+def jvmTarget17 = java.lang.Enum.valueOf(jvmTargetType, 'JVM_17')
+kotlinExtension.compilerOptions.jvmTarget.set(jvmTarget17)

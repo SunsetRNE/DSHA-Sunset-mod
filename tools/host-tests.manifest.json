@@ -2,6 +2,61 @@
   "schema": 1,
   "tests": [
     {
+      "path": "tools/test-plugin-s3b-oracle.py",
+      "stage": "fast",
+      "reason": "Run 59 isolated legacy Python migrate/register cases and compare frozen S3b facts and outcomes; never load plugins or use production profiles, JVM, Node or package managers.",
+      "args": ["--check"],
+      "timeoutSeconds": 120,
+      "requires": ["python39"],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-plugin-lock-interop.py",
+      "stage": "support",
+      "reason": "Run separately after compiling the real Kotlin PluginLockFixture and pass --kotlin-classpath; exercise the actual Python flock/PID backend and pinned Node atomic-write module. Support registration does not imply default CI execution.",
+      "args": [],
+      "timeoutSeconds": 180,
+      "requires": ["python39", "node24", "jdk17"],
+      "platform": ["linux"],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-ci-toolchain.py",
+      "stage": "fast",
+      "reason": "Execute CI version discovery through the real shared Android convention, paired Java targets, missing wiring and duplicate owner negative controls, and the exact setup-toolchain CLI.",
+      "args": [],
+      "timeoutSeconds": 60,
+      "requires": ["python39"],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-source-layout.py",
+      "stage": "fast",
+      "reason": "Execute logical-to-physical source mapping, real Java/Kotlin/module moves and duplicate/link/undeclared-source negative controls; compare the current single-app source, launcher and format inventories with the original algorithms.",
+      "args": [],
+      "timeoutSeconds": 120,
+      "requires": ["python39"],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-unit-test-contract.py",
+      "stage": "fast",
+      "reason": "Execute fresh all-module JUnit identity conservation and missing task/XML/Kotlin, duplicate, skipped, stale, zero-test and historical CI import negative controls without claiming synthetic fixtures are production full runs.",
+      "args": [],
+      "timeoutSeconds": 180,
+      "requires": ["python39"],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-build-conventions.py",
+      "stage": "fast",
+      "reason": "Guard shared application/library/JVM build and test contracts, actual-setting hooks and all-module CI enumeration; validate generated external compile/test fixtures without creating empty product modules.",
+      "args": [],
+      "timeoutSeconds": 120,
+      "requires": ["python39"],
+      "environment": {}
+    },
+    {
       "path": "tools/test-diagnostic-feedback.py",
       "stage": "fast",
       "reason": "Executes current diagnostic feedback observers on a JVM with LiveData/UI doubles; no Android device, clipboard or SAF execution",
@@ -3398,6 +3453,17 @@
       "timeoutSeconds": 120,
       "environment": {},
       "reason": "Execute the guest builtin-registry default-off policy in an isolated fake root: clean install and over-the-top APK generations disable dsh-web-mobile, only an explicit enable recorded for the current generation survives restarts, older-generation enables are reset, explicit disable wins and re-enable round-trips; no device or Web."
+    },
+    {
+      "path": "tools/test-backup-signed-builtin-files.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Generate the additive signedBuiltinFiles proof from isolated signed install rows; verify exact scope, file hashes, installed permission modes, sizes and bounded fail-closed inputs without restoring a runtime archive or writing production proof JSON."
     },
     {
       "path": "tools/test-git-guard.py",

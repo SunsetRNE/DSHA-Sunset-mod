@@ -30,6 +30,7 @@ final class WebProcessSession {
   private final WebProcessManager manager;
   private final Bridges bridges;
   private Runnable stopEvidence = () -> {};
+  private SessionRecords records = () -> null;
 
   WebProcessSession(HarnessSessionState state, WebProcessManager manager, Bridges bridges) {
     this.state = state;
@@ -66,6 +67,7 @@ final class WebProcessSession {
   }
 
   private void installStopEvidence(SessionRecords records) {
+    this.records = records;
     stopEvidence =
         () -> {
           synchronized (state.webStopProofLock) {
@@ -240,6 +242,63 @@ final class WebProcessSession {
             now,
             "captured-recovered:" + identities));
     return new WebStopCoordinator.Observation(platform.environment(), facts, stable);
+  }
+
+  interface StopRecheck {
+    boolean unchanged(WebRun admitted) throws IOException;
+  }
+
+  /** 保留退休前的原对象；gN 可以替换 currentRun，原句柄与原出生证明不能被空 map 替代。 */
+  StopRecheck prepareStopRecheck(
+      StopCapture captured, WebProcessManager.StopTrace trace, StopCompletion completion)
+      throws IOException {
+    var operation = completion.operation();
+    if (!completion.complete()) return null;
+    if (captured.current == null
+        || captured.current.generation != operation.stoppedGeneration()
+        || !captured.current.instanceId.equals(operation.stoppedInstance())
+        || !captured.bindingUnchanged
+        || captured.unreadable
+        || records.read() != null) return admitted -> false;
+    var platform = manager.prepareStopRecheck(trace, completion);
+    if (platform == null) return null;
+    return admitted -> {
+      if (!handoffObjectsUnchanged(captured, admitted)) return false;
+      for (StoppedRun saved : captured.runs) {
+        if (saved.launcher() != null && Compat.isAlive(saved.launcher())) return false;
+        if (saved.recovered() != null
+            && !manager.recoveredLauncherExited(saved.recovered().proof())) return false;
+      }
+      if (captured.retained != null && !manager.recoveredLauncherExited(captured.retained))
+        return false;
+      return records.read() == null
+          && platform.unchanged()
+          && records.read() == null
+          && handoffObjectsUnchanged(captured, admitted);
+    };
+  }
+
+  private boolean handoffObjectsUnchanged(StopCapture captured, WebRun admitted) {
+    synchronized (state.lifecycle) {
+      if (admitted == null
+          || state.currentRun != admitted
+          || !state.lifecycle.isCurrent(admitted.generation)
+          || admitted.launcher != null
+          || admitted.recovered != null
+          || state.retainedWebStopProof != null
+          || state.unreadableWebStopProof) return false;
+      for (StoppedRun saved : captured.runs) {
+        WebRun value = state.runs.get(saved.run().generation);
+        if (value != null && value != saved.run()
+            || saved.run().launcher != null && saved.run().launcher != saved.launcher()
+            || saved.run().recovered != null && saved.run().recovered != saved.recovered())
+          return false;
+      }
+      for (WebRun run : state.runs.values())
+        if (run != admitted && captured.runs.stream().noneMatch(saved -> saved.run() == run))
+          return false;
+      return true;
+    }
   }
 
   private static StopCompletion.ProcessKey guestKey(

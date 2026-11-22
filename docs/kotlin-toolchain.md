@@ -150,13 +150,13 @@ dsha-gradle :app:assembleStandardDebug          # 若 aarch64/aapt2 受限则见
 
 - 本批次只迁移 `util/ShellQuote` 一个纯逻辑类，不代表其他模块已 Kotlin 化；`core` / `ui` /
   `runtime` 等仍在 Java，按 ADR-0004 的模块顺序推进。
-- **受管运行时输入**：`tools/runtime_input_contract.py` 的 `launcherTrees` 枚举只承诺
-  `app/src/main/java` 源根——该源根下同时收录 `.java` 与 `.kt`（键为相对源根路径、保留扩展名，
-  排序稳定）；显式 `launcherSources` 与扩展名无关。当前 `util/ShellQuote.kt` 不在
-  `launcherSources`/`launcherTrees`，因此不改变 `runtimeId`；迁移受管类时按原 Java 文件名
-  换成 `.kt` 即可继续被身份覆盖。若将来新增 `app/src/main/kotlin` 源根，必须同批扩展
-  `runtime_input_contract.py` 的键映射/重名处理与 `app/build.gradle` 的 Gradle inputs；
-  未知源码根现在直接失败（`RUNTIME_LAUNCHER_SOURCE_ROOT_UNSUPPORTED`），不会被当作 `.so` 静默漏掉。
+- **受管运行时输入（A8 P1）**：[源码布局](../ci/source-layout.json) 与
+  [共享解析器](../tools/source_layout.py) 将 `sourceSet + 包内路径 + 扩展名` 映射到真实模块和
+  `java/`、`kotlin/` 源根；[运行输入解析](../tools/runtime_input_contract.py)、Gradle inputs、
+  两份边界门禁、格式与测试枚举共用该映射。旧 launcher 逻辑键和扩展名保留，物理搬迁不自动
+  变成新的逻辑身份；重名、并行 Java/Kotlin 实现、未登记源集和未知逻辑源码树均拒绝。
+  当前单 app 的旧输入成员/路径集合等价，不代表配方摘要零变化：布局依赖须纳管、固定归档须按
+  新配方重建，最终 descriptor 由 main 串行生成，详见 [P1 实现与验证回执](design/kotlin-rust-rearchitecture-20261112/a8-p1-engineering-20261115.md)。
 - 架构边界门禁 `tools/test-core-boundaries.py` 对 `.java`/`.kt` 共用规则：tree 级依赖、
   共享 owner、可变静态状态与引用扫描同时覆盖两种后缀；Kotlin 以 `internal` 作为最接近
   package-private 的可见性，真正阻止 `ui` 访问 core 协作者的仍是引用扫描。注释剥离按

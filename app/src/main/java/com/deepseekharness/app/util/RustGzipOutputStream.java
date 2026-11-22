@@ -11,8 +11,9 @@ import java.nio.ByteBuffer;
  * （FLG=0/MTIME=0/XFL=0/OS=0），尾部是 CRC32 + ISIZE；gzip 字节允许与 JVM
  * {@code GZIPOutputStream} 不同（压缩器实现差异），兼容性由严格读取器与尾部校验证明。
  *
- * <p>R3 不接生产调用点：A3 slice4 接线时用本类替换 {@code PortableBackupEnvelope} 里的
- * JVM 编码器，并保留运行层开关（{@link RustBackends#archiveSelection()}，默认关闭）。
+ * <p>A3 slice4 已接入生产（{@link RustArchiveCodec#packStream}），运行层开关
+ * （{@link RustBackends#archiveSelection()}）由 {@code DshaApp} 启动时默认启用；
+ * 关或库不可用时调用方留在 JVM 编码器。
  * 使用方必须 try-with-resources / 显式 {@link #close()}：原生会话数上限 4，泄漏会让后续
  * 创建返回 {@link RustArchiveCodec#SESSION_LIMIT}。
  *

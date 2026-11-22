@@ -25,6 +25,9 @@ class UnitRunnerTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.app = self.root / 'app'
+        (self.root / 'ci').mkdir()
+        (self.root / 'ci/source-layout.json').write_text(
+            (ROOT / 'ci/source-layout.json').read_text(encoding='utf-8'), encoding='utf-8')
         lock = self.root / 'tools/backup-dependencies.lock.json'
         lock.parent.mkdir()
         lock.write_text(json.dumps({'version': 1, 'dependencies': []}), encoding='utf-8')
@@ -93,6 +96,12 @@ class UnitRunnerTest(unittest.TestCase):
                 runner.main()
         self.assertEqual(1, len(captured))
         self.assertFalse(captured[0].exists(), 'javac failure must not retain its temporary directory')
+
+    def test_kotlin_test_is_refused_instead_of_silently_omitted(self):
+        self.put('src/test/kotlin/KotlinProbeTest.kt', 'class KotlinProbeTest {}')
+        with contextlib.redirect_stderr(io.StringIO()) as captured, self.assertRaises(SystemExit):
+            runner.collect_test_sources(self.app)
+        self.assertIn('JAVA_ONLY_RUNNER_REQUIRES_GRADLE', captured.getvalue())
 
     def test_argfile_rejects_control_characters(self):
         for value in ('a\nb', 'a\rb', 'a\0b'):

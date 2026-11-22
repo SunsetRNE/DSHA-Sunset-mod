@@ -50,6 +50,19 @@ class ThirdPartyNoticesTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'NEW_NATIVE'):
             gate.verify_native_members(self.root)
 
+    def test_gradle_coordinates_scan_build_logic_runtime_dependencies(self):
+        (self.root / 'app').mkdir()
+        (self.root / 'app/build.gradle').write_text(
+            "dependencies {\n    implementation 'a:b:1'\n}\n", encoding='utf-8')
+        logic = self.root / 'build-logic'
+        logic.mkdir()
+        (logic / 'android.gradle').write_text(
+            "dependencies {\n    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'\n"
+            "    testImplementation 'org.robolectric:robolectric:4.15.1'\n}\n", encoding='utf-8')
+        self.assertEqual(
+            ['a:b:1', 'com.android.tools:desugar_jdk_libs:2.0.4'],
+            gate.generator.gradle_coordinates(self.root))
+
     def test_rust_vendor_license_bytes_are_bound_to_the_vendor_tree(self):
         gate.generator.verify_rust_licenses()
         lock_dir = self.root / 'ci'

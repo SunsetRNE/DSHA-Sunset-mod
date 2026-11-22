@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import com.deepseekharness.app.contract.ModuleDescriptor.Enablement;
@@ -17,6 +19,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
 
@@ -652,6 +655,853 @@ public class ModuleRegistryTest {
       assertTrue(registry.contributions().isEmpty());
     } finally {
       pool.shutdownNow();
+    }
+  }
+
+  @Test
+  public void slowFactoryDoesNotBlockCloseOrPublishItsLateInstance() throws Exception {
+    assertPendingInstallInvalidated(false, false, CloseReason.HOST_CLOSE);
+  }
+
+  @Test
+  public void setEnabledInstallDoesNotKeepAnOuterRegistryLock() throws Exception {
+    assertPendingInstallInvalidated(true, false, CloseReason.USER_DISABLED);
+  }
+
+  @Test
+  public void slowContributionsDoNotBlockDisableOrPublishAfterIt() throws Exception {
+    assertPendingInstallInvalidated(false, true, CloseReason.USER_DISABLED);
+  }
+
+  @Test
+  public void safeModeEnterAndExitStillInvalidatePendingFactory() throws Exception {
+    assertPendingInstallInvalidated(false, false, CloseReason.SAFE_MODE);
+  }
+
+  @Test
+  public void safeModeEnterAndExitStillInvalidatePendingContributions() throws Exception {
+    assertPendingInstallInvalidated(true, true, CloseReason.SAFE_MODE);
+  }
+
+  @Test
+  public void cancelledFactoryCannotClearANewerReservation() throws Exception {
+    ModuleRegistry registry = concurrentRegistry();
+    CountDownLatch firstEntered = new CountDownLatch(1);
+    CountDownLatch releaseFirst = new CountDownLatch(1);
+    CountDownLatch secondEntered = new CountDownLatch(1);
+    CountDownLatch releaseSecond = new CountDownLatch(1);
+    AtomicInteger created = new AtomicInteger();
+    TrackedInstance first = new TrackedInstance("app.first");
+    TrackedInstance second = new TrackedInstance("app.second");
+    registry.register(
+        cardsDescriptor(),
+        () -> {
+          int number = created.incrementAndGet();
+          if (number == 1) {
+            firstEntered.countDown();
+            await(releaseFirst);
+            return first;
+          }
+          assertEquals(2, number);
+          secondEntered.countDown();
+          await(releaseSecond);
+          return second;
+        });
+    ExecutorService pool = Executors.newFixedThreadPool(2);
+    try {
+      Future<ContractResult> old = pool.submit(() -> registry.install(CARDS_ID));
+      assertTrue(firstEntered.await(5, TimeUnit.SECONDS));
+      assertTrue(registry.close(CARDS_ID, null).accepted());
+      Future<ContractResult> fresh = pool.submit(() -> registry.setEnabled(CARDS_ID, true));
+      assertTrue(secondEntered.await(5, TimeUnit.SECONDS));
+      releaseFirst.countDown();
+      assertEquals(ContractCodes.STALE_GENERATION, old.get(5, TimeUnit.SECONDS).code());
+      assertEquals(1, first.closed.get());
+      // 旧 finally 若无条件清预约，会让这次调用重入第三个 factory。
+      assertEquals(ContractCodes.MODULE_INSTALL_FAILED, registry.install(CARDS_ID).code());
+      assertEquals(2, created.get());
+      assertNull(registry.lease(CARDS_ID));
+      releaseSecond.countDown();
+      assertTrue(fresh.get(5, TimeUnit.SECONDS).accepted());
+      GenerationLease lease = registry.lease(CARDS_ID);
+      assertNotNull(lease);
+      assertTrue(registry.install(CARDS_ID).accepted());
+      assertSame(lease, registry.lease(CARDS_ID));
+      assertEquals(2, registry.contributions().size());
+      assertEquals("app.second", registry.resolveRoute("demo.cards#page").key());
+      assertEquals(0, second.closed.get());
+      assertEquals(2, created.get());
+    } finally {
+      releaseFirst.countDown();
+      releaseSecond.countDown();
+      pool.shutdown();
+      assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+    }
+  }
+
+  @Test
+  public void lateContributionsCannotRevokeAnAlreadyPublishedReplacement() throws Exception {
+    ModuleRegistry registry = concurrentRegistry();
+    CountDownLatch entered = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    AtomicInteger created = new AtomicInteger();
+    TrackedInstance oldInstance = new TrackedInstance("app.old");
+    TrackedInstance replacement = new TrackedInstance("app.new");
+    registry.register(
+        cardsDescriptor(),
+        () -> {
+          if (created.incrementAndGet() != 1) return replacement;
+          return new ModuleInstance() {
+            @Override
+            public List<Contribution> contributions() {
+              entered.countDown();
+              await(release);
+              return oldInstance.contributions();
+            }
+
+            @Override
+            public void close(CloseReason reason) {
+              assertFalse(Thread.holdsLock(registry));
+              oldInstance.close(reason);
+            }
+          };
+        });
+    ExecutorService pool = Executors.newSingleThreadExecutor();
+    try {
+      Future<ContractResult> old = pool.submit(() -> registry.install(CARDS_ID));
+      assertTrue(entered.await(5, TimeUnit.SECONDS));
+      assertTrue(registry.setEnabled(CARDS_ID, false).accepted());
+      assertTrue(registry.install(CARDS_ID).accepted());
+      GenerationLease current = registry.lease(CARDS_ID);
+      assertNotNull(current);
+      release.countDown();
+      assertEquals(ContractCodes.STALE_GENERATION, old.get(5, TimeUnit.SECONDS).code());
+      assertEquals(1, oldInstance.closed.get());
+      assertEquals(CloseReason.USER_DISABLED, oldInstance.reason.get());
+      assertEquals(0, replacement.closed.get());
+      assertSame(current, registry.lease(CARDS_ID));
+      assertTrue(current.active());
+      assertTrue(registry.dispatch(CARDS_ID, current.generation(), () -> {}).accepted());
+      assertEquals(2, registry.contributions().size());
+      for (ContributionView view : registry.contributions())
+        assertEquals(current.generation(), view.generation());
+      assertEquals("app.new", registry.resolveRoute("demo.cards#page").key());
+    } finally {
+      release.countDown();
+      pool.shutdown();
+      assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+    }
+  }
+
+  @Test
+  public void concurrentInstallPublishesOnceAndOtherModulesDoNotCancelItsGeneration()
+      throws Exception {
+    ModuleRegistry registry = concurrentRegistry();
+    CountDownLatch entered = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    AtomicInteger created = new AtomicInteger();
+    registry.register(
+        cardsDescriptor(),
+        () -> {
+          assertFalse(Thread.holdsLock(registry));
+          created.incrementAndGet();
+          entered.countDown();
+          await(release);
+          return new TrackedInstance("app.only");
+        });
+    ExecutorService pool = Executors.newFixedThreadPool(2);
+    try {
+      Future<ContractResult> installing = pool.submit(() -> registry.install(CARDS_ID));
+      assertTrue(entered.await(5, TimeUnit.SECONDS));
+      Future<ContractResult> duplicate = pool.submit(() -> registry.setEnabled(CARDS_ID, true));
+      assertEquals(ContractCodes.MODULE_INSTALL_FAILED, duplicate.get(2, TimeUnit.SECONDS).code());
+      assertTrue(BuiltinModules.ensureRegistered(registry).accepted());
+      GenerationLease about = registry.lease(BuiltinModules.ABOUT_MODULE_ID);
+      assertNotNull(about);
+      assertEquals(1, created.get());
+      release.countDown();
+      assertTrue(installing.get(5, TimeUnit.SECONDS).accepted());
+      GenerationLease cards = registry.lease(CARDS_ID);
+      assertNotNull(cards);
+      assertTrue(cards.active());
+      assertTrue(about.active());
+      assertTrue(registry.install(CARDS_ID).accepted());
+      assertSame(cards, registry.lease(CARDS_ID));
+      assertEquals(1, created.get());
+      assertEquals(3, registry.contributions().size());
+      assertEquals("app.only", registry.resolveRoute("demo.cards#page").key());
+    } finally {
+      release.countDown();
+      pool.shutdown();
+      assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+    }
+  }
+
+  @Test
+  public void pendingAlwaysOnInstallSurvivesDisableAndSafeMode() throws Exception {
+    ModuleRegistry registry = concurrentRegistry();
+    CountDownLatch entered = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    TrackedInstance instance = new TrackedInstance("app.always");
+    registry.register(
+        new ModuleDescriptor(CARDS_ID, 1, "常开", Set.of(), Enablement.ALWAYS_ON),
+        () -> {
+          entered.countDown();
+          await(release);
+          return instance;
+        });
+    ExecutorService pool = Executors.newSingleThreadExecutor();
+    try {
+      Future<ContractResult> installing = pool.submit(() -> registry.setEnabled(CARDS_ID, true));
+      assertTrue(entered.await(5, TimeUnit.SECONDS));
+      assertEquals(ContractCodes.MODULE_ALWAYS_ON, registry.setEnabled(CARDS_ID, false).code());
+      assertTrue(registry.enterSafeMode().accepted());
+      release.countDown();
+      assertTrue(installing.get(5, TimeUnit.SECONDS).accepted());
+      assertTrue(registry.safeModeGate().forcedSafeMode());
+      assertTrue(registry.lease(CARDS_ID).active());
+      assertEquals(2, registry.contributions().size());
+      assertEquals("app.always", registry.resolveRoute("demo.cards#page").key());
+      assertEquals(0, instance.closed.get());
+    } finally {
+      release.countDown();
+      pool.shutdown();
+      assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+    }
+  }
+
+  @Test
+  public void reentrantFactoryCanCloseItsOwnAttemptWithoutPublishing() {
+    ModuleRegistry registry = concurrentRegistry();
+    TrackedInstance instance = new TrackedInstance("app.cancelled");
+    registry.register(
+        cardsDescriptor(),
+        () -> {
+          assertFalse(Thread.holdsLock(registry));
+          assertEquals(ContractCodes.MODULE_INSTALL_FAILED, registry.install(CARDS_ID).code());
+          assertTrue(registry.close(CARDS_ID, null).accepted());
+          return instance;
+        });
+    assertEquals(ContractCodes.STALE_GENERATION, registry.setEnabled(CARDS_ID, true).code());
+    assertEquals(1, instance.closed.get());
+    assertEquals(CloseReason.HOST_CLOSE, instance.reason.get());
+    assertFalse(registry.isInstalled(CARDS_ID));
+    assertNull(registry.lease(CARDS_ID));
+    assertTrue(registry.contributions().isEmpty());
+  }
+
+  @Test
+  public void factoryRuntimeExceptionAndErrorBothReleaseTheirReservation() {
+    ModuleRegistry registry = concurrentRegistry();
+    AtomicInteger attempts = new AtomicInteger();
+    AssertionError failure = new AssertionError("factory");
+    registry.register(
+        cardsDescriptor(),
+        () -> {
+          assertFalse(Thread.holdsLock(registry));
+          int number = attempts.incrementAndGet();
+          if (number == 1) throw new IllegalStateException("factory");
+          if (number == 2) throw failure;
+          return new TrackedInstance("app.retry");
+        });
+    assertEquals(ContractCodes.MODULE_INSTALL_FAILED, registry.install(CARDS_ID).code());
+    assertSame(failure, assertThrows(AssertionError.class, () -> registry.install(CARDS_ID)));
+    assertFalse(registry.isInstalled(CARDS_ID));
+    assertNull(registry.lease(CARDS_ID));
+    assertTrue(registry.install(CARDS_ID).accepted());
+    assertEquals(3, attempts.get());
+  }
+
+  @Test
+  public void contributionFailuresCleanCandidatesOutsideTheLockAndAllowRetry() {
+    ModuleRegistry registry = concurrentRegistry();
+    AtomicInteger attempts = new AtomicInteger();
+    AtomicInteger closed = new AtomicInteger();
+    AssertionError failure = new AssertionError("contributions");
+    registry.register(
+        cardsDescriptor(),
+        () -> {
+          int number = attempts.incrementAndGet();
+          return new ModuleInstance() {
+            @Override
+            public List<Contribution> contributions() {
+              assertFalse(Thread.holdsLock(registry));
+              if (number == 1) throw new IllegalStateException("contributions");
+              if (number == 2) throw failure;
+              return List.of();
+            }
+
+            @Override
+            public void close(CloseReason reason) {
+              assertFalse(Thread.holdsLock(registry));
+              assertEquals(CloseReason.HOST_CLOSE, reason);
+              closed.incrementAndGet();
+            }
+          };
+        });
+    assertEquals(ContractCodes.MODULE_INSTALL_FAILED, registry.install(CARDS_ID).code());
+    assertSame(failure, assertThrows(AssertionError.class, () -> registry.install(CARDS_ID)));
+    assertEquals(2, closed.get());
+    assertNull(registry.lease(CARDS_ID));
+    assertTrue(registry.contributions().isEmpty());
+    assertTrue(registry.install(CARDS_ID).accepted());
+    assertEquals(3, attempts.get());
+    assertEquals(2, closed.get());
+  }
+
+  @Test
+  public void installedCloseRejectsSameModuleReinstallAndReleasesGateAfterError() throws Exception {
+    ModuleRegistry registry = concurrentRegistry();
+    CountDownLatch closing = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    AtomicInteger created = new AtomicInteger();
+    AssertionError failure = new AssertionError("close");
+    registry.register(
+        cardsDescriptor(),
+        () -> {
+          if (created.incrementAndGet() != 1) return new TrackedInstance("app.new");
+          return new ModuleInstance() {
+            @Override
+            public List<Contribution> contributions() {
+              return new TrackedInstance("app.old").contributions();
+            }
+
+            @Override
+            public void close(CloseReason reason) {
+              assertFalse(Thread.holdsLock(registry));
+              closing.countDown();
+              await(release);
+              throw failure;
+            }
+          };
+        });
+    assertTrue(registry.install(CARDS_ID).accepted());
+    GenerationLease oldLease = registry.lease(CARDS_ID);
+    ExecutorService pool = Executors.newSingleThreadExecutor();
+    try {
+      Future<ContractResult> oldClose = pool.submit(() -> registry.close(CARDS_ID, null));
+      assertTrue(closing.await(5, TimeUnit.SECONDS));
+      assertFalse(oldLease.active());
+      // 即使调用者先手动 revoke 旧 key，同模块在旧清理结束前也不能发布新贡献。
+      assertTrue(registry.revoke("demo.cards#page").accepted());
+      assertEquals(ContractCodes.MODULE_INSTALL_FAILED, registry.install(CARDS_ID).code());
+      assertEquals(1, created.get());
+      assertTrue(BuiltinModules.ensureRegistered(registry).accepted());
+      release.countDown();
+      assertSame(
+          failure,
+          assertThrows(
+                  java.util.concurrent.ExecutionException.class,
+                  () -> oldClose.get(5, TimeUnit.SECONDS))
+              .getCause());
+      assertNull(registry.lease(CARDS_ID));
+      assertTrue(registry.resolveRoute("demo.cards#page").hostFallback());
+      assertTrue(registry.install(CARDS_ID).accepted());
+      assertTrue(registry.lease(CARDS_ID).active());
+      assertEquals("app.new", registry.resolveRoute("demo.cards#page").key());
+      assertEquals(2, created.get());
+    } finally {
+      release.countDown();
+      pool.shutdown();
+      assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+    }
+  }
+
+  @Test
+  public void candidateCleanupErrorCannotHideTheFirstContributionError() {
+    ModuleRegistry registry = concurrentRegistry();
+    AtomicInteger attempts = new AtomicInteger();
+    AtomicInteger closed = new AtomicInteger();
+    AssertionError first = new AssertionError("contributions first");
+    AssertionError cleanup = new AssertionError("cleanup second");
+    registry.register(
+        cardsDescriptor(),
+        () -> {
+          if (attempts.incrementAndGet() != 1) return new TrackedInstance("app.retry");
+          return new ModuleInstance() {
+            @Override
+            public List<Contribution> contributions() {
+              throw first;
+            }
+
+            @Override
+            public void close(CloseReason reason) {
+              assertFalse(Thread.holdsLock(registry));
+              closed.incrementAndGet();
+              throw cleanup;
+            }
+          };
+        });
+    assertSame(first, assertThrows(AssertionError.class, () -> registry.install(CARDS_ID)));
+    assertEquals(1, closed.get());
+    assertFalse(registry.isInstalled(CARDS_ID));
+    assertNull(registry.lease(CARDS_ID));
+    assertTrue(registry.contributions().isEmpty());
+    assertTrue(registry.install(CARDS_ID).accepted());
+  }
+
+  @Test
+  public void slowContributionIteratorDoesNotHoldRegistryLockOrPublishAfterClose()
+      throws Exception {
+    ModuleRegistry registry = concurrentRegistry();
+    CountDownLatch entered = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    TrackedInstance instance = new TrackedInstance("app.iterator");
+    registry.register(
+        cardsDescriptor(),
+        () ->
+            new ModuleInstance() {
+              @Override
+              public List<Contribution> contributions() {
+                return new java.util.AbstractList<>() {
+                  @Override
+                  public java.util.Iterator<Contribution> iterator() {
+                    assertFalse(Thread.holdsLock(registry));
+                    entered.countDown();
+                    await(release);
+                    return instance.contributions().iterator();
+                  }
+
+                  @Override
+                  public Contribution get(int index) {
+                    assertFalse(Thread.holdsLock(registry));
+                    return instance.contributions().get(index);
+                  }
+
+                  @Override
+                  public int size() {
+                    assertFalse(Thread.holdsLock(registry));
+                    return 2;
+                  }
+                };
+              }
+
+              @Override
+              public void close(CloseReason reason) {
+                assertFalse(Thread.holdsLock(registry));
+                instance.close(reason);
+              }
+            });
+    ExecutorService pool = Executors.newFixedThreadPool(2);
+    try {
+      Future<ContractResult> installing = pool.submit(() -> registry.install(CARDS_ID));
+      assertTrue(entered.await(5, TimeUnit.SECONDS));
+      assertTrue(
+          pool.submit(() -> registry.close(CARDS_ID, null)).get(2, TimeUnit.SECONDS).accepted());
+      release.countDown();
+      assertEquals(ContractCodes.STALE_GENERATION, installing.get(5, TimeUnit.SECONDS).code());
+      assertEquals(1, instance.closed.get());
+      assertNull(registry.lease(CARDS_ID));
+      assertTrue(registry.contributions().isEmpty());
+      assertTrue(registry.resolveRoute("demo.cards#page").hostFallback());
+    } finally {
+      release.countDown();
+      pool.shutdown();
+      assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+    }
+  }
+
+  @Test
+  public void safeModeInvalidatesEveryPendingInstallBeforeAnySlowClose() throws Exception {
+    ModuleRegistry registry = concurrentRegistry();
+    CountDownLatch closing = new CountDownLatch(1);
+    CountDownLatch releaseClose = new CountDownLatch(1);
+    CountDownLatch creating = new CountDownLatch(1);
+    CountDownLatch releaseFactory = new CountDownLatch(1);
+    ModuleId pendingId = new ModuleId("demo.pending");
+    AtomicInteger created = new AtomicInteger();
+    AtomicInteger lateClosed = new AtomicInteger();
+    AtomicReference<CloseReason> lateReason = new AtomicReference<>();
+    AtomicInteger replacementClosed = new AtomicInteger();
+    registry.register(
+        cardsDescriptor(),
+        () ->
+            new ModuleInstance() {
+              @Override
+              public List<Contribution> contributions() {
+                return List.of();
+              }
+
+              @Override
+              public void close(CloseReason reason) {
+                assertFalse(Thread.holdsLock(registry));
+                closing.countDown();
+                await(releaseClose);
+              }
+            });
+    registry.register(
+        ContractTestSupport.descriptor("demo.pending", Enablement.OPTIONAL_USER),
+        () -> {
+          boolean old = created.incrementAndGet() == 1;
+          if (old) {
+            creating.countDown();
+            await(releaseFactory);
+          }
+          return new ModuleInstance() {
+            @Override
+            public List<Contribution> contributions() {
+              return List.of(
+                  Contribution.route(
+                      pendingId, "page", "页面", "Page", 0, old ? "app.old" : "app.new"));
+            }
+
+            @Override
+            public void close(CloseReason reason) {
+              if (old) {
+                lateClosed.incrementAndGet();
+                lateReason.set(reason);
+              } else replacementClosed.incrementAndGet();
+            }
+          };
+        });
+    assertTrue(registry.install(CARDS_ID).accepted());
+    ExecutorService pool = Executors.newFixedThreadPool(2);
+    try {
+      Future<ContractResult> old = pool.submit(() -> registry.install(pendingId));
+      assertTrue(creating.await(5, TimeUnit.SECONDS));
+      Future<ContractResult> safe = pool.submit(registry::enterSafeMode);
+      assertTrue(closing.await(5, TimeUnit.SECONDS));
+      registry.exitSafeMode();
+      assertTrue(registry.install(pendingId).accepted());
+      GenerationLease replacement = registry.lease(pendingId);
+      assertNotNull(replacement);
+      releaseClose.countDown();
+      assertTrue(safe.get(5, TimeUnit.SECONDS).accepted());
+      releaseFactory.countDown();
+      assertEquals(ContractCodes.STALE_GENERATION, old.get(5, TimeUnit.SECONDS).code());
+      assertEquals(1, lateClosed.get());
+      assertEquals(CloseReason.SAFE_MODE, lateReason.get());
+      assertEquals(0, replacementClosed.get());
+      assertSame(replacement, registry.lease(pendingId));
+      assertTrue(replacement.active());
+      assertEquals("app.new", registry.resolveRoute("demo.pending#page").key());
+    } finally {
+      releaseClose.countDown();
+      releaseFactory.countDown();
+      pool.shutdown();
+      assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+    }
+  }
+
+  @Test
+  public void safeModeCleansAllDetachedModulesBeforeRethrowingFirstCloseError() {
+    ModuleRegistry registry = concurrentRegistry();
+    AssertionError failure = new AssertionError("first close");
+    AtomicInteger closed = new AtomicInteger();
+    ModuleId secondId = new ModuleId("demo.second");
+    registry.register(
+        cardsDescriptor(),
+        () ->
+            new ModuleInstance() {
+              @Override
+              public List<Contribution> contributions() {
+                return new TrackedInstance("app.first").contributions();
+              }
+
+              @Override
+              public void close(CloseReason reason) {
+                throw failure;
+              }
+            });
+    registry.register(
+        ContractTestSupport.descriptor("demo.second", Enablement.OPTIONAL_USER),
+        () ->
+            new ModuleInstance() {
+              @Override
+              public List<Contribution> contributions() {
+                return List.of(Contribution.route(secondId, "page", "页面", "Page", 0, "app.second"));
+              }
+
+              @Override
+              public void close(CloseReason reason) {
+                closed.incrementAndGet();
+              }
+            });
+    assertTrue(registry.install(CARDS_ID).accepted());
+    assertTrue(registry.install(secondId).accepted());
+    assertTrue(BuiltinModules.ensureRegistered(registry).accepted());
+    GenerationLease firstLease = registry.lease(CARDS_ID);
+    GenerationLease secondLease = registry.lease(secondId);
+    assertSame(failure, assertThrows(AssertionError.class, registry::enterSafeMode));
+    assertFalse(firstLease.active());
+    assertFalse(secondLease.active());
+    assertEquals(1, closed.get());
+    assertNull(registry.lease(CARDS_ID));
+    assertNull(registry.lease(secondId));
+    assertEquals(
+        List.of("builtin.about#about"), ContractTestSupport.keys(registry.contributions()));
+    registry.exitSafeMode();
+    assertTrue(registry.resolveRoute("demo.cards#page").hostFallback());
+    assertTrue(registry.resolveRoute("demo.second#page").hostFallback());
+    assertTrue(registry.install(secondId).accepted());
+  }
+
+  @Test
+  public void staleFactoryMustNotCloseAnAliasAlreadyPublishedByANewerInstall() throws Exception {
+    assertStaleFactoryDoesNotOwnSharedCandidate(true);
+  }
+
+  @Test
+  public void staleFactoryMustNotCloseAnAliasStillInANewerContributionCallback() throws Exception {
+    assertStaleFactoryDoesNotOwnSharedCandidate(false);
+  }
+
+  private static void assertStaleFactoryDoesNotOwnSharedCandidate(boolean published)
+      throws Exception {
+    ModuleRegistry registry = concurrentRegistry();
+    CountDownLatch creating = new CountDownLatch(1);
+    CountDownLatch releaseFactory = new CountDownLatch(1);
+    CountDownLatch contributing = new CountDownLatch(1);
+    CountDownLatch releaseContributions = new CountDownLatch(published ? 0 : 1);
+    AtomicInteger created = new AtomicInteger();
+    AtomicInteger closed = new AtomicInteger();
+    ModuleInstance shared =
+        new ModuleInstance() {
+          @Override
+          public List<Contribution> contributions() {
+            contributing.countDown();
+            await(releaseContributions);
+            return new TrackedInstance("app.shared").contributions();
+          }
+
+          @Override
+          public void close(CloseReason reason) {
+            closed.incrementAndGet();
+          }
+        };
+    registry.register(
+        cardsDescriptor(),
+        () -> {
+          if (created.incrementAndGet() == 1) {
+            creating.countDown();
+            await(releaseFactory);
+          }
+          return shared;
+        });
+    ExecutorService pool = Executors.newFixedThreadPool(2);
+    try {
+      Future<ContractResult> old = pool.submit(() -> registry.install(CARDS_ID));
+      assertTrue(creating.await(5, TimeUnit.SECONDS));
+      assertTrue(registry.close(CARDS_ID, null).accepted());
+      Future<ContractResult> replacement = pool.submit(() -> registry.install(CARDS_ID));
+      assertTrue(contributing.await(5, TimeUnit.SECONDS));
+      if (published) assertTrue(replacement.get(5, TimeUnit.SECONDS).accepted());
+      releaseFactory.countDown();
+      assertEquals(ContractCodes.STALE_GENERATION, old.get(5, TimeUnit.SECONDS).code());
+      assertEquals("旧安装没有这个共享实例的清理权", 0, closed.get());
+      releaseContributions.countDown();
+      assertTrue(replacement.get(5, TimeUnit.SECONDS).accepted());
+      assertTrue(registry.lease(CARDS_ID).active());
+      assertEquals("app.shared", registry.resolveRoute("demo.cards#page").key());
+      assertEquals(2, registry.contributions().size());
+      assertTrue(registry.close(CARDS_ID, null).accepted());
+      assertEquals(1, closed.get());
+    } finally {
+      releaseFactory.countDown();
+      releaseContributions.countDown();
+      pool.shutdown();
+      assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+    }
+  }
+
+  @Test
+  public void newerInstallCannotPublishAnAliasWhileOldCandidateCleanupIsRunning() throws Exception {
+    ModuleRegistry registry = concurrentRegistry();
+    CountDownLatch contributing = new CountDownLatch(1);
+    CountDownLatch releaseContributions = new CountDownLatch(1);
+    CountDownLatch closing = new CountDownLatch(1);
+    CountDownLatch releaseClose = new CountDownLatch(1);
+    AtomicInteger created = new AtomicInteger();
+    AtomicInteger closed = new AtomicInteger();
+    ModuleInstance shared =
+        new ModuleInstance() {
+          @Override
+          public List<Contribution> contributions() {
+            contributing.countDown();
+            await(releaseContributions);
+            return List.of();
+          }
+
+          @Override
+          public void close(CloseReason reason) {
+            closed.incrementAndGet();
+            closing.countDown();
+            await(releaseClose);
+          }
+        };
+    registry.register(
+        cardsDescriptor(),
+        () -> created.incrementAndGet() <= 2 ? shared : new TrackedInstance("app.new"));
+    ExecutorService pool = Executors.newSingleThreadExecutor();
+    try {
+      Future<ContractResult> old = pool.submit(() -> registry.install(CARDS_ID));
+      assertTrue(contributing.await(5, TimeUnit.SECONDS));
+      assertTrue(registry.close(CARDS_ID, null).accepted());
+      releaseContributions.countDown();
+      assertTrue(closing.await(5, TimeUnit.SECONDS));
+      assertEquals(ContractCodes.MODULE_INSTALL_FAILED, registry.install(CARDS_ID).code());
+      assertFalse(registry.isInstalled(CARDS_ID));
+      assertNull(registry.lease(CARDS_ID));
+      assertEquals(1, closed.get());
+      releaseClose.countDown();
+      assertEquals(ContractCodes.STALE_GENERATION, old.get(5, TimeUnit.SECONDS).code());
+      assertTrue(registry.install(CARDS_ID).accepted());
+      assertEquals("app.new", registry.resolveRoute("demo.cards#page").key());
+    } finally {
+      releaseContributions.countDown();
+      releaseClose.countDown();
+      pool.shutdown();
+      assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+    }
+  }
+
+  @Test
+  public void instanceIdentityIsOwnedAcrossModulesWithoutCallingModuleEqualsOrHashCode() {
+    ModuleRegistry registry = concurrentRegistry();
+    AtomicInteger closed = new AtomicInteger();
+    ModuleId other = new ModuleId("demo.alias");
+    ModuleInstance shared =
+        new ModuleInstance() {
+          @Override
+          public List<Contribution> contributions() {
+            return List.of();
+          }
+
+          @Override
+          public void close(CloseReason reason) {
+            closed.incrementAndGet();
+          }
+
+          @Override
+          public boolean equals(Object otherInstance) {
+            throw new AssertionError("模块 equals 不得在 registry 锁内运行");
+          }
+
+          @Override
+          public int hashCode() {
+            throw new AssertionError("模块 hashCode 不得在 registry 锁内运行");
+          }
+        };
+    registry.register(cardsDescriptor(), () -> shared);
+    registry.register(
+        ContractTestSupport.descriptor("demo.alias", Enablement.OPTIONAL_USER), () -> shared);
+    assertTrue(registry.install(CARDS_ID).accepted());
+    GenerationLease original = registry.lease(CARDS_ID);
+    assertEquals(ContractCodes.MODULE_INSTALL_FAILED, registry.install(other).code());
+    assertEquals(0, closed.get());
+    assertSame(original, registry.lease(CARDS_ID));
+    assertTrue(original.active());
+    assertFalse(registry.isInstalled(other));
+    assertTrue(registry.close(CARDS_ID, null).accepted());
+    assertEquals(1, closed.get());
+    assertTrue(registry.install(other).accepted());
+    assertTrue(registry.lease(other).active());
+  }
+
+  private static void assertPendingInstallInvalidated(
+      boolean throughEnable, boolean blockContributions, CloseReason reason) throws Exception {
+    ModuleRegistry registry = concurrentRegistry();
+    CountDownLatch entered = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    TrackedInstance instance = new TrackedInstance("app.late");
+    ModuleFactory factory =
+        () -> {
+          if (!blockContributions) {
+            entered.countDown();
+            await(release);
+          }
+          return new ModuleInstance() {
+            @Override
+            public List<Contribution> contributions() {
+              if (blockContributions) {
+                entered.countDown();
+                await(release);
+              }
+              return instance.contributions();
+            }
+
+            @Override
+            public void close(CloseReason actualReason) {
+              assertFalse("迟到实例清理不得持 registry 锁", Thread.holdsLock(registry));
+              instance.close(actualReason);
+            }
+          };
+        };
+    assertTrue(registry.register(cardsDescriptor(), factory).accepted());
+    ExecutorService pool = Executors.newFixedThreadPool(2);
+    try {
+      Future<ContractResult> installing =
+          pool.submit(
+              () ->
+                  throughEnable ? registry.setEnabled(CARDS_ID, true) : registry.install(CARDS_ID));
+      assertTrue("必须先进入受控阻塞点", entered.await(5, TimeUnit.SECONDS));
+      Future<ContractResult> closing =
+          pool.submit(
+              () -> {
+                if (reason == CloseReason.USER_DISABLED)
+                  return registry.setEnabled(CARDS_ID, false);
+                if (reason == CloseReason.SAFE_MODE) return registry.enterSafeMode();
+                return registry.close(CARDS_ID, reason);
+              });
+      // release 尚未放行；旧实现会在此确定性超时，finally 仍释放线程。
+      assertTrue("停止不能等待 factory/contributions", closing.get(2, TimeUnit.SECONDS).accepted());
+      if (reason == CloseReason.SAFE_MODE) registry.exitSafeMode();
+      assertFalse(installing.isDone());
+      assertFalse(registry.isInstalled(CARDS_ID));
+      assertNull(registry.lease(CARDS_ID));
+      assertTrue(registry.contributions().isEmpty());
+      release.countDown();
+      assertEquals(ContractCodes.STALE_GENERATION, installing.get(5, TimeUnit.SECONDS).code());
+      assertEquals(1, instance.closed.get());
+      assertEquals(reason, instance.reason.get());
+      assertFalse(registry.isInstalled(CARDS_ID));
+      assertNull(registry.lease(CARDS_ID));
+      assertTrue(registry.contributions().isEmpty());
+      assertTrue(registry.resolveRoute("demo.cards#page").hostFallback());
+      assertTrue(registry.close(CARDS_ID, CloseReason.HOST_CLOSE).accepted());
+      assertEquals(1, instance.closed.get());
+    } finally {
+      release.countDown();
+      pool.shutdown();
+      assertTrue("测试线程必须归还", pool.awaitTermination(5, TimeUnit.SECONDS));
+    }
+  }
+
+  private static ModuleRegistry concurrentRegistry() {
+    return new ModuleRegistry(
+        new LayoutStore() {
+          @Override
+          public LayoutSnapshot load() {
+            return LayoutSnapshot.empty();
+          }
+
+          @Override
+          public void save(LayoutSnapshot snapshot) {}
+        },
+        new SafeModeGate(),
+        DiagnosticsSink.discarding());
+  }
+
+  private static final class TrackedInstance implements ModuleInstance {
+    final AtomicInteger closed = new AtomicInteger();
+    final AtomicReference<CloseReason> reason = new AtomicReference<>();
+    final String route;
+
+    TrackedInstance(String route) {
+      this.route = route;
+    }
+
+    @Override
+    public List<Contribution> contributions() {
+      return List.of(
+          Contribution.card(CARDS_ID, "beta", "卡片", "Card", 0),
+          Contribution.route(CARDS_ID, "page", "页面", "Page", 1, route));
+    }
+
+    @Override
+    public void close(CloseReason actualReason) {
+      closed.incrementAndGet();
+      reason.set(actualReason);
     }
   }
 

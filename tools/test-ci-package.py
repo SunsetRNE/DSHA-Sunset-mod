@@ -17,6 +17,7 @@ class ToolchainBinding(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
             for name in ('ci/toolchain.lock.json','app/build.gradle','build.gradle',
+                         'build-logic/android.gradle',
                          'gradle/wrapper/gradle-wrapper.properties'):
                 path=root/name;path.parent.mkdir(parents=True,exist_ok=True)
                 path.write_bytes((toolchain.ROOT/name).read_bytes())

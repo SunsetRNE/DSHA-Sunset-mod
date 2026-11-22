@@ -72,9 +72,10 @@ for path in workflow_files:
             errors.append("UNPINNED_ACTION: " + str(path.relative_to(ROOT)))
 if "mavenLocal()" in (ROOT / "settings.gradle").read_text(encoding="utf-8"):
     errors.append("UNCONTROLLED_MAVEN_LOCAL")
-for path in (ROOT / "app/src/main/java").rglob("*.java"):
-    if path.name != "Ids.java" and "[a-f0-9]{8}-" in path.read_text(encoding="utf-8"):
-        errors.append("DUPLICATE_UUID_PATTERN: " + path.relative_to(ROOT).as_posix())
+for suffix in ("*.java", "*.kt"):
+    for path in (ROOT / "app/src/main/java").rglob(suffix):
+        if path.name not in ("Ids.java", "Ids.kt") and "[a-f0-9]{8}-" in path.read_text(encoding="utf-8"):
+            errors.append("DUPLICATE_UUID_PATTERN: " + path.relative_to(ROOT).as_posix())
 history_paths = ["tools/history/_byte-policy." + ext for ext in ("py", "java", "md", "txt", "sh", "xml", "json", "cjs")]
 history_paths.append("tools/history/LICENSE")
 history_paths.extend(sorted(byte_pinned))

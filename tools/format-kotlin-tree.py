@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+from source_layout import SourceLayout, PACKAGE
 
 ROOT = Path(__file__).resolve().parents[1]
 SETS = ("main", "standard", "debug", "androidTest", "test")
@@ -41,35 +42,27 @@ def inventory(root=ROOT, protected=(), generated=()):
     protected = set(protected)
     generated = set(generated)
     result = []
-    for source_set in SETS:
-        for source_root in SOURCE_ROOTS:
-            directory = root / "app/src" / source_set / source_root
-            if not directory.is_dir():
-                continue
-            for path in sorted(set(directory.rglob("*.kt")) | set(directory.rglob("*.kts"))):
-                relative = path.relative_to(root).as_posix()
-                if EXCLUDED_PARTS.intersection(path.relative_to(directory).parts):
-                    continue
-                if relative in protected or relative in generated:
-                    continue
-                if path.is_symlink() or not path.is_file():
-                    raise TreeFormatError("FORMAT_SOURCE_LINK_OR_NONFILE: " + relative)
-                result.append(relative)
+    for entry in SourceLayout(root).format_files(SUFFIXES):
+        relative = entry.relative
+        if EXCLUDED_PARTS.intersection(Path(entry.logical_path).parts):
+            continue
+        if relative in protected or relative in generated:
+            continue
+        result.append(relative)
     return sorted(result)
 
 
 def batch_key(name):
-    parts = Path(name).parts
-    if len(parts) < 5 or parts[:2] != ("app", "src") or parts[2] not in SETS or parts[3] not in SOURCE_ROOTS:
-        raise TreeFormatError("FORMAT_UNEXPECTED_SOURCE: " + name)
+    entry = SourceLayout(ROOT).classify(name)
     if Path(name).suffix not in SUFFIXES:
-        raise TreeFormatError("FORMAT_UNEXPECTED_SOURCE: " + name)
-    inner = parts[4:-1]
-    if inner[:3] == ("com", "deepseekharness", "app"):
-        package = inner[3] if len(inner) > 3 else "(root)"
+        raise TreeFormatError('FORMAT_UNEXPECTED_SOURCE: ' + name)
+    inner = Path(entry.logical_path).parts[:-1]
+    if inner[:3] == ('com', 'deepseekharness', 'app'):
+        package = inner[3] if len(inner) > 3 else '(root)'
     else:
-        package = "/".join(inner[:2]) if inner else "(root)"
-    return (parts[2], package)
+        package = '/'.join(inner[:2]) if inner else '(root)'
+    source_set = entry.source_set if entry.module == ':app' else entry.module + '/' + entry.source_set
+    return (source_set, package)
 
 
 def package_batches(names):

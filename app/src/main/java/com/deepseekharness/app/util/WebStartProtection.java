@@ -190,7 +190,7 @@ public final class WebStartProtection {
     }
   }
 
-  /** 仅供 S1a 影子采样；不调用 active/reject，不消费、续期或复活原票据。 */
+  /** 只读核对原票据是否仍等待自己的停止；不续期、不消费、不复活票据。 */
   public boolean observesWaitingStop(Ticket ticket) {
     synchronized (lifecycle) {
       if (ticket == null
@@ -249,6 +249,24 @@ public final class WebStartProtection {
         queued = null;
       } else ticket.claimed = true;
       return current;
+    }
+  }
+
+  /** 已入队票据只按原服务和 claim 核验；不重新使用 pending 的 canAdmit，也不重复 claim。 */
+  public boolean isClaimedCurrent(Ticket ticket, long generation) {
+    synchronized (lifecycle) {
+      if (ticket == null
+          || queued != ticket
+          || !ticket.admitted
+          || !ticket.claimed
+          || ticket.closed
+          || ticket.generation != generation
+          || !lifecycle.isCurrent(generation)) return false;
+      try {
+        return ticket.serviceCurrent != null && ticket.serviceCurrent.getAsBoolean();
+      } catch (RuntimeException unknown) {
+        return false;
+      }
     }
   }
 

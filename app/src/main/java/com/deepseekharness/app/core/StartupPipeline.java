@@ -17,6 +17,11 @@ final class StartupPipeline {
 
     void status(String status);
 
+    /** 仅已消费交接可返回 true；选中后失败抛错，不回落重发停止。 */
+    default boolean reusePriorStop() throws IOException {
+      return false;
+    }
+
     /** 结束已知旧启动器并确认退出；返回非空表示仍未确认，由调用方在同一窗口内等待。 */
     java.util.List<com.deepseekharness.app.util.WebStopDiagnostic> releasePrior()
         throws IOException;
@@ -235,8 +240,9 @@ final class StartupPipeline {
     actions.stage(com.deepseekharness.app.util.UiText.text("停止旧 Web 进程"));
     long stopDeadline =
         actions.now() + com.deepseekharness.app.util.WebStopBudget.STARTUP_EXIT_MILLIS;
+    boolean reuse = timing.run("stop-handoff", actions::reusePriorStop);
     java.util.List<com.deepseekharness.app.util.WebStopDiagnostic> stopFacts =
-        timing.run("stop-web", runtime::stopWeb);
+        reuse ? java.util.List.of() : timing.run("stop-web", runtime::stopWeb);
     timing.observe("stop-web", "facts", stopFacts.size());
     // 旧 guest 报告“正在退出”时，已知启动器仍要先拿到同样的优雅退出窗口；旧实现一旦
     // stop-web 非空就立刻抛出，导致 10ms 的扫描把一次正常退出判成启动失败。

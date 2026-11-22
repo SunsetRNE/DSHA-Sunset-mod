@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.application'
 }
+apply from: rootProject.file('build-logic/android.gradle')
 
 // DSH-A-Su（Sunset Mod）单一 Standard 变体：Android 11（API 30）及以上；发布身份见下方 dsha.identity。
 // 旧 low/GeckoView 兼容线与独立上岛包都已移除：上岛能力并入正式包。
@@ -104,19 +105,6 @@ if (releaseIdentityName == 'mod') {
             || legacyIdentity.versionName != releaseIdentity.versionName)
         throw new GradleException('LEGACY_IDENTITY_VERSION_MISMATCH: ci/release-identity.json 与 mod 身份版本号不一致')
 }
-// 只有源码 CI 可显式允许缺少真实测试夹具；完整测试默认要求固定输入齐备。
-def sourceOnlyTests = providers.gradleProperty('dsha.sourceOnlyTests').orElse('false').get()
-if (!(sourceOnlyTests in ['true', 'false']))
-    throw new GradleException('dsha.sourceOnlyTests 只接受 true 或 false')
-
-// R1 主机差分测试：主机目标 .so 路径与 required 开关在配置期解析，供 unitTests.all 注入
-// 测试 JVM；不把 def 放进嵌套闭包（Gradle 9.3.1 的 Groovy 4 脚本编译器在嵌套闭包里出现
-// 变量作用域冲突时会抛 “BUG! exception in phase 'semantic analysis'”，难定位）。
-def rustHostLibProperty = providers.gradleProperty('dsha.rust.hostLib').orNull
-def rustRequiredProperty = providers.gradleProperty('dsha.rust.required').orElse('false').get()
-if (!(rustRequiredProperty in ['true', 'false']))
-    throw new GradleException('dsha.rust.required 只接受 true 或 false')
-
 android {
     namespace 'com.deepseekharness.app'
     compileSdk {
@@ -140,9 +128,9 @@ android {
         // versionCode / versionName 的构建基准仍写在 build.gradle；三条身份文件必须记录同一值，
         // 由 android 块之后的一致性检查兜底。Rebirth 将来同线递增时须同时改本文件、身份文件与
         // tools/generate-changelog.py / release_names.py / sign-release-apks.py 的解析（G1 另立）。
-        versionCode 366
+        versionCode 369
         // DSHA 修订号 + 固定的 UTC 时间戳 + 内置 DSH 版本；同一交付重建不变。
-        versionName "0.2.1-rc.5-20261114.1717-dsh0.2.2-rc.1"
+        versionName "0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1"
         testInstrumentationRunner project.findProperty('dsha.testRunner') ?: "com.deepseekharness.app.Rc13Instrumentation"
         ndk {
             abiFilters 'arm64-v8a'
@@ -261,38 +249,10 @@ android {
         noCompress += ['gz', 'xz', 'bin', 'ja', 'tar', 'whl']
     }
 
-    compileOptions {
-        coreLibraryDesugaringEnabled true
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
-
     buildFeatures {
         resValues = true
         aidl = true
         buildConfig = true
-    }
-
-    testOptions {
-        unitTests.includeAndroidResources = true
-        // 完整 Standard 套件在同一测试 JVM 内运行 2500+ 项，并包含 25MB 位图边界和
-        // 多组 Robolectric 界面沙箱；默认堆上限会在与断言无关的位图分配处 OOM。
-        // 这里只提高测试进程内存上限，不放宽或跳过任何用例。
-        unitTests.all { testTask ->
-            testTask.maxHeapSize = '2048m'
-            // R1 主机差分测试：-Pdsha.rust.hostLib=<host .so> 时把库路径与 required 传入
-            // 测试 JVM，并开放 java.io 反射（只用于读 FileDescriptor.fd 构造真实 fd）。
-            // 未提供 hostLib 时该测试按 Assume 跳过（-Pdsha.rust.required=true 则直接失败，
-            // 供 CI rust-differential 证明 0 skipped）；普通单测行为不变。
-            if (rustHostLibProperty) {
-                testTask.systemProperty 'dsha.rust.hostLib', rustHostLibProperty.toString()
-                testTask.systemProperty 'dsha.rust.required', rustRequiredProperty
-                testTask.jvmArgs '--add-opens=java.base/java.io=ALL-UNNAMED'
-            } else if (rustRequiredProperty == 'true') {
-                testTask.systemProperty 'dsha.rust.required', 'true'
-                testTask.jvmArgs '--add-opens=java.base/java.io=ALL-UNNAMED'
-            }
-        }
     }
 
     sourceSets {
@@ -300,8 +260,8 @@ android {
                 layout.buildDirectory.dir("generated/recoveryAssets").get().asFile])
         main.java.srcDir(layout.buildDirectory.dir("generated/uiLanguage").get().asFile)
         // Rust 旁路产物只从注入目录打包（CI 的 rust-native 或本地 prebuilt），.so 不入库；
-        // 该目录不存在时 APK 内容与之前一致，R0 不接 build-unsigned 的 APK 打包。
-        // 目录结构固定为 app/build/rust-jniLibs/arm64-v8a/libdsha_rs.so。
+        // 目录结构固定为 app/build/rust-jniLibs/arm64-v8a/libdsha_rs.so；
+        // prepareRustNative 在 off 时拒绝残留，在 prebuilt 时核验来源后才写入。
         main.jniLibs.srcDir(layout.buildDirectory.dir("rust-jniLibs").get().asFile)
         // Both browser test entry points load one test-only HTML fixture.
         debug.assets.srcDir(rootProject.file("tools/fixtures/web-state"))
@@ -309,15 +269,53 @@ android {
     }
 }
 
-// built-in Kotlin（AGP 9.1.1）：AGP 自动注册 Kotlin 编译任务并添加 kotlin-stdlib 依赖，
-// 版本由 settings.gradle 的 gradle.ext.kotlinVersion / AGP 运行时依赖固定为 2.2.10。
-// 不在这里重复声明 stdlib，避免同一模块出现两条 stdlib 依赖坐标。
-// Java 与 Kotlin 统一产出 17 字节码；jvmTarget 默认跟随 compileOptions.targetCompatibility，
-// 这里显式写死，防止将来改 compileOptions 时 javac/kotlinc 目标静默漂移。
-kotlin {
-    compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+// Rust APK 装配与业务后端开关独立：默认 off 不带库，RustBackends 仍默认 false。
+// prebuilt 只消费先经源码/receipt/ELF 核验的 Android 产物，不在 Gradle 内运行 cargo。
+def rustNativeMode = providers.gradleProperty('dsha.rust.mode').orElse('off').get()
+def rustArtifactDirectory = providers.gradleProperty('dsha.rust.artifactDir').orNull
+if (!(rustNativeMode in ['off', 'prebuilt']))
+    throw new GradleException('RUST_NATIVE_MODE: dsha.rust.mode 只接受 off 或 prebuilt')
+if (rustNativeMode == 'prebuilt' && !rustArtifactDirectory)
+    throw new GradleException('RUST_ARTIFACT_DIRECTORY: prebuilt 需要 dsha.rust.artifactDir')
+if (rustNativeMode == 'off' && rustArtifactDirectory)
+    throw new GradleException('RUST_DISABLED_INPUT: off 不能传入 dsha.rust.artifactDir')
+def rustJniDirectory = layout.buildDirectory.dir('rust-jniLibs')
+def rustAssetsDirectory = layout.buildDirectory.dir('generated/rustAssets')
+def prepareRustNative = tasks.register('prepareRustNative', Exec) {
+    inputs.property 'dsha.rust.mode', rustNativeMode
+    inputs.files(rootProject.files('tools/rust/artifact.py', 'tools/rust/build.py',
+            'tools/rust/elf.py', 'tools/check-rust-native-apk.py',
+            'ci/rust-toolchain.lock.json', 'rust/native-budget.json', 'rust/artifact.lock.json'))
+    if (rustArtifactDirectory) inputs.dir(rootProject.file(rustArtifactDirectory))
+    // 每次重新核验时效与实际字节；不复用缓存中的过期 PASS。
+    outputs.upToDateWhen { false }
+    doFirst {
+        def arguments = [System.getenv('DSHA_PYTHON') ?: 'python3', '-B',
+                rootProject.file('tools/rust/artifact.py').absolutePath, 'stage',
+                '--mode', rustNativeMode, '--out', rustJniDirectory.get().asFile.absolutePath,
+                '--assets-out', rustAssetsDirectory.get().asFile.absolutePath]
+        if (rustNativeMode == 'prebuilt') {
+            arguments += ['--artifact-dir', rootProject.file(rustArtifactDirectory).absolutePath,
+                    '--commit', providers.exec {
+                        workingDir rootProject.projectDir
+                        commandLine 'git', 'rev-parse', 'HEAD'
+                    }.standardOutput.asText.get().trim()]
+            ['GITHUB_RUN_ID': '--run-id', 'GITHUB_RUN_ATTEMPT': '--run-attempt',
+                    'GITHUB_REPOSITORY': '--repository'].each { variable, option ->
+                if (System.getenv(variable)) arguments += [option, System.getenv(variable)]
+            }
+        }
+        commandLine arguments
     }
+}
+// 加性登记独立资产目录，保留既有 sourceSets/受管资产准备结构。
+// SourceSet API 不接受 Provider；目录在配置期解析，任务依赖仍由下方显式登记。
+if (rustNativeMode == 'prebuilt') android.sourceSets.main.assets.srcDir(rustAssetsDirectory.get().asFile)
+// 库 receipt 绑定完整字节，AGP 不得再 strip 此成员。
+android.packaging.jniLibs.keepDebugSymbols.add('**/libdsha_rs.so')
+tasks.named('preBuild').configure { dependsOn(prepareRustNative) }
+tasks.configureEach {
+    if (name.matches('mergeStandard.*(JniLibFolders|NativeLibs|Assets)')) dependsOn(prepareRustNative)
 }
 
 // 版本号仍以 build.gradle 为构建基准；所选身份文件必须记录同一值，防止身份文件与源码漂移。
@@ -437,12 +435,6 @@ def verifyWebLanguages = tasks.register('verifyWebLanguages', Exec) {
 
 tasks.named('preBuild').configure { dependsOn(verifyWebLanguages) }
 
-tasks.withType(Test).configureEach {
-    systemProperty 'dsha.assetsDir', file('src/main/assets').absolutePath
-    systemProperty 'dsha.sourceOnlyTests', sourceOnlyTests
-    // 切换到完整测试时不得复用 source-only 的跳过结果。
-    inputs.property 'dsha.sourceOnlyTests', sourceOnlyTests
-}
 tasks.configureEach {
     if (name in ['verifyBundledIdentities', 'verifyBuiltinRegistry', 'prepareStandardAssets',
                  'prepareBackupAssets', 'prepareRuntimeDescriptor', 'prepareRecoveryAssets', 'prepareUiLanguages'])
@@ -457,7 +449,8 @@ def prepareStandardAssets = tasks.register("prepareStandardAssets", Exec) {
     inputs.file(rootProject.file("tools/prepare-web-compat.mjs"))
     inputs.files(rootProject.files("tools/web-compat/entry.cjs", "tools/web-compat/package.json", "tools/web-compat/package-lock.json"))
     inputs.file(rootProject.file("tools/build-dsh-runtime.py"))
-    inputs.files(rootProject.files("tools/runtime_stable_patches.py", "tools/runtime_input_contract.py"))
+    inputs.files(rootProject.files("tools/runtime_stable_patches.py", "tools/runtime_input_contract.py",
+            "tools/source_layout.py", "ci/source-layout.json"))
     inputs.dir(rootProject.file("tools/dsh-runtime"))
     inputs.file(rootProject.file("tools/prepare-ubuntu-tools.py"))
     inputs.dir(rootProject.file("tools/ubuntu-tools"))
@@ -488,6 +481,13 @@ prepareStandardAssets.configure { dependsOn(verifyExternalToolProof) }
 def runtimeInputContractFile = file("src/main/assets/managed-runtime-inputs.json")
 def runtimeInputContract = new groovy.json.JsonSlurper().parse(runtimeInputContractFile)
 if (runtimeInputContract.schema != 1) throw new GradleException("未知受管运行时输入契约")
+// 配置期和 Python 身份生成共用一份映射；禁止在 Gradle 里另写只扫 app 的源根规则。
+def runtimeLauncherFiles = new groovy.json.JsonSlurper().parseText(providers.exec {
+    workingDir rootProject.projectDir
+    commandLine(System.getenv('DSHA_PYTHON') ?: 'python3', '-B',
+            rootProject.file('tools/source_layout.py').absolutePath,
+            '--root', rootProject.projectDir.absolutePath, '--launcher-inputs')
+}.standardOutput.asText.get())
 def prepareRuntimeDescriptor = tasks.register("prepareRuntimeDescriptor", Exec) {
     inputs.file(rootProject.file("tools/prepare-runtime-descriptor.py"))
     inputs.file(rootProject.file("tools/runtime_input_contract.py"))
@@ -497,17 +497,9 @@ def prepareRuntimeDescriptor = tasks.register("prepareRuntimeDescriptor", Exec) 
         inputs.file(file("src/main/assets/${it}"))
     }
     runtimeInputContract.assetTrees.each { inputs.files(fileTree("src/main/assets/${it}")) }
-    runtimeInputContract.launcherTrees.each { path ->
-        // Java 源根同时收录 .kt；Python 的 launcher_paths 使用同一源根与同一组后缀，
-        // 避免「Gradle 认为没变、Python 认为变了」或相反的分歧。其他 launcherTrees 是 .so。
-        def sourceRoot = path == 'app/src/main/java/com/deepseekharness/app' \
-                || path.startsWith('app/src/main/java/com/deepseekharness/app/')
-        inputs.files(fileTree(rootProject.file(path)) {
-            include sourceRoot ? ['**/*.java', '**/*.kt'] : '**/*.so'
-        })
-    }
-    runtimeInputContract.launcherSources.each { inputs.file(file("src/main/java/com/deepseekharness/app/${it}")) }
-    (runtimeInputContract.generatorSources ?: []).each { inputs.file(rootProject.file(it)) }
+    inputs.files(rootProject.files('tools/source_layout.py', 'ci/source-layout.json'))
+    inputs.property('runtimeLauncherIdentityPaths', runtimeLauncherFiles)
+    inputs.files(runtimeLauncherFiles.values().collect { rootProject.file(it) })
     outputs.file(file("src/main/assets/runtime-descriptor.json"))
     commandLine(System.getenv("DSHA_PYTHON") ?: "python3", "-B", rootProject.file("tools/prepare-runtime-descriptor.py").absolutePath, "--check")
 }
@@ -635,7 +627,6 @@ def verifyUiLanguageResources = tasks.register("verifyUiLanguageResources", Exec
 tasks.named("preBuild").configure { dependsOn(verifyUiLanguageResources) }
 
 dependencies {
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.webkit:webkit:1.15.0'
     implementation 'com.google.android.material:material:1.11.0'
@@ -653,15 +644,4 @@ dependencies {
     implementation 'org.bouncycastle:bcprov-jdk15to18:1.85.2'
     // 宿主凭据 YAML 仅使用 data-only SafeConstructor；来源、JAR 和许可由备份锁核验。
     implementation 'org.yaml:snakeyaml:2.4'
-    testImplementation 'junit:junit:4.13.2'
-    testImplementation 'org.robolectric:robolectric:4.15.1'
-}
-
-tasks.withType(Test).configureEach {
-    jvmArgs '--add-opens=java.base/java.io=ALL-UNNAMED'
-    def frameworkDirectory = System.getenv('DSHA_ROBOLECTRIC_DEPENDENCY_DIR')
-    if (frameworkDirectory) {
-        systemProperty 'robolectric.offline', 'true'
-        systemProperty 'robolectric.dependency.dir', frameworkDirectory
-    }
 }

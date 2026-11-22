@@ -4,6 +4,8 @@
 > 状态：slice 1/2 已合入；slice 3/4 完成 P2-1..8 增量复核及接管追加修复，两份非实现者逐行审查均为 **APPROVE**（代码头 `e1b20ab1`）。十类定向 JUnit **147/0/0/0**，本地静态门禁通过；完整证据及限制见 §13.2。**A2 整轮仍不可合并/未验收：合并树 descriptor、固定输入完整 CI、真机/布局与发版待 Lead；N3/N4 已知窗口保留。**
 > 依据：[迭代路径](iteration-roadmap-20261112.md) §4 跨轮不变式 + §5 A2、[A1 任务基线](a1-task-baseline-20261113.md) 模板与已知 P2、[A1 契约草案](a1-contract-draft-20261112.md)（形状内部冻结）、[安全模型](../../security-model.md) SAF 一节。
 > 历史：slice 1/2 曾 rebase 到 `3a8204fe`（Source checks 43332430587 / Doc 43332430557 绿）；当前轮不继承旧 CI 作为新实现通过证明。main 的 Kotlin/Rust 改动保持，合入与 descriptor 由 Lead 处理。
+>
+> **整域迁移注记（2026-11-15）**：本页 Java 路径、切片范围和验证数字是原实现的历史记录；当前 SAF 的 15 个生产类已整域等价迁移为同 FQCN 的 Kotlin，旧 Java 已删除。当前源码、Java API 对照、A8-P1 新基线复验及限制见 [SAF 整域迁移回执](saf-kotlin-migration-evidence-20261115.md)。本页原授权/FD/发布不变量及 N3/N4 历史窗口不因语言切换改变。
 
 ## 1. 范围
 
@@ -188,20 +190,20 @@
 
 | 项 / 级别 | 复核位置 | 问题与落实的修法 |
 |---|---|---|
-| P2-1 | [浏览页:186](../../../app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java#L186)、[工作台:95](../../../app/src/main/java/com/deepseekharness/app/saf/SafWorkbench.java#L95) | 只读授权误显示导出、读权限丢失误报只读；导出须 valid/readable/writable，READ 拒绝用 PERMISSION_DENIED，写拒绝用只读提示 |
-| P2-2 | [授权簿:415](../../../app/src/main/java/com/deepseekharness/app/saf/SafGrants.java#L415)、[提示:123](../../../app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java#L123) | 迁移未就绪无法验证 epoch；工作台同 LOCK 快照并 STATE_UNAVAILABLE 失败关闭，桥 legacy 保持；提示检查存储而不移除有效系统券，N4 未关闭 |
-| P2-3 | [工作台:278](../../../app/src/main/java/com/deepseekharness/app/saf/SafWorkbench.java#L278)、[受控发布:201](../../../app/src/main/java/com/deepseekharness/app/saf/SafLocalFiles.java#L201) | 旧临时文件与目标 mode；仅清理旧 UUID 普通单链接 part，权限复制改为原/验证 fd 及命名对象身份核验后 fchmod，拒绝替换对象 |
+| P2-1 | [浏览页:186](../../../app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java#L186)、[工作台:325](../../../app/src/main/java/com/deepseekharness/app/saf/SafWorkbench.kt#L325) | 只读授权误显示导出、读权限丢失误报只读；导出须 valid/readable/writable，READ 拒绝用 PERMISSION_DENIED，写拒绝用只读提示 |
+| P2-2 | [授权簿:382](../../../app/src/main/java/com/deepseekharness/app/saf/SafGrants.kt#L382)、[提示:123](../../../app/src/main/java/com/deepseekharness/app/ui/SafWorkbenchUi.java#L123) | 迁移未就绪无法验证 epoch；工作台同 LOCK 快照并 STATE_UNAVAILABLE 失败关闭，桥 legacy 保持；提示检查存储而不移除有效系统券，N4 未关闭 |
+| P2-3 | [工作台:350](../../../app/src/main/java/com/deepseekharness/app/saf/SafWorkbench.kt#L350)、[受控发布:304](../../../app/src/main/java/com/deepseekharness/app/saf/SafLocalFiles.kt#L304) | 旧临时文件与目标 mode；仅清理旧 UUID 普通单链接 part，权限复制改为原/验证 fd 及命名对象身份核验后 fchmod，拒绝替换对象 |
 | P2-4 | [行为反例:234](../../../app/src/test/java/com/deepseekharness/app/saf/SafWorkbenchTest.java#L234) | 中途撤销/超时/取消与真实模型流程缺反例；真实 Provider 首次读钩子、发布前 afterFchmod 钩子、共用 SafTransferJob 均有负控，不重放 |
 | P2-5 | [授权页:135](../../../app/src/main/java/com/deepseekharness/app/ui/SafAccessFragment.java#L135) | 名称退化为只读缓存；后台仍调用 SafGrants.list，保留缺标签 Provider 补查及原查询截止 |
 | P2-6 | [布局:46](../../../app/src/main/res/layout/fragment_saf_browse.xml#L46)、[状态:191](../../../app/src/main/java/com/deepseekharness/app/ui/SafBrowseFragment.java#L191) | 短屏/大字体约束；等权 wrap_content 动作、weight 列表、滚动表单/记录，状态短摘要 + InfoHint + 共用表面/150ms 过渡，48dp 仅最小触控高度；几何验收仍未跑 |
-| P2-7 | [流守卫:184](../../../app/src/main/java/com/deepseekharness/app/saf/SafWorkbench.java#L184) | push 的守卫码被通用 IO_ERROR 遮蔽；保留 HANDLE_REVOKED/TIMEOUT/CANCELLED/PERMISSION_DENIED，维护拒绝仅在 beginWork 映射，槽位 finally 释放 |
+| P2-7 | [流守卫:203](../../../app/src/main/java/com/deepseekharness/app/saf/SafWorkbench.kt#L203) | push 的守卫码被通用 IO_ERROR 遮蔽；保留 HANDLE_REVOKED/TIMEOUT/CANCELLED/PERMISSION_DENIED，维护拒绝仅在 beginWork 映射，槽位 finally 释放 |
 | P2-8 | [桥:3945](../../../app/src/main/java/com/deepseekharness/app/HttpShellService.java#L3945)、[hygiene:33](../../../tools/check-source-hygiene.py#L33) | 16 KiB 与 pin 同步；常量值不变，移除死 import；AST 对比证明 hygiene 仅六条 SHA 不同，全部旧翻译键值保持，累计 33 条新增文案 ×10 语 |
 
 **接管复审另发现并修复的项：**
 
 1. **P1，原工作台:255 的路径 chmod/末级临时名替换。** `d5c309ab` 改为持有受控 verification fd，与原 fd / lstat 命名对象核对 REG、单链接、dev/ino、readlink，权限只用 fchmod；输出 close 先于 rename。新增换软链、换普通文件、fchmod 后换链与 close 失败四条反例。
 2. **P1，原浏览页:151 的长状态直接 setText。** `d5c309ab` 改为显式短摘要、InfoHint 明细、共用状态表面及 UiMotion；同时修复三个 P2：系统授权状态未知独立刷新提示、旋转后只读补目录、在途记录显示“正在传输”。
-3. **P1，`d5c309ab` 发布 helper 在 close/fchmod 后缺末次业务守卫。** `e1b20ab1` 在 close/fchmod 完成后、末次 inode 核验与 rename 之前调用 [PublishGuard:243](../../../app/src/main/java/com/deepseekharness/app/saf/SafLocalFiles.java#L243)，实际回调为 running(epoch/系统位/取消/总截止)；另补四类 afterFchmod 中止反例，保留原码、原目标、临时清理与 fd/槽位归还。
+3. **P1，`d5c309ab` 发布 helper 在 close/fchmod 后缺末次业务守卫。** `e1b20ab1` 在 close/fchmod 完成后、末次 inode 核验与 rename 之前调用 [PublishGuard:342](../../../app/src/main/java/com/deepseekharness/app/saf/SafLocalFiles.kt#L342)，实际回调为 running(epoch/系统位/取消/总截止)；另补四类 afterFchmod 中止反例，保留原码、原目标、临时清理与 fd/槽位归还。
 4. **P2，补读失败覆盖已确认传输终态。** `e1b20ab1` 给终态补读独立代次，旧读回调作废；刷新失败只追加详情，不把已完成的文件显示成传输失败，不重复写入。
 
 **实际执行与失败记录：**

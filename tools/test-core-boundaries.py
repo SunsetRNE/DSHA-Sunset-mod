@@ -9,9 +9,10 @@ from pathlib import Path
 import json
 import re
 import unittest
+from source_layout import SourceLayout, PACKAGE
 
 ROOT = Path(__file__).resolve().parents[1]
-MAIN = ROOT / "app/src/main/java/com/deepseekharness/app"
+LAYOUT = SourceLayout(ROOT)
 SOURCE_SUFFIXES = (".java", ".kt")
 IMMUTABLE_TYPES = {"boolean", "byte", "short", "int", "long", "float", "double", "char",
                    "String", "Pattern"}
@@ -21,16 +22,7 @@ BACKUP_CORE_EDGE = r"\bcom\.deepseekharness\.app\.core\.(?:[A-Z]\w*|\*)"
 
 def source_path(name):
     """按类定位 .java 或 .kt；两种实现同时存在属于边界违规。"""
-    stem = Path(name)
-    if stem.suffix in SOURCE_SUFFIXES:
-        stem = stem.with_suffix("")
-    matches = [MAIN / (str(stem) + suffix) for suffix in SOURCE_SUFFIXES]
-    matches = [path for path in matches if path.is_file()]
-    if not matches:
-        raise AssertionError("SOURCE_MISSING: " + str(name))
-    if len(matches) > 1:
-        raise AssertionError("DUPLICATE_SOURCE_IMPLEMENTATION: " + str(name))
-    return matches[0]
+    return LAYOUT.resolve_class(name)
 
 
 def source(name):
@@ -38,8 +30,11 @@ def source(name):
 
 
 def source_files(package=None):
-    base = MAIN / package if package else MAIN
-    return sorted(path for path in base.rglob("*") if path.suffix in SOURCE_SUFFIXES)
+    return [entry.path for entry in LAYOUT.package_files(package or "")]
+
+
+def logical_name(path):
+    return LAYOUT.classify(path.relative_to(ROOT).as_posix()).legacy_relative
 
 
 def literal_end(text, at):
@@ -413,7 +408,7 @@ class CoreBoundariesTest(unittest.TestCase):
 
     def test_runtime_and_backup_have_no_direct_ui_dependency(self):
         for package in ("runtime", "backup"):
-            sources = [(path.relative_to(ROOT).as_posix(), path.read_text(encoding="utf-8"))
+            sources = [(logical_name(path), path.read_text(encoding="utf-8"))
                        for path in source_files(package)]
             self.assertFalse(layer_violations(sources, UI_LAYER),
                              "runtime/backup 不得直接依赖 ui 层")
@@ -423,7 +418,7 @@ class CoreBoundariesTest(unittest.TestCase):
                               .read_text(encoding="utf-8"))
         self.assertEqual(1, baseline["schema"])
         permitted = {(edge["file"], edge["type"]) for edge in baseline["edges"]}
-        sources = [(path.relative_to(ROOT).as_posix(), path.read_text(encoding="utf-8"))
+        sources = [(logical_name(path), path.read_text(encoding="utf-8"))
                    for path in source_files("backup")]
         actual = set(backup_core_edges(sources))
         self.assertFalse(actual - permitted,
@@ -441,7 +436,7 @@ class CoreBoundariesTest(unittest.TestCase):
                 self.assertNotIn("public final class " + name, text)
             else:
                 self.assertEqual([], kotlin_visibility_problems(text, name), name)
-        sources = [(path.relative_to(ROOT).as_posix(), path.read_text(encoding="utf-8"))
+        sources = [(logical_name(path), path.read_text(encoding="utf-8"))
                    for path in source_files("ui")]
         self.assertFalse(ui_collaborator_references(sources, collaborators),
                          "ui 不得引用 core 的包级 Web 协作者")
@@ -557,7 +552,7 @@ class CoreBoundariesTest(unittest.TestCase):
                              references, str(path))
 
     def test_no_parallel_java_and_kotlin_implementations(self):
-        names = [path.relative_to(MAIN).as_posix() for path in source_files()]
+        names = [LAYOUT.classify(path.relative_to(ROOT).as_posix()).logical_path for path in source_files()]
         self.assertEqual({}, parallel_implementations(names),
                          "同一职责不得同时保留 .java 与 .kt 实现")
 

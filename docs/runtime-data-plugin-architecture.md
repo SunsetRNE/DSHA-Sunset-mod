@@ -66,7 +66,7 @@ guest 中的 `/root` 不是 Android UID0；工具审批模式也不会改变应�
 
 ### 1.2 当前 APK 的 launcher 与旧运行树
 
-[RuntimeLauncher](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeLauncher.java)负责构造当前执行入口。
+[RuntimeLauncher](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeLauncher.kt)负责构造当前执行入口。
 `RuntimeLauncherAssets.prepare` 将当前 APK 的桥接脚本放到独立受管目录，guest 可见挂载点为 `/run/dsha-launcher`。
 这种布局避免为了使用新 launcher 而覆写留存的旧运行树。
 旧运行时回退也必须核对当前 launcher 与数据的读写兼容性，不能只看“旧目录还在”。

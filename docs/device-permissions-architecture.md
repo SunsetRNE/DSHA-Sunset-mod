@@ -268,8 +268,8 @@ HttpShellService的BridgeRun独立持有socket/线程池及随机runId，lease�
 请求接收时捕获当前run、全局revision等scope；停止、换run或策略改变后，旧结果不能满足新请求。
 桥凭据也不是网页来源许可；网页到原生的专用接口仍须核对当前页面/来源和运行身份。
 
-[CapabilityRequest](../app/src/main/java/com/deepseekharness/app/capabilities/CapabilityRequest.java)显式携带请求ID、能力/action、安装身份、bridgeRunId、运行epoch、目标、policyRevision、authorityEpoch和单调时钟截止时间。
-[CapabilityBroker](../app/src/main/java/com/deepseekharness/app/capabilities/CapabilityBroker.java)为Application所属；只有一个原生确认slot，不是无界弹窗队列。
+[CapabilityRequest](../app/src/main/java/com/deepseekharness/app/capabilities/CapabilityRequest.kt)显式携带请求ID、能力/action、安装身份、bridgeRunId、运行epoch、目标、policyRevision、authorityEpoch和单调时钟截止时间。
+[CapabilityBroker](../app/src/main/java/com/deepseekharness/app/capabilities/CapabilityBroker.kt)为Application所属；只有一个原生确认slot，不是无界弹窗队列。
 `current()`检查本域epoch、取消、安装/运行归属与截止；适配器还必须重新检查真实运行、系统能力和目标。
 `authorize()/resolve()`与`claimDispatch()`分开，dispatch permit一次消费；撤销后迟到allow不能重新授权。
 broker锁内不执行平台调用、UI回调或I/O，避免确认和停止彼此阻塞。

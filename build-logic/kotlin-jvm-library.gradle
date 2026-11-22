@@ -1,0 +1,11 @@
+// Kotlin JVM 首模块入口：复用根 buildscript 已固定为 2.2.10 的 KGP classpath。
+// 与 Android built-in Kotlin 分开：此入口只给纯 JVM 模块，绝不应用到 Android 模块。
+if (gradle.ext.kotlinVersion != '2.2.10')
+    throw new GradleException('DSHA_KOTLIN_JVM_REQUIRES_PINNED_2_2_10')
+apply from: rootProject.file('build-logic/jvm-library.gradle')
+apply plugin: 'org.jetbrains.kotlin.jvm'
+ext.dshaBuildConvention = 'kotlin-jvm'
+kotlin {
+    jvmToolchain(17)
+}
+apply from: rootProject.file('build-logic/kotlin-target.gradle')

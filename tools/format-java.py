@@ -12,6 +12,7 @@ import sys
 import tempfile
 import urllib.request
 from git_guard import git_output
+from source_layout import SourceLayout, PACKAGE
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCK_PATH = ROOT / "tools/java-format.lock.json"
@@ -56,10 +57,16 @@ def checked_path(name, root=ROOT, protected=()):
     spelling = relative.as_posix()
     parts = relative.parts
     fixture = spelling.startswith("app/build/java-format/fixtures/")
-    own_app = (
-        len(parts) >= 8 and parts[:2] == ("app", "src")
-        and parts[3:7] == ("java", "com", "deepseekharness", "app")
-    )
+    own_app = False
+    if not (fixture or spelling.startswith('tools/java-format/')):
+        try:
+            layout = SourceLayout(root)
+            entry = layout.classify(spelling)
+            module = next(m for m in layout.modules if m['path'] == entry.module)
+            own_app = entry.logical_path.startswith(PACKAGE + '/') \
+                    and entry.source_set in module['formatSourceSets']
+        except ValueError:
+            pass
     own_tool = spelling.startswith("tools/java-format/")
     forbidden = {"history", "upstream", "vendor", "third_party", "third-party", "generated"}
     if (not (own_app or own_tool or fixture) or forbidden.intersection(parts)

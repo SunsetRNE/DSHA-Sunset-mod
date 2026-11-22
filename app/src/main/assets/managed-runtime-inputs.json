@@ -665,13 +665,13 @@
     "core/MaintenanceCoordinator.java",
     "core/ConfigStore.java",
     "core/HarnessController.java",
-    "core/TerminalSessionOwner.java",
-    "core/TerminalRuntimeProtection.java",
+    "core/TerminalSessionOwner.kt",
+    "core/TerminalRuntimeProtection.kt",
     "TerminalRuntimeService.java",
-    "core/SimpleTerminalBackend.java",
-    "util/TerminalSession.java",
+    "core/SimpleTerminalBackend.kt",
+    "util/TerminalSession.kt",
     "util/TerminalReady.java",
-    "util/TerminalTabs.java",
+    "util/TerminalTabs.kt",
     "DshaApp.java",
     "PtySession.java",
     "util/ColdInstallPlan.java",
@@ -843,7 +843,7 @@
     "util/ExternalInstallPlan.java",
     "util/ExternalStepOutput.java",
     "util/ExternalImportQuota.java",
-    "util/TerminalExitPolicy.java",
+    "util/TerminalExitPolicy.kt",
     "ShizukuShell.java",
     "util/DeviceAuthorization.java",
     "util/DeviceChannelFacts.java",
@@ -896,6 +896,8 @@
     "tools/i18n/web-translations/ar.json",
     "tools/i18n/web-translations/ko.json",
     "tools/i18n/web-translations/la.json",
-    "tools/i18n/web-translations/zh-Hant.json"
+    "tools/i18n/web-translations/zh-Hant.json",
+    "ci/source-layout.json",
+    "tools/source_layout.py"
   ]
 }

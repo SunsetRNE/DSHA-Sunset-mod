@@ -18,6 +18,7 @@ pin 之后不一致即失败。`--receipt` 写出 JSON 回执：工具链、源/
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -37,15 +38,9 @@ sys.path.insert(0, str(TOOLS))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from git_guard import git_output  # noqa: E402
 
-import elf  # noqa: E402
+import artifact as rust_artifact  # noqa: E402
 
-LINK_ARGS = (
-    "-Wl,-z,max-page-size=16384",
-    "-Wl,-z,common-page-size=4096",
-    "-Wl,-z,relro",
-    "-Wl,-z,now",
-    "-Wl,-z,noexecstack",
-)
+LINK_ARGS = rust_artifact.LINK_ARGS
 
 
 class BuildError(RuntimeError):
@@ -198,15 +193,8 @@ def build_once(*, target: str, target_dir: Path, remap_source: Path, ndk: Path |
 
 
 def source_manifest() -> tuple[dict, str, str]:
-    lock = load_json(LOCK)
-    cargo_lock = RUST / "Cargo.lock"
-    vendor = RUST / "vendor"
-    vendor_files = [p.relative_to(vendor).as_posix() for p in vendor.rglob("*") if p.is_file()]
-    vendor_sha = tree_digest(vendor, vendor_files)
-    crate_files = [p.relative_to(RUST).as_posix()
-                   for p in (RUST / "crates").rglob("*") if p.is_file()]
-    crate_sha = tree_digest(RUST, crate_files)
-    return lock, vendor_sha, crate_sha
+    sources = rust_artifact.source_inputs(ROOT)
+    return load_json(LOCK), sources["vendorTreeSha256"], sources["crateSha256"]
 
 
 def scan_artifact(data: bytes, forbidden: list[str]) -> None:
@@ -216,43 +204,15 @@ def scan_artifact(data: bytes, forbidden: list[str]) -> None:
 
 
 def describe_artifact(path: Path, *, target: str, lock: dict, budget: dict) -> dict:
-    data = path.read_bytes()
-    contract = elf.inspect_with_symbols(path)
-    expected = sorted(lock["abi"]["symbols"])
-    if contract["exported_functions"] != expected:
-        raise BuildError("RUST_ABI_SYMBOLS: 导出符号与 ci/rust-toolchain.lock.json 不一致\n实际: %s\n期望: %s"
-                         % (contract["exported_functions"], expected))
-    if target == "android" and contract["machine"] != elf.EM_AARCH64:
-        raise BuildError("RUST_ABI_MACHINE: e_machine=%d，要求 %d"
-                         % (contract["machine"], elf.EM_AARCH64))
-    if target == "host" and contract["machine"] not in (62, elf.EM_AARCH64):
-        raise BuildError("RUST_ABI_MACHINE: 宿主 e_machine=%d 不是 x86_64/aarch64"
-                         % contract["machine"])
-    if not contract["aligned_16k"]:
-        raise BuildError("RUST_ELF_ALIGN: 存在未按 16 KB 对齐的 PT_LOAD")
-    if not contract["relro_mapped"]:
-        raise BuildError("RUST_ELF_RELRO: PT_GNU_RELRO 未落在页映射内")
-    if target == "android":
-        allowed = set(lock["androidNeededAllowed"])
-        unexpected = [item for item in contract["needed"] if item not in allowed]
-        if unexpected:
-            raise BuildError("RUST_ELF_NEEDED: 出现未登记依赖 %s（允许 %s）"
-                             % (unexpected, sorted(allowed)))
+    data = rust_artifact.read_regular(path, limit=budget["rustArtifactBytes"])
+    info = rust_artifact.describe_bytes(data, target=target, lock=lock, budget=budget)
     scan_artifact(data, [("仓库路径", str(ROOT)), ("cargo home", str(Path.home() / ".cargo")),
                          ("rustup home", str(Path.home() / ".rustup")),
                          ("CI 家目录", "/home/runner")])
-    size = len(data)
-    if size > budget["rustArtifactBytes"]:
-        raise BuildError("RUST_BUDGET: 产物 %d B 超过硬上限 %d B"
-                         % (size, budget["rustArtifactBytes"]))
-    if size > budget["rustWarnBytes"]:
+    if info["budget"] == "WARN":
         print("::warning::Rust 产物 %d B 超过警戒线 %d B（硬上限 %d B）"
-              % (size, budget["rustWarnBytes"], budget["rustArtifactBytes"]))
-    return dict(artifactFile=path.name, size=size, sha256=digest(path),
-                elfMachine=contract["machine"], aligned16k=contract["aligned_16k"],
-                relroMapped=contract["relro_mapped"], needed=contract["needed"],
-                exportedSymbols=contract["exported_functions"],
-                budget="WARN" if size > budget["rustWarnBytes"] else "PASS")
+              % (info["size"], budget["rustWarnBytes"], budget["rustArtifactBytes"]))
+    return info
 
 
 def expect_from_lock(target: str, found: dict, info: dict) -> dict:
@@ -296,22 +256,17 @@ def expect_from_lock(target: str, found: dict, info: dict) -> dict:
 
 def receipt(*, found: dict, lock: dict, target: str, ndk: Path | None,
             artifact: dict, reproducible: dict, jobs: int,
-            expectation: dict) -> dict:
-    vendor_sha, crate_sha = "", ""
-    lock_data = load_json(LOCK)
-    vendor_sha, crate_sha = source_manifest()[1:]
-    run_id = os.environ.get("GITHUB_RUN_ID")
-    attempt = os.environ.get("GITHUB_RUN_ATTEMPT")
-    try:
-        commit = git_output(["rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    except Exception:  # 仅回执字段；没有 git 时如实写 null，不伪造绑定
-        commit = None
+            expectation: dict, sources: dict | None = None,
+            commit: str | None = None) -> dict:
+    commit = rust_artifact.current_commit(ROOT) if commit is None else commit
+    sources = rust_artifact.source_inputs(ROOT) if sources is None else sources
+    metadata = rust_artifact.generation_metadata()
     return {
-        "schema": 1,
+        "schema": rust_artifact.RECEIPT_SCHEMA,
         "kind": "dsha-rust-native",
         "commit": commit,
-        "runId": run_id,
-        "runAttempt": attempt,
+        **metadata,
+        "generatedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "target": target,
         "toolchain": {"rustc": found["rustc"], "rustcCommit": found["rustcCommit"],
                       "cargo": found["cargo"], "host": found["host"],
@@ -320,11 +275,7 @@ def receipt(*, found: dict, lock: dict, target: str, ndk: Path | None,
                       "androidApi": lock["androidApi"] if target == "android" else None,
                       "ndk": lock["ndk"] if target == "android" else None,
                       "linker": lock["linker"] if target == "android" else None},
-        "sources": {"cargoLockSha256": digest(RUST / "Cargo.lock"),
-                    "vendorTreeSha256": vendor_sha, "crateSha256": crate_sha,
-                    "buildInputs": [row["path"] for row in lock["buildInputs"]],
-                    "vendorFiles": lock["vendor"]["files"],
-                    "vendorBytes": lock["vendor"]["bytes"]},
+        "sources": sources,
         "build": {"profile": "release", "linkArgs": list(LINK_ARGS),
                   "remapPathPrefixes": True, "offline": True, "locked": True,
                   "jobs": jobs,
@@ -345,7 +296,8 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--check", action="store_true",
                         help="不同源码目录重建两次并逐字节比对（默认串行）")
     parser.add_argument("--out", type=Path, help="把最终 .so 复制到该目录")
-    parser.add_argument("--receipt", type=Path, help="写出构建回执 JSON")
+    parser.add_argument("--receipt", type=Path, help="写出 schema=2 的来源/时间/CI 构建回执")
+    parser.add_argument("--commit", help="可选断言：完整当前 git HEAD（回执始终绑定 HEAD）")
     parser.add_argument("--expect", help="与给定 SHA-256 比对（显式跨 runner 复现门禁）")
     parser.add_argument("--expect-lock", action="store_true",
                         help="与 rust/artifact.lock.json 的 target 条目比对（pending 只告警）")
@@ -362,6 +314,12 @@ def main(argv: list[str]) -> int:
     elif ndk is not None:
         raise BuildError("--ndk 只用于 --android")
 
+    commit = rust_artifact.current_commit(ROOT)
+    if args.commit is not None and args.commit != commit:
+        raise BuildError("RUST_COMMIT_HEAD: --commit 必须等于完整当前 HEAD")
+    sources = rust_artifact.source_inputs(ROOT)
+    rust_artifact.assert_committed_inputs(sources, commit, root=ROOT)
+    rust_artifact.generation_metadata()  # 缺 CI 身份在编译前失败，不产生无来源产物。
     work = RUST / "target/rust-build"
     artifact = build_once(target=target, target_dir=work, remap_source=RUST,
                           ndk=ndk, lock=lock, jobs=args.jobs)
@@ -389,21 +347,27 @@ def main(argv: list[str]) -> int:
     final_sha = digest(artifact)
     if args.expect and final_sha != args.expect:
         raise BuildError("RUST_ARTIFACT_EXPECT: %s != %s" % (final_sha, args.expect))
-    if args.out:
-        args.out.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(artifact, args.out / artifact.name)
     info = describe_artifact(artifact, target=target, lock=lock, budget=budget)
     info["reproducible"] = reproducible["status"]
     expectation = {"status": "NOT_RUN"}
     if args.expect_lock:
         expectation = expect_from_lock(target, found, info)
+    if rust_artifact.current_commit(ROOT) != commit or rust_artifact.source_inputs(ROOT) != sources:
+        raise BuildError("RUST_BUILD_INPUT_CHANGED: 构建期间 HEAD/完整来源 inputs 发生变化")
+    data = receipt(found=found, lock=lock, target=target, ndk=ndk, artifact=info,
+                   reproducible=reproducible, jobs=args.jobs, expectation=expectation,
+                   sources=sources, commit=commit)
+    if target == "android":
+        identity = rust_artifact.expected_identity(commit, data["runId"], data["runAttempt"],
+                                                   data["repository"], root=ROOT)
+        rust_artifact.validate_receipt(data, rust_artifact.read_regular(artifact),
+                                       identity=identity, budget=budget, root=ROOT)
+    # 只有来源、产物和回执都通过后才公开输出；失败不复制一个“看似可注入”的 .so。
+    if args.out:
+        rust_artifact.write_regular(args.out / artifact.name, rust_artifact.read_regular(artifact))
     if args.receipt:
-        args.receipt.parent.mkdir(parents=True, exist_ok=True)
-        data = receipt(found=found, lock=lock, target=target, ndk=ndk, artifact=info,
-                       reproducible=reproducible, jobs=args.jobs,
-                       expectation=expectation)
-        args.receipt.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n",
-                                encoding="utf-8", newline="\n")
+        rust_artifact.write_regular(args.receipt, (json.dumps(data, ensure_ascii=False, indent=2)
+                                                  + "\n").encode("utf-8"))
     print(json.dumps({"status": "PASS", "target": target, "artifact": str(artifact),
                       "size": info["size"], "sha256": info["sha256"],
                       "reproducible": reproducible["status"], "budget": info["budget"],
@@ -415,6 +379,6 @@ def main(argv: list[str]) -> int:
 if __name__ == "__main__":
     try:
         raise SystemExit(main(sys.argv[1:]))
-    except BuildError as error:
+    except (BuildError, rust_artifact.GateError) as error:
         print("FAIL " + str(error), file=sys.stderr)
         raise SystemExit(1)

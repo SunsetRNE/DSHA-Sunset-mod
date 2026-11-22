@@ -16,7 +16,7 @@ checks = {
     'HttpShellService.java': ['setContentIntent(agentNotificationIntent())'],
     'DeviceBridgeService.java': ['setContentIntent(dshaNotificationIntent(false))',
                                  'com.deepseekharness.app.ui.MainActivity.homeIntent(this)'],
-    'UpdateDownloadService.java': ['setContentIntent(open)', 'FLAG_ACTIVITY_CLEAR_TOP'],
+    'UpdateDownloadService.kt': ['setContentIntent(open)', 'FLAG_ACTIVITY_CLEAR_TOP'],
     'backup/DataProtectionService.java': ['setContentIntent(open)', 'if(open==null)',
                                          'MaintenanceUiPorts.fromOwner(getApplicationContext())',
                                          '.dataProtectionPage(nativeJob.busy,maintenance.id)',

@@ -657,5 +657,371 @@
     "yocto-queue": "df5ca4b7cbfa0dd50312171d67f5778d980d61c1819c591136de64f9819ffc7d",
     "yoctocolors": "4ec9236bbd358d708caa1c28a55929b4eb0c1650ee29af888276d65ee7ad401f",
     "zod": "11e1b7a323b4b8060a6f7bf743bd89d8b6609392b87f24b53f2889f1c5440957"
+  },
+  "signedBuiltinFiles": {
+    "dsh-app-integration": [
+      {
+        "path": "activity.js",
+        "sha256": "8c33bfd8dbdf6b6ebc46825071a11d16b2f596cab26dca425e6d1f4bf000181f",
+        "mode": 384,
+        "size": 1392
+      },
+      {
+        "path": "browser-origin-restore.html",
+        "sha256": "ab208364c7d37d7504f5d36b17a319231530ddc16e25c16d922e19978a05d2cc",
+        "mode": 384,
+        "size": 688
+      },
+      {
+        "path": "browser-origin-state.js",
+        "sha256": "69984dd34744160cf092f93b1b67e6bd96b191fd2352b486f7aa0af9ced17878",
+        "mode": 384,
+        "size": 25334
+      },
+      {
+        "path": "client.js",
+        "sha256": "268c48702fc790e249b3a82feee0a096c8fdc5e8380d5552f17f31befe6e4403",
+        "mode": 384,
+        "size": 51458
+      },
+      {
+        "path": "cordis.patch.yml",
+        "sha256": "9ebf20f8521b2bf357dc568b8998d0d505be0dd7c0e941d74941ae9690300f09",
+        "mode": 384,
+        "size": 72
+      },
+      {
+        "path": "index.js",
+        "sha256": "a581b00e9eb92f720e81d19bd14e94b9613e62a806156d7ef88bba8088568cbe",
+        "mode": 384,
+        "size": 3951
+      },
+      {
+        "path": "package.json",
+        "sha256": "9b958725f4029e8b830c39b6dd88b071f5c3ac2477b90ceb4ee038122fc36a00",
+        "mode": 384,
+        "size": 678
+      },
+      {
+        "path": "runtime-plugins.js",
+        "sha256": "ff8c60086c1b3418d34fa53f0e434d81970e8a0a8a2e869279df6cb7d6f99398",
+        "mode": 384,
+        "size": 24275
+      }
+    ],
+    "dsh-auto-review": [
+      {
+        "path": "cordis.patch.yml",
+        "sha256": "21d456d0053b3d52ca8ad4ceef60e4cd5618e8c850ab8fe9e6377dfcdcb3bc2a",
+        "mode": 384,
+        "size": 88
+      },
+      {
+        "path": "lib/index.js",
+        "sha256": "6d1fe2b721dbbbb8b35057e2192a6efa58297718fd7f7d2c34b1dc131219f49e",
+        "mode": 384,
+        "size": 171
+      },
+      {
+        "path": "package.json",
+        "sha256": "b9104b7a2951efc866fde576b1ac9444eb196edaeb168f83560baf39dec59e4a",
+        "mode": 384,
+        "size": 537
+      }
+    ],
+    "dsh-computer-use-android": [
+      {
+        "path": "cordis.patch.yml",
+        "sha256": "b0c36d7d6f7a162addbbfc4d31fcca3c8256140925f6aa99316e62506ee05dff",
+        "mode": 384,
+        "size": 163
+      },
+      {
+        "path": "lib/bridge-port.cjs",
+        "sha256": "be413341075a0c23b34314c9a85ebcc032cc9d3dbd83a9298b3f631733869dd0",
+        "mode": 384,
+        "size": 2402
+      },
+      {
+        "path": "lib/index.js",
+        "sha256": "19edec9bc27d31d8276486bbafb7913fc17cd6bca54e54a58044b32ad216980f",
+        "mode": 384,
+        "size": 3044
+      },
+      {
+        "path": "lib/server.cjs",
+        "sha256": "1772322722a8f3d5b1d3c639031fb0f33633d059115757c5e8f452c57a624496",
+        "mode": 384,
+        "size": 18531
+      },
+      {
+        "path": "lib/task-binding.js",
+        "sha256": "09919e5dd1392ba090738de26091be520929b9491ced7228dd50ae739eabc2cd",
+        "mode": 384,
+        "size": 1078
+      },
+      {
+        "path": "package.json",
+        "sha256": "f4369f96c60730438d289e741f3bcd2caf6163837172bece282e09570cb7921e",
+        "mode": 384,
+        "size": 599
+      }
+    ],
+    "dsh-device-shell-guide": [
+      {
+        "path": "cordis.patch.yml",
+        "sha256": "7210a96bb4e908adcd4b7736c32b8fd30fe65bce6f6deadc7a7b3032ed967c70",
+        "mode": 384,
+        "size": 76
+      },
+      {
+        "path": "lib/bridge-port.cjs",
+        "sha256": "be413341075a0c23b34314c9a85ebcc032cc9d3dbd83a9298b3f631733869dd0",
+        "mode": 384,
+        "size": 2402
+      },
+      {
+        "path": "lib/index.js",
+        "sha256": "08632be1e7701089040c85cfe9e65bb46a5fe22c85a2248dd56dd04ef080bca5",
+        "mode": 384,
+        "size": 13117
+      },
+      {
+        "path": "package.json",
+        "sha256": "a1979b18e6ad630e1712de9181d411cdb4f23777e131c77e6b0bfb3997b5d2df",
+        "mode": 384,
+        "size": 618
+      }
+    ],
+    "dsh-fs-read-hint": [
+      {
+        "path": "cordis.patch.yml",
+        "sha256": "8f0ad04833345b78ed6d0f147ffdf2eb7f8ad5b929c9e368ce41be655662cf8b",
+        "mode": 384,
+        "size": 320
+      },
+      {
+        "path": "lib/index.js",
+        "sha256": "f5415dea4390d6f82bcce8a7767d5847166282d1fd2f45ae17053f5c7934a88a",
+        "mode": 384,
+        "size": 5381
+      },
+      {
+        "path": "package.json",
+        "sha256": "6b0cb9bf961b5f1be64f8c945730da7d17f43dfed8aed4be5496046e2f8c9b65",
+        "mode": 384,
+        "size": 642
+      }
+    ],
+    "dsh-fs-search-scope": [
+      {
+        "path": "cordis.patch.yml",
+        "sha256": "5bbb915585c707013eb0e46178fece308ad109d79d7d3375e8fd8691af5c8d22",
+        "mode": 384,
+        "size": 339
+      },
+      {
+        "path": "lib/index.js",
+        "sha256": "fa6c5c0ab65d83a4afae4c18a535bd0f5b5d9195abb636d99cca867719e26c1d",
+        "mode": 384,
+        "size": 11634
+      },
+      {
+        "path": "package.json",
+        "sha256": "5bd1c7f1895453db35f4f3bce4fe179d9a57a4487c6837bd63cda1f903e32a2b",
+        "mode": 384,
+        "size": 673
+      }
+    ],
+    "dsh-launch-target": [
+      {
+        "path": "cordis.patch.yml",
+        "sha256": "aea5087d383a70a0a6acc6ebfbced9ada0a06e4aea3d17bdd940a66fbc5abec1",
+        "mode": 384,
+        "size": 298
+      },
+      {
+        "path": "lib/bridge-port.cjs",
+        "sha256": "be413341075a0c23b34314c9a85ebcc032cc9d3dbd83a9298b3f631733869dd0",
+        "mode": 384,
+        "size": 2402
+      },
+      {
+        "path": "lib/client.js",
+        "sha256": "2a5b9af685cf9e9d8b56051b9906137c662c0ca7c4a883bf49c5c6276a9755c7",
+        "mode": 384,
+        "size": 11404
+      },
+      {
+        "path": "lib/index.js",
+        "sha256": "fc9145cbad5de78e50f8e13eae94557587b2fb9cb4219d1b6bcf2d5b6b706d81",
+        "mode": 384,
+        "size": 4610
+      },
+      {
+        "path": "package.json",
+        "sha256": "efaa9ff796952d8d6ea6ae400020e6d4e0face55d6089942ec9477db3b0174a4",
+        "mode": 384,
+        "size": 853
+      }
+    ],
+    "dsh-status-overlay": [
+      {
+        "path": "cordis.patch.yml",
+        "sha256": "b5bffe96400a2164f313f8c86b071840387015976796fdce1e3e476f233490bd",
+        "mode": 384,
+        "size": 273
+      },
+      {
+        "path": "lib/bridge-port.cjs",
+        "sha256": "be413341075a0c23b34314c9a85ebcc032cc9d3dbd83a9298b3f631733869dd0",
+        "mode": 384,
+        "size": 2402
+      },
+      {
+        "path": "lib/index.js",
+        "sha256": "f7de73c02273948b52bfd0d5de16852a675de029e04f88783607893efdafe351",
+        "mode": 384,
+        "size": 17644
+      },
+      {
+        "path": "lib/session-adapter.js",
+        "sha256": "cc47cff86cd838360aa249f692434c5b7ee838c178311700cb45809d7c91cf5e",
+        "mode": 384,
+        "size": 12641
+      },
+      {
+        "path": "package.json",
+        "sha256": "85d452eb38380a4fe60e92b800f8ea6409926e351fe264b3f01d9113b796dc15",
+        "mode": 384,
+        "size": 539
+      }
+    ],
+    "dsh-task-notifier": [
+      {
+        "path": "cordis.patch.yml",
+        "sha256": "bdfd53321389b451a91a077aa12c07533a983f0534dccb63ff48979d8f07ee92",
+        "mode": 384,
+        "size": 153
+      },
+      {
+        "path": "lib/bridge-port.cjs",
+        "sha256": "be413341075a0c23b34314c9a85ebcc032cc9d3dbd83a9298b3f631733869dd0",
+        "mode": 384,
+        "size": 2402
+      },
+      {
+        "path": "lib/index.js",
+        "sha256": "b87ecc4daccd6f504fe35d2bb8ee0011c1e7e86cd475902083be5de27b0afc7d",
+        "mode": 384,
+        "size": 24873
+      },
+      {
+        "path": "package.json",
+        "sha256": "2c173ccd4653b6751bc140bcadcdbfc2db7ce0c03f96aa431b82e03219d2eb7b",
+        "mode": 384,
+        "size": 369
+      }
+    ],
+    "dsh-tool-vscreen": [
+      {
+        "path": "cordis.patch.yml",
+        "sha256": "48658efef5374dc8a9b52ae028e4f27b2ab3dd59991402706e356623335a66a2",
+        "mode": 384,
+        "size": 66
+      },
+      {
+        "path": "lib/bridge-port.cjs",
+        "sha256": "be413341075a0c23b34314c9a85ebcc032cc9d3dbd83a9298b3f631733869dd0",
+        "mode": 384,
+        "size": 2402
+      },
+      {
+        "path": "lib/index.js",
+        "sha256": "f829bc458554cb34a523b012322354cea67023ed0d3642ef6700bedcf940e779",
+        "mode": 384,
+        "size": 931
+      },
+      {
+        "path": "lib/server.cjs",
+        "sha256": "89a55f296aae54f766950ec6c885b92c24969233cf81b4fffd91288977ab16c1",
+        "mode": 384,
+        "size": 26737
+      },
+      {
+        "path": "package.json",
+        "sha256": "e68384da7884ea0f01d229f4574dc31686f07f6fac76c17b41f43e0990395a87",
+        "mode": 384,
+        "size": 430
+      }
+    ],
+    "dsh-web-mobile": [
+      {
+        "path": "LICENSE",
+        "sha256": "0d50650e8ee0e00996facf70e6d246dddb836e27c4ce7027cdcf800ac5758f4b",
+        "mode": 384,
+        "size": 1067
+      },
+      {
+        "path": "assets/icon.png",
+        "sha256": "a990114c169d3eca13f2755adcb3cfd61d5ec1c8e205154dab4c74b4f013bbb5",
+        "mode": 384,
+        "size": 100651
+      },
+      {
+        "path": "cordis.patch.yml",
+        "sha256": "90e1e7a4ef3bfb11198cb1d686d4c5deb26bf3683915a78c5b4b050879393bb6",
+        "mode": 384,
+        "size": 277
+      },
+      {
+        "path": "lib/client.js",
+        "sha256": "3ddfe212c83e79f3c4eca75c670af291ee7ac9c8cc0a6d6d48e43d334e946cf8",
+        "mode": 384,
+        "size": 776505
+      },
+      {
+        "path": "lib/compress.js",
+        "sha256": "a7f4f7f89cc99490978ed4cbfd16ab86f71e1f7fbf2241c00c2811e7cde9aeab",
+        "mode": 384,
+        "size": 12360
+      },
+      {
+        "path": "lib/delete-session.js",
+        "sha256": "cb119ff9703716fe1111ee5a2f211d14886ab1d2310601c5787efc8d91219d51",
+        "mode": 384,
+        "size": 10496
+      },
+      {
+        "path": "lib/file-transfer.js",
+        "sha256": "68db5d12af667f8f8ea2dd0758ced02fe72c259bd0125b7bfa18ae2749ea71af",
+        "mode": 384,
+        "size": 23448
+      },
+      {
+        "path": "lib/index.js",
+        "sha256": "dcddbce73ec1052b7c02e961bac1389d227f72f1ef49f62a2f16f692e8f930ab",
+        "mode": 384,
+        "size": 7431
+      },
+      {
+        "path": "locale/en.json",
+        "sha256": "ce9e7d3c5f61150e438e48f9daafd47ed4822a4d9e46b8ebadac4ffc104195fa",
+        "mode": 384,
+        "size": 243
+      },
+      {
+        "path": "locale/zh.json",
+        "sha256": "ead73b59b657065a204740b3983a8aa67ec18c12f5e3f5e0ba5439713e1f4fe4",
+        "mode": 384,
+        "size": 224
+      },
+      {
+        "path": "package.json",
+        "sha256": "3819185199cf92627ddf864f57a874819a442df223ecf57074653b1686efd059",
+        "mode": 384,
+        "size": 4166
+      }
+    ]
   }
 }

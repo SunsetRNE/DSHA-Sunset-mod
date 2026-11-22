@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "baseCommit": "f9e8d867b695f8f862288fae00f2c0a89455a87f",
+  "descriptorOwner": "main-serial-integration",
+  "oldRuntimeId": "829ed4b115586efebaaedb50b135c0510019d6b9236351fc21082a38e424230f",
+  "launcherMembersBefore": 512,
+  "launcherMembersAfterCurrentManifest": 512,
+  "launcherAdded": [],
+  "launcherRemoved": [],
+  "launcherChanged": {},
+  "pendingGeneratorSources": [
+    "tools/source_layout.py",
+    "ci/source-layout.json"
+  ],
+  "recipeMembersBefore": 91,
+  "recipeMembersAfter": 93,
+  "recipeAdded": {
+    "tools/source_layout.py": "585abbc8a6e5fd7f4632ea2a2782c5bf0e5d50c12e16142ec4b42531a76c4113",
+    "ci/source-layout.json": "4a3ddda20d7e7a3b5064806736b8400a2573ac82eda710e99084a65cfb4590ac"
+  },
+  "recipeRemoved": [],
+  "recipeChanged": {
+    "tools/build-dsh-runtime.py": {
+      "before": "cd0e082b8e16fff56e043e6774f4ffd714a2a65719993a254be86cc9f357eb87",
+      "after": "2f9188436818edcdffd45cf84f7ba2cf29659a8c9772ac092a95866e6e7d4e2a"
+    },
+    "tools/runtime_input_contract.py": {
+      "before": "101ff51d6d02a4847356b82fd546e1eb32ffa567d5d11a918de614950a02fc2f",
+      "after": "8176ad1fe3815079876fb7147e4dbfb7f72967bf99591aa19f968327e42a1fc0"
+    }
+  },
+  "requiresRebuildAndDescriptorRegeneration": true,
+  "changesBaseVersionOrDataWrite": false,
+  "note": "当前旧manifest下512个启动输入逻辑键/路径/字节等价不表示最终runtimeId零影响。main须登记新增布局生成输入，按93项真实配方重建/验证固定归档、更新来源证明，最后在串行集成树重算descriptor；本文件不是descriptor或provenance替代品。"
+}

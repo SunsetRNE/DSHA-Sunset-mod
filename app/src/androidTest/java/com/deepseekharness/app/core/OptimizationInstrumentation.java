@@ -70,6 +70,7 @@ public final class OptimizationInstrumentation extends Instrumentation {
     Context isolated = null;
     File part = null, apk = null;
     Field singleton = null;
+    Object applicationOwner = null;
     boolean filesOwned = false;
     try {
       Context base = getTargetContext().getApplicationContext();
@@ -148,7 +149,10 @@ public final class OptimizationInstrumentation extends Instrumentation {
               public void connect() {}
             };
           };
-      singleton = UpdateEngine.class.getDeclaredField("instance");
+      Field owner = com.deepseekharness.app.DshaApp.class.getDeclaredField("updateOwner");
+      owner.setAccessible(true);
+      applicationOwner = owner.get(com.deepseekharness.app.DshaApp.from(base));
+      singleton = com.deepseekharness.app.util.ApplicationOwner.class.getDeclaredField("value");
       singleton.setAccessible(true);
       previous = UpdateEngine.get(base);
       require(!previous.state().getValue().busy, "用户更新正在运行，不能覆盖测试");
@@ -169,14 +173,10 @@ public final class OptimizationInstrumentation extends Instrumentation {
       Field verifiedApk = UpdateEngine.class.getDeclaredField("verifiedApk");
       verifiedApk.setAccessible(true);
       verifiedApk.set(active, null);
-      // 固定清单的下载夹具不接收主界面启动时的真实清单检查。
-      Field startupChecked = UpdateEngine.class.getDeclaredField("startupChecked");
-      startupChecked.setAccessible(true);
-      startupChecked.setBoolean(active, true);
       Method save = UpdateEngine.class.getDeclaredMethod("save", String.class, String.class);
       save.setAccessible(true);
       save.invoke(active, "available", "独立下载验收");
-      singleton.set(null, active);
+      singleton.set(applicationOwner, active);
       part = new File(base.getFilesDir(), "updates/" + hash + ".part");
       apk = new File(base.getFilesDir(), "updates/" + hash + ".apk");
       require(!part.exists() && !apk.exists(), "存在同名测试文件，需先确认来源");
@@ -193,7 +193,7 @@ public final class OptimizationInstrumentation extends Instrumentation {
         require(rejected, "未拒绝 " + bad);
       }
       phase("包名、版本和签名检查通过；开始真实前台下载服务");
-      shell("am start -W -n com.dsh.client/com.deepseekharness.app.ui.MainActivity");
+      shell("am start -W -n " + base.getPackageName() + "/com.deepseekharness.app.ui.MainActivity");
       page =
           startActivitySync(
               new Intent(base, UpdateActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -215,14 +215,13 @@ public final class OptimizationInstrumentation extends Instrumentation {
       long savedBytes = part.length();
       phase("关闭页面继续下载、取消和服务退出通过；重建任务恢复进度");
       runOnMainSync(() -> active = new UpdateEngine(data, source));
-      startupChecked.setBoolean(active, true);
-      singleton.set(null, active);
+      singleton.set(applicationOwner, active);
       require(
           UpdatePolicy.PREVIEW.equals(active.channel())
               && UpdatePolicy.PREVIEW.equals(active.state().getValue().sourceChannel),
           "重建后夹具查询通道丢失");
       require(active.state().getValue().downloaded == savedBytes, "重建后进度丢失");
-      shell("am start -W -n com.dsh.client/com.deepseekharness.app.ui.MainActivity");
+      shell("am start -W -n " + base.getPackageName() + "/com.deepseekharness.app.ui.MainActivity");
       page =
           startActivitySync(
               new Intent(base, UpdateActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -261,7 +260,7 @@ public final class OptimizationInstrumentation extends Instrumentation {
       }
       if (singleton != null)
         try {
-          singleton.set(null, previous);
+          singleton.set(applicationOwner, previous);
         } catch (Exception ignored) {
         }
       if (filesOwned) {

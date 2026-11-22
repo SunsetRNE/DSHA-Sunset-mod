@@ -315,7 +315,7 @@ Test names in the table omit shared prefixes where applicable. They live in [vsc
 [native-controls]: ../../app/src/main/java/com/deepseekharness/app/vscreen/VirtualScreenNativeControls.java
 [native-lease]: ../../app/src/main/java/com/deepseekharness/app/screen/NativeScreenControlLease.java
 [bridge-request]: ../../app/src/main/java/com/deepseekharness/app/util/VscreenBridgeRequest.java
-[broker]: ../../app/src/main/java/com/deepseekharness/app/capabilities/CapabilityBroker.java
+[broker]: ../../app/src/main/java/com/deepseekharness/app/capabilities/CapabilityBroker.kt
 [screen-policy]: ../../app/src/main/java/com/deepseekharness/app/util/ScreenConfirmationPolicy.java
 [screen-grant]: ../../app/src/main/java/com/deepseekharness/app/util/ScreenSessionGrant.java
 [exit-policy]: ../../app/src/main/java/com/deepseekharness/app/util/VirtualScreenExitProofPolicy.java

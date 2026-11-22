@@ -13,7 +13,7 @@ name: DSH-A-Su production release
 #         ├─► host-regression ──────────┤
 #         └─► inputs ─┬─► unit ─────────┤
 #                     ├─► lint ─────────┤
-#                     ├─► rust-native（arm64 Rust artifact；R0 只作证据，不接 build-unsigned）
+#                     ├─► rust-native（同 run arm64 artifact；prebuilt 为生产默认并经核验后入包）
 #                     ├─► rust-differential（主机 .so + JDK17 JVM 探针，依赖 rust-native）
 #                     ├─► build-unsigned（无 Secrets，可读写共享缓存）
 #                     └─► test-packages-unsigned（无 Secrets，可读写共享缓存）
@@ -40,6 +40,12 @@ on:
         type: choice
         options: [debug+dev, debug, none]
         default: debug+dev
+      rust_native_mode:
+        description: 'prebuilt ships the same-run arm64 native artifact; default for production; off keeps the Rust library out of the APK'
+        required: false
+        type: choice
+        options: ["off", prebuilt]
+        default: "prebuilt"
       dry_run:
         description: Build and verify everything (including test packages) without creating the tag or Release
         required: false
@@ -65,6 +71,7 @@ jobs:
     env:
       RELEASE_TAG: ${{ inputs.release_tag }}
       EXPECTED_SHA: ${{ inputs.expected_sha }}
+      RUST_NATIVE_MODE: ${{ inputs.rust_native_mode }}
     outputs:
       apk_name: ${{ steps.bind.outputs.apk_name }}
     steps:
@@ -79,6 +86,12 @@ jobs:
           import importlib.util, json, os, re
           from datetime import datetime
           expected = os.environ['EXPECTED_SHA']
+          rust_mode = os.environ['RUST_NATIVE_MODE']
+          if rust_mode not in ('off', 'prebuilt'):
+              raise SystemExit('RUST_NATIVE_MODE')
+          # prebuilt 允许正式发布：同 run 产物绑定由 build-unsigned 下载 needs.rust-native
+          # 的 artifact、check-rust-native-apk 的 commit/runId/runAttempt/repository 回执核对
+          # 以及 sign-verify 的逐成员重核保证，bind 不再强制 dry-run 或测试包。
           if expected != os.environ['GITHUB_SHA'] or not re.fullmatch(r'[a-f0-9]{40}', expected):
               raise SystemExit('RELEASE_COMMIT_MISMATCH')
           tag = os.environ['RELEASE_TAG']
@@ -208,7 +221,7 @@ jobs:
 
   rust-native:
     name: Rust arm64 native artifact and byte reproduction (no secrets)
-    # R0 只产出可核验 artifact 与 receipt，不接 build-unsigned；R1 起由发布链显式消费。
+    # 独立生产者无 Secrets；off 保留证据，prebuilt 消费同 run 来源与字节。
     needs: bind
     uses: ./.github/workflows/_node-rust.yml
     with:
@@ -227,11 +240,12 @@ jobs:
 
   build-unsigned:
     name: Build unsigned DSH-A-Su (no secrets)
-    # 只依赖 bind + inputs，与 unit / lint / 各门禁并行；本节点没有任何签名 Secrets，
-    # 因此可以读写共享 Gradle 缓存。正式私钥只出现在 sign-verify。
-    needs: [bind, inputs]
+    # 编译消费同 run 已核验 Rust 产物，无签名 Secrets，可写共享缓存。
+    needs: [bind, inputs, rust-native]
     runs-on: ubuntu-24.04
     timeout-minutes: 90
+    env:
+      RUST_NATIVE_MODE: ${{ inputs.rust_native_mode }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -246,10 +260,21 @@ jobs:
       - uses: ./.github/actions/restore-handoff
         with:
           artifact: ${{ needs.inputs.outputs.artifact }}
+      - name: Download same-run Rust native artifact
+        if: inputs.rust_native_mode == 'prebuilt'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ needs.rust-native.outputs.artifact }}
+          path: out/rust-native
       - name: Build unsigned production APK
         run: |
+          set -eu
           chmod +x gradlew
-          ./gradlew :app:assembleStandardRelease -Pdsha.identity=mod -Pdsha.unsignedPackage=true --no-daemon --max-workers=2
+          rust_args=("-Pdsha.rust.mode=$RUST_NATIVE_MODE")
+          if [ "$RUST_NATIVE_MODE" = prebuilt ]; then
+            rust_args+=("-Pdsha.rust.artifactDir=$PWD/out/rust-native")
+          fi
+          ./gradlew :app:assembleStandardRelease -Pdsha.identity=mod -Pdsha.unsignedPackage=true "${rust_args[@]}" --no-daemon --max-workers=2
       # 未签名阶段先核验清单、确实未签名和受管资产：签名只允许新增 META-INF/，
       # sign-verify 会逐成员比对载荷，签名不会掩盖资产改名 / 摘要回归。
       - name: Verify unsigned production APK manifest and managed assets
@@ -264,6 +289,15 @@ jobs:
           cp app/build/outputs/apk/standard/release/output-metadata.json out/unsigned-handoff/output-metadata.json
           python3 tools/sign-release-apks.py --check-only --apk "$apk" --identity mod --metadata out/unsigned-handoff/output-metadata.json --receipt out/unsigned-handoff/unsigned-apk.json
           python3 tools/verify-apk-managed-assets.py "$apk" > out/unsigned-handoff/apk-managed-assets.txt
+          rust_args=(--mode "$RUST_NATIVE_MODE" --commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID"
+            --run-attempt "$GITHUB_RUN_ATTEMPT" --repository "$GITHUB_REPOSITORY")
+
+          if [ "$RUST_NATIVE_MODE" = prebuilt ]; then
+            rust_args+=(--receipt out/rust-native/rust-receipt.json)
+            cp out/rust-native/rust-receipt.json out/unsigned-handoff/rust-receipt.json
+          fi
+          python3 tools/check-rust-native-apk.py --apk "$apk" "${rust_args[@]}" \
+            --output out/unsigned-handoff/rust-apk-unsigned.json
       - name: Bind unsigned handoff to this run and commit
         run: |
           python3 - <<'PYCODE'
@@ -290,6 +324,10 @@ jobs:
               'apkSha256': hashlib.sha256(apk.read_bytes()).hexdigest(),
               'metadataSha256': hashlib.sha256(metadata.read_bytes()).hexdigest(),
               'managedAssetsSha256': hashlib.sha256(managed.read_bytes()).hexdigest(),
+              'rustNativeMode': os.environ['RUST_NATIVE_MODE'],
+              'rustApkReportSha256': hashlib.sha256((handoff / 'rust-apk-unsigned.json').read_bytes()).hexdigest(),
+              'rustReceiptSha256': hashlib.sha256((handoff / 'rust-receipt.json').read_bytes()).hexdigest()
+                  if os.environ['RUST_NATIVE_MODE'] == 'prebuilt' else None,
               'packageName': receipt['packageName'],
               'versionCode': receipt['versionCode'],
               'versionName': receipt['versionName'],
@@ -312,13 +350,14 @@ jobs:
   sign-verify:
     name: Sign and verify DSH-A-Su release
     # 持正式签名 Secrets 的节点：不读也不写共享缓存，也不运行 Gradle（只用 build-tools + JDK）。
-    needs: [bind, contracts, java-format, kotlin-format, host-regression, inputs, unit, lint, build-unsigned]
+    needs: [bind, contracts, java-format, kotlin-format, host-regression, inputs, unit, lint, rust-native, rust-differential, build-unsigned]
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
       EXPECTED_SHA: ${{ inputs.expected_sha }}
       APK_NAME: ${{ needs.bind.outputs.apk_name }}
       ASSET_SHA: ${{ needs.inputs.outputs.sha256 }}
+      RUST_NATIVE_MODE: ${{ inputs.rust_native_mode }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -369,8 +408,31 @@ jobs:
           if receipt.get('managedAssetsSha256') != hashlib.sha256(
                   Path('unsigned/apk-managed-assets.txt').read_bytes()).hexdigest():
               raise SystemExit('UNSIGNED_HANDOFF_ASSETS_MISMATCH')
+          if receipt.get('rustNativeMode') != os.environ['RUST_NATIVE_MODE']:
+              raise SystemExit('UNSIGNED_HANDOFF_RUST_MODE')
+          if receipt.get('rustApkReportSha256') != hashlib.sha256(
+                  Path('unsigned/rust-apk-unsigned.json').read_bytes()).hexdigest():
+              raise SystemExit('UNSIGNED_HANDOFF_RUST_REPORT')
+          if os.environ['RUST_NATIVE_MODE'] == 'prebuilt' and receipt.get('rustReceiptSha256') != hashlib.sha256(
+                  Path('unsigned/rust-receipt.json').read_bytes()).hexdigest():
+              raise SystemExit('UNSIGNED_HANDOFF_RUST_RECEIPT')
           print(json.dumps(receipt, ensure_ascii=False, indent=2))
           PYCODE
+      - name: Re-verify unsigned Rust member before signing
+        run: |
+          set -eu
+          shopt -s nullglob
+          apks=(unsigned/*-unsigned.apk)
+          test "${#apks[@]}" -eq 1
+
+          rust_args=(--mode "$RUST_NATIVE_MODE" --commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID"
+            --run-attempt "$GITHUB_RUN_ATTEMPT" --repository "$GITHUB_REPOSITORY")
+
+          if [ "$RUST_NATIVE_MODE" = prebuilt ]; then
+            rust_args+=(--receipt unsigned/rust-receipt.json)
+          fi
+          python3 tools/check-rust-native-apk.py --apk "${apks[0]}" "${rust_args[@]}" \
+            --output out/rust-apk-presign.json
 
       - name: Prepare Mod release signing key from secrets
         env:
@@ -406,6 +468,16 @@ jobs:
           # 未签名阶段写出的受管资产回执随证据一起发布，便于离线复核。
           cp unsigned/apk-managed-assets.txt out/apk-managed-assets.txt
           cat out/apk-signing.json
+          rust_args=(--mode "$RUST_NATIVE_MODE" --commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID"
+            --run-attempt "$GITHUB_RUN_ATTEMPT" --repository "$GITHUB_REPOSITORY")
+
+          if [ "$RUST_NATIVE_MODE" = prebuilt ]; then
+            rust_args+=(--receipt unsigned/rust-receipt.json)
+            cp unsigned/rust-receipt.json out/rust-receipt.json
+          fi
+          python3 tools/check-rust-native-apk.py --apk "out/$APK_NAME" "${rust_args[@]}" \
+            --output out/rust-apk-signed.json
+          cp unsigned/rust-apk-unsigned.json out/rust-apk-unsigned.json
 
       - name: Package commit-bound build evidence
         run: |
@@ -442,6 +514,10 @@ jobs:
               'signingSchemes': identity['schemes'],
               'assetBundleSha256': os.environ['ASSET_SHA'],
               'unitTests': json.load(open('out/full-unit-tests.json', encoding='utf-8')),
+              'rustNativeMode': os.environ['RUST_NATIVE_MODE'],
+              'rustApkUnsigned': json.load(open('out/rust-apk-unsigned.json', encoding='utf-8')),
+              'rustApkSigned': json.load(open('out/rust-apk-signed.json', encoding='utf-8')),
+              'rustAndroidLoad': 'NOT_RUN',
               'note': 'Production DSH-A-Su package. Verify SHA-256 and certificate before installing.',
           }
           # publish 不 checkout：合并共存测试包的工具随证据一起下发，摘要写进已核对的 build-info。
@@ -452,6 +528,9 @@ jobs:
           # 证据包不再重复内嵌 APK（298 MB -> 约 13 MB）：APK 是独立 Release 资产，
           # SHA256SUMS 与 build-info.json 的 apkSha256 共同绑定；单测 / Lint / 签名回执留在包内。
           files = [Path('out') / name for name in ['build-info.json', 'full-unit-tests.json', 'apk-signature.txt', 'apk-badging.txt', 'apk-signing.json', 'apk-managed-assets.txt']]
+          files += [Path('out') / name for name in ('rust-apk-unsigned.json', 'rust-apk-presign.json', 'rust-apk-signed.json')]
+          if os.environ['RUST_NATIVE_MODE'] == 'prebuilt':
+              files.append(Path('out/rust-receipt.json'))
           files += sorted(path for path in Path('app/build/test-results/testStandardDebugUnitTest').rglob('TEST-*.xml'))
           lint = Path('app/build/reports/lint-results-standardRelease.xml')
           if lint.is_file():
@@ -514,8 +593,8 @@ jobs:
 
   test-packages-unsigned:
     name: Build unsigned co-installable test packages
-    # 无 Secrets 的未签名编译：只依赖 bind + inputs，与 unit / lint 并行，可读写 Gradle 共享缓存。
-    needs: [bind, inputs]
+    # 无 Secrets 编译，显式消费同 run Rust 候选，可读写共享缓存。
+    needs: [bind, inputs, rust-native]
     # none 时整个 job 跳过（skipped），publish 仍可发布正式包。
     if: ${{ inputs.test_packages != 'none' }}
     uses: ./.github/workflows/_node-test-packages.yml
@@ -536,11 +615,13 @@ jobs:
       apk_name_prefix: dsha-a-su
       retention_days: 1
       unsigned_only: true
+      rust_native_mode: ${{ inputs.rust_native_mode }}
+      rust_artifact: ${{ inputs.rust_native_mode == 'prebuilt' && needs.rust-native.outputs.artifact || '' }}
 
   test-packages:
     name: Sign and verify co-installable test packages
     # 签名仍在全部门禁通过之后；只下载未签名产物，不再运行 Gradle。
-    needs: [bind, contracts, java-format, kotlin-format, host-regression, inputs, unit, lint, test-packages-unsigned]
+    needs: [bind, contracts, java-format, kotlin-format, host-regression, inputs, unit, lint, rust-native, rust-differential, test-packages-unsigned]
     if: ${{ inputs.test_packages != 'none' }}
     uses: ./.github/workflows/_node-test-packages.yml
     with:
@@ -561,6 +642,8 @@ jobs:
       apk_name_prefix: dsha-a-su
       retention_days: 1
       unsigned_artifact_prefix: release-test-unsigned
+      rust_native_mode: ${{ inputs.rust_native_mode }}
+      rust_artifact: ${{ inputs.rust_native_mode == 'prebuilt' && needs.rust-native.outputs.artifact || '' }}
     secrets:
       SUNSET_TEST_KEYSTORE_B64: ${{ secrets.SUNSET_TEST_KEYSTORE_B64 }}
       SUNSET_TEST_STORE_PASSWORD: ${{ secrets.SUNSET_TEST_STORE_PASSWORD }}
@@ -590,12 +673,21 @@ jobs:
         with:
           name: release-bundle
           path: out
-      - name: Download co-installable test packages
-        if: ${{ inputs.test_packages != 'none' }}
+      # download-artifact 在只有一个 artifact 命中时直接解压到 path（不建 artifact 名子目录），
+      # `test_packages=debug` 这类单变体请求会因此破坏 merge 脚本的
+      # `<test-packages>/<artifact_prefix>-evidence-<variant>/` 布局；按变体显式下载。
+      - name: Download debug co-installable test package evidence
+        if: ${{ inputs.test_packages == 'debug' || inputs.test_packages == 'debug+dev' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          pattern: release-test-package-evidence-*
-          path: out/test-packages
+          name: release-test-package-evidence-debug
+          path: out/test-packages/release-test-package-evidence-debug
+      - name: Download dev co-installable test package evidence
+        if: ${{ inputs.test_packages == 'dev' || inputs.test_packages == 'debug+dev' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-test-package-evidence-dev
+          path: out/test-packages/release-test-package-evidence-dev
       - name: Verify bundle checksums and commit binding
         working-directory: out
         run: |
@@ -685,12 +777,21 @@ jobs:
         with:
           name: release-bundle
           path: out
-      - name: Download co-installable test packages
-        if: ${{ inputs.test_packages != 'none' }}
+      # download-artifact 在只有一个 artifact 命中时直接解压到 path（不建 artifact 名子目录），
+      # `test_packages=debug` 这类单变体请求会因此破坏 merge 脚本的
+      # `<test-packages>/<artifact_prefix>-evidence-<variant>/` 布局；按变体显式下载。
+      - name: Download debug co-installable test package evidence
+        if: ${{ inputs.test_packages == 'debug' || inputs.test_packages == 'debug+dev' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          pattern: release-test-package-evidence-*
-          path: out/test-packages
+          name: release-test-package-evidence-debug
+          path: out/test-packages/release-test-package-evidence-debug
+      - name: Download dev co-installable test package evidence
+        if: ${{ inputs.test_packages == 'dev' || inputs.test_packages == 'debug+dev' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-test-package-evidence-dev
+          path: out/test-packages/release-test-package-evidence-dev
       - name: Verify bundle checksums and commit binding
         working-directory: out
         run: |

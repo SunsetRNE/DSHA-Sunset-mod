@@ -5,8 +5,8 @@ name: "Node: Rust toolchain and native artifact"
 #   repro        有网：cargo vendor --locked 重生成比对 + 不同目录字节复现 + 依赖白名单
 #   native       安装 NDK 26.3：交叉编译 arm64 .so，本 run 内两次构建字节比对 + ELF/16K/体积/receipt
 #   differential 主机 .so + JDK17 JVM 探针（-Xcheck:jni；R1/R2/R3 真实对拍 digest、PlanView、gzip archive）
-# 全部模式只读源码、没有 Secrets、不写仓库；R3 的 .so 仍只作为 artifact，不接 build-unsigned
-# （APK 内成员门禁与生产接线属 A3 slice4，见方案 §2.5）。
+# 全部模式只读源码、没有 Secrets、不写仓库；native 产物由显式 prebuilt 候选消费，
+# 正式默认 off。不同目录的两次构建仅为本 run 复现，不替代三个不同 runner 的 pin 证据。
 on:
   workflow_call:
     inputs:
@@ -62,6 +62,8 @@ jobs:
           python3 tools/check-rust-vendor.py
           python3 tools/check-rust-boundaries.py
           python3 tools/check-rust-native-apk.py
+          python3 tools/rust/test_apk_injection.py
+          python3 tools/rust/test_android_candidate.py
       - name: Rust source checks (format, clippy, unit tests, ABI boundaries)
         if: inputs.mode == 'check'
         run: |
@@ -94,6 +96,11 @@ jobs:
           python3 tools/rust/build.py --android --ndk "$ANDROID_HOME/ndk/$ndk" --check --expect-lock \
             --out out/rust-native --receipt out/rust-native/rust-receipt.json
           python3 tools/check-rust-boundaries.py --artifact out/rust-native/libdsha_rs.so
+          # 生产者也执行消费端契约；失败的产物不上传到成功交接路径。
+          python3 tools/rust/artifact.py stage --mode prebuilt --artifact-dir out/rust-native \
+            --commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --repository "$GITHUB_REPOSITORY" --out out/rust-native-verified/jni \
+            --assets-out out/rust-native-verified/assets
       - uses: ./.github/actions/setup-toolchain
         if: inputs.mode == 'differential'
         with:
@@ -107,7 +114,7 @@ jobs:
           python3 tools/rust/host-jvm-differential.py \
             --lib out/rust-host/libdsha_rs.so --report out/rust-differential.json
       - name: Upload native artifact and receipt
-        if: always() && inputs.mode == 'native'
+        if: inputs.mode == 'native'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ inputs.artifact }}

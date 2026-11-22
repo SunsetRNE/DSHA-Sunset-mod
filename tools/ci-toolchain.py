@@ -16,6 +16,20 @@ def one(pattern, content, label):
     return values[0]
 
 
+def java_version(root, app):
+    # 配置已整体迁入约定；先验证 app 的实际接线，再读取唯一编译目标，不能复制回 app 迎合旧正则。
+    convention = one(r"(?m)^apply\s+from:\s*rootProject\.file\(['\"](build-logic/android\.gradle)['\"]\)\s*$",
+                     app, 'android convention')
+    if re.search(r'(?m)^\s*(?:sourceCompatibility|targetCompatibility)\b', app):
+        raise ValueError('CI_TOOLCHAIN_DUPLICATE_JAVA_OWNER')
+    shared = (root / convention).read_text(encoding='utf-8')
+    source = one(r'(?m)^\s*sourceCompatibility\s+JavaVersion\.VERSION_(\d+)\s*$', shared, 'java')
+    target = one(r'(?m)^\s*targetCompatibility\s+JavaVersion\.VERSION_(\d+)\s*$', shared, 'java target')
+    if source != target:
+        raise ValueError('CI_TOOLCHAIN_JAVA_TARGET')
+    return source
+
+
 def read(root=ROOT):
     lock = json.loads((root / 'ci/toolchain.lock.json').read_text(encoding='utf-8'))
     if lock.get('schema') != 1 or set(lock) != {'schema', *FIELDS}:
@@ -28,7 +42,7 @@ def read(root=ROOT):
     wrapper = (root / 'gradle/wrapper/gradle-wrapper.properties').read_text(encoding='utf-8')
     platform = one(r'version\s*=*\s*release\(\s*(\d+)\s*\)', app, 'compileSdk')
     expected = {
-        'java': one(r'sourceCompatibility\s+JavaVersion.VERSION_(\d+)', app, 'java'),
+        'java': java_version(root, app),
         'gradle': one(r'distributionUrl=[^\n]+/gradle-([0-9.]+)-bin\.zip', wrapper, 'gradle'),
         'agp': one(r"id\s+'com.android.application'\s+version\s+'([0-9.]+)'", top, 'agp'),
         'ndk': one(r"ndkVersion\s+['\"]([0-9.]+)['\"]", app, 'ndk'),

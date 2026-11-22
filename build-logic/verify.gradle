@@ -1,0 +1,147 @@
+// 真实 Gradle 配置审计；不编译、不打包、不准备资产。由主会话串行 dsha-gradle 执行。
+// 本任务检查应用了约定的实际模块与 Test 对象，静态文本门禁另见 tools/test-build-conventions.py。
+tasks.register('verifyDshaBuildConventions') {
+    group = 'verification'
+    description = '核验实际模块的 DSHA 编译和测试约定（默认单 fork）。'
+    doLast {
+        // 真实源码根 / JavaCompile 与 KotlinCompile 输入核验，不运行编译或资产任务。
+        rootProject.ext.dshaAuditSourceInputs(false)
+        if (gradle.ext.kotlinVersion != '2.2.10')
+            throw new GradleException('DSHA_KOTLIN_VERSION_DRIFT')
+        def sourceOnly = providers.gradleProperty('dsha.sourceOnlyTests').orElse('false').get()
+        def frameworkDirectory = System.getenv('DSHA_ROBOLECTRIC_DEPENDENCY_DIR')
+        def rustLibrary = providers.gradleProperty('dsha.rust.hostLib').orNull
+        def rustRequired = providers.gradleProperty('dsha.rust.required').orElse('false').get()
+        def layout = new groovy.json.JsonSlurper().parse(rootProject.file('ci/source-layout.json'))
+        if (layout.schema != 1 || !(layout.modules instanceof List) || layout.modules.isEmpty())
+            throw new GradleException('DSHA_SOURCE_LAYOUT_INVALID')
+        def declaredPaths = layout.modules.collect { it.path } as Set
+        def rootDirectory = rootProject.projectDir.canonicalFile.toPath()
+        def modules = allprojects.findAll { it != rootProject }
+        def fixtures = modules.findAll { it.ext.has('dshaConventionFixture') && it.ext.dshaConventionFixture == true }
+        // 夹具标记只允许用于仓库外的真实临时工程；产品模块不能用标记逃出布局核验。
+        fixtures.each { fixture ->
+            if (fixture.projectDir.canonicalFile.toPath().startsWith(rootDirectory))
+                throw new GradleException("DSHA_FIXTURE_INSIDE_PRODUCT_TREE: ${fixture.path}")
+        }
+        def products = modules.findAll { !fixtures.contains(it) }
+        if ((products.collect { it.path } as Set) != declaredPaths || declaredPaths.size() != layout.modules.size())
+            throw new GradleException('DSHA_PRODUCT_MODULE_SET_MISMATCH')
+        layout.modules.each { row ->
+            def module = rootProject.project(row.path)
+            if (module.projectDir.canonicalFile != rootProject.file(row.directory).canonicalFile)
+                throw new GradleException("DSHA_MODULE_DIRECTORY: ${module.path}")
+            def expectedPlugin = ['android-application': 'com.android.application',
+                    'android-library': 'com.android.library', 'jvm': 'java'][row.kind]
+            if (!expectedPlugin || !module.plugins.hasPlugin(expectedPlugin))
+                throw new GradleException("DSHA_MODULE_PLUGIN: ${module.path}")
+            def expectedTest = module.tasks.findByName(row.testTask)
+            if (!(expectedTest instanceof Test))
+                throw new GradleException("DSHA_EXPECTED_TEST_TASK: ${module.path}:${row.testTask}")
+            def expectedReports = rootProject.file("${row.directory}/build/test-results/${row.testTask}").canonicalFile
+            if (expectedTest.reports.junitXml.outputLocation.get().asFile.canonicalFile != expectedReports)
+                throw new GradleException("DSHA_EXPECTED_REPORT_DIRECTORY: ${expectedTest.path}")
+        }
+        if (System.getenv('DSHA_UNIT_TEST_STATE')) {
+            def expectedTasks = layout.modules.collect { it.path + ':' + it.testTask } as Set
+            def actualTasks = gradle.taskGraph.allTasks.findAll { it instanceof Test }.collect { it.path } as Set
+            if (actualTasks != expectedTasks)
+                throw new GradleException('DSHA_FULL_TEST_GRAPH_MISMATCH')
+        }
+        // SourceLayout 只绑定标准资源根；自定义/外部根不能绕开 HEAD 资源身份清单。
+        def auditResourceRoots = { resourceModule, sourceSetName, resourceKind, actualRoots ->
+            if (!(sourceSetName ==~ /[A-Za-z][\w]*/))
+                throw new GradleException("DSHA_RESOURCE_SOURCE_ROOT: ${resourceModule.path} ${sourceSetName}")
+            def standardRelativeRoot = "src/${sourceSetName}/${resourceKind}"
+            def declaredStandardRoot = resourceModule.projectDir.absoluteFile.toPath().normalize()
+                    .resolve(standardRelativeRoot).normalize()
+            def canonicalStandardRoot = resourceModule.projectDir.canonicalFile.toPath()
+                    .resolve(standardRelativeRoot).normalize()
+            actualRoots.each { resourceRoot ->
+                if (resourceRoot.absoluteFile.toPath().normalize() != declaredStandardRoot
+                        || resourceRoot.canonicalFile.toPath() != canonicalStandardRoot)
+                    throw new GradleException("DSHA_RESOURCE_SOURCE_ROOT: ${resourceModule.path} ${sourceSetName}/${resourceKind} -> ${resourceRoot}")
+            }
+        }
+        def checked = []
+        modules.each { module ->
+            if (!module.ext.has('dshaBuildConvention'))
+                throw new GradleException("DSHA_MODULE_CONVENTION_MISSING: ${module.path}")
+            def kind = module.ext.dshaBuildConvention
+            def androidModule = kind == 'android'
+            def resourceSourceSets = androidModule ? module.extensions.getByName('android').sourceSets
+                    : module.extensions.getByName('sourceSets')
+            resourceSourceSets.each { sourceSet ->
+                auditResourceRoots(module, sourceSet.name, 'resources', sourceSet.resources.srcDirs)
+                if (androidModule) auditResourceRoots(module, sourceSet.name, 'res', sourceSet.res.srcDirs)
+            }
+            if (androidModule) {
+                if (module.plugins.hasPlugin('org.jetbrains.kotlin.android')
+                        || module.plugins.hasPlugin('kotlin-android'))
+                    throw new GradleException("DSHA_DUPLICATE_ANDROID_KOTLIN: ${module.path}")
+                def android = module.extensions.getByName('android')
+                // AGP 9.1.1 CommonExtension/BaseFlavor 的实际 Integer getter；不用旧 ApiVersion 假设。
+                if (android.compileSdk != 37 || android.compileSdkPreview != null
+                        || android.defaultConfig.minSdk != 30 || android.defaultConfig.minSdkPreview != null)
+                    throw new GradleException("DSHA_ANDROID_SDK: ${module.path}")
+                if (android.compileOptions.sourceCompatibility != JavaVersion.VERSION_17
+                        || android.compileOptions.targetCompatibility != JavaVersion.VERSION_17
+                        || !android.compileOptions.coreLibraryDesugaringEnabled
+                        || !android.testOptions.unitTests.includeAndroidResources)
+                    throw new GradleException("DSHA_ANDROID_OPTIONS: ${module.path}")
+            } else {
+                def java = module.extensions.getByName('java')
+                if (java.sourceCompatibility != JavaVersion.VERSION_17
+                        || java.targetCompatibility != JavaVersion.VERSION_17
+                        || java.toolchain.languageVersion.get().asInt() != 17)
+                    throw new GradleException("DSHA_JVM_OPTIONS: ${module.path}")
+            }
+            if (androidModule || kind == 'kotlin-jvm') {
+                if (module.extensions.getByName('kotlin').compilerOptions.jvmTarget.get().target != '17')
+                    throw new GradleException("DSHA_KOTLIN_TARGET: ${module.path}")
+            }
+            def dependencies = module.configurations.getByName('testImplementation').dependencies
+            if (dependencies.count { it.group == 'junit' && it.name == 'junit' && it.version == '4.13.2' } != 1)
+                throw new GradleException("DSHA_JUNIT_DEPENDENCY: ${module.path}")
+            if (androidModule && dependencies.count {
+                it.group == 'org.robolectric' && it.name == 'robolectric' && it.version == '4.15.1'
+            } != 1)
+                throw new GradleException("DSHA_ROBOLECTRIC_DEPENDENCY: ${module.path}")
+            def tests = module.tasks.withType(Test).toList()
+            if (tests.isEmpty()) throw new GradleException("DSHA_TEST_TASK_MISSING: ${module.path}")
+            def assetsOwner = module.ext.has('dshaTestAssetsDirectory')
+                    ? module.ext.dshaTestAssetsDirectory : module.file('src/main/assets')
+            def expectedAssetsDirectory = assetsOwner instanceof File ? assetsOwner.absolutePath
+                    : new File(assetsOwner.toString()).absolutePath
+            tests.each { test ->
+                def properties = test.systemProperties
+                def actualJUnitOptions = test.options
+                if (!(actualJUnitOptions instanceof org.gradle.api.tasks.testing.junit.JUnitOptions))
+                    throw new GradleException("DSHA_TEST_FRAMEWORK: ${test.path} requires JUnit4")
+                if (!actualJUnitOptions.includeCategories.isEmpty() || !actualJUnitOptions.excludeCategories.isEmpty())
+                    throw new GradleException("DSHA_TEST_CATEGORIES: ${test.path}")
+                if (test.maxHeapSize != '2048m' || test.maxParallelForks != 1
+                        || !test.reports.junitXml.required.get()
+                        || !test.jvmArgs.contains('--add-opens=java.base/java.io=ALL-UNNAMED')
+                        || properties['dsha.assetsDir'] != expectedAssetsDirectory
+                        || properties['dsha.sourceOnlyTests'] != sourceOnly
+                        || test.inputs.properties['dsha.sourceOnlyTests'] != sourceOnly)
+                    throw new GradleException("DSHA_TEST_OPTIONS: ${test.path}")
+                if (frameworkDirectory && (properties['robolectric.offline'] != 'true'
+                        || properties['robolectric.dependency.dir'] != frameworkDirectory))
+                    throw new GradleException("DSHA_OFFLINE_SDK: ${test.path}")
+                if (rustLibrary && (properties['dsha.rust.hostLib'] != rustLibrary
+                        || properties['dsha.rust.required'] != rustRequired))
+                    throw new GradleException("DSHA_RUST_HOST: ${test.path}")
+                if (!rustLibrary && rustRequired == 'true' && properties['dsha.rust.required'] != 'true')
+                    throw new GradleException("DSHA_RUST_REQUIRED: ${test.path}")
+                println 'test selection: ' + groovy.json.JsonOutput.toJson([
+                        task: test.path, includes: test.includes.toList().sort(), excludes: test.excludes.toList().sort(),
+                        scanForTestClasses: test.scanForTestClasses])
+            }
+            checked += "${module.path} (${kind}, ${tests.size()} Test tasks)"
+        }
+        if (checked.isEmpty()) throw new GradleException('DSHA_CONVENTION_NOT_APPLIED')
+        checked.each { println "build convention: ${it}" }
+    }
+}

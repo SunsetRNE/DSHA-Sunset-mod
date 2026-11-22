@@ -8,6 +8,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import tarfile
@@ -638,6 +639,162 @@ class DiscoveryTest(unittest.TestCase):
         after = json.loads(self.manifest.read_text(encoding='utf-8'))
         self.assertNotIn('dsh-web-mobile', after['dsh']['profile']['bundles'])
         self.assertEqual('link:/root/dsha-web-mobile', after['dependencies']['dsh-web-mobile'])
+
+    def authenticate_signed_builtin(self, name, directory):
+        # 仅为本测试合成文件绑定证明，不借用生产摘要或把名称当作来源。
+        rows = []
+        for file in sorted(directory.rglob('*')):
+            relative = file.relative_to(directory).as_posix()
+            if relative.split('/')[0] == 'node_modules':
+                continue
+            if file.is_file():
+                rows.append({'path': relative, 'sha256': hashlib.sha256(file.read_bytes()).hexdigest(),
+                             'mode': file.stat().st_mode & 0o7777, 'size': file.stat().st_size})
+        proof = self.put('root/.dsh/managed-package-proofs.json',
+                         {'version': 1, 'packages': {}, 'signedBuiltinFiles': {name: rows}})
+        os.environ['DSHA_MANAGED_PACKAGE_PROOFS_SHA256'] = hashlib.sha256(proof.read_bytes()).hexdigest()
+        return proof
+
+    def signed_mobile(self):
+        self.put('root/dsha-web-mobile/package.json', {
+            'name': 'dsh-web-mobile', 'version': '3.3.5', 'main': 'index.js',
+            'dsh': {'bundle': {'patch': 'cordis.patch.yml'}}})
+        self.put('root/dsha-web-mobile/cordis.patch.yml', '[]\n')
+        self.put('root/dsha-web-mobile/index.js', 'throw Error("must not execute plugin");\n')
+        directory = self.root / 'root/dsha-web-mobile'
+        self.authenticate_signed_builtin('dsh-web-mobile', directory)
+        return directory
+
+    def assert_mobile_enable_rejected(self):
+        marker = self.put('root/.dsh/profiles/web/node_modules/dsh-web-mobile.disabled', '')
+        before = self.manifest.read_bytes()
+        with contextlib.redirect_stdout(io.StringIO()), self.assertRaises(self.manager.PluginPolicyError) as caught:
+            self.manager.set_plugin_state('dsh-web-mobile', True)
+        self.assertEqual('PLUGIN_SYSTEM_CONTENT_UNVERIFIED', caught.exception.code)
+        self.assertEqual(before, self.manifest.read_bytes())
+        self.assertEqual('', marker.read_text(encoding='utf-8'))
+        self.assertFalse(os.path.lexists(marker.with_name('dsh-web-mobile')))
+
+    def test_signed_builtin_byte_tamper_is_rejected_without_replacing_content(self):
+        directory = self.signed_mobile()
+        entry = directory / 'index.js'
+        entry.write_text('tampered bytes', encoding='utf-8')
+        self.assert_mobile_enable_rejected()
+        self.assertEqual('tampered bytes', entry.read_text(encoding='utf-8'))
+
+    @unittest.skipIf(os.name == 'nt', 'Requires POSIX permission mode changes')
+    def test_signed_builtin_mode_tamper_is_rejected(self):
+        directory = self.signed_mobile()
+        entry = directory / 'index.js'
+        entry.chmod(0o700)
+        self.assert_mobile_enable_rejected()
+        self.assertEqual(0o700, entry.stat().st_mode & 0o7777)
+
+    def test_signed_builtin_missing_or_extra_files_are_rejected(self):
+        directory = self.signed_mobile()
+        original = (directory / 'index.js').read_bytes()
+        (directory / 'index.js').unlink()
+        self.assert_mobile_enable_rejected()
+        (directory / 'index.js').write_bytes(original)
+        extra = directory / 'unproven.js'
+        extra.write_text('extra', encoding='utf-8')
+        self.assert_mobile_enable_rejected()
+        self.assertEqual('extra', extra.read_text(encoding='utf-8'))
+
+    def test_signed_builtin_file_replaced_by_empty_directory_is_rejected(self):
+        directory = self.signed_mobile()
+        (directory / 'index.js').unlink()
+        (directory / 'index.js').mkdir()
+        self.assert_mobile_enable_rejected()
+        self.assertTrue((directory / 'index.js').is_dir())
+
+    def test_signed_builtin_missing_proof_and_rewritten_table_are_rejected(self):
+        directory = self.signed_mobile()
+        proof = self.root / 'root/.dsh/managed-package-proofs.json'
+        original = proof.read_bytes()
+        for fields in ({'version': 1, 'packages': {}},
+                       {'version': 1, 'packages': {}, 'signedBuiltinFiles': {'dsh-web-mobile': []}}):
+            proof.write_text(json.dumps(fields), encoding='utf-8')
+            # 模拟已认证但尚未包含本组件的新字段/条目，仍不能降级为名称/路径判断。
+            os.environ['DSHA_MANAGED_PACKAGE_PROOFS_SHA256'] = hashlib.sha256(proof.read_bytes()).hexdigest()
+            self.assert_mobile_enable_rejected()
+        proof.write_bytes(original)
+        os.environ['DSHA_MANAGED_PACKAGE_PROOFS_SHA256'] = hashlib.sha256(original).hexdigest()
+        proof.write_text('{}', encoding='utf-8')
+        self.assert_mobile_enable_rejected()
+        self.assertEqual('throw Error("must not execute plugin");\n', (directory / 'index.js').read_text(encoding='utf-8'))
+
+    def test_signed_builtin_import_and_foreign_same_name_remain_rejected(self):
+        directory = self.signed_mobile()
+        with self.assertRaisesRegex(ValueError, '系统插件只随签名 APK'):
+            self.manager.plugin_package(str(directory))
+        foreign = self.plugin('incoming', 'dsh-web-mobile', '3.3.5')
+        with self.assertRaisesRegex(ValueError, '系统插件只随签名 APK'):
+            self.manager.plugin_package(str(foreign))
+        with self.assertRaises(self.manager.PluginPolicyError):
+            self.manager.installed_state_package('dsh-web-mobile', str(foreign))
+        self.assertTrue((directory / 'index.js').is_file())
+
+    def test_signed_builtin_dependency_subtree_is_excluded_but_nested_extras_are_not(self):
+        directory = self.signed_mobile()
+        dependency = directory / 'node_modules/runtime-library/generated.js'
+        dependency.parent.mkdir(parents=True)
+        dependency.write_text('runtime dependency, separately managed', encoding='utf-8')
+        self.assertTrue(self.builtin.signed_builtin_package('dsh-web-mobile', str(directory)))
+        extra = directory / 'lib/node_modules/unknown.js'
+        extra.parent.mkdir(parents=True)
+        extra.write_text('not a root runtime dependency', encoding='utf-8')
+        self.assertFalse(self.builtin.signed_builtin_package('dsh-web-mobile', str(directory)))
+
+    def test_signed_builtin_content_changed_during_compatibility_is_rechecked(self):
+        directory = self.signed_mobile()
+        life = self.manager.lifecycle()
+        with patch.object(life, 'require_compatible', side_effect=lambda *a, **k: (directory / 'index.js').write_text('changed', encoding='utf-8')):
+            self.assert_mobile_enable_rejected()
+        self.assertEqual('changed', (directory / 'index.js').read_text(encoding='utf-8'))
+
+    def test_native_enable_state_recovers_legacy_mobile_without_a_profile_alias(self):
+        mobile = 'dsh-web-mobile'
+        directory = self.signed_mobile()
+        marker = self.put('root/.dsh/profiles/web/node_modules/' + mobile + '.disabled', '')
+        alias = marker.with_name(mobile)
+        self.assertFalse(os.path.lexists(alias))
+        process = subprocess.run(
+            [sys.executable, str(ASSETS / 'plugin-manager.py'), 'enable-state', mobile],
+            env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'), capture_output=True,
+            text=True, encoding='utf-8', timeout=15)
+        self.assertEqual(0, process.returncode, process.stdout + process.stderr)
+        receipt = [json.loads(line.removeprefix('PLUGIN_RESULT: '))
+                   for line in process.stdout.splitlines() if line.startswith('PLUGIN_RESULT: ')][-1]
+        self.assertTrue(receipt['intentVerified'])
+        self.assertTrue(receipt['enabled'])
+        self.assertEqual(mobile, receipt['name'])
+        self.assertFalse(marker.exists())
+        self.assertEqual((self.root / 'root/dsha-web-mobile').resolve(), alias.resolve())
+        original = {file.relative_to(directory).as_posix(): file.read_bytes()
+                    for file in directory.rglob('*') if file.is_file()}
+        for action in ('enable-state', 'disable-state', 'disable-state', 'enable-state'):
+            process = subprocess.run(
+                [sys.executable, str(ASSETS / 'plugin-manager.py'), action, mobile],
+                env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'), capture_output=True,
+                text=True, encoding='utf-8', timeout=15)
+            self.assertEqual(0, process.returncode, process.stdout + process.stderr)
+            state = [json.loads(line.removeprefix('PLUGIN_RESULT: '))
+                     for line in process.stdout.splitlines() if line.startswith('PLUGIN_RESULT: ')][-1]
+            self.assertTrue(state['intentVerified'])
+            self.assertEqual(action.startswith('enable'), state['enabled'])
+        self.assertEqual(original, {file.relative_to(directory).as_posix(): file.read_bytes()
+                                    for file in directory.rglob('*') if file.is_file()})
+        # 真实注册表当前默认启用；显式恢复后跨重注册/新APK不会因旧空标记再禁用。
+        with patch.object(self.builtin, 'builtin_names', return_value=[mobile]):
+            for version_code in (336, 366, 999):
+                self.put('usr/local/share/dsha/apk-generation',
+                         'DSHA_APK_GENERATION_V1\n' + str(version_code) + '\n')
+                with self.builtin.operation_lock(), contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(0, self.builtin.register())
+                self.assertIn(mobile, json.loads(self.manifest.read_text())['dsh']['profile']['bundles'])
+                self.assertFalse(marker.exists())
+                self.assertFalse(marker.with_name(mobile + '.default-disabled.json').exists())
 
     def test_core_inventory_remains_available_but_is_marked_internal(self):
         items = self.items()

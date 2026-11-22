@@ -108,6 +108,11 @@ public final class RuntimeHostPorts {
     return value;
   }
 
+  /** 只读 invocation 身份：无显式 scope 时不得为准备复用新取一份配置。 */
+  Settings currentInvocation() {
+    return invocation.get();
+  }
+
   public boolean preferFastColdMode() {
     return required().preferFastColdMode();
   }

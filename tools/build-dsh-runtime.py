@@ -88,6 +88,8 @@ def recipe_inputs():
     paths += [HOOKS.parent / name for name in stable_inputs]
     paths += [Path(__file__).with_name('runtime_stable_patches.py'), Path(__file__).with_name('runtime_input_contract.py')]
     root = Path(__file__).resolve().parents[1]
+    # 共享输入解析器的新增布局依赖也须纳入固定归档配方，不能只更新顶层脚本摘要。
+    paths += [Path(__file__).with_name('source_layout.py'), root / 'ci/source-layout.json']
     result = {path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
     # Only installation rows affect this archive. Audit/launcher list edits in
     # the shared source manifest cannot invalidate an otherwise identical DSH.

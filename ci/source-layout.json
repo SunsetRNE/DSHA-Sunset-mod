@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "modules": [
+    {
+      "path": ":app",
+      "directory": "app",
+      "kind": "android-application",
+      "sourceSets": ["main", "standard", "debug", "androidTest", "test", "deviceAudit"],
+      "formatSourceSets": ["main", "standard", "debug", "androidTest", "test"],
+      "testSourceSets": ["test"],
+      "testTask": "testStandardDebugUnitTest"
+    }
+  ]
+}

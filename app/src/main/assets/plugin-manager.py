@@ -459,7 +459,8 @@ def extract_archive(path, staging):
         safe_target(staging, os.path.relpath(target, staging))
 
 
-def plugin_package(root):
+def plugin_package_metadata(root):
+    """共同格式检查，不决定是否允许导入或切换当前已安装包。"""
     pkg = read_json(os.path.join(root, "package.json"))
     if not isinstance(pkg, dict) or not builtin.valid_name(pkg.get("name")):
         raise ValueError("package.json 缺少合法的 npm 插件名称")
@@ -487,8 +488,33 @@ def plugin_package(root):
     entry = (pkg.get("cordis") or {}).get("entry")
     if isinstance(entry, str) and not os.path.isfile(safe_target(root, entry)):
         raise ValueError(pkg["name"] + " 缺少 Cordis 入口，请下载构建后的发布包")
-    if pkg["name"] in builtin.OFFICIAL_BUNDLES or pkg["name"] in builtin.builtin_names():
+    return pkg
+
+
+def plugin_package(root):
+    """第三方导入入口始终拒绝覆盖系统插件；状态切换不调用此入口。"""
+    pkg = plugin_package_metadata(root)
+    if pkg['name'] in builtin.OFFICIAL_BUNDLES or pkg['name'] in builtin.builtin_names():
         raise ValueError("系统插件只随签名 APK 更新，不支持用第三方归档覆盖")
+    return pkg
+
+
+def installed_state_package(name, directory):
+    """仅为当前已安装系统实体切换状态；名称、位置和当前字节均须有证明。"""
+    if name not in builtin.OFFICIAL_BUNDLES and name not in builtin.builtin_names():
+        return plugin_package(directory)
+    if name in builtin.builtin_names():
+        verified = builtin.signed_builtin_package(name, directory, check_cancel)
+    else:
+        installed = builtin.runtime_bundle_dir(name)
+        verified = bool(installed and os.path.realpath(directory) == os.path.realpath(installed)
+                        and builtin.managed_runtime_package(name, directory, check_cancel=check_cancel))
+    if not verified:
+        raise PluginPolicyError('PLUGIN_SYSTEM_CONTENT_UNVERIFIED',
+                                '无法证明当前系统插件实体的来源或完整内容；请先完成正常运行环境维护', stage='enable')
+    pkg = plugin_package_metadata(directory)
+    if pkg['name'] != name:
+        raise PluginPolicyError('PLUGIN_TARGET_VERSION_CHANGED', '系统插件身份已变化，未更新启用意图', 'enable')
     return pkg
 
 
@@ -1629,10 +1655,14 @@ def set_plugin_state(name, enable):
             directory = resolve_plugin_dir(name)
             if not directory:
                 raise PluginPolicyError('PLUGIN_COMPATIBILITY_CHECK_FAILED', '插件兼容性检查失败，未执行操作')
-            actual_package = plugin_package(directory)
+            actual_package = installed_state_package(name, directory)
             if actual_package['name'] != name or package is not None and actual_package != package:
                 raise PluginPolicyError('PLUGIN_TARGET_VERSION_CHANGED', '插件来源或版本在准备后变化，请重新检查', 'commit')
             lifecycle().require_compatible(actual_package, stage='enable')
+            if name in builtin.OFFICIAL_BUNDLES or name in builtin.builtin_names():
+                # 兼容性查询可能等待子进程；写意图前重新核当前字节，不沿用旧列表/旧证明。
+                if installed_state_package(name, directory) != actual_package:
+                    raise PluginPolicyError('PLUGIN_TARGET_VERSION_CHANGED', '系统插件在兼容性检查期间变化，未执行操作', 'enable')
         progress('configure', '正在更新插件状态…', cancellable=False)
         if package is not None and not runtime_located:
             # The switch records intent; the actual load still verifies current

@@ -26,6 +26,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from source_layout import SourceLayout
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'app'
@@ -217,8 +218,11 @@ def run_compiled_tests(work, gh, aj, junit, hamcrest):
                and not any(group in p.parts and name in p.parts for group, name in coordinates)]:
         cp.append(str(jar))
 
-    roots = ['src/main/java', 'src/standard/java', 'src/debug/java']
-    sources = [str(p) for root in roots for p in (APP / root).rglob('*.java')]
+    layout = SourceLayout(ROOT)
+    entries = layout.source_files(('main', 'standard', 'debug', 'test'))
+    if len(layout.modules) != 1 or any(entry.path.suffix != '.java' for entry in entries):
+        die('JAVA_ONLY_RUNNER_REQUIRES_GRADLE: 当前布局含 Kotlin 或多个模块；请用 dsha-gradle，不能静默漏编或冒充完整测试')
+    sources = [str(entry.path) for entry in entries if entry.source_set != 'test']
     # AIDL 产物：本机没有能跑的 aidl 时用人工等价产物（见 tools/aidl-stub/README.md）
     sources += [str(p) for p in (ROOT / 'tools/aidl-stub').rglob('*.java')]
     for pat in ('build/generated/source/buildConfig/standard/debug/**/*.java',
@@ -267,7 +271,10 @@ def run_compiled_tests(work, gh, aj, junit, hamcrest):
 
 def collect_test_sources(app):
     """Compile helpers and crash children too; only Test classes are selected for execution."""
-    return sorted(str(path) for path in (app / 'src/test/java').rglob('*.java'))
+    entries = SourceLayout(app.parent).source_files(('test',))
+    if any(entry.path.suffix != '.java' for entry in entries):
+        die('JAVA_ONLY_RUNNER_REQUIRES_GRADLE: Kotlin 测试必须实际编译执行')
+    return sorted(str(entry.path) for entry in entries)
 
 
 def write_argfile(path, values, encoding='utf-8'):

@@ -26,6 +26,13 @@ final class RuntimeInstallationState {
             com.deepseekharness.app.util.BundledRootfsAsset::find);
   }
 
+  RuntimeHostPorts.Scope openPreparation(
+      long generation,
+      java.util.function.BooleanSupplier current,
+      java.util.function.Consumer<String> output) {
+    return managedAssets.openPreparation(generation, current, output);
+  }
+
   String readAssetString(String name) {
     return RuntimeAssetText.read(ctx, name);
   }
@@ -161,6 +168,7 @@ final class RuntimeInstallationState {
   }
 
   public void markOfflineExtracted() throws IOException {
+    managedAssets.invalidatePreparation();
     if (!baseDir.isDirectory() && !baseDir.mkdirs())
       throw new IOException(com.deepseekharness.app.util.UiText.text("无法建立安装标记目录"));
     String identity = environmentIdentity();
@@ -179,6 +187,7 @@ final class RuntimeInstallationState {
 
   /** 撤销解压标记：下次启动走 ExtractActivity 重新解压（配置保留在 .dsh，不删除）。 */
   public void markNotExtracted() {
+    managedAssets.invalidatePreparation();
     //noinspection ResultOfMethodCallIgnored
     offlineMarkerFile.delete();
   }

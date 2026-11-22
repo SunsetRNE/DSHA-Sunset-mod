@@ -87,6 +87,16 @@ on:
         required: false
         type: number
         default: 14
+      rust_native_mode:
+        description: 'Rust APK injection: off (default) or prebuilt from the same workflow run'
+        required: false
+        type: string
+        default: 'off'
+      rust_artifact:
+        description: Same-run native artifact containing libdsha_rs.so and rust-receipt.json (prebuilt only)
+        required: false
+        type: string
+        default: ''
       unsigned_only:
         description: Only build the unsigned variant (no signing secrets) and upload a commit-bound handoff
         required: false
@@ -124,6 +134,8 @@ jobs:
       VARIANT: ${{ matrix.variant }}
       REQUIRE_TEST_KEY: ${{ inputs.require_configured_key && 'true' || 'false' }}
       APK_NAME_PREFIX: ${{ inputs.apk_name_prefix }}
+      RUST_NATIVE_MODE: ${{ inputs.rust_native_mode }}
+      RUST_ARTIFACT: ${{ inputs.rust_artifact }}
       UNSIGNED_ONLY: ${{ inputs.unsigned_only && 'true' || 'false' }}
       UNSIGNED_ARTIFACT_PREFIX: ${{ inputs.unsigned_artifact_prefix }}
       UNSIGNED_DIR: ${{ inputs.unsigned_artifact_prefix != '' && format('unsigned-{0}', matrix.variant) || '' }}
@@ -137,6 +149,11 @@ jobs:
           set -eu
           case "$VARIANT" in debug|dev) ;; *) echo "unknown variant: $VARIANT"; exit 1 ;; esac
           case "$RELEASE_IDENTITY" in mod|upstream) ;; *) echo "unknown release identity: $RELEASE_IDENTITY"; exit 1 ;; esac
+          case "$RUST_NATIVE_MODE" in
+            off) test -z "$RUST_ARTIFACT" || { echo 'RUST_OFF_ARTIFACT_FORBIDDEN'; exit 1; } ;;
+            prebuilt) test -n "$RUST_ARTIFACT" || { echo 'RUST_PREBUILT_ARTIFACT_REQUIRED'; exit 1; } ;;
+            *) echo 'RUST_NATIVE_MODE_INVALID'; exit 1 ;;
+          esac
           if [ "$UNSIGNED_ONLY" = true ] && [ -n "$UNSIGNED_ARTIFACT_PREFIX" ]; then
             echo 'unsigned_only 与 unsigned_artifact_prefix 互斥，不能同时设置'; exit 1
           fi
@@ -152,6 +169,29 @@ jobs:
         with:
           artifact: ${{ inputs.handoff }}
           fixture: ${{ inputs.fixture && 'true' || 'false' }}
+      # 不指定 run-id / token，download-artifact 只能读取本次 workflow run 的产物。
+      - name: Download same-run Rust native artifact
+        if: ${{ inputs.rust_native_mode == 'prebuilt' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ inputs.rust_artifact }}
+          path: out/rust-native
+      - name: Exercise real Gradle Rust prebuilt consumption
+        if: ${{ inputs.unsigned_only && inputs.unsigned_artifact_prefix == '' && inputs.rust_native_mode == 'prebuilt' && matrix.variant == 'debug' }}
+        run: |
+          set -eu
+          python3 -B tools/rust/check_gradle_prebuilt.py --gradle ./gradlew \
+            --artifact-dir out/rust-native --output out/rust-gradle-integration/report.json
+      - name: Upload Rust Gradle integration evidence
+        if: ${{ always() && inputs.unsigned_only && inputs.unsigned_artifact_prefix == '' && inputs.rust_native_mode == 'prebuilt' && matrix.variant == 'debug' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.artifact_prefix }}-rust-gradle-${{ matrix.variant }}
+          path: |
+            out/rust-gradle-integration/report.json
+            out/rust-gradle-integration/**/*.log
+          if-no-files-found: error
+          retention-days: ${{ inputs.retention_days }}
       - name: Download prebuilt unsigned ${{ matrix.variant }} package
         if: ${{ inputs.unsigned_artifact_prefix != '' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -166,7 +206,7 @@ jobs:
           import hashlib, json, os
           from pathlib import Path
           handoff = Path(os.environ['UNSIGNED_DIR'])
-          receipt = json.load(open(handoff / 'unsigned-receipt.json', encoding='utf-8'))
+          receipt = json.loads((handoff / 'unsigned-receipt.json').read_text(encoding='utf-8'))
           apks = sorted(handoff.glob('*-unsigned.apk'))
           if len(apks) != 1 or receipt.get('schema') != 1 or receipt.get('signed') is not False:
               raise SystemExit('UNSIGNED_HANDOFF_INVALID')
@@ -175,14 +215,37 @@ jobs:
                   or receipt.get('runId') != os.environ['GITHUB_RUN_ID'] \
                   or receipt.get('runAttempt') != os.environ['GITHUB_RUN_ATTEMPT'] \
                   or receipt.get('variant') != os.environ['VARIANT'] \
-                  or receipt.get('releaseIdentity') != os.environ['RELEASE_IDENTITY']:
+                  or receipt.get('releaseIdentity') != os.environ['RELEASE_IDENTITY'] \
+                  or receipt.get('repository') != os.environ['GITHUB_REPOSITORY'] \
+                  or receipt.get('rustNativeMode') != os.environ['RUST_NATIVE_MODE']:
               raise SystemExit('UNSIGNED_HANDOFF_NOT_THIS_RUN')
           if receipt.get('apkFile') != apk.name or receipt.get('apkSize') != apk.stat().st_size \
                   or receipt.get('apkSha256') != hashlib.sha256(apk.read_bytes()).hexdigest():
               raise SystemExit('UNSIGNED_HANDOFF_APK_MISMATCH')
-          for name in ('output-metadata.json', 'apk-managed-assets.txt'):
+          for name in ('output-metadata.json', 'apk-managed-assets.txt', 'rust-native-apk-unsigned.json'):
               if not (handoff / name).is_file():
                   raise SystemExit('UNSIGNED_HANDOFF_FILE_MISSING: ' + name)
+          if receipt.get('rustGateSha256') != hashlib.sha256(
+                  (handoff / 'rust-native-apk-unsigned.json').read_bytes()).hexdigest():
+              raise SystemExit('UNSIGNED_HANDOFF_RUST_GATE_MISMATCH')
+          needs_instrumentation = os.environ['RUST_NATIVE_MODE'] == 'prebuilt' and os.environ['VARIANT'] == 'debug'
+          candidate_dir = handoff / 'instrumentation'
+          if needs_instrumentation:
+              candidate = json.loads((candidate_dir / 'candidate-receipt.json').read_text(encoding='utf-8'))
+              probe = candidate_dir / 'rust-native-instrumentation.apk'
+              if candidate != receipt.get('instrumentationCandidate') \
+                      or candidate.get('execution') != 'NOT_RUN' \
+                      or candidate.get('androidNativeLoadVerified') is not False \
+                      or candidate.get('commit') != os.environ['GITHUB_SHA'] \
+                      or candidate.get('runId') != os.environ['GITHUB_RUN_ID'] \
+                      or candidate.get('runAttempt') != os.environ['GITHUB_RUN_ATTEMPT'] \
+                      or candidate.get('repository') != os.environ['GITHUB_REPOSITORY'] \
+                      or candidate.get('apkFile') != probe.name \
+                      or candidate.get('apkSize') != probe.stat().st_size \
+                      or candidate.get('apkSha256') != hashlib.sha256(probe.read_bytes()).hexdigest():
+                  raise SystemExit('UNSIGNED_INSTRUMENTATION_CANDIDATE_MISMATCH')
+          elif candidate_dir.exists() or receipt.get('instrumentationCandidate') is not None:
+              raise SystemExit('UNEXPECTED_INSTRUMENTATION_CANDIDATE')
           print(json.dumps(receipt, ensure_ascii=False, indent=2))
           PYCODE
       - name: Build unsigned ${{ matrix.variant }} package
@@ -191,19 +254,127 @@ jobs:
           set -eu
           chmod +x gradlew
           python3 tools/release-identity.py --check --identity "$RELEASE_IDENTITY" >/dev/null
+          rust_args=("-Pdsha.rust.mode=$RUST_NATIVE_MODE")
+          if [ "$RUST_NATIVE_MODE" = prebuilt ]; then
+            rust_args+=(-Pdsha.rust.artifactDir=out/rust-native)
+          fi
           if [ "$VARIANT" = debug ]; then
-            ./gradlew :app:assembleStandardDebug -Pdsha.debugPackage=true -Pdsha.unsignedPackage=true \
-              "-Pdsha.identity=$RELEASE_IDENTITY" --no-daemon --max-workers=2
+            tasks=(:app:assembleStandardDebug)
+            runner_args=()
+            if [ "$RUST_NATIVE_MODE" = prebuilt ]; then
+              tasks+=(:app:assembleStandardDebugAndroidTest)
+              runner_args+=(-Pdsha.testRunner=com.deepseekharness.app.util.RustNativeInstrumentation)
+            fi
+            ./gradlew "${tasks[@]}" -Pdsha.debugPackage=true -Pdsha.unsignedPackage=true \
+              "-Pdsha.identity=$RELEASE_IDENTITY" "${rust_args[@]}" "${runner_args[@]}" --no-daemon --max-workers=2
           else
             ./gradlew :app:assembleStandardRelease -Pdsha.devPackage=true -Pdsha.unsignedPackage=true \
-              "-Pdsha.identity=$RELEASE_IDENTITY" --no-daemon --max-workers=2
+              "-Pdsha.identity=$RELEASE_IDENTITY" "${rust_args[@]}" --no-daemon --max-workers=2
           fi
+      - name: Gate newly generated unsigned APK Rust contents
+        if: ${{ inputs.unsigned_artifact_prefix == '' }}
+        run: |
+          set -eu
+          shopt -s nullglob
+          if [ "$VARIANT" = debug ]; then
+            candidates=(app/build/outputs/apk/standard/debug/*-unsigned.apk)
+          else
+            candidates=(app/build/outputs/apk/standard/release/*-unsigned.apk)
+          fi
+          test "${#candidates[@]}" -eq 1
+          receipt_args=()
+          if [ "$RUST_NATIVE_MODE" = prebuilt ]; then
+            receipt_args=(--receipt out/rust-native/rust-receipt.json)
+          fi
+          python3 tools/check-rust-native-apk.py --mode "$RUST_NATIVE_MODE" --apk "${candidates[0]}" \
+            "${receipt_args[@]}" --commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" \
+            --run-attempt "$GITHUB_RUN_ATTEMPT" --repository "$GITHUB_REPOSITORY" \
+            --output out/rust-native-apk-unsigned.json
+      - name: Prepare Rust debug instrumentation candidate (not executed)
+        if: ${{ inputs.unsigned_artifact_prefix == '' && inputs.rust_native_mode == 'prebuilt' && matrix.variant == 'debug' }}
+        run: |
+          set -eu
+          python3 - <<'PYCODE'
+          import hashlib, json, os, re, shutil, subprocess
+          from pathlib import Path
+          buildtools = subprocess.check_output(
+              ['python3', 'tools/ci-toolchain.py', '--field', 'buildTools'], text=True).strip()
+          sdk = Path(os.environ.get('ANDROID_HOME') or os.environ.get('ANDROID_SDK_ROOT')
+                     or '/usr/local/lib/android/sdk')
+          candidates = sorted(Path('app/build/outputs/apk/androidTest/standard/debug').glob('*.apk'))
+          if len(candidates) != 1:
+              raise SystemExit('RUST_INSTRUMENTATION_APK_COUNT')
+          apk = candidates[0]
+          badging = subprocess.check_output(
+              [str(sdk / 'build-tools' / buildtools / 'aapt2'), 'dump', 'badging', str(apk)], text=True)
+          package_match = re.search(r"^package: name='([^']+)'", badging, re.M)
+          manifest = subprocess.check_output(
+              [str(sdk / 'build-tools' / buildtools / 'aapt2'), 'dump', 'xmltree',
+               '--file', 'AndroidManifest.xml', str(apk)], text=True)
+          def instrumentation_identity(tree):
+              stack, roots, probes = [], [], []
+              namespace = 'http://schemas.android.com/apk/res/android:'
+              for line in tree.splitlines():
+                  element = re.fullmatch(r'(\s*)E: (\S+) \(line=\d+\)', line)
+                  if element:
+                      indent, name = len(element.group(1)), element.group(2)
+                      while stack and stack[-1][0] >= indent:
+                          stack.pop()
+                      parent = stack[-1][1] if stack else None
+                      row = (indent, name, parent, {})
+                      if parent is None:
+                          roots.append(name)
+                      stack.append(row)
+                      if name == 'instrumentation':
+                          probes.append(row)
+                      continue
+                  attribute = re.fullmatch(r'(\s*)A: ([^=(]+)(?:\(0x[0-9a-fA-F]+\))?=(.*)', line)
+                  if not attribute or not stack or stack[-1][1] != 'instrumentation':
+                      continue
+                  key = attribute.group(2)
+                  if key not in (namespace + 'name', namespace + 'targetPackage'):
+                      continue
+                  value = re.fullmatch(r'"([^"\\]*)"(?: \(Raw: "([^"\\]*)"\))?', attribute.group(3))
+                  if len(attribute.group(1)) <= stack[-1][0] or key in stack[-1][3] or not value \
+                          or value.group(2) is not None and value.group(2) != value.group(1):
+                      raise SystemExit('RUST_INSTRUMENTATION_XMLTREE')
+                  stack[-1][3][key] = value.group(1)
+              if roots != ['manifest'] or len(probes) != 1 or probes[0][2] != 'manifest':
+                  raise SystemExit('RUST_INSTRUMENTATION_XMLTREE')
+              attributes = probes[0][3]
+              if set(attributes) != {namespace + 'name', namespace + 'targetPackage'}:
+                  raise SystemExit('RUST_INSTRUMENTATION_XMLTREE')
+              return attributes[namespace + 'name'], attributes[namespace + 'targetPackage']
+          identity = json.load(open('ci/release-identity.' + os.environ['RELEASE_IDENTITY'] + '.json', encoding='utf-8'))
+          target = identity['packageName'] + '.debug'
+          runner = 'com.deepseekharness.app.util.RustNativeInstrumentation'
+          if not package_match or instrumentation_identity(manifest) != (runner, target):
+              raise SystemExit('RUST_INSTRUMENTATION_MANIFEST')
+          if package_match.group(1) != target + '.test':
+              raise SystemExit('RUST_INSTRUMENTATION_PACKAGE')
+          destination = Path('out/rust-instrumentation-candidate')
+          destination.mkdir(parents=True, exist_ok=True)
+          delivered = destination / 'rust-native-instrumentation.apk'
+          shutil.copyfile(apk, delivered)
+          value = {'schema': 1, 'kind': 'dsha-rust-android-candidate',
+                   'commit': os.environ['GITHUB_SHA'], 'runId': os.environ['GITHUB_RUN_ID'],
+                   'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'], 'repository': os.environ['GITHUB_REPOSITORY'],
+                   'packageName': package_match.group(1), 'targetPackage': target, 'runner': runner,
+                   'apkFile': delivered.name, 'apkSize': delivered.stat().st_size,
+                   'apkSha256': hashlib.sha256(delivered.read_bytes()).hexdigest(),
+                   'execution': 'NOT_RUN', 'androidNativeLoadVerified': False,
+                   'note': 'debug 设备加载候选；仅生成 APK，尚未安装或执行'}
+          (destination / 'candidate-receipt.json').write_text(
+              json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          (destination / 'apk-badging.txt').write_text(badging, encoding='utf-8')
+          (destination / 'apk-manifest.txt').write_text(manifest, encoding='utf-8')
+          PYCODE
       - name: Verify unsigned ${{ matrix.variant }} package and managed assets
         if: ${{ inputs.unsigned_only }}
         run: |
           set -eu
           python3 - <<'PYCODE'
-          import hashlib, json, os, re, subprocess
+          import hashlib, json, os, re, shutil, subprocess
           from pathlib import Path
           variant = os.environ['VARIANT']
           identity_name = os.environ['RELEASE_IDENTITY']
@@ -249,9 +420,22 @@ jobs:
           managed = handoff / 'apk-managed-assets.txt'
           managed.write_text(subprocess.check_output(
               ['python3', 'tools/verify-apk-managed-assets.py', str(apk)], text=True), encoding='utf-8')
+          rust_gate = handoff / 'rust-native-apk-unsigned.json'
+          shutil.copyfile('out/rust-native-apk-unsigned.json', rust_gate)
+          instrumentation = None
+          if os.environ['RUST_NATIVE_MODE'] == 'prebuilt':
+              shutil.copyfile('out/rust-native/rust-receipt.json', handoff / 'rust-receipt.json')
+              if variant == 'debug':
+                  shutil.copytree('out/rust-instrumentation-candidate', handoff / 'instrumentation')
+                  instrumentation = json.load(open(handoff / 'instrumentation/candidate-receipt.json', encoding='utf-8'))
           value = {
               'schema': 1,
               'kind': 'dsha-a-su-test-package-unsigned',
+              'repository': os.environ['GITHUB_REPOSITORY'],
+              'rustNativeMode': os.environ['RUST_NATIVE_MODE'],
+              'rustGateSha256': hashlib.sha256(rust_gate.read_bytes()).hexdigest(),
+              'instrumentationCandidate': instrumentation,
+              'androidNativeLoadVerified': False,
               'commit': os.environ['GITHUB_SHA'],
               'runId': os.environ['GITHUB_RUN_ID'],
               'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'],
@@ -363,9 +547,21 @@ jobs:
           fi
           test "${#candidates[@]}" -eq 1
           apk="out/${APK_NAME_PREFIX}-${VARIANT}-${GITHUB_SHA:0:8}.apk"
+          receipt_args=()
+          if [ "$RUST_NATIVE_MODE" = prebuilt ]; then
+            receipt_args=(--receipt out/rust-native/rust-receipt.json)
+          fi
+          python3 tools/check-rust-native-apk.py --mode "$RUST_NATIVE_MODE" --apk "${candidates[0]}" \
+            "${receipt_args[@]}" --commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" \
+            --run-attempt "$GITHUB_RUN_ATTEMPT" --repository "$GITHUB_REPOSITORY" \
+            --output out/rust-native-apk-pre-sign.json
           "$apksigner" sign --ks "$TEST_KEY" --ks-key-alias sunset-test \
             --ks-pass env:TEST_STORE_PASSWORD --key-pass env:TEST_STORE_PASSWORD \
             --out "$apk" "${candidates[0]}"
+          python3 tools/check-rust-native-apk.py --mode "$RUST_NATIVE_MODE" --apk "$apk" \
+            "${receipt_args[@]}" --commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" \
+            --run-attempt "$GITHUB_RUN_ATTEMPT" --repository "$GITHUB_REPOSITORY" \
+            --output out/rust-native-apk-signed.json
           "$aapt2" dump badging "$apk" > out/apk-badging.txt
           "$apksigner" verify --verbose --print-certs "$apk" > out/apk-signature.txt
           package=$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" out/apk-badging.txt)
@@ -411,6 +607,7 @@ jobs:
           print('payload entries unchanged by signing:', len(before))
           PYCODE
             cp "$UNSIGNED_DIR/apk-managed-assets.txt" out/apk-managed-assets.txt
+            cp "$UNSIGNED_DIR/rust-native-apk-unsigned.json" out/rust-native-apk-unsigned.json
           else
             python3 tools/verify-apk-managed-assets.py "$apk" > out/apk-managed-assets.txt
           fi
@@ -419,6 +616,104 @@ jobs:
           fi
           printf 'apk=%s\ncert=%s\npackage=%s\nmetadata=%s\n' \
             "$apk" "$cert" "$package" "$metadata" >> "$GITHUB_OUTPUT"
+          if [ "$RUST_NATIVE_MODE" = prebuilt ] && [ "$VARIANT" = debug ]; then
+            if [ -n "$UNSIGNED_DIR" ]; then
+              candidate_input="$UNSIGNED_DIR/instrumentation/rust-native-instrumentation.apk"
+            else
+              candidate_input=out/rust-instrumentation-candidate/rust-native-instrumentation.apk
+            fi
+            test -f "$candidate_input"
+            instrumentation_apk="out/${APK_NAME_PREFIX}-rust-instrumentation-${GITHUB_SHA:0:8}.apk"
+            # AGP 可能已用临时 debug 证书签名 androidTest APK；统一以目标 APK 的 SUNSET 测试证书二次签名。
+            "$apksigner" sign --ks "$TEST_KEY" --ks-key-alias sunset-test \
+              --ks-pass env:TEST_STORE_PASSWORD --key-pass env:TEST_STORE_PASSWORD \
+              --out "$instrumentation_apk" "$candidate_input"
+            "$apksigner" verify --verbose --print-certs "$instrumentation_apk" > out/instrumentation-signature.txt
+            "$aapt2" dump badging "$instrumentation_apk" > out/instrumentation-badging.txt
+            "$aapt2" dump xmltree --file AndroidManifest.xml "$instrumentation_apk" > out/instrumentation-manifest.txt
+            INSTRUMENTATION_APK="$instrumentation_apk" INSTRUMENTATION_INPUT="$candidate_input" \
+              TARGET_PACKAGE="$package" TARGET_CERT="$cert" python3 - <<'PYCODE'
+          import hashlib, json, os, re, shlex, zipfile
+          from pathlib import Path
+          apk = Path(os.environ['INSTRUMENTATION_APK'])
+          badging = Path('out/instrumentation-badging.txt').read_text(encoding='utf-8')
+          package = re.search(r"^package: name='([^']+)'", badging, re.M)
+          manifest = Path('out/instrumentation-manifest.txt').read_text(encoding='utf-8')
+          def instrumentation_identity(tree):
+              stack, roots, probes = [], [], []
+              namespace = 'http://schemas.android.com/apk/res/android:'
+              for line in tree.splitlines():
+                  element = re.fullmatch(r'(\s*)E: (\S+) \(line=\d+\)', line)
+                  if element:
+                      indent, name = len(element.group(1)), element.group(2)
+                      while stack and stack[-1][0] >= indent:
+                          stack.pop()
+                      parent = stack[-1][1] if stack else None
+                      row = (indent, name, parent, {})
+                      if parent is None:
+                          roots.append(name)
+                      stack.append(row)
+                      if name == 'instrumentation':
+                          probes.append(row)
+                      continue
+                  attribute = re.fullmatch(r'(\s*)A: ([^=(]+)(?:\(0x[0-9a-fA-F]+\))?=(.*)', line)
+                  if not attribute or not stack or stack[-1][1] != 'instrumentation':
+                      continue
+                  key = attribute.group(2)
+                  if key not in (namespace + 'name', namespace + 'targetPackage'):
+                      continue
+                  value = re.fullmatch(r'"([^"\\]*)"(?: \(Raw: "([^"\\]*)"\))?', attribute.group(3))
+                  if len(attribute.group(1)) <= stack[-1][0] or key in stack[-1][3] or not value \
+                          or value.group(2) is not None and value.group(2) != value.group(1):
+                      raise SystemExit('RUST_INSTRUMENTATION_XMLTREE')
+                  stack[-1][3][key] = value.group(1)
+              if roots != ['manifest'] or len(probes) != 1 or probes[0][2] != 'manifest':
+                  raise SystemExit('RUST_INSTRUMENTATION_XMLTREE')
+              attributes = probes[0][3]
+              if set(attributes) != {namespace + 'name', namespace + 'targetPackage'}:
+                  raise SystemExit('RUST_INSTRUMENTATION_XMLTREE')
+              return attributes[namespace + 'name'], attributes[namespace + 'targetPackage']
+          runner = 'com.deepseekharness.app.util.RustNativeInstrumentation'
+          target = os.environ['TARGET_PACKAGE']
+          if not package or package.group(1) != target + '.test' \
+                  or instrumentation_identity(manifest) != (runner, target):
+              raise SystemExit('SIGNED_RUST_INSTRUMENTATION_MANIFEST')
+          certificates = re.findall(r'^Signer #\d+ certificate SHA-256 digest: ([0-9a-f]+)$',
+                                   Path('out/instrumentation-signature.txt').read_text(encoding='utf-8'), re.M)
+          if certificates != [os.environ['TARGET_CERT']]:
+              raise SystemExit('RUST_INSTRUMENTATION_CERTIFICATE_MISMATCH')
+          def payload(path):
+              with zipfile.ZipFile(path) as archive:
+                  entries = [entry for entry in archive.infolist() if not entry.filename.startswith('META-INF/')]
+                  if len(entries) != len({entry.filename for entry in entries}):
+                      raise SystemExit('RUST_INSTRUMENTATION_DUPLICATE_PAYLOAD')
+                  return {entry.filename: hashlib.sha256(archive.read(entry)).hexdigest() for entry in entries}
+          if payload(os.environ['INSTRUMENTATION_INPUT']) != payload(apk):
+              raise SystemExit('RUST_INSTRUMENTATION_SIGNED_PAYLOAD_CHANGED')
+          command = ['adb', 'shell', 'am', 'instrument', '-w', '-r',
+                     '-e', 'commit', os.environ['GITHUB_SHA'],
+                     '-e', 'runId', os.environ['GITHUB_RUN_ID'],
+                     '-e', 'runAttempt', os.environ['GITHUB_RUN_ATTEMPT'],
+                     '-e', 'repository', os.environ['GITHUB_REPOSITORY'], package.group(1) + '/' + runner]
+          value = {'schema': 1, 'kind': 'dsha-rust-android-candidate',
+                   'commit': os.environ['GITHUB_SHA'], 'runId': os.environ['GITHUB_RUN_ID'],
+                   'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'], 'repository': os.environ['GITHUB_REPOSITORY'],
+                   'packageName': package.group(1), 'targetPackage': target, 'runner': runner,
+                   'apkFile': apk.name, 'apkSize': apk.stat().st_size,
+                   'apkSha256': hashlib.sha256(apk.read_bytes()).hexdigest(),
+                   'certificateSha256': os.environ['TARGET_CERT'], 'certificateMatchesTarget': True,
+                   'execution': 'NOT_RUN', 'androidNativeLoadVerified': False,
+                   'command': shlex.join(command),
+                   'note': 'debug 设备加载候选；尚未安装或执行，必须在授权设备上运行后才能证明 Android JNI 加载'}
+          Path('out/rust-instrumentation-candidate.json').write_text(
+              json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          Path('out/rust-instrumentation-run.txt').write_text(
+              '# NOT EXECUTED: 先经用户授权安装本次 debug 目标 APK 与同证书 instrumentation APK\n'
+              + shlex.join(command) + '\n', encoding='utf-8')
+          print(json.dumps(value, ensure_ascii=False, indent=2))
+          PYCODE
+            printf 'instrumentation_apk=%s\n' "$instrumentation_apk" >> "$GITHUB_OUTPUT"
+          fi
       - name: Remove test private key
         if: ${{ always() && !inputs.unsigned_only }}
         run: |
@@ -448,6 +743,14 @@ jobs:
           value = {
               'schema': 1,
               'kind': 'dsha-a-su-test-package-variant',
+              'repository': os.environ['GITHUB_REPOSITORY'],
+              'rustNativeMode': os.environ['RUST_NATIVE_MODE'],
+              'rustApkGates': {name: hashlib.sha256((Path('out') / name).read_bytes()).hexdigest()
+                              for name in ('rust-native-apk-unsigned.json', 'rust-native-apk-pre-sign.json',
+                                           'rust-native-apk-signed.json')},
+              'rustInstrumentation': json.load(open('out/rust-instrumentation-candidate.json', encoding='utf-8'))
+                  if os.environ['RUST_NATIVE_MODE'] == 'prebuilt' and variant == 'debug' else None,
+              'androidNativeLoadVerified': False,
               'commit': os.environ['GITHUB_SHA'],
               'ref': os.environ['GITHUB_REF'],
               'runId': os.environ['GITHUB_RUN_ID'],
@@ -471,7 +774,14 @@ jobs:
               'note': 'TEST ONLY - NOT FOR RELEASE',
           }
           Path('out/build-info.json').write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-          names = [apk.name, 'build-info.json', 'test-cert.pem']
+          names = [apk.name, 'build-info.json', 'test-cert.pem',
+                   'rust-native-apk-unsigned.json', 'rust-native-apk-pre-sign.json', 'rust-native-apk-signed.json']
+          if value['rustInstrumentation'] is not None:
+              names.extend([value['rustInstrumentation']['apkFile'], 'rust-instrumentation-candidate.json',
+                            'rust-instrumentation-run.txt', 'instrumentation-signature.txt',
+                            'instrumentation-badging.txt', 'instrumentation-manifest.txt'])
+          if os.environ['RUST_NATIVE_MODE'] == 'prebuilt':
+              names.append('rust-native/rust-receipt.json')
           Path('out/SHA256SUMS').write_text(''.join(
               hashlib.sha256((Path('out') / name).read_bytes()).hexdigest() + '  ' + name + '\n' for name in names),
               encoding='utf-8')
@@ -485,6 +795,15 @@ jobs:
         with:
           archive: false
           path: ${{ steps.sign.outputs.apk }}
+          if-no-files-found: error
+          retention-days: ${{ inputs.retention_days }}
+      - name: Upload Rust debug instrumentation APK candidate (not executed)
+        if: ${{ !inputs.unsigned_only && inputs.rust_native_mode == 'prebuilt' && matrix.variant == 'debug' }}
+        id: upload_instrumentation
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          archive: false
+          path: ${{ steps.sign.outputs.instrumentation_apk }}
           if-no-files-found: error
           retention-days: ${{ inputs.retention_days }}
       - name: Upload test package evidence
@@ -504,6 +823,14 @@ jobs:
             out/apk-recovery-verification.txt
             out/third-party-apk.json
             out/apk-managed-assets.txt
+            out/rust-native-apk-*.json
+            out/rust-native/rust-receipt.json
+            ${{ steps.sign.outputs.instrumentation_apk }}
+            out/rust-instrumentation-candidate.json
+            out/rust-instrumentation-run.txt
+            out/instrumentation-signature.txt
+            out/instrumentation-badging.txt
+            out/instrumentation-manifest.txt
           if-no-files-found: error
           retention-days: ${{ inputs.retention_days }}
       - name: Show commit-bound download links
@@ -511,6 +838,7 @@ jobs:
         env:
           APK_URL: ${{ steps.upload_apk.outputs.artifact-url }}
           EVIDENCE_URL: ${{ steps.upload_evidence.outputs.artifact-url }}
+          INSTRUMENTATION_URL: ${{ steps.upload_instrumentation.outputs.artifact-url }}
           PACKAGE: ${{ steps.sign.outputs.package }}
         run: |
           {
@@ -519,4 +847,16 @@ jobs:
             echo "Commit \`$GITHUB_SHA\` · package \`$PACKAGE\` · 测试证书来源 \`$SIGNING_KEY_SOURCE\`"
             echo
             echo "[APK]($APK_URL) · [证书、固定输入与校验回执]($EVIDENCE_URL)"
+            echo
+            echo "Rust 模式 \`$RUST_NATIVE_MODE\`；unsigned / pre-sign / signed 三份门禁回执在证据中，off 显式证明未带 Rust 库。"
+            if [ "$RUST_NATIVE_MODE" = prebuilt ] && [ "$VARIANT" = debug ]; then
+              echo
+              echo "[Rust instrumentation APK 候选]($INSTRUMENTATION_URL)（与目标 debug APK 同测试证书，尚未安装、尚未执行）"
+              echo
+              echo '本 debug 路径用于设备加载候选；构建、签名与静态检查不证明 Android JNI 已加载。授权安装两份候选后，可手动执行：'
+              echo
+              echo '```sh'
+              python3 -c "import json; print(json.load(open('out/rust-instrumentation-candidate.json'))['command'])"
+              echo '```'
+            fi
           } >> "$GITHUB_STEP_SUMMARY"

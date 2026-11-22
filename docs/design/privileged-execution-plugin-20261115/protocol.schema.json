@@ -1,0 +1,2470 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:dsha:privileged-plugin:draft:0.1",
+  "title": "特权执行单工具协议数据稿 0.1（未实现）",
+  "description": "仅约束数据形状及可静态表达的不变式；当前授权、身份、截止、去重和效果证据须由原生 owner 核验。",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/StatusRequest"
+    },
+    {
+      "$ref": "#/$defs/DescribeRequest"
+    },
+    {
+      "$ref": "#/$defs/PrepareRequest"
+    },
+    {
+      "$ref": "#/$defs/ExecuteRequest"
+    },
+    {
+      "$ref": "#/$defs/ResultRequest"
+    },
+    {
+      "$ref": "#/$defs/CancelRequest"
+    },
+    {
+      "$ref": "#/$defs/EventsRequest"
+    },
+    {
+      "$ref": "#/$defs/Catalog"
+    },
+    {
+      "$ref": "#/$defs/Prepared"
+    },
+    {
+      "$ref": "#/$defs/Receipt"
+    },
+    {
+      "$ref": "#/$defs/EventBatch"
+    },
+    {
+      "$ref": "#/$defs/Fault"
+    }
+  ],
+  "$defs": {
+    "Id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]{0,63}$"
+    },
+    "Uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "Counter": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "Uid": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "Code": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]{0,127}$"
+    },
+    "Host": {
+      "type": "object",
+      "properties": {
+        "instanceId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "requestEpoch": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "catalogRevision": {
+          "$ref": "#/$defs/Counter"
+        },
+        "authorizationRevision": {
+          "$ref": "#/$defs/Counter"
+        }
+      },
+      "required": [
+        "instanceId",
+        "requestEpoch",
+        "catalogRevision",
+        "authorizationRevision"
+      ],
+      "additionalProperties": false
+    },
+    "Expected": {
+      "type": "object",
+      "properties": {
+        "instanceId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "catalogRevision": {
+          "$ref": "#/$defs/Counter"
+        },
+        "authorizationRevision": {
+          "$ref": "#/$defs/Counter"
+        }
+      },
+      "required": [
+        "instanceId",
+        "catalogRevision",
+        "authorizationRevision"
+      ],
+      "additionalProperties": false
+    },
+    "RequestRef": {
+      "type": "object",
+      "properties": {
+        "epoch": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "epoch",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "Identity": {
+      "type": "object",
+      "properties": {
+        "executionUid": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source": {
+          "enum": [
+            "UNVERIFIED",
+            "EXECUTOR_OBSERVED"
+          ]
+        },
+        "observedAtElapsedMs": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Counter"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidenceId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "executionUid",
+        "source",
+        "observedAtElapsedMs",
+        "evidenceId"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "const": "UNVERIFIED"
+              }
+            },
+            "required": [
+              "source"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "executionUid": {
+                "type": "null"
+              },
+              "observedAtElapsedMs": {
+                "type": "null"
+              },
+              "evidenceId": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "executionUid",
+              "observedAtElapsedMs",
+              "evidenceId"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "const": "EXECUTOR_OBSERVED"
+              }
+            },
+            "required": [
+              "source"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "executionUid": {
+                "$ref": "#/$defs/Uid"
+              },
+              "observedAtElapsedMs": {
+                "$ref": "#/$defs/Counter"
+              },
+              "evidenceId": {
+                "$ref": "#/$defs/Uuid"
+              }
+            },
+            "required": [
+              "executionUid",
+              "observedAtElapsedMs",
+              "evidenceId"
+            ],
+            "additionalProperties": true
+          }
+        }
+      ]
+    },
+    "Channel": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "enum": [
+            "APP",
+            "ROOT",
+            "SHIZUKU",
+            "ADB"
+          ]
+        },
+        "authorityReadState": {
+          "enum": [
+            "READY",
+            "CHANGING",
+            "UNAVAILABLE"
+          ]
+        },
+        "enabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "backendVisible": {
+          "type": "boolean"
+        },
+        "channelAuthorization": {
+          "enum": [
+            "UNVERIFIED",
+            "GRANTED",
+            "DENIED"
+          ]
+        },
+        "bound": {
+          "type": "boolean"
+        },
+        "connected": {
+          "type": "boolean"
+        },
+        "connectionEvidence": {
+          "enum": [
+            "UNVERIFIED",
+            "TCP_REACHABLE",
+            "AUTHENTICATED"
+          ]
+        },
+        "identity": {
+          "$ref": "#/$defs/Identity"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "authorityReadState",
+        "enabled",
+        "backendVisible",
+        "channelAuthorization",
+        "bound",
+        "connected",
+        "connectionEvidence",
+        "identity"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "authorityReadState": {
+                "enum": [
+                  "CHANGING",
+                  "UNAVAILABLE"
+                ]
+              }
+            },
+            "required": [
+              "authorityReadState"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "enabled"
+            ],
+            "additionalProperties": true
+          }
+        }
+      ]
+    },
+    "Capability": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "supported": {
+          "type": "boolean"
+        },
+        "availability": {
+          "enum": [
+            "READY",
+            "DISABLED",
+            "UNVERIFIED",
+            "UNAVAILABLE",
+            "UNKNOWN",
+            "UNSUPPORTED"
+          ]
+        },
+        "authorization": {
+          "enum": [
+            "ALLOW",
+            "ASK",
+            "DENY",
+            "UNCONFIGURED",
+            "UNKNOWN"
+          ]
+        },
+        "readOnly": {
+          "type": "boolean"
+        },
+        "mayRequestIdentity": {
+          "type": "boolean"
+        },
+        "inputSchema": {
+          "type": "object"
+        },
+        "resultSchema": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "supported",
+        "availability",
+        "authorization",
+        "readOnly",
+        "mayRequestIdentity",
+        "inputSchema",
+        "resultSchema"
+      ],
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "supported": {
+                "const": false
+              }
+            },
+            "required": [
+              "supported"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "availability": {
+                "const": "UNSUPPORTED"
+              }
+            },
+            "required": [
+              "availability"
+            ],
+            "additionalProperties": true
+          }
+        }
+      ]
+    },
+    "Facts": {
+      "type": "object",
+      "properties": {
+        "resultVersion": {
+          "const": 1
+        },
+        "dispatched": {
+          "enum": [
+            "NOT_DISPATCHED",
+            "DISPATCHED",
+            "UNKNOWN"
+          ]
+        },
+        "executed": {
+          "enum": [
+            "NOT_EXECUTED",
+            "EXECUTED",
+            "UNKNOWN"
+          ]
+        },
+        "partial": {
+          "enum": [
+            "NONE",
+            "PARTIAL",
+            "UNKNOWN"
+          ]
+        },
+        "effect": {
+          "enum": [
+            "VERIFIED",
+            "UNVERIFIED",
+            "UNKNOWN",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "retry": {
+          "enum": [
+            "SAFE",
+            "NEEDS_NEW_OBSERVATION",
+            "NOT_SAFE",
+            "UNKNOWN"
+          ]
+        },
+        "reasonCode": {
+          "$ref": "#/$defs/Code"
+        }
+      },
+      "required": [
+        "resultVersion",
+        "dispatched",
+        "executed",
+        "partial",
+        "effect",
+        "retry",
+        "reasonCode"
+      ],
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "dispatched": {
+                "const": "NOT_DISPATCHED"
+              }
+            },
+            "required": [
+              "dispatched"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "executed": {
+                "const": "NOT_EXECUTED"
+              },
+              "partial": {
+                "const": "NONE"
+              }
+            },
+            "required": [
+              "executed",
+              "partial"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "executed": {
+                "const": "EXECUTED"
+              }
+            },
+            "required": [
+              "executed"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "dispatched": {
+                "const": "DISPATCHED"
+              }
+            },
+            "required": [
+              "dispatched"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "partial": {
+                "const": "PARTIAL"
+              }
+            },
+            "required": [
+              "partial"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "executed": {
+                "enum": [
+                  "EXECUTED",
+                  "UNKNOWN"
+                ]
+              }
+            },
+            "required": [
+              "executed"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "effect": {
+                "const": "VERIFIED"
+              }
+            },
+            "required": [
+              "effect"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "executed": {
+                "const": "EXECUTED"
+              }
+            },
+            "required": [
+              "executed"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "executed": {
+                "const": "UNKNOWN"
+              }
+            },
+            "required": [
+              "executed"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "retry": {
+                "enum": [
+                  "NEEDS_NEW_OBSERVATION",
+                  "NOT_SAFE",
+                  "UNKNOWN"
+                ]
+              }
+            },
+            "required": [
+              "retry"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "retry": {
+                "const": "SAFE"
+              }
+            },
+            "required": [
+              "retry"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "executed": {
+                    "const": "NOT_EXECUTED"
+                  }
+                },
+                "required": [
+                  "executed"
+                ],
+                "additionalProperties": true
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "effect": {
+                    "const": "NOT_APPLICABLE"
+                  }
+                },
+                "required": [
+                  "effect"
+                ],
+                "additionalProperties": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "Cleanup": {
+      "type": "object",
+      "properties": {
+        "resources": {
+          "enum": [
+            "NOT_CREATED",
+            "RELEASED",
+            "PENDING",
+            "UNKNOWN"
+          ]
+        },
+        "evidenceId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "resources",
+        "evidenceId"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "resources": {
+                "const": "RELEASED"
+              }
+            },
+            "required": [
+              "resources"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "evidenceId": {
+                "$ref": "#/$defs/Uuid"
+              }
+            },
+            "required": [
+              "evidenceId"
+            ],
+            "additionalProperties": true
+          }
+        }
+      ]
+    },
+    "Step": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "facts": {
+          "$ref": "#/$defs/Facts"
+        },
+        "business": {
+          "enum": [
+            "PENDING",
+            "SUCCEEDED",
+            "FAILED",
+            "UNKNOWN",
+            "NOT_RUN"
+          ]
+        },
+        "identity": {
+          "$ref": "#/$defs/Identity"
+        },
+        "outputComplete": {
+          "type": "boolean"
+        },
+        "exitCode": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effectEvidenceId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "facts",
+        "business",
+        "identity",
+        "outputComplete",
+        "exitCode",
+        "effectEvidenceId"
+      ],
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "business": {
+                "const": "SUCCEEDED"
+              }
+            },
+            "required": [
+              "business"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "facts": {
+                "type": "object",
+                "properties": {
+                  "executed": {
+                    "const": "EXECUTED"
+                  }
+                },
+                "required": [
+                  "executed"
+                ],
+                "additionalProperties": true
+              },
+              "outputComplete": {
+                "const": true
+              }
+            },
+            "required": [
+              "facts",
+              "outputComplete"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "facts": {
+                "type": "object",
+                "properties": {
+                  "effect": {
+                    "const": "VERIFIED"
+                  }
+                },
+                "required": [
+                  "effect"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "facts"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "effectEvidenceId": {
+                "$ref": "#/$defs/Uuid"
+              }
+            },
+            "required": [
+              "effectEvidenceId"
+            ],
+            "additionalProperties": true
+          }
+        }
+      ]
+    },
+    "Event": {
+      "type": "object",
+      "properties": {
+        "sequence": {
+          "$ref": "#/$defs/Counter"
+        },
+        "kind": {
+          "enum": [
+            "CATALOG_CHANGED",
+            "AUTHORIZATION_CHANGED",
+            "CHANNEL_CHANGED",
+            "REQUEST_CHANGED",
+            "CANCEL_REQUESTED",
+            "CANCEL_ACCEPTED",
+            "TIMED_OUT",
+            "CLIENT_DETACHED",
+            "HOST_RESTARTED"
+          ]
+        },
+        "requestRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RequestRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recordRevision": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Counter"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "sequence",
+        "kind",
+        "requestRef",
+        "recordRevision"
+      ],
+      "additionalProperties": true
+    },
+    "StatusRequest": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "request"
+        },
+        "protocolVersion": {
+          "const": 1
+        },
+        "callId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "op": {
+          "const": "status"
+        },
+        "detail": {
+          "enum": [
+            "SUMMARY",
+            "RECORDED_IDENTITY"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "protocolVersion",
+        "callId",
+        "op"
+      ],
+      "additionalProperties": false
+    },
+    "DescribeRequest": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "request"
+        },
+        "protocolVersion": {
+          "const": 1
+        },
+        "callId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "op": {
+          "const": "describe"
+        },
+        "capabilityId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "type",
+        "protocolVersion",
+        "callId",
+        "op"
+      ],
+      "additionalProperties": false
+    },
+    "PrepareRequest": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "request"
+        },
+        "protocolVersion": {
+          "const": 1
+        },
+        "callId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "op": {
+          "const": "prepare"
+        },
+        "requestRef": {
+          "$ref": "#/$defs/RequestRef"
+        },
+        "expected": {
+          "$ref": "#/$defs/Expected"
+        },
+        "capabilityId": {
+          "$ref": "#/$defs/Id"
+        },
+        "capabilityVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "arguments": {
+          "type": "object"
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 120000
+        }
+      },
+      "required": [
+        "type",
+        "protocolVersion",
+        "callId",
+        "op",
+        "requestRef",
+        "expected",
+        "capabilityId",
+        "capabilityVersion",
+        "arguments",
+        "timeoutMs"
+      ],
+      "additionalProperties": false
+    },
+    "ExecuteRequest": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "request"
+        },
+        "protocolVersion": {
+          "const": 1
+        },
+        "callId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "op": {
+          "const": "execute"
+        },
+        "requestRef": {
+          "$ref": "#/$defs/RequestRef"
+        },
+        "admissionId": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "type",
+        "protocolVersion",
+        "callId",
+        "op",
+        "requestRef",
+        "admissionId"
+      ],
+      "additionalProperties": false
+    },
+    "ResultRequest": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "request"
+        },
+        "protocolVersion": {
+          "const": 1
+        },
+        "callId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "op": {
+          "const": "result"
+        },
+        "requestRef": {
+          "$ref": "#/$defs/RequestRef"
+        }
+      },
+      "required": [
+        "type",
+        "protocolVersion",
+        "callId",
+        "op",
+        "requestRef"
+      ],
+      "additionalProperties": false
+    },
+    "CancelRequest": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "request"
+        },
+        "protocolVersion": {
+          "const": 1
+        },
+        "callId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "op": {
+          "const": "cancel"
+        },
+        "requestRef": {
+          "$ref": "#/$defs/RequestRef"
+        }
+      },
+      "required": [
+        "type",
+        "protocolVersion",
+        "callId",
+        "op",
+        "requestRef"
+      ],
+      "additionalProperties": false
+    },
+    "EventsRequest": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "request"
+        },
+        "protocolVersion": {
+          "const": 1
+        },
+        "callId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "op": {
+          "const": "events"
+        },
+        "after": {
+          "$ref": "#/$defs/Counter"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        }
+      },
+      "required": [
+        "type",
+        "protocolVersion",
+        "callId",
+        "op",
+        "after",
+        "limit"
+      ],
+      "additionalProperties": false
+    },
+    "Catalog": {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "callId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "type": {
+          "const": "catalog"
+        },
+        "host": {
+          "$ref": "#/$defs/Host"
+        },
+        "caller": {
+          "type": "object",
+          "properties": {
+            "applicationUid": {
+              "$ref": "#/$defs/Uid"
+            },
+            "androidUser": {
+              "$ref": "#/$defs/Counter"
+            },
+            "guestReportedUid": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Uid"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "applicationUid",
+            "androidUser",
+            "guestReportedUid"
+          ],
+          "additionalProperties": false
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Channel"
+          },
+          "maxItems": 8
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Capability"
+          },
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "callId",
+        "type",
+        "host",
+        "caller",
+        "channels",
+        "capabilities"
+      ],
+      "additionalProperties": true
+    },
+    "Admission": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "requestRef": {
+          "$ref": "#/$defs/RequestRef"
+        },
+        "originHostInstanceId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "payloadHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "issuedAtElapsedMs": {
+          "$ref": "#/$defs/Counter"
+        },
+        "expiresAtElapsedMs": {
+          "$ref": "#/$defs/Counter"
+        },
+        "capabilityId": {
+          "$ref": "#/$defs/Id"
+        },
+        "capabilityVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        }
+      },
+      "required": [
+        "id",
+        "requestRef",
+        "originHostInstanceId",
+        "payloadHash",
+        "issuedAtElapsedMs",
+        "expiresAtElapsedMs",
+        "capabilityId",
+        "capabilityVersion"
+      ],
+      "additionalProperties": false
+    },
+    "Prepared": {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "callId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "type": {
+          "const": "prepared"
+        },
+        "host": {
+          "$ref": "#/$defs/Host"
+        },
+        "admission": {
+          "$ref": "#/$defs/Admission"
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "callId",
+        "type",
+        "host",
+        "admission"
+      ],
+      "additionalProperties": true
+    },
+    "Receipt": {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "callId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "type": {
+          "const": "receipt"
+        },
+        "host": {
+          "$ref": "#/$defs/Host"
+        },
+        "requestRef": {
+          "$ref": "#/$defs/RequestRef"
+        },
+        "originHostInstanceId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "recordRevision": {
+          "$ref": "#/$defs/Counter"
+        },
+        "capabilityId": {
+          "$ref": "#/$defs/Id"
+        },
+        "lifecycle": {
+          "enum": [
+            "PREPARED",
+            "QUEUED",
+            "ACTIVE",
+            "SETTLED",
+            "UNCERTAIN"
+          ]
+        },
+        "facts": {
+          "$ref": "#/$defs/Facts"
+        },
+        "business": {
+          "enum": [
+            "PENDING",
+            "SUCCEEDED",
+            "FAILED",
+            "UNKNOWN",
+            "NOT_RUN"
+          ]
+        },
+        "selectedChannel": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "identity": {
+          "$ref": "#/$defs/Identity"
+        },
+        "exitCode": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outputComplete": {
+          "type": "boolean"
+        },
+        "cleanup": {
+          "$ref": "#/$defs/Cleanup"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Step"
+          },
+          "maxItems": 8
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Event"
+          },
+          "maxItems": 20
+        },
+        "effectEvidenceId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "payload": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "transportEvidence": {
+          "$ref": "#/$defs/TransportEvidence"
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "callId",
+        "type",
+        "host",
+        "requestRef",
+        "originHostInstanceId",
+        "recordRevision",
+        "capabilityId",
+        "lifecycle",
+        "facts",
+        "business",
+        "selectedChannel",
+        "identity",
+        "exitCode",
+        "outputComplete",
+        "cleanup",
+        "steps",
+        "events",
+        "effectEvidenceId",
+        "payload",
+        "transportEvidence"
+      ],
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "lifecycle": {
+                "enum": [
+                  "PREPARED",
+                  "QUEUED"
+                ]
+              }
+            },
+            "required": [
+              "lifecycle"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "facts": {
+                "type": "object",
+                "properties": {
+                  "dispatched": {
+                    "const": "NOT_DISPATCHED"
+                  },
+                  "executed": {
+                    "const": "NOT_EXECUTED"
+                  }
+                },
+                "required": [
+                  "dispatched",
+                  "executed"
+                ],
+                "additionalProperties": true
+              },
+              "business": {
+                "const": "PENDING"
+              }
+            },
+            "required": [
+              "facts",
+              "business"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "lifecycle": {
+                "const": "UNCERTAIN"
+              }
+            },
+            "required": [
+              "lifecycle"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "facts": {
+                "type": "object",
+                "properties": {
+                  "executed": {
+                    "const": "UNKNOWN"
+                  },
+                  "retry": {
+                    "enum": [
+                      "NEEDS_NEW_OBSERVATION",
+                      "NOT_SAFE",
+                      "UNKNOWN"
+                    ]
+                  },
+                  "partial": {
+                    "const": "UNKNOWN"
+                  }
+                },
+                "required": [
+                  "executed",
+                  "retry"
+                ],
+                "additionalProperties": true
+              },
+              "business": {
+                "const": "UNKNOWN"
+              },
+              "transportEvidence": {
+                "type": "object",
+                "properties": {
+                  "remoteExitConfirmed": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "remoteExitConfirmed"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "facts",
+              "business",
+              "transportEvidence"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "facts": {
+                "type": "object",
+                "properties": {
+                  "executed": {
+                    "const": "UNKNOWN"
+                  }
+                },
+                "required": [
+                  "executed"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "facts"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "transportEvidence": {
+                "type": "object",
+                "properties": {
+                  "remoteExitConfirmed": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "remoteExitConfirmed"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "transportEvidence"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "facts": {
+                "type": "object",
+                "properties": {
+                  "effect": {
+                    "const": "VERIFIED"
+                  }
+                },
+                "required": [
+                  "effect"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "facts"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "effectEvidenceId": {
+                "$ref": "#/$defs/Uuid"
+              }
+            },
+            "required": [
+              "effectEvidenceId"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "business": {
+                "const": "SUCCEEDED"
+              }
+            },
+            "required": [
+              "business"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "facts": {
+                "type": "object",
+                "properties": {
+                  "executed": {
+                    "const": "EXECUTED"
+                  },
+                  "partial": {
+                    "const": "NONE"
+                  }
+                },
+                "required": [
+                  "executed",
+                  "partial"
+                ],
+                "additionalProperties": true
+              },
+              "outputComplete": {
+                "const": true
+              }
+            },
+            "required": [
+              "facts",
+              "outputComplete"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "steps": {
+                "type": "array",
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "facts": {
+                      "type": "object",
+                      "properties": {
+                        "executed": {
+                          "const": "UNKNOWN"
+                        }
+                      },
+                      "required": [
+                        "executed"
+                      ],
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "facts"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "steps"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "lifecycle": {
+                "const": "UNCERTAIN"
+              },
+              "facts": {
+                "type": "object",
+                "properties": {
+                  "executed": {
+                    "const": "UNKNOWN"
+                  },
+                  "partial": {
+                    "const": "UNKNOWN"
+                  }
+                },
+                "required": [
+                  "executed",
+                  "partial"
+                ],
+                "additionalProperties": true
+              },
+              "business": {
+                "const": "UNKNOWN"
+              }
+            },
+            "required": [
+              "lifecycle",
+              "facts",
+              "business"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "lifecycle": {
+                "const": "SETTLED"
+              }
+            },
+            "required": [
+              "lifecycle"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "facts": {
+                "type": "object",
+                "properties": {
+                  "dispatched": {
+                    "enum": [
+                      "NOT_DISPATCHED",
+                      "DISPATCHED"
+                    ]
+                  },
+                  "executed": {
+                    "enum": [
+                      "NOT_EXECUTED",
+                      "EXECUTED"
+                    ]
+                  },
+                  "partial": {
+                    "enum": [
+                      "NONE",
+                      "PARTIAL"
+                    ]
+                  }
+                },
+                "required": [
+                  "dispatched",
+                  "executed",
+                  "partial"
+                ],
+                "additionalProperties": true
+              },
+              "business": {
+                "enum": [
+                  "SUCCEEDED",
+                  "FAILED",
+                  "UNKNOWN",
+                  "NOT_RUN"
+                ]
+              }
+            },
+            "required": [
+              "facts",
+              "business"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "lifecycle": {
+                "const": "SETTLED"
+              },
+              "business": {
+                "const": "UNKNOWN"
+              }
+            },
+            "required": [
+              "lifecycle",
+              "business"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "facts": {
+                "type": "object",
+                "properties": {
+                  "executed": {
+                    "const": "EXECUTED"
+                  },
+                  "effect": {
+                    "const": "UNKNOWN"
+                  }
+                },
+                "required": [
+                  "executed",
+                  "effect"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "facts"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "steps": {
+                "type": "array",
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "facts": {
+                      "type": "object",
+                      "properties": {
+                        "dispatched": {
+                          "const": "DISPATCHED"
+                        }
+                      },
+                      "required": [
+                        "dispatched"
+                      ],
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "facts"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "steps"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "facts": {
+                "type": "object",
+                "properties": {
+                  "dispatched": {
+                    "const": "DISPATCHED"
+                  }
+                },
+                "required": [
+                  "dispatched"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "facts"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "steps": {
+                "type": "array",
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "facts": {
+                      "type": "object",
+                      "properties": {
+                        "executed": {
+                          "const": "EXECUTED"
+                        }
+                      },
+                      "required": [
+                        "executed"
+                      ],
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "facts"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "steps"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "facts": {
+                "type": "object",
+                "properties": {
+                  "executed": {
+                    "enum": [
+                      "EXECUTED",
+                      "UNKNOWN"
+                    ]
+                  }
+                },
+                "required": [
+                  "executed"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "facts"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "business": {
+                "const": "SUCCEEDED"
+              }
+            },
+            "required": [
+              "business"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "lifecycle": {
+                "const": "SETTLED"
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "business": {
+                      "const": "SUCCEEDED"
+                    },
+                    "facts": {
+                      "type": "object",
+                      "properties": {
+                        "executed": {
+                          "const": "EXECUTED"
+                        },
+                        "partial": {
+                          "const": "NONE"
+                        }
+                      },
+                      "required": [
+                        "executed",
+                        "partial"
+                      ],
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "business",
+                    "facts"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "lifecycle",
+              "steps"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "allOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "lifecycle": {
+                    "const": "SETTLED"
+                  }
+                },
+                "required": [
+                  "lifecycle"
+                ],
+                "additionalProperties": true
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "steps": {
+                    "type": "array",
+                    "contains": {
+                      "type": "object",
+                      "properties": {
+                        "facts": {
+                          "type": "object",
+                          "properties": {
+                            "executed": {
+                              "const": "EXECUTED"
+                            }
+                          },
+                          "required": [
+                            "executed"
+                          ],
+                          "additionalProperties": true
+                        }
+                      },
+                      "required": [
+                        "facts"
+                      ],
+                      "additionalProperties": true
+                    }
+                  }
+                },
+                "required": [
+                  "steps"
+                ],
+                "additionalProperties": true
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "steps": {
+                    "type": "array",
+                    "contains": {
+                      "type": "object",
+                      "properties": {
+                        "facts": {
+                          "type": "object",
+                          "properties": {
+                            "executed": {
+                              "const": "NOT_EXECUTED"
+                            }
+                          },
+                          "required": [
+                            "executed"
+                          ],
+                          "additionalProperties": true
+                        }
+                      },
+                      "required": [
+                        "facts"
+                      ],
+                      "additionalProperties": true
+                    }
+                  }
+                },
+                "required": [
+                  "steps"
+                ],
+                "additionalProperties": true
+              }
+            ]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "facts": {
+                "type": "object",
+                "properties": {
+                  "partial": {
+                    "const": "PARTIAL"
+                  }
+                },
+                "required": [
+                  "partial"
+                ],
+                "additionalProperties": true
+              },
+              "business": {
+                "const": "FAILED"
+              }
+            },
+            "required": [
+              "facts",
+              "business"
+            ],
+            "additionalProperties": true
+          }
+        },
+        {
+          "if": {
+            "allOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "lifecycle": {
+                    "const": "SETTLED"
+                  }
+                },
+                "required": [
+                  "lifecycle"
+                ],
+                "additionalProperties": true
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "steps": {
+                    "type": "array",
+                    "contains": {
+                      "type": "object",
+                      "properties": {
+                        "business": {
+                          "const": "SUCCEEDED"
+                        }
+                      },
+                      "required": [
+                        "business"
+                      ],
+                      "additionalProperties": true
+                    }
+                  }
+                },
+                "required": [
+                  "steps"
+                ],
+                "additionalProperties": true
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "steps": {
+                    "type": "array",
+                    "contains": {
+                      "type": "object",
+                      "properties": {
+                        "business": {
+                          "enum": [
+                            "FAILED",
+                            "NOT_RUN"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "business"
+                      ],
+                      "additionalProperties": true
+                    }
+                  }
+                },
+                "required": [
+                  "steps"
+                ],
+                "additionalProperties": true
+              }
+            ]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "facts": {
+                "type": "object",
+                "properties": {
+                  "partial": {
+                    "const": "PARTIAL"
+                  }
+                },
+                "required": [
+                  "partial"
+                ],
+                "additionalProperties": true
+              },
+              "business": {
+                "const": "FAILED"
+              }
+            },
+            "required": [
+              "facts",
+              "business"
+            ],
+            "additionalProperties": true
+          }
+        }
+      ]
+    },
+    "EventBatch": {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "callId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "type": {
+          "const": "eventBatch"
+        },
+        "host": {
+          "$ref": "#/$defs/Host"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Event"
+          },
+          "maxItems": 20
+        },
+        "nextSequence": {
+          "$ref": "#/$defs/Counter"
+        },
+        "gap": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "callId",
+        "type",
+        "host",
+        "events",
+        "nextSequence",
+        "gap"
+      ],
+      "additionalProperties": true
+    },
+    "Fault": {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "callId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "type": {
+          "const": "fault"
+        },
+        "source": {
+          "enum": [
+            "HOST",
+            "PLUGIN_TRANSPORT"
+          ]
+        },
+        "host": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Host"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "code": {
+          "$ref": "#/$defs/Code"
+        },
+        "requestRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RequestRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "facts": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Facts"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "nextAction": {
+          "enum": [
+            "NONE",
+            "REFRESH_STATUS",
+            "QUERY_REQUEST",
+            "NEW_OBSERVATION",
+            "USER_ACTION"
+          ]
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "callId",
+        "type",
+        "source",
+        "host",
+        "code",
+        "requestRef",
+        "facts",
+        "nextAction"
+      ],
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "enum": [
+                  "REQUEST_UNKNOWN",
+                  "RESULT_EXPIRED",
+                  "RESPONSE_LOST_AFTER_SUBMIT"
+                ]
+              }
+            },
+            "required": [
+              "code"
+            ],
+            "additionalProperties": true
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "facts": {
+                "type": "object",
+                "properties": {
+                  "executed": {
+                    "const": "UNKNOWN"
+                  },
+                  "partial": {
+                    "const": "UNKNOWN"
+                  },
+                  "retry": {
+                    "enum": [
+                      "NEEDS_NEW_OBSERVATION",
+                      "NOT_SAFE",
+                      "UNKNOWN"
+                    ]
+                  }
+                },
+                "required": [
+                  "executed",
+                  "partial",
+                  "retry"
+                ],
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "facts"
+            ],
+            "additionalProperties": true
+          }
+        }
+      ]
+    },
+    "AppPresentArguments": {
+      "type": "object",
+      "properties": {
+        "packageName": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$"
+        },
+        "wakeScreen": {
+          "type": "boolean"
+        },
+        "bringToFront": {
+          "type": "boolean"
+        },
+        "reminder": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "const": "HOST_FULLSCREEN_ACTIVITY"
+                },
+                "durationMs": {
+                  "type": "integer",
+                  "minimum": 1000,
+                  "maximum": 60000
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                }
+              },
+              "required": [
+                "mode",
+                "durationMs",
+                "text"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "packageName",
+        "wakeScreen",
+        "bringToFront",
+        "reminder"
+      ],
+      "additionalProperties": false
+    },
+    "ChannelProbeArguments": {
+      "type": "object",
+      "properties": {
+        "channelId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "channelId"
+      ],
+      "additionalProperties": false
+    },
+    "TransportEvidence": {
+      "type": "object",
+      "properties": {
+        "localExitConfirmed": {
+          "type": "boolean"
+        },
+        "remoteExitConfirmed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "localExitConfirmed",
+        "remoteExitConfirmed"
+      ],
+      "additionalProperties": false,
+      "description": "原始传输回执快照，保留既有 UNKNOWN/remoteExitConfirmed 兼容约束；后续资源退出核验单列 cleanup.evidenceId，不回写这份快照。"
+    }
+  }
+}

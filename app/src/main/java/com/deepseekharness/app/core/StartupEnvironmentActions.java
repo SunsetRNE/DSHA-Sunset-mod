@@ -14,6 +14,7 @@ final class StartupEnvironmentActions implements StartupPipeline.Actions {
   private final long generation;
   private final Consumer<String> stage;
   private final Consumer<String> status;
+  private final WebLifecycleController.WebRun run;
 
   StartupEnvironmentActions(
       HarnessController owner,
@@ -28,10 +29,33 @@ final class StartupEnvironmentActions implements StartupPipeline.Actions {
     this.generation = generation;
     this.stage = stage;
     this.status = status;
+    this.run = state.runs.get(generation);
   }
 
   public boolean current() {
-    return state.lifecycle.isCurrent(generation);
+    synchronized (state.lifecycle) {
+      if (!state.lifecycle.isCurrent(generation)) return false;
+      if (run == null || run.handoff == null) return true;
+      boolean valid =
+          state.currentRun == run
+              && run.handoff
+                  .admission()
+                  .current(
+                      state,
+                      state.stopOperation,
+                      generation,
+                      state.startProtection.cancellationRevision(),
+                      state.startProtection);
+      if (!valid) state.diagnostics.message(generation, "WEB_STOP_HANDOFF_REVOKED");
+      return valid;
+    }
+  }
+
+  public boolean reusePriorStop() throws IOException {
+    if (run == null || run.handoff == null) return false;
+    if (!current() || !run.handoff.recheck().unchanged(run) || !current())
+      throw new IOException("WEB_STOP_HANDOFF_CHANGED_OR_UNKNOWN");
+    return true;
   }
 
   public void yieldPluginQuery() {
@@ -51,6 +75,12 @@ final class StartupEnvironmentActions implements StartupPipeline.Actions {
     if (!current()) return java.util.List.of();
     if (Thread.currentThread().isInterrupted())
       throw new java.io.InterruptedIOException("STARTUP_STOP_INTERRUPTED");
+    if (run != null && run.handoff != null) {
+      reusePriorStop();
+      // 完整证明只省去信号与等待；旧桥租约与对象释放仍由原 owner 完成。
+      processes.releasePrior(generation);
+      return java.util.List.of();
+    }
     java.util.List<com.deepseekharness.app.util.WebStopDiagnostic> facts =
         new java.util.ArrayList<>(processes.stopOwnedLauncherFacts());
     if (!facts.isEmpty()) return java.util.List.copyOf(facts);

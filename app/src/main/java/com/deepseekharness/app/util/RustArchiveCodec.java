@@ -11,8 +11,8 @@ import java.util.zip.GZIPOutputStream;
  *
  * <p>纯 Java、零 Android import。常量/错误映射与流工厂复用冻结 ABI；
  * 流式实现见 {@link RustGzipOutputStream}（编码）与 {@link RustGzipInputStream}（严格解码）。
- * A3 slice4 在消费输入/写目标前选择一次后端，运行层开关仍由
- * {@link RustBackends#archiveSelection()} 默认关闭，范围未知或超 ABI 时保留 JVM。
+ * A3 slice4 在消费输入/写目标前选择一次后端，运行层开关由 {@code DshaApp} 启动时默认启用
+ * （{@link RustBackends#archiveSelection()}），范围未知或超 ABI 时保留 JVM。
  *
  * <p>错误消息与 {@code app/src/main/java/com/deepseekharness/app/backup/StrictGzipInputStream}
  * 的 {@code IOException} 文本一一对应；冻结 ABI 把该读取器的 {@code GZIP_FLAGS} 合入

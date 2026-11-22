@@ -1,0 +1,58 @@
+// 运行期行为门禁，与结构等价的编译/测试约定分开。
+// 只有完整、未过滤 CI 设置此状态目录；普通本机测试、filtered/source-only 不产生 full 凭据。
+def contractState = System.getenv('DSHA_UNIT_TEST_STATE')
+if (contractState) {
+    def contractRoot = rootProject.projectDir.absolutePath
+    def contractTool = rootProject.file('tools/unit_test_contract.py').absolutePath
+    def contractPython = System.getenv('DSHA_PYTHON') ?: 'python3'
+    allprojects { module ->
+        module.tasks.withType(Test).configureEach { testTask ->
+            // 即使开启跨项目并行，实际 Test 也须等真实模块/任务图审计通过。
+            testTask.dependsOn(rootProject.tasks.named('verifyDshaBuildConventions'))
+            testTask.doFirst {
+                // 重新核验本次真实编译依赖与有效输入；配置审计里的 pending generated 在这里不得残留。
+                def compileProof = rootProject.ext.dshaWriteCompileProof(testTask, new File(contractState))
+                // 分类过滤属于 JUnitOptions，不出现在 Test.filter；full 必须一起绑定。
+                def actualJUnitOptions = testTask.options
+                if (!(actualJUnitOptions instanceof org.gradle.api.tasks.testing.junit.JUnitOptions))
+                    throw new GradleException("DSHA_TEST_FRAMEWORK: ${testTask.path} requires JUnit4")
+                def actualFilters = (testTask.filter.includePatterns
+                        + testTask.filter.commandLineIncludePatterns
+                        + testTask.filter.excludePatterns.collect { 'exclude:' + it }
+                        + actualJUnitOptions.includeCategories.collect { 'junit4-include-category:' + it }
+                        + actualJUnitOptions.excludeCategories.collect { 'junit4-exclude-category:' + it }).unique().sort()
+                def command = [contractPython, contractTool, 'task-begin',
+                        '--root', contractRoot, '--state', contractState, '--task', testTask.path,
+                        '--compile-proof', compileProof.absolutePath,
+                        '--source-only', (testTask.systemProperties['dsha.sourceOnlyTests'] ?: 'false').toString(),
+                        '--filters-json', groovy.json.JsonOutput.toJson(actualFilters),
+                        '--includes-json', groovy.json.JsonOutput.toJson(testTask.includes.toList().sort()),
+                        '--excludes-json', groovy.json.JsonOutput.toJson(testTask.excludes.toList().sort()),
+                        '--scan-for-test-classes', testTask.scanForTestClasses.toString(),
+                        '--test-classes-dirs-json', groovy.json.JsonOutput.toJson(
+                                testTask.testClassesDirs.files.collect { it.absolutePath }.sort()),
+                        '--rust-required', (testTask.systemProperties['dsha.rust.required'] ?: 'false').toString()]
+                def actualRustLibrary = testTask.systemProperties['dsha.rust.hostLib']
+                if (actualRustLibrary) command += ['--rust-library', actualRustLibrary.toString()]
+                def execution = module.providers.exec {
+                    workingDir rootProject.projectDir
+                    commandLine command
+                }
+                def result = execution.result.get()
+                if (result.exitValue != 0) module.logger.error(execution.standardError.asText.get())
+                result.assertNormalExitValue()
+            }
+            // Test 自身失败时不会运行此动作；UP-TO-DATE / NO-SOURCE / SKIPPED 也没有成功凭据。
+            testTask.doLast {
+                def execution = module.providers.exec {
+                    workingDir rootProject.projectDir
+                    commandLine contractPython, contractTool, 'task-end', '--root', contractRoot,
+                            '--state', contractState, '--task', testTask.path, '--outcome', 'SUCCESS'
+                }
+                def result = execution.result.get()
+                if (result.exitValue != 0) module.logger.error(execution.standardError.asText.get())
+                result.assertNormalExitValue()
+            }
+        }
+    }
+}

@@ -132,7 +132,7 @@ Android 侧由 `device/NetworkStateMonitor` 统一读取默认网络的 `LinkPro
 native 模式也可带这个 require，但脚本内部见 `native` 就不替换 lookup。
 所以不能仅凭 NODE_OPTIONS 中出现文件名就认定兼容重试已启用。
 
-主启动由 [RuntimeLauncher.java](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeLauncher.java) 组装环境。
+主启动由 [RuntimeLauncher.kt](../app/src/main/java/com/deepseekharness/app/runtime/RuntimeLauncher.kt) 组装环境。
 它在 `ProcessBuilder` 层注入，命令入口是 `/bin/bash -c`。
 这个入口不是登录 shell，不保证读取 `/etc/profile` 或用户 `.profile`。
 把 DNS 环境只写进 profile，不能代替这一层注入。

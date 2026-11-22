@@ -110,45 +110,21 @@ public final class UpdateFlowAuditInstrumentation extends Instrumentation {
   }
 
   private void startup() throws Exception {
-    feed.body =
-        new JSONObject()
-            .put("schemaVersion", 1)
-            .put(
-                "releases",
-                new JSONArray()
-                    .put(release(UpdatePolicy.STABLE, 1))
-                    .put(release(UpdatePolicy.PREVIEW, 2)))
-            .toString();
     reset(UpdatePolicy.PREVIEW, null, null, "");
-    runOnMainSync(() -> engine.checkOnStartup(false));
-    check(feed.requests == 0, "关闭启动开关仍发出请求");
     runOnMainSync(
         () -> {
+          engine.checkOnStartup(false);
           engine.checkOnStartup(true);
           engine.checkOnStartup(true);
+          check(engine.startupNotice() == null, "普通启动不能生成 APK 更新提示");
+          engine.markStartupNoticeShown(null);
         });
     idle();
-    check(feed.requests == 1, "启动/旋转重复请求清单");
-    check(UpdatePolicy.PREVIEW.equals(engine.state().getValue().release.channel), "启动未使用所选预览通道");
-    runOnMainSync(
-        () -> {
-          UpdatePolicy.Release notice = engine.startupNotice();
-          check(notice != null, "自动检查成功没有可见提示候选");
-          check(engine.startupNotice() == notice, "未显示的提示被 Web/旋转吞掉");
-          engine.markStartupNoticeShown(notice);
-          check(engine.startupNotice() == null, "提示被重复领取");
-          engine.checkOnStartup(true);
-        });
-    check(feed.requests == 1, "从 Web 返回或旋转又检查");
-    reset(UpdatePolicy.STABLE, null, null, "");
-    runOnMainSync(() -> engine.checkOnStartup(true));
+    check(feed.requests == 0, "启动/旋转/旧偏好仍触发清单请求");
+    runOnMainSync(engine::check);
     idle();
-    check(UpdatePolicy.STABLE.equals(engine.state().getValue().release.channel), "启动忽略所选稳定通道");
-    feed.fail = true;
-    reset(UpdatePolicy.PREVIEW, null, null, "");
-    runOnMainSync(() -> engine.checkOnStartup(true));
-    idle();
-    runOnMainSync(() -> check(engine.startupNotice() == null, "网络失败误报新版本"));
+    check(feed.requests == 1, "用户明确检查没有发出一次请求");
+    check(engine.startupNotice() == null, "主动检查被转成启动自动提示");
   }
 
   private void channelFailures() throws Exception {
@@ -315,10 +291,10 @@ public final class UpdateFlowAuditInstrumentation extends Instrumentation {
           root[0] =
               android.view.LayoutInflater.from(themed)
                   .inflate(com.deepseekharness.app.R.layout.activity_update, null);
-          engine.checkOnStartup(true);
+          engine.check();
           check(
               engine.state().getValue().stage == UpdateRepository.Stage.CHECKING,
-              "自动检查未标注 CHECKING 阶段");
+              "用户检查未标注 CHECKING 阶段");
           check(
               engine.state().getValue().downloaded == engine.state().getValue().total,
               "夹具应保留已下载的完整包");

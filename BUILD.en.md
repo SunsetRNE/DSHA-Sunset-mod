@@ -1,6 +1,7 @@
 # DSH-A-Su build and signing instructions
 
-> Current identity (build366): `DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261114.1717-dsh0.2.2-rc.1` / versionCode 366.
+> Current candidate identity (build368): `DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261116.0500-dsh0.2.2-rc.1` / versionCode 368.
+> build367 is released (tag `dsha-a-su-build367-20261115-230955`); build368 full CI and device acceptance are pending. The steps here are not passing receipts.
 > Single Standard variant: minSdk 30 (Android 11+), arm64-v8a, system WebView. The old `low`/GeckoView line and the separate island package are gone.
 > Signing: a newly created Mod release certificate (SHA-256 `a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d`); the original E7E3 key is no longer used.
 > Fixed build inputs: published as a public pre-release Release asset and pinned by SHA-256; see [docs/fixed-build-inputs.md](docs/fixed-build-inputs.md).
@@ -12,12 +13,14 @@ Read [README](README.en.md), [AGENTS](AGENTS.en.md) and [CONTRIBUTING](CONTRIBUT
 
 | Input | Requirement |
 |---|---|
-| JDK / native language | Java 17, no Kotlin |
+| JDK / native language | Java 17 / Kotlin (AGP 9.1.1 built-in; KGP pinned to 2.2.10) |
 | Gradle / AGP | Repository Wrapper 9.3.1 / AGP 9.1.1 |
 | Android SDK | `platforms;android-37.0`, build-tools 36.0.0; compile/target API 37 |
 | NDK | 26.3.11579264 (only for native builds; the repo ships prebuilt arm64 JNI) |
 | Python / Node | Python 3.9+ for generators (`DSHA_PYTHON`); Node 24; CI pins in `ci/toolchain.lock.json` |
 | Standard | minSdk 30, system WebView, arm64-v8a (the only variant) |
+
+build368's 517 managed launcher inputs include 439 Java and 18 Kotlin files; these are not whole-repository production-source totals. Kotlin uses AGP built-in support with KGP 2.2.10 pinned; do not apply `org.jetbrains.kotlin.android`. The former “no Kotlin” wording described the older Java-only state; the current source requires both toolchains. See the [Kotlin toolchain](docs/kotlin-toolchain.md) for compiler and formatting gates.
 
 There is one Standard build line. The test variant only changes package/version via `-Pdsha.sunsetTest=true` (`io.github.sunsetrne.dsha.test`); it coexists with the release package and has isolated data. The original `dsh.android.client` and the older `com.dsh.client` are separate packages that this Mod does not overwrite.
 

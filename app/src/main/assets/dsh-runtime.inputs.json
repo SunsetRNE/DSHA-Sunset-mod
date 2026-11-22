@@ -1,7 +1,7 @@
 {
   "version": "0.2.2-rc.1",
   "inputs": {
-    "tools/build-dsh-runtime.py": "cd0e082b8e16fff56e043e6774f4ffd714a2a65719993a254be86cc9f357eb87",
+    "tools/build-dsh-runtime.py": "2f9188436818edcdffd45cf84f7ba2cf29659a8c9772ac092a95866e6e7d4e2a",
     "tools/source_text.py": "fbe5428810615989be55f00b944c2cd98a03c087992630ecb9fff03e91edc23c",
     "tools/dsh-runtime/package.json": "79a621a17e46cbf06e517a57af7672ec21e899bd25a83bc0340207fa84b0aefa",
     "tools/dsh-runtime/package-lock.json": "f327e64ffe7cdd3d67ef180ad940f86fe754f76367453433af1dac7afa3c9e76",
@@ -91,7 +91,9 @@
     "app/src/main/assets/web-integration/session-interaction.js": "6dac58b61d0523376aa514d17019344f56e25da62e7b2530c40b45b02b50a280",
     "app/src/main/assets/welcome-notice-patch.json": "d81ac1acbb44c6628df88887d8d87fa0fb36982972bfda82e59630df0e8d5126",
     "tools/runtime_stable_patches.py": "a3f8a612f433cc024e6495bb180bbff8d7206482019c5710065f3c4cdc175873",
-    "tools/runtime_input_contract.py": "101ff51d6d02a4847356b82fd546e1eb32ffa567d5d11a918de614950a02fc2f"
+    "tools/runtime_input_contract.py": "8176ad1fe3815079876fb7147e4dbfb7f72967bf99591aa19f968327e42a1fc0",
+    "tools/source_layout.py": "585abbc8a6e5fd7f4632ea2a2782c5bf0e5d50c12e16142ec4b42531a76c4113",
+    "ci/source-layout.json": "4a3ddda20d7e7a3b5064806736b8400a2573ac82eda710e99084a65cfb4590ac"
   },
   "archive_sha256": "c1bd68330a10776f304a92a19d8f82c184c1abf523275a9e28dbb2c2e764e4fe"
 }

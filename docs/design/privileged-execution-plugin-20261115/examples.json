@@ -1,0 +1,2413 @@
+{
+  "draft": "0.1",
+  "fixtureOnly": true,
+  "baseline": "71e331854dc3e4d76b1d601a61bd5b6d48398e84",
+  "description": "独立的合成向量，重复 ID 不表示同一执行日志；虚构接口、身份和时序。valid 只表示符合本数据 Schema，不证明授权、效果、身份新鲜度或当前已实现。",
+  "cases": [
+    {
+      "id": "status-no-probe",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "状态请求不探测 su，不触发授权。",
+      "value": {
+        "type": "request",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "op": "status"
+      }
+    },
+    {
+      "id": "describe",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "request",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "op": "describe",
+        "capabilityId": "app.present"
+      }
+    },
+    {
+      "id": "prepare-combination",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "示例组合能力，不代表当前已有 API。",
+      "value": {
+        "type": "request",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "op": "prepare",
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "expected": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "capabilityId": "app.present",
+        "capabilityVersion": 1,
+        "arguments": {
+          "packageName": "io.example.timer",
+          "wakeScreen": true,
+          "bringToFront": true,
+          "reminder": {
+            "mode": "HOST_FULLSCREEN_ACTIVITY",
+            "durationMs": 10000,
+            "text": "示例提醒"
+          }
+        },
+        "timeoutMs": 30000
+      }
+    },
+    {
+      "id": "combination-arguments",
+      "schemaRef": "#/$defs/AppPresentArguments",
+      "valid": true,
+      "note": "",
+      "value": {
+        "packageName": "io.example.timer",
+        "wakeScreen": true,
+        "bringToFront": true,
+        "reminder": {
+          "mode": "HOST_FULLSCREEN_ACTIVITY",
+          "durationMs": 10000,
+          "text": "示例提醒"
+        }
+      }
+    },
+    {
+      "id": "prepare-explicit-identity-probe",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "探测是显式任务，不随 status 自动发生。",
+      "value": {
+        "type": "request",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "op": "prepare",
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "expected": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "capabilityId": "channel.identity.probe",
+        "capabilityVersion": 1,
+        "arguments": {
+          "channelId": "root"
+        },
+        "timeoutMs": 30000
+      }
+    },
+    {
+      "id": "probe-arguments",
+      "schemaRef": "#/$defs/ChannelProbeArguments",
+      "valid": true,
+      "note": "",
+      "value": {
+        "channelId": "root"
+      }
+    },
+    {
+      "id": "prepared-not-a-permit",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "prepared",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "admission": {
+          "id": "55555555-5555-4555-8555-555555555555",
+          "requestRef": {
+            "epoch": "22222222-2222-4222-8222-222222222222",
+            "id": "44444444-4444-4444-8444-444444444444"
+          },
+          "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+          "payloadHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "issuedAtElapsedMs": 10000,
+          "expiresAtElapsedMs": 70000,
+          "capabilityId": "app.present",
+          "capabilityVersion": 1
+        }
+      }
+    },
+    {
+      "id": "execute-immutable-plan",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "request",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "op": "execute",
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "admissionId": "55555555-5555-4555-8555-555555555555"
+      }
+    },
+    {
+      "id": "query-after-reload",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "request",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "op": "result",
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        }
+      }
+    },
+    {
+      "id": "cancel-request-only",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "request",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "op": "cancel",
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        }
+      }
+    },
+    {
+      "id": "events",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "request",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "op": "events",
+        "after": 10,
+        "limit": 20
+      }
+    },
+    {
+      "id": "catalog-root-disabled-tool-remains",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "catalog",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "caller": {
+          "applicationUid": 12345,
+          "androidUser": 0,
+          "guestReportedUid": 0
+        },
+        "channels": [
+          {
+            "id": "root",
+            "kind": "ROOT",
+            "authorityReadState": "READY",
+            "enabled": false,
+            "backendVisible": true,
+            "channelAuthorization": "UNVERIFIED",
+            "bound": false,
+            "connected": false,
+            "connectionEvidence": "UNVERIFIED",
+            "identity": {
+              "executionUid": null,
+              "source": "UNVERIFIED",
+              "observedAtElapsedMs": null,
+              "evidenceId": null
+            }
+          }
+        ],
+        "capabilities": [
+          {
+            "id": "app.present",
+            "version": 1,
+            "supported": true,
+            "availability": "UNAVAILABLE",
+            "authorization": "ASK",
+            "readOnly": false,
+            "mayRequestIdentity": false,
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "packageName": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$"
+                },
+                "wakeScreen": {
+                  "type": "boolean"
+                },
+                "bringToFront": {
+                  "type": "boolean"
+                },
+                "reminder": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "mode": {
+                          "const": "HOST_FULLSCREEN_ACTIVITY"
+                        },
+                        "durationMs": {
+                          "type": "integer",
+                          "minimum": 1000,
+                          "maximum": 60000
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        }
+                      },
+                      "required": [
+                        "mode",
+                        "durationMs",
+                        "text"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "packageName",
+                "wakeScreen",
+                "bringToFront",
+                "reminder"
+              ],
+              "additionalProperties": false
+            },
+            "resultSchema": {
+              "type": "object"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "catalog-changing-not-user-off",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "catalog",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "caller": {
+          "applicationUid": 12345,
+          "androidUser": 0,
+          "guestReportedUid": 0
+        },
+        "channels": [
+          {
+            "id": "root",
+            "kind": "ROOT",
+            "authorityReadState": "CHANGING",
+            "enabled": null,
+            "backendVisible": true,
+            "channelAuthorization": "UNVERIFIED",
+            "bound": false,
+            "connected": false,
+            "connectionEvidence": "UNVERIFIED",
+            "identity": {
+              "executionUid": null,
+              "source": "UNVERIFIED",
+              "observedAtElapsedMs": null,
+              "evidenceId": null
+            }
+          }
+        ],
+        "capabilities": [
+          {
+            "id": "app.present",
+            "version": 1,
+            "supported": true,
+            "availability": "UNAVAILABLE",
+            "authorization": "ASK",
+            "readOnly": false,
+            "mayRequestIdentity": false,
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "packageName": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$"
+                },
+                "wakeScreen": {
+                  "type": "boolean"
+                },
+                "bringToFront": {
+                  "type": "boolean"
+                },
+                "reminder": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "mode": {
+                          "const": "HOST_FULLSCREEN_ACTIVITY"
+                        },
+                        "durationMs": {
+                          "type": "integer",
+                          "minimum": 1000,
+                          "maximum": 60000
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        }
+                      },
+                      "required": [
+                        "mode",
+                        "durationMs",
+                        "text"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "packageName",
+                "wakeScreen",
+                "bringToFront",
+                "reminder"
+              ],
+              "additionalProperties": false
+            },
+            "resultSchema": {
+              "type": "object"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "revoked-before-dispatch",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "SETTLED",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "NOT_DISPATCHED",
+          "executed": "NOT_EXECUTED",
+          "partial": "NONE",
+          "effect": "NOT_APPLICABLE",
+          "retry": "NOT_SAFE",
+          "reasonCode": "AUTHORIZATION_REVOKED"
+        },
+        "business": "NOT_RUN",
+        "selectedChannel": null,
+        "identity": {
+          "executionUid": null,
+          "source": "UNVERIFIED",
+          "observedAtElapsedMs": null,
+          "evidenceId": null
+        },
+        "exitCode": null,
+        "outputComplete": true,
+        "cleanup": {
+          "resources": "NOT_CREATED",
+          "evidenceId": null
+        },
+        "steps": [],
+        "events": [],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": false
+        }
+      }
+    },
+    {
+      "id": "revoked-after-dispatch-cancel-not-exit",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "UNCERTAIN",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "DISPATCHED",
+          "executed": "UNKNOWN",
+          "partial": "UNKNOWN",
+          "effect": "UNKNOWN",
+          "retry": "NEEDS_NEW_OBSERVATION",
+          "reasonCode": "EXECUTION_UNKNOWN"
+        },
+        "business": "UNKNOWN",
+        "selectedChannel": "root",
+        "identity": {
+          "executionUid": null,
+          "source": "UNVERIFIED",
+          "observedAtElapsedMs": null,
+          "evidenceId": null
+        },
+        "exitCode": null,
+        "outputComplete": false,
+        "cleanup": {
+          "resources": "PENDING",
+          "evidenceId": null
+        },
+        "steps": [],
+        "events": [
+          {
+            "sequence": 11,
+            "kind": "CANCEL_ACCEPTED",
+            "requestRef": {
+              "epoch": "22222222-2222-4222-8222-222222222222",
+              "id": "44444444-4444-4444-8444-444444444444"
+            },
+            "recordRevision": 1
+          }
+        ],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": false,
+          "remoteExitConfirmed": false
+        }
+      }
+    },
+    {
+      "id": "host-restart-intent-unresolved",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "UNCERTAIN",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "UNKNOWN",
+          "executed": "UNKNOWN",
+          "partial": "UNKNOWN",
+          "effect": "UNKNOWN",
+          "retry": "NEEDS_NEW_OBSERVATION",
+          "reasonCode": "EXECUTION_UNKNOWN"
+        },
+        "business": "UNKNOWN",
+        "selectedChannel": null,
+        "identity": {
+          "executionUid": null,
+          "source": "UNVERIFIED",
+          "observedAtElapsedMs": null,
+          "evidenceId": null
+        },
+        "exitCode": null,
+        "outputComplete": true,
+        "cleanup": {
+          "resources": "UNKNOWN",
+          "evidenceId": null
+        },
+        "steps": [],
+        "events": [],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": false
+        }
+      }
+    },
+    {
+      "id": "exit-125-is-not-an-unknown-tag",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "SETTLED",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "DISPATCHED",
+          "executed": "EXECUTED",
+          "partial": "NONE",
+          "effect": "UNVERIFIED",
+          "retry": "NOT_SAFE",
+          "reasonCode": "EXECUTION_COMPLETED"
+        },
+        "business": "FAILED",
+        "selectedChannel": "app",
+        "identity": {
+          "executionUid": 12345,
+          "source": "EXECUTOR_OBSERVED",
+          "observedAtElapsedMs": 10000,
+          "evidenceId": "66666666-6666-4666-8666-666666666666"
+        },
+        "exitCode": 125,
+        "outputComplete": true,
+        "cleanup": {
+          "resources": "RELEASED",
+          "evidenceId": "88888888-8888-4888-8888-888888888888"
+        },
+        "steps": [],
+        "events": [],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": true
+        }
+      }
+    },
+    {
+      "id": "effect-verified-with-evidence-reference",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "SETTLED",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "DISPATCHED",
+          "executed": "EXECUTED",
+          "partial": "NONE",
+          "effect": "VERIFIED",
+          "retry": "NOT_SAFE",
+          "reasonCode": "EXECUTION_COMPLETED"
+        },
+        "business": "SUCCEEDED",
+        "selectedChannel": "app",
+        "identity": {
+          "executionUid": 12345,
+          "source": "EXECUTOR_OBSERVED",
+          "observedAtElapsedMs": 10000,
+          "evidenceId": "66666666-6666-4666-8666-666666666666"
+        },
+        "exitCode": null,
+        "outputComplete": true,
+        "cleanup": {
+          "resources": "RELEASED",
+          "evidenceId": "88888888-8888-4888-8888-888888888888"
+        },
+        "steps": [],
+        "events": [],
+        "effectEvidenceId": "77777777-7777-4777-8777-777777777777",
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": true
+        }
+      }
+    },
+    {
+      "id": "known-partial-completion",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "SETTLED",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "DISPATCHED",
+          "executed": "EXECUTED",
+          "partial": "PARTIAL",
+          "effect": "UNVERIFIED",
+          "retry": "NOT_SAFE",
+          "reasonCode": "COMPOSITE_PARTIAL"
+        },
+        "business": "FAILED",
+        "selectedChannel": null,
+        "identity": {
+          "executionUid": null,
+          "source": "UNVERIFIED",
+          "observedAtElapsedMs": null,
+          "evidenceId": null
+        },
+        "exitCode": null,
+        "outputComplete": true,
+        "cleanup": {
+          "resources": "NOT_CREATED",
+          "evidenceId": null
+        },
+        "steps": [
+          {
+            "id": "wake",
+            "facts": {
+              "resultVersion": 1,
+              "dispatched": "DISPATCHED",
+              "executed": "EXECUTED",
+              "partial": "NONE",
+              "effect": "UNVERIFIED",
+              "retry": "NOT_SAFE",
+              "reasonCode": "EXECUTION_COMPLETED"
+            },
+            "business": "SUCCEEDED",
+            "identity": {
+              "executionUid": 12345,
+              "source": "EXECUTOR_OBSERVED",
+              "observedAtElapsedMs": 10000,
+              "evidenceId": "66666666-6666-4666-8666-666666666666"
+            },
+            "outputComplete": true,
+            "exitCode": 0,
+            "effectEvidenceId": null
+          },
+          {
+            "id": "launch",
+            "facts": {
+              "resultVersion": 1,
+              "dispatched": "NOT_DISPATCHED",
+              "executed": "NOT_EXECUTED",
+              "partial": "NONE",
+              "effect": "NOT_APPLICABLE",
+              "retry": "NOT_SAFE",
+              "reasonCode": "AUTHORIZATION_REVOKED"
+            },
+            "business": "NOT_RUN",
+            "identity": {
+              "executionUid": null,
+              "source": "UNVERIFIED",
+              "observedAtElapsedMs": null,
+              "evidenceId": null
+            },
+            "outputComplete": true,
+            "exitCode": null,
+            "effectEvidenceId": null
+          }
+        ],
+        "events": [],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": false
+        }
+      }
+    },
+    {
+      "id": "unknown-step-dominates-summary",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "UNCERTAIN",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "DISPATCHED",
+          "executed": "UNKNOWN",
+          "partial": "UNKNOWN",
+          "effect": "UNKNOWN",
+          "retry": "NEEDS_NEW_OBSERVATION",
+          "reasonCode": "EXECUTION_UNKNOWN"
+        },
+        "business": "UNKNOWN",
+        "selectedChannel": null,
+        "identity": {
+          "executionUid": null,
+          "source": "UNVERIFIED",
+          "observedAtElapsedMs": null,
+          "evidenceId": null
+        },
+        "exitCode": null,
+        "outputComplete": false,
+        "cleanup": {
+          "resources": "UNKNOWN",
+          "evidenceId": null
+        },
+        "steps": [
+          {
+            "id": "wake",
+            "facts": {
+              "resultVersion": 1,
+              "dispatched": "DISPATCHED",
+              "executed": "EXECUTED",
+              "partial": "NONE",
+              "effect": "UNVERIFIED",
+              "retry": "NOT_SAFE",
+              "reasonCode": "EXECUTION_COMPLETED"
+            },
+            "business": "SUCCEEDED",
+            "identity": {
+              "executionUid": 12345,
+              "source": "EXECUTOR_OBSERVED",
+              "observedAtElapsedMs": 10000,
+              "evidenceId": "66666666-6666-4666-8666-666666666666"
+            },
+            "outputComplete": true,
+            "exitCode": 0,
+            "effectEvidenceId": null
+          },
+          {
+            "id": "launch",
+            "facts": {
+              "resultVersion": 1,
+              "dispatched": "UNKNOWN",
+              "executed": "UNKNOWN",
+              "partial": "UNKNOWN",
+              "effect": "UNKNOWN",
+              "retry": "NEEDS_NEW_OBSERVATION",
+              "reasonCode": "EXECUTION_UNKNOWN"
+            },
+            "business": "UNKNOWN",
+            "identity": {
+              "executionUid": null,
+              "source": "UNVERIFIED",
+              "observedAtElapsedMs": null,
+              "evidenceId": null
+            },
+            "outputComplete": false,
+            "exitCode": null,
+            "effectEvidenceId": null
+          }
+        ],
+        "events": [],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": false
+        }
+      }
+    },
+    {
+      "id": "missing-host-does-not-break-plugin-load",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "fault",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "source": "PLUGIN_TRANSPORT",
+        "host": null,
+        "code": "HOST_UNAVAILABLE",
+        "requestRef": null,
+        "facts": null,
+        "nextAction": "USER_ACTION"
+      }
+    },
+    {
+      "id": "lost-execute-response-unknown",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "fault",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "source": "PLUGIN_TRANSPORT",
+        "host": null,
+        "code": "RESPONSE_LOST_AFTER_SUBMIT",
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "UNKNOWN",
+          "executed": "UNKNOWN",
+          "partial": "UNKNOWN",
+          "effect": "UNKNOWN",
+          "retry": "NEEDS_NEW_OBSERVATION",
+          "reasonCode": "EXECUTION_UNKNOWN"
+        },
+        "nextAction": "QUERY_REQUEST"
+      }
+    },
+    {
+      "id": "missing-ledger-record-not-not-sent",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "fault",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "source": "HOST",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "code": "REQUEST_UNKNOWN",
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "UNKNOWN",
+          "executed": "UNKNOWN",
+          "partial": "UNKNOWN",
+          "effect": "UNKNOWN",
+          "retry": "NEEDS_NEW_OBSERVATION",
+          "reasonCode": "EXECUTION_UNKNOWN"
+        },
+        "nextAction": "USER_ACTION"
+      }
+    },
+    {
+      "id": "stale-plan-no-automatic-retry",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "fault",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "source": "HOST",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "code": "SCHEMA_STALE",
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "NOT_DISPATCHED",
+          "executed": "NOT_EXECUTED",
+          "partial": "NONE",
+          "effect": "NOT_APPLICABLE",
+          "retry": "NOT_SAFE",
+          "reasonCode": "SCHEMA_STALE"
+        },
+        "nextAction": "REFRESH_STATUS"
+      }
+    },
+    {
+      "id": "event-gap-refresh-only",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "",
+      "value": {
+        "type": "eventBatch",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "events": [],
+        "nextSequence": 20,
+        "gap": true
+      }
+    },
+    {
+      "id": "reject-execute-new-arguments",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "",
+      "value": {
+        "type": "request",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "op": "execute",
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "admissionId": "55555555-5555-4555-8555-555555555555",
+        "arguments": {
+          "changed": true
+        }
+      }
+    },
+    {
+      "id": "reject-execute-without-admission",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "",
+      "value": {
+        "type": "request",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "op": "execute",
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        }
+      }
+    },
+    {
+      "id": "reject-unknown-op-and-command",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "",
+      "value": {
+        "type": "request",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "op": "root-shell",
+        "command": "id"
+      }
+    },
+    {
+      "id": "reject-caller-selected-backend",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "",
+      "value": {
+        "type": "request",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "op": "prepare",
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "expected": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "capabilityId": "app.present",
+        "capabilityVersion": 1,
+        "arguments": {
+          "packageName": "io.example.timer",
+          "wakeScreen": true,
+          "bringToFront": true,
+          "reminder": {
+            "mode": "HOST_FULLSCREEN_ACTIVITY",
+            "durationMs": 10000,
+            "text": "示例提醒"
+          }
+        },
+        "timeoutMs": 30000,
+        "forceRoot": true
+      }
+    },
+    {
+      "id": "reject-unsafe-counter",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "",
+      "value": {
+        "type": "request",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "op": "prepare",
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "expected": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "catalogRevision": 12,
+          "authorizationRevision": 9007199254740992
+        },
+        "capabilityId": "app.present",
+        "capabilityVersion": 1,
+        "arguments": {
+          "packageName": "io.example.timer",
+          "wakeScreen": true,
+          "bringToFront": true,
+          "reminder": {
+            "mode": "HOST_FULLSCREEN_ACTIVITY",
+            "durationMs": 10000,
+            "text": "示例提醒"
+          }
+        },
+        "timeoutMs": 30000
+      }
+    },
+    {
+      "id": "reject-root-uid-with-unverified-source",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "",
+      "value": {
+        "type": "catalog",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "caller": {
+          "applicationUid": 12345,
+          "androidUser": 0,
+          "guestReportedUid": 0
+        },
+        "channels": [
+          {
+            "id": "root",
+            "kind": "ROOT",
+            "authorityReadState": "READY",
+            "enabled": false,
+            "backendVisible": true,
+            "channelAuthorization": "UNVERIFIED",
+            "bound": false,
+            "connected": false,
+            "connectionEvidence": "UNVERIFIED",
+            "identity": {
+              "executionUid": 0,
+              "source": "UNVERIFIED",
+              "observedAtElapsedMs": null,
+              "evidenceId": null
+            }
+          }
+        ],
+        "capabilities": [
+          {
+            "id": "app.present",
+            "version": 1,
+            "supported": true,
+            "availability": "UNAVAILABLE",
+            "authorization": "ASK",
+            "readOnly": false,
+            "mayRequestIdentity": false,
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "packageName": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$"
+                },
+                "wakeScreen": {
+                  "type": "boolean"
+                },
+                "bringToFront": {
+                  "type": "boolean"
+                },
+                "reminder": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "mode": {
+                          "const": "HOST_FULLSCREEN_ACTIVITY"
+                        },
+                        "durationMs": {
+                          "type": "integer",
+                          "minimum": 1000,
+                          "maximum": 60000
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        }
+                      },
+                      "required": [
+                        "mode",
+                        "durationMs",
+                        "text"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "packageName",
+                "wakeScreen",
+                "bringToFront",
+                "reminder"
+              ],
+              "additionalProperties": false
+            },
+            "resultSchema": {
+              "type": "object"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "reject-changing-projected-as-user-off",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "",
+      "value": {
+        "type": "catalog",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "caller": {
+          "applicationUid": 12345,
+          "androidUser": 0,
+          "guestReportedUid": 0
+        },
+        "channels": [
+          {
+            "id": "root",
+            "kind": "ROOT",
+            "authorityReadState": "CHANGING",
+            "enabled": false,
+            "backendVisible": true,
+            "channelAuthorization": "UNVERIFIED",
+            "bound": false,
+            "connected": false,
+            "connectionEvidence": "UNVERIFIED",
+            "identity": {
+              "executionUid": null,
+              "source": "UNVERIFIED",
+              "observedAtElapsedMs": null,
+              "evidenceId": null
+            }
+          }
+        ],
+        "capabilities": [
+          {
+            "id": "app.present",
+            "version": 1,
+            "supported": true,
+            "availability": "UNAVAILABLE",
+            "authorization": "ASK",
+            "readOnly": false,
+            "mayRequestIdentity": false,
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "packageName": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$"
+                },
+                "wakeScreen": {
+                  "type": "boolean"
+                },
+                "bringToFront": {
+                  "type": "boolean"
+                },
+                "reminder": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "mode": {
+                          "const": "HOST_FULLSCREEN_ACTIVITY"
+                        },
+                        "durationMs": {
+                          "type": "integer",
+                          "minimum": 1000,
+                          "maximum": 60000
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        }
+                      },
+                      "required": [
+                        "mode",
+                        "durationMs",
+                        "text"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "packageName",
+                "wakeScreen",
+                "bringToFront",
+                "reminder"
+              ],
+              "additionalProperties": false
+            },
+            "resultSchema": {
+              "type": "object"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "reject-not-sent-but-executed",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "SETTLED",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "NOT_DISPATCHED",
+          "executed": "EXECUTED",
+          "partial": "NONE",
+          "effect": "NOT_APPLICABLE",
+          "retry": "NOT_SAFE",
+          "reasonCode": "AUTHORIZATION_REVOKED"
+        },
+        "business": "NOT_RUN",
+        "selectedChannel": null,
+        "identity": {
+          "executionUid": null,
+          "source": "UNVERIFIED",
+          "observedAtElapsedMs": null,
+          "evidenceId": null
+        },
+        "exitCode": null,
+        "outputComplete": true,
+        "cleanup": {
+          "resources": "NOT_CREATED",
+          "evidenceId": null
+        },
+        "steps": [],
+        "events": [],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": false
+        }
+      }
+    },
+    {
+      "id": "reject-unknown-safe-retry",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "UNCERTAIN",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "UNKNOWN",
+          "executed": "UNKNOWN",
+          "partial": "UNKNOWN",
+          "effect": "UNKNOWN",
+          "retry": "SAFE",
+          "reasonCode": "EXECUTION_UNKNOWN"
+        },
+        "business": "UNKNOWN",
+        "selectedChannel": null,
+        "identity": {
+          "executionUid": null,
+          "source": "UNVERIFIED",
+          "observedAtElapsedMs": null,
+          "evidenceId": null
+        },
+        "exitCode": null,
+        "outputComplete": true,
+        "cleanup": {
+          "resources": "NOT_CREATED",
+          "evidenceId": null
+        },
+        "steps": [],
+        "events": [],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": false
+        }
+      }
+    },
+    {
+      "id": "reject-legacy-unknown-transport-claims-remote-exit",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "UNCERTAIN",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "UNKNOWN",
+          "executed": "UNKNOWN",
+          "partial": "UNKNOWN",
+          "effect": "UNKNOWN",
+          "retry": "NEEDS_NEW_OBSERVATION",
+          "reasonCode": "EXECUTION_UNKNOWN"
+        },
+        "business": "UNKNOWN",
+        "selectedChannel": null,
+        "identity": {
+          "executionUid": null,
+          "source": "UNVERIFIED",
+          "observedAtElapsedMs": null,
+          "evidenceId": null
+        },
+        "exitCode": null,
+        "outputComplete": true,
+        "cleanup": {
+          "resources": "NOT_CREATED",
+          "evidenceId": null
+        },
+        "steps": [],
+        "events": [],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": true
+        }
+      }
+    },
+    {
+      "id": "reject-verified-without-evidence-reference",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "SETTLED",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "DISPATCHED",
+          "executed": "EXECUTED",
+          "partial": "NONE",
+          "effect": "VERIFIED",
+          "retry": "NOT_SAFE",
+          "reasonCode": "EXECUTION_COMPLETED"
+        },
+        "business": "SUCCEEDED",
+        "selectedChannel": null,
+        "identity": {
+          "executionUid": null,
+          "source": "UNVERIFIED",
+          "observedAtElapsedMs": null,
+          "evidenceId": null
+        },
+        "exitCode": null,
+        "outputComplete": true,
+        "cleanup": {
+          "resources": "NOT_CREATED",
+          "evidenceId": null
+        },
+        "steps": [],
+        "events": [],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": false
+        }
+      }
+    },
+    {
+      "id": "reject-unknown-step-hidden-by-settled",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "SETTLED",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "DISPATCHED",
+          "executed": "EXECUTED",
+          "partial": "NONE",
+          "effect": "UNVERIFIED",
+          "retry": "NOT_SAFE",
+          "reasonCode": "EXECUTION_COMPLETED"
+        },
+        "business": "FAILED",
+        "selectedChannel": null,
+        "identity": {
+          "executionUid": null,
+          "source": "UNVERIFIED",
+          "observedAtElapsedMs": null,
+          "evidenceId": null
+        },
+        "exitCode": null,
+        "outputComplete": true,
+        "cleanup": {
+          "resources": "NOT_CREATED",
+          "evidenceId": null
+        },
+        "steps": [
+          {
+            "id": "launch",
+            "facts": {
+              "resultVersion": 1,
+              "dispatched": "UNKNOWN",
+              "executed": "UNKNOWN",
+              "partial": "UNKNOWN",
+              "effect": "UNKNOWN",
+              "retry": "NEEDS_NEW_OBSERVATION",
+              "reasonCode": "EXECUTION_UNKNOWN"
+            },
+            "business": "UNKNOWN",
+            "identity": {
+              "executionUid": null,
+              "source": "UNVERIFIED",
+              "observedAtElapsedMs": null,
+              "evidenceId": null
+            },
+            "outputComplete": false,
+            "exitCode": null,
+            "effectEvidenceId": null
+          }
+        ],
+        "events": [],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": false
+        }
+      }
+    },
+    {
+      "id": "reject-combination-shell-field",
+      "schemaRef": "#/$defs/AppPresentArguments",
+      "valid": false,
+      "note": "",
+      "value": {
+        "packageName": "io.example.timer",
+        "wakeScreen": true,
+        "bringToFront": true,
+        "reminder": {
+          "mode": "HOST_FULLSCREEN_ACTIVITY",
+          "durationMs": 10000,
+          "text": "示例提醒"
+        },
+        "command": "id"
+      }
+    },
+    {
+      "id": "reject-unbounded-fullscreen-promise",
+      "schemaRef": "#/$defs/AppPresentArguments",
+      "valid": false,
+      "note": "",
+      "value": {
+        "packageName": "io.example.timer",
+        "wakeScreen": true,
+        "bringToFront": true,
+        "reminder": {
+          "mode": "COVER_ALL_SYSTEM_WINDOWS",
+          "durationMs": 10000,
+          "text": "示例提醒"
+        }
+      }
+    },
+    {
+      "id": "reject-success-with-truncated-result",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "SETTLED",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "DISPATCHED",
+          "executed": "EXECUTED",
+          "partial": "NONE",
+          "effect": "UNVERIFIED",
+          "retry": "NOT_SAFE",
+          "reasonCode": "EXECUTION_COMPLETED"
+        },
+        "business": "SUCCEEDED",
+        "selectedChannel": null,
+        "identity": {
+          "executionUid": null,
+          "source": "UNVERIFIED",
+          "observedAtElapsedMs": null,
+          "evidenceId": null
+        },
+        "exitCode": null,
+        "outputComplete": false,
+        "cleanup": {
+          "resources": "NOT_CREATED",
+          "evidenceId": null
+        },
+        "steps": [],
+        "events": [],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": false
+        }
+      }
+    },
+    {
+      "id": "reject-unknown-decision-tag",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "SETTLED",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "NEW_UNKNOWN_TAG",
+          "executed": "EXECUTED",
+          "partial": "NONE",
+          "effect": "UNVERIFIED",
+          "retry": "NOT_SAFE",
+          "reasonCode": "EXECUTION_COMPLETED"
+        },
+        "business": "NOT_RUN",
+        "selectedChannel": null,
+        "identity": {
+          "executionUid": null,
+          "source": "UNVERIFIED",
+          "observedAtElapsedMs": null,
+          "evidenceId": null
+        },
+        "exitCode": null,
+        "outputComplete": true,
+        "cleanup": {
+          "resources": "NOT_CREATED",
+          "evidenceId": null
+        },
+        "steps": [],
+        "events": [],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": false
+        }
+      }
+    },
+    {
+      "id": "reject-summary-hides-executed-step",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "独立复核补充的聚合/证据边界向量。",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "SETTLED",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "NOT_DISPATCHED",
+          "executed": "NOT_EXECUTED",
+          "partial": "NONE",
+          "effect": "NOT_APPLICABLE",
+          "retry": "SAFE",
+          "reasonCode": "COMPOSITE_PARTIAL"
+        },
+        "business": "NOT_RUN",
+        "selectedChannel": null,
+        "identity": {
+          "executionUid": null,
+          "source": "UNVERIFIED",
+          "observedAtElapsedMs": null,
+          "evidenceId": null
+        },
+        "exitCode": null,
+        "outputComplete": true,
+        "cleanup": {
+          "resources": "NOT_CREATED",
+          "evidenceId": null
+        },
+        "steps": [
+          {
+            "id": "wake",
+            "facts": {
+              "resultVersion": 1,
+              "dispatched": "DISPATCHED",
+              "executed": "EXECUTED",
+              "partial": "NONE",
+              "effect": "UNVERIFIED",
+              "retry": "NOT_SAFE",
+              "reasonCode": "EXECUTION_COMPLETED"
+            },
+            "business": "SUCCEEDED",
+            "identity": {
+              "executionUid": 12345,
+              "source": "EXECUTOR_OBSERVED",
+              "observedAtElapsedMs": 10000,
+              "evidenceId": "66666666-6666-4666-8666-666666666666"
+            },
+            "outputComplete": true,
+            "exitCode": 0,
+            "effectEvidenceId": null
+          },
+          {
+            "id": "launch",
+            "facts": {
+              "resultVersion": 1,
+              "dispatched": "NOT_DISPATCHED",
+              "executed": "NOT_EXECUTED",
+              "partial": "NONE",
+              "effect": "NOT_APPLICABLE",
+              "retry": "NOT_SAFE",
+              "reasonCode": "AUTHORIZATION_REVOKED"
+            },
+            "business": "NOT_RUN",
+            "identity": {
+              "executionUid": null,
+              "source": "UNVERIFIED",
+              "observedAtElapsedMs": null,
+              "evidenceId": null
+            },
+            "outputComplete": true,
+            "exitCode": null,
+            "effectEvidenceId": null
+          }
+        ],
+        "events": [],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": false
+        }
+      }
+    },
+    {
+      "id": "reject-success-with-unrun-required-step",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "独立复核补充的聚合/证据边界向量。",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "SETTLED",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "DISPATCHED",
+          "executed": "EXECUTED",
+          "partial": "NONE",
+          "effect": "UNVERIFIED",
+          "retry": "NOT_SAFE",
+          "reasonCode": "COMPOSITE_PARTIAL"
+        },
+        "business": "SUCCEEDED",
+        "selectedChannel": null,
+        "identity": {
+          "executionUid": null,
+          "source": "UNVERIFIED",
+          "observedAtElapsedMs": null,
+          "evidenceId": null
+        },
+        "exitCode": null,
+        "outputComplete": true,
+        "cleanup": {
+          "resources": "NOT_CREATED",
+          "evidenceId": null
+        },
+        "steps": [
+          {
+            "id": "wake",
+            "facts": {
+              "resultVersion": 1,
+              "dispatched": "DISPATCHED",
+              "executed": "EXECUTED",
+              "partial": "NONE",
+              "effect": "UNVERIFIED",
+              "retry": "NOT_SAFE",
+              "reasonCode": "EXECUTION_COMPLETED"
+            },
+            "business": "SUCCEEDED",
+            "identity": {
+              "executionUid": 12345,
+              "source": "EXECUTOR_OBSERVED",
+              "observedAtElapsedMs": 10000,
+              "evidenceId": "66666666-6666-4666-8666-666666666666"
+            },
+            "outputComplete": true,
+            "exitCode": 0,
+            "effectEvidenceId": null
+          },
+          {
+            "id": "launch",
+            "facts": {
+              "resultVersion": 1,
+              "dispatched": "NOT_DISPATCHED",
+              "executed": "NOT_EXECUTED",
+              "partial": "NONE",
+              "effect": "NOT_APPLICABLE",
+              "retry": "NOT_SAFE",
+              "reasonCode": "AUTHORIZATION_REVOKED"
+            },
+            "business": "NOT_RUN",
+            "identity": {
+              "executionUid": null,
+              "source": "UNVERIFIED",
+              "observedAtElapsedMs": null,
+              "evidenceId": null
+            },
+            "outputComplete": true,
+            "exitCode": null,
+            "effectEvidenceId": null
+          }
+        ],
+        "events": [],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": false
+        }
+      }
+    },
+    {
+      "id": "reject-settled-execution-unknown",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "独立复核补充的聚合/证据边界向量。",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "SETTLED",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "DISPATCHED",
+          "executed": "UNKNOWN",
+          "partial": "UNKNOWN",
+          "effect": "UNKNOWN",
+          "retry": "NEEDS_NEW_OBSERVATION",
+          "reasonCode": "EXECUTION_UNKNOWN"
+        },
+        "business": "FAILED",
+        "selectedChannel": "root",
+        "identity": {
+          "executionUid": null,
+          "source": "UNVERIFIED",
+          "observedAtElapsedMs": null,
+          "evidenceId": null
+        },
+        "exitCode": null,
+        "outputComplete": false,
+        "cleanup": {
+          "resources": "PENDING",
+          "evidenceId": null
+        },
+        "steps": [],
+        "events": [
+          {
+            "sequence": 11,
+            "kind": "CANCEL_ACCEPTED",
+            "requestRef": {
+              "epoch": "22222222-2222-4222-8222-222222222222",
+              "id": "44444444-4444-4444-8444-444444444444"
+            },
+            "recordRevision": 1
+          }
+        ],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": false,
+          "remoteExitConfirmed": false
+        }
+      }
+    },
+    {
+      "id": "reject-step-verified-without-evidence-reference",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "独立复核补充的聚合/证据边界向量。",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "SETTLED",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "DISPATCHED",
+          "executed": "EXECUTED",
+          "partial": "PARTIAL",
+          "effect": "UNVERIFIED",
+          "retry": "NOT_SAFE",
+          "reasonCode": "COMPOSITE_PARTIAL"
+        },
+        "business": "FAILED",
+        "selectedChannel": null,
+        "identity": {
+          "executionUid": null,
+          "source": "UNVERIFIED",
+          "observedAtElapsedMs": null,
+          "evidenceId": null
+        },
+        "exitCode": null,
+        "outputComplete": true,
+        "cleanup": {
+          "resources": "NOT_CREATED",
+          "evidenceId": null
+        },
+        "steps": [
+          {
+            "id": "wake",
+            "facts": {
+              "resultVersion": 1,
+              "dispatched": "DISPATCHED",
+              "executed": "EXECUTED",
+              "partial": "NONE",
+              "effect": "VERIFIED",
+              "retry": "NOT_SAFE",
+              "reasonCode": "EXECUTION_COMPLETED"
+            },
+            "business": "SUCCEEDED",
+            "identity": {
+              "executionUid": 12345,
+              "source": "EXECUTOR_OBSERVED",
+              "observedAtElapsedMs": 10000,
+              "evidenceId": "66666666-6666-4666-8666-666666666666"
+            },
+            "outputComplete": true,
+            "exitCode": 0,
+            "effectEvidenceId": null
+          },
+          {
+            "id": "launch",
+            "facts": {
+              "resultVersion": 1,
+              "dispatched": "NOT_DISPATCHED",
+              "executed": "NOT_EXECUTED",
+              "partial": "NONE",
+              "effect": "NOT_APPLICABLE",
+              "retry": "NOT_SAFE",
+              "reasonCode": "AUTHORIZATION_REVOKED"
+            },
+            "business": "NOT_RUN",
+            "identity": {
+              "executionUid": null,
+              "source": "UNVERIFIED",
+              "observedAtElapsedMs": null,
+              "evidenceId": null
+            },
+            "outputComplete": true,
+            "exitCode": null,
+            "effectEvidenceId": null
+          }
+        ],
+        "events": [],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": false
+        }
+      }
+    },
+    {
+      "id": "reject-missing-record-projected-as-not-sent",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "独立复核补充的聚合/证据边界向量。",
+      "value": {
+        "type": "fault",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "source": "HOST",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "code": "REQUEST_UNKNOWN",
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "NOT_DISPATCHED",
+          "executed": "NOT_EXECUTED",
+          "partial": "NONE",
+          "effect": "NOT_APPLICABLE",
+          "retry": "SAFE",
+          "reasonCode": "AUTHORIZATION_REVOKED"
+        },
+        "nextAction": "USER_ACTION"
+      }
+    },
+    {
+      "id": "reject-released-resources-without-evidence-reference",
+      "schemaRef": "#",
+      "valid": false,
+      "note": "独立复核补充的聚合/证据边界向量。",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "SETTLED",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "DISPATCHED",
+          "executed": "EXECUTED",
+          "partial": "NONE",
+          "effect": "VERIFIED",
+          "retry": "NOT_SAFE",
+          "reasonCode": "EXECUTION_COMPLETED"
+        },
+        "business": "SUCCEEDED",
+        "selectedChannel": "app",
+        "identity": {
+          "executionUid": 12345,
+          "source": "EXECUTOR_OBSERVED",
+          "observedAtElapsedMs": 10000,
+          "evidenceId": "66666666-6666-4666-8666-666666666666"
+        },
+        "exitCode": null,
+        "outputComplete": true,
+        "cleanup": {
+          "resources": "RELEASED",
+          "evidenceId": null
+        },
+        "steps": [],
+        "events": [],
+        "effectEvidenceId": "77777777-7777-4777-8777-777777777777",
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": true
+        }
+      }
+    },
+    {
+      "id": "unknown-execution-with-separate-cleanup-proof",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "独立复核补充的聚合/证据边界向量。",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "UNCERTAIN",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "DISPATCHED",
+          "executed": "UNKNOWN",
+          "partial": "UNKNOWN",
+          "effect": "UNKNOWN",
+          "retry": "NEEDS_NEW_OBSERVATION",
+          "reasonCode": "EXECUTION_UNKNOWN_RESOURCES_RECONCILED"
+        },
+        "business": "UNKNOWN",
+        "selectedChannel": "root",
+        "identity": {
+          "executionUid": null,
+          "source": "UNVERIFIED",
+          "observedAtElapsedMs": null,
+          "evidenceId": null
+        },
+        "exitCode": null,
+        "outputComplete": false,
+        "cleanup": {
+          "resources": "RELEASED",
+          "evidenceId": "99999999-9999-4999-8999-999999999999"
+        },
+        "steps": [],
+        "events": [
+          {
+            "sequence": 11,
+            "kind": "CANCEL_ACCEPTED",
+            "requestRef": {
+              "epoch": "22222222-2222-4222-8222-222222222222",
+              "id": "44444444-4444-4444-8444-444444444444"
+            },
+            "recordRevision": 1
+          }
+        ],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": false,
+          "remoteExitConfirmed": false
+        }
+      }
+    },
+    {
+      "id": "known-execution-with-unknown-business-effect",
+      "schemaRef": "#",
+      "valid": true,
+      "note": "独立复核补充的聚合/证据边界向量。",
+      "value": {
+        "type": "receipt",
+        "protocolVersion": 1,
+        "callId": "33333333-3333-4333-8333-333333333333",
+        "host": {
+          "instanceId": "11111111-1111-4111-8111-111111111111",
+          "requestEpoch": "22222222-2222-4222-8222-222222222222",
+          "catalogRevision": 12,
+          "authorizationRevision": 7
+        },
+        "requestRef": {
+          "epoch": "22222222-2222-4222-8222-222222222222",
+          "id": "44444444-4444-4444-8444-444444444444"
+        },
+        "originHostInstanceId": "11111111-1111-4111-8111-111111111111",
+        "recordRevision": 1,
+        "capabilityId": "app.present",
+        "lifecycle": "SETTLED",
+        "facts": {
+          "resultVersion": 1,
+          "dispatched": "DISPATCHED",
+          "executed": "EXECUTED",
+          "partial": "NONE",
+          "effect": "UNKNOWN",
+          "retry": "NOT_SAFE",
+          "reasonCode": "BUSINESS_EFFECT_UNKNOWN"
+        },
+        "business": "UNKNOWN",
+        "selectedChannel": "app",
+        "identity": {
+          "executionUid": 12345,
+          "source": "EXECUTOR_OBSERVED",
+          "observedAtElapsedMs": 10000,
+          "evidenceId": "66666666-6666-4666-8666-666666666666"
+        },
+        "exitCode": null,
+        "outputComplete": true,
+        "cleanup": {
+          "resources": "RELEASED",
+          "evidenceId": "88888888-8888-4888-8888-888888888888"
+        },
+        "steps": [],
+        "events": [],
+        "effectEvidenceId": null,
+        "payload": null,
+        "transportEvidence": {
+          "localExitConfirmed": true,
+          "remoteExitConfirmed": true
+        }
+      }
+    }
+  ]
+}

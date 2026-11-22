@@ -18,6 +18,9 @@ class FormatTreeTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(prefix="dsha-java-tree-")
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
+        (self.root / 'ci').mkdir()
+        (self.root / 'ci/source-layout.json').write_text(
+            (ROOT / 'ci/source-layout.json').read_text(encoding='utf-8'), encoding='utf-8')
         for source_set in tree.SETS:
             (self.root / "app/src" / source_set / tree.SOURCE).mkdir(parents=True)
         helper = self.root / tree.TOOL_SOURCE

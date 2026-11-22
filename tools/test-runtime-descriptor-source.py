@@ -26,6 +26,14 @@ class DescriptorSourceTest(unittest.TestCase):
         (self.assets / 'managed-runtime-inputs.json').write_text(json.dumps(self.manifest))
         (self.assets / 'script.cjs').write_bytes(b'original\n')
         (self.assets / 'offline-rootfs.version').write_bytes(b'10\n')
+        # A8-P1 起启动输入统一经 SourceLayout 解析逻辑身份；合成根也须给出
+        # 同一份最小布局清单，不能回落到已被删除的 app/java 源根推断。
+        layout = self.root / 'ci/source-layout.json'
+        layout.parent.mkdir(parents=True)
+        layout.write_text(json.dumps({'schema': 1, 'modules': [{
+            'path': ':app', 'directory': 'app', 'kind': 'android-application',
+            'sourceSets': ['main', 'test'], 'formatSourceSets': ['main'],
+            'testSourceSets': ['test'], 'testTask': 'testStandardDebugUnitTest'}]}))
         package = self.root / 'tools/dsh-runtime/package.json'
         package.parent.mkdir(parents=True)
         package.write_text(json.dumps({'dependencies': {'@deepseek-ai/dsh': '0.2.0-rc.2'}}))

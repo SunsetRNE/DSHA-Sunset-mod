@@ -1,0 +1,13 @@
+// AGP 已由根工程载入；从现有 classpath 应用，不触发第二次插件 marker 解析。
+apply plugin: 'com.android.library'
+// 首个真实 library 直接获得与应用一致的 Android 11+ / SDK37 编译基线。
+// namespace 及资源仍由模块持有；应用自己的 SDK 声明保持原位。
+android {
+    compileSdk {
+        version = release(37)
+    }
+    defaultConfig {
+        minSdk 30
+    }
+}
+apply from: rootProject.file('build-logic/android.gradle')

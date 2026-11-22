@@ -9,7 +9,8 @@ import org.junit.Test;
 /**
  * 运行层开关与后端选择测试（不要求加载 .so；Rust 不可用时的类型化原因也要成立）。
  *
- * <p>R1 默认关闭；显式开启才尝试 Rust；{@code setEnabled(false)} 即一键回 JVM。
+ * <p>进程内默认 false（正式 App 在 {@code DshaApp.onCreate()} 启用）；显式开启才尝试 Rust；
+ * {@code setEnabled(false)} 即一键回 JVM。
  * 加载失败不抛异常、不重试，也不把 JVM 成功伪装成 Rust 成功。
  */
 public class RustBackendsTest {

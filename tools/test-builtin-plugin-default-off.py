@@ -10,7 +10,9 @@ build336 起 `dsh-web-mobile` 不再默认禁用（上游 3.3.1 起适配宿主 
   2. 覆盖更新：旧版本启用过的（含上一代次的显式启用记录）都收敛为禁用；
   3. 只有当前安装代次的显式启用（node_modules/<name>.enabled）跨重启保持，
      下一次 APK 覆盖更新再次收敛为禁用；
-  4. 显式禁用优先；禁用后仍可再次启用。
+  4. 显式禁用优先；禁用后仍可再次启用；
+  5. 自动默认禁用用独立来源记录，恢复默认仅迁移身份未变的自动标记；
+  6. 旧空/Web/安全模式/未知标记保留，来源损坏或中断时保守失败并可重入。
 """
 import contextlib
 import importlib.util
@@ -45,6 +47,7 @@ class BuiltinPluginDefaultOffTest(unittest.TestCase):
         self.manifest = self.profile / 'package.json'
         self.marker = self.profile / 'node_modules' / (MOBILE + '.disabled')
         self.enable_marker = self.profile / 'node_modules' / (MOBILE + '.enabled')
+        self.default_intent = self.profile / 'node_modules' / (MOBILE + '.default-disabled.json')
         self.mobile_link = self.profile / 'node_modules' / MOBILE
         self.notifier_link = self.profile / 'node_modules' / NOTIFIER
         self.plugin(NOTIFIER)
@@ -242,6 +245,263 @@ class BuiltinPluginDefaultOffTest(unittest.TestCase):
 
         self.write_managed_identity(identity_b)
         self.register()
+        self.assert_disabled()
+    def test_default_on_registers_clean_mobile_once(self):
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()):
+            self.register()
+            first = self.manifest.read_bytes()
+            self.register()
+        self.assertIn(MOBILE, self.bundles())
+        self.assertEqual(first, self.manifest.read_bytes())
+        self.assertFalse(self.marker.exists())
+        self.assertFalse(self.default_intent.exists())
+        self.assertEqual(self.plugin(MOBILE).resolve(), self.mobile_link.resolve())
+
+    def test_automatic_default_off_is_restored_when_policy_becomes_default_on(self):
+        self.register()
+        self.assert_disabled()
+        recorded = json.loads(self.default_intent.read_text(encoding='utf-8'))
+        self.assertEqual(1, recorded['version'])
+        self.assertEqual('builtin-default', recorded['source'])
+        self.assertEqual(6, len(recorded['disabledStat']))
+        # 相同默认策略重复注册必须保留原始来源事实，而不是每轮重写“授权”。
+        original = self.default_intent.read_bytes()
+        self.register()
+        self.assertEqual(original, self.default_intent.read_bytes())
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()):
+            self.register()
+            self.assertIn(MOBILE, self.bundles())
+            self.assertFalse(self.marker.exists())
+            self.assertFalse(self.default_intent.exists())
+            self.assertEqual(self.plugin(MOBILE).resolve(), self.mobile_link.resolve())
+            first = self.manifest.read_bytes()
+            self.register()
+            self.assertEqual(first, self.manifest.read_bytes())
+
+    def test_explicit_native_disable_cancels_automatic_provenance(self):
+        self.register()
+        self.assertTrue(self.default_intent.is_file())
+        self.disable()
+        self.assertFalse(self.default_intent.exists())
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()):
+            self.register()
+            self.write_generation(999)
+            self.register()
+        self.assert_disabled()
+
+    def test_enable_clears_automatic_provenance(self):
+        self.register()
+        self.assertTrue(self.default_intent.is_file())
+        self.enable()
+        self.assertFalse(self.default_intent.exists())
+        self.assertFalse(self.marker.exists())
+        self.assertIn(MOBILE, self.bundles())
+
+    def test_legacy_and_explicit_markers_are_preserved_when_default_returns(self):
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()):
+            for content in ('', 'UNKNOWN_PREVIOUS_INTENT\n', 'DSHA_SAFE_MODE\n',
+                            self.builtin.WEB_BUILTIN_DISABLED_MARKER):
+                with self.subTest(content=content):
+                    self.write_manifest(list(self.builtin.OFFICIAL_BUNDLES) + [NOTIFIER, MOBILE])
+                    self.marker.parent.mkdir(parents=True, exist_ok=True)
+                    self.marker.write_text(content, encoding='utf-8')
+                    before = self.marker.stat()
+                    self.register()
+                    self.register()
+                    self.assertNotIn(MOBILE, self.bundles())
+                    self.assertEqual(content, self.marker.read_text(encoding='utf-8'))
+                    self.assertEqual(before.st_ino, self.marker.stat().st_ino)
+                    self.assertFalse(self.default_intent.exists())
+
+    def test_legacy_empty_marker_can_be_explicitly_enabled_without_re_disabling(self):
+        self.marker.parent.mkdir(parents=True, exist_ok=True)
+        self.marker.write_text('', encoding='utf-8')
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()):
+            self.register()
+            self.assert_disabled()
+            self.enable()
+            for generation in (336, 366, 999):
+                self.write_generation(generation)
+                self.register()
+                self.assertIn(MOBILE, self.bundles())
+                self.assertFalse(self.marker.exists())
+                self.assertFalse(self.default_intent.exists())
+
+    def test_changed_marker_is_never_reclassified_as_automatic(self):
+        for content in ('', 'DSHA_SAFE_MODE\n', self.builtin.WEB_BUILTIN_DISABLED_MARKER):
+            with self.subTest(content=content):
+                self.register()
+                # 模拟外部/旧版写者替换同名标记；即使仍为空，inode 也已经不同。
+                replacement = self.marker.with_suffix('.replacement')
+                replacement.write_text(content, encoding='utf-8')
+                os.replace(replacement, self.marker)
+                with patch.object(self.builtin, 'DEFAULT_DISABLED', ()):
+                    self.register()
+                self.assertNotIn(MOBILE, self.bundles())
+                self.assertEqual(content, self.marker.read_text(encoding='utf-8'))
+                self.enable()
+
+    def test_marker_link_or_bad_provenance_is_not_auto_restored(self):
+        self.register()
+        target = self.root / 'unrelated-empty-marker'
+        os.replace(self.marker, target)
+        self.marker.symlink_to(target)
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()):
+            self.register()
+        self.assertTrue(self.marker.is_symlink())
+        self.assertEqual('', target.read_text(encoding='utf-8'))
+        self.assertNotIn(MOBILE, self.bundles())
+        self.enable()
+        self.write_generation(328)
+        self.register()
+        self.default_intent.write_text('{bad json', encoding='utf-8')
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()):
+            self.register()
+        self.assert_disabled()
+        self.assertEqual('{bad json', self.default_intent.read_text(encoding='utf-8'))
+
+    def test_existing_empty_default_off_marker_is_not_adopted_as_automatic(self):
+        self.marker.parent.mkdir(parents=True, exist_ok=True)
+        self.marker.write_text('', encoding='utf-8')
+        self.register()
+        self.assertFalse(self.default_intent.exists())
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()):
+            self.register()
+        self.assert_disabled()
+
+    def test_in_place_empty_rewrite_does_not_reuse_the_automatic_source(self):
+        self.register()
+        before = self.marker.stat()
+        self.marker.write_text('', encoding='utf-8')
+        # 某些文件系统时钟粒度较粗；显式设置新时间确保本用例确实模拟了新写入。
+        os.utime(self.marker, ns=(before.st_atime_ns, before.st_mtime_ns + 1_000_000_000))
+        self.assertEqual(before.st_ino, self.marker.stat().st_ino)
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()):
+            self.register()
+        self.assert_disabled()
+
+    def test_invalid_source_schema_never_authorizes_restoration(self):
+        self.register()
+        valid = self.default_intent.read_text(encoding='utf-8')
+        for content in ('[]', ' ' * 1025,
+                        valid.replace('"version": 1', '"version": 1, "version": 1'),
+                        valid.replace('"builtin-default"', '"user"'),
+                        valid.replace('"version": 1', '"version": true')):
+            with self.subTest(content=content[:80]):
+                self.default_intent.write_text(content, encoding='utf-8')
+                with patch.object(self.builtin, 'DEFAULT_DISABLED', ()):
+                    self.register()
+                self.assert_disabled()
+                self.assertEqual(content, self.default_intent.read_text(encoding='utf-8'))
+
+    def test_linked_source_record_does_not_authorize_restoration(self):
+        self.register()
+        target = self.root / 'unrelated-source-record'
+        os.replace(self.default_intent, target)
+        original = target.read_bytes()
+        self.default_intent.symlink_to(target)
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()):
+            self.register()
+        self.assert_disabled()
+        self.assertTrue(self.default_intent.is_symlink())
+        self.assertEqual(original, target.read_bytes())
+
+    def test_orphan_source_cleanup_is_reentrant_without_reviving_a_new_marker(self):
+        self.register()
+        original_unlink = os.unlink
+
+        def deny_source(path, *args, **kwargs):
+            if os.fspath(path) == str(self.default_intent):
+                raise PermissionError('fixture cannot finish source cleanup')
+            return original_unlink(path, *args, **kwargs)
+
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()), patch.object(os, 'unlink', deny_source):
+            with contextlib.redirect_stdout(io.StringIO()):
+                result = self.builtin.register()
+        self.assertNotEqual(0, result)
+        self.assertFalse(self.marker.exists())
+        self.assertTrue(self.default_intent.exists())
+        # 删除标记后若用户重新关闭，残余来源绝不能被当作删除新标记的许可。
+        self.marker.write_text('', encoding='utf-8')
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()):
+            self.register()
+        self.assert_disabled()
+        self.assertTrue(self.default_intent.exists())
+        self.enable()
+        self.assertFalse(self.default_intent.exists())
+
+    def test_orphan_source_without_new_marker_finishes_cleanup_on_retry(self):
+        self.register()
+        original_unlink = os.unlink
+
+        def deny_source(path, *args, **kwargs):
+            if os.fspath(path) == str(self.default_intent):
+                raise PermissionError('fixture cannot finish source cleanup')
+            return original_unlink(path, *args, **kwargs)
+
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()), patch.object(os, 'unlink', deny_source):
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertNotEqual(0, self.builtin.register())
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()):
+            self.register()
+            self.register()
+        self.assertIn(MOBILE, self.bundles())
+        self.assertFalse(self.marker.exists())
+        self.assertFalse(self.default_intent.exists())
+
+    def test_unrelated_profile_and_user_marker_are_not_migrated(self):
+        self.register()
+        other = self.root / 'root/.dsh/profiles/other/node_modules'
+        other.mkdir(parents=True)
+        other_marker = other / (MOBILE + '.disabled')
+        other_marker.write_text('', encoding='utf-8')
+        other_source = other / self.default_intent.name
+        other_source.write_bytes(self.default_intent.read_bytes())
+        user_marker = self.marker.with_name('user-plugin.disabled')
+        user_marker.write_text('', encoding='utf-8')
+        user_source = user_marker.with_name('user-plugin.default-disabled.json')
+        user_source.write_bytes(self.default_intent.read_bytes())
+        observed = {path: path.read_bytes() for path in (other_marker, other_source, user_marker, user_source)}
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()):
+            self.register()
+        self.assertIn(MOBILE, self.bundles())
+        self.assertEqual(observed, {path: path.read_bytes() for path in observed})
+
+    def test_default_marker_removal_failure_stops_before_enabling(self):
+        self.register()
+        original_unlink = os.unlink
+
+        def deny_marker(path, *args, **kwargs):
+            if os.fspath(path) == str(self.marker):
+                raise PermissionError('fixture cannot remove marker')
+            return original_unlink(path, *args, **kwargs)
+
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()), patch.object(os, 'unlink', deny_marker):
+            with contextlib.redirect_stdout(io.StringIO()):
+                result = self.builtin.register()
+        self.assertNotEqual(0, result)
+        self.assert_disabled()
+        self.assertTrue(self.default_intent.is_file())
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()):
+            self.register()
+        self.assertIn(MOBILE, self.bundles())
+        self.assertFalse(self.default_intent.exists())
+
+    def test_source_record_failure_leaves_a_conservative_disabled_state(self):
+        original_open = os.open
+
+        def deny_source(path, *args, **kwargs):
+            if os.fspath(path) == str(self.default_intent):
+                raise PermissionError('fixture cannot record default source')
+            return original_open(path, *args, **kwargs)
+
+        with patch.object(os, 'open', deny_source), contextlib.redirect_stdout(io.StringIO()):
+            result = self.builtin.register()
+        self.assertNotEqual(0, result)
+        self.assertEqual('', self.marker.read_text(encoding='utf-8'))
+        self.assertFalse(self.default_intent.exists())
+        with patch.object(self.builtin, 'DEFAULT_DISABLED', ()):
+            self.register()
         self.assert_disabled()
 
 

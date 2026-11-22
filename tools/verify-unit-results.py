@@ -1,27 +1,23 @@
 #!/usr/bin/env python3
 """核对 Standard JUnit XML 并写出单测回执（CI 各节点共用）。
 
-full：0 failure / 0 error / 0 skipped，报告计数与真实 testcase 一致；
+full：旧单目录 API 要求 0 failure / 0 error / 0 skipped；仅为定向运行汇总。
       --require-fixtures 额外要求七个外部夹具用例各恰好执行一次并通过。
 source-only：仅汇总（Gradle 已对失败返回非零）；给出 --max-skips 时才限制跳过数。
+全仓 full：使用 --state/--run-id 接入 unit_test_contract；不能用旧 summary 冒充聚合。
 """
 import argparse
 import json
 import os
 from pathlib import Path
+import sys
 import xml.etree.ElementTree as ET
 
-PREFIX = "com.deepseekharness.app."
-REQUIRED_FIXTURES = (
-    (PREFIX + "runtime.AdbWheelBundleTest", "realBundleRebuildsOnlyOmittedEntriesAndPreservesRestoredWheel"),
-    *((PREFIX + "runtime.RuntimeToolsRegistryAndroidTest", name) for name in (
-        "completeProductionChainAppliesAllSpecializedStagesAndIsRepeatable",
-        "lanRetirementRejectsModuleDriftAndPreservesOriginalBytes",
-        "lanRetirementRejectsUnknownVersionAndContractDrift",
-        "oldLanExactReplacementAndIdempotenceRemainStrict",
-        "previousRuntimeGenerationCannotReceiveCurrentOverlayInPlace")),
-    (PREFIX + "util.ManagedPatchRegistryIntegrationTest", "everyActiveModuleRepairsAsAWholeAndRetiredUiNeverRuns"),
-)
+TOOLS = Path(__file__).resolve().parent
+if str(TOOLS) not in sys.path:
+    sys.path.insert(0, str(TOOLS))
+from unit_test_contract import PREFIX, REQUIRED_FIXTURES
+
 DEFAULT_REPORTS = Path("app/build/test-results/testStandardDebugUnitTest")
 
 
@@ -70,11 +66,26 @@ def main(argv=None):
     parser.add_argument("--require-fixtures", action="store_true")
     parser.add_argument("--max-skips", type=int)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--state", type=Path, help="全仓新鲜运行证据目录；与旧单目录汇总分开")
+    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument("--run-id")
+    parser.add_argument("--run-attempt", default="1")
+    parser.add_argument("--baseline", type=Path)
     args = parser.parse_args(argv)
+    if args.state and (args.mode != "full" or not args.run_id or args.max_skips is not None):
+        parser.error("全仓 --state 需要 --mode full/--run-id，且不接受 --max-skips")
     if args.mode == "full" and args.max_skips is not None:
         parser.error("--max-skips 只用于 source-only")
     try:
-        result = verify(args.reports, args.mode, args.require_fixtures, args.max_skips)
+        if args.state:
+            import sys
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            from unit_test_contract import verify_run
+            result = verify_run(args.root, args.state, run_id=args.run_id,
+                                run_attempt=args.run_attempt, baseline=args.baseline)
+        else:
+            result = verify(args.reports, args.mode, args.require_fixtures, args.max_skips)
+            result.update(kind="dsha-unit-summary", aggregate=False)
     except ValueError as error:
         raise SystemExit(str(error)) from None
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -82,12 +93,18 @@ def main(argv=None):
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:
         with open(summary, "a", encoding="utf-8") as stream:
-            title = "Full unit tests with fixed inputs" if args.mode == "full" else "Source-only unit tests (not a complete fixed-input run)"
-            counts = result["flavors"]["Standard"]
+            title = "Unit-test report summary (not a full repository aggregate)" if args.mode == "full" else "Source-only unit-test report summary (not a full repository aggregate)"
+            if args.state:
+                title = "Full repository unit tests with fresh task evidence"
+                counts = {key: result[key] for key in ("tests", "failures", "errors", "skipped")}
+            else:
+                counts = result["flavors"]["Standard"]
             stream.write(f"### {title}\n- Standard: " + ", ".join(f"{k}={v}" for k, v in counts.items()) + "\n")
-            for name in result.get("skipped", []):
-                stream.write(f"  - skipped: {name}\n")
-    print(json.dumps(result))
+            if not args.state:
+                for name in result.get("skipped", []):
+                    stream.write(f"  - skipped: {name}\n")
+    printed = {key: result[key] for key in ("kind", "mode", "tests", "baselineStatus")} if args.state else result
+    print(json.dumps(printed))
 
 
 if __name__ == "__main__":
