@@ -82,6 +82,16 @@ Native plugin enable/disable uses [PluginRepository](../../app/src/main/java/com
 
 ## Diagnostics and logs are different actions
 
+### CAS scan completion status
+
+A `CAS_TIMING` row with `phase=scan` includes `scanStatus`, `countsComplete`, and `errorCode`:
+
+- `completed / true / NONE`: the scan completed normally, including a confirmed missing root directory; counts cover the complete scan.
+- `failed / false / ...`: the scan failed and counts describe only the observed portion. The fixed error codes are `PERMISSION_DENIED`, `IO_ERROR`, `VALIDATION_FAILED`, and `UNEXPECTED_ERROR`.
+- `cancelled / false / CANCELLED`: the scan was cancelled and its counts are also incomplete.
+
+On failure or cancellation, `candidates=0` does not prove there is no pending work. Counts alone do not establish completion in older logs that lack these fields. The new fields contain no entry paths, file content, or exception text, and preserve scan rules, original exceptions, and exit codes. `completed` is not repair success or startup permission: the unique `PLUGIN_RESULT` completion receipt and actual process-exit proof remain required.
+
 “Generate diagnostic report” lets [DiagnosticRepository](../../app/src/main/java/com/deepseekharness/app/core/DiagnosticRepository.java) acquire an environment ticket and run limited probes: device/version, Bash and loader, tool files, smoke test of the selected mode, real Node/npm/Python responses, managed identity, latest trial, free space, current authentication/plugin observations, and host resources. It does not traverse conversations/personal files or read complete logcat, and opening the page does not automatically run expensive probes.
 
 “Repair certificates and npm” is an explicit write action limited to that scope, followed by collection again. Pending maintenance or environment contention rejects it. Repair failure remains a failure even if the subsequent read-only report can be generated. Host FD/PSS/thread samples cover the current native process only, excluding Ubuntu and separate browser children; compare multiple samples after the same operation.
