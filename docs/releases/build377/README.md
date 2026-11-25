@@ -17,6 +17,18 @@
 
 逐项核对可使用[本地交付回执](delivery-local.json)、[软件检测汇总](final4/software-summary.json)、[Windows 每个方法的运行结果](windows-r6/method-results.jsonl)、[Linux 测试汇总](linux-tools/linux-r6/summary.json)、[最终 APK 门禁](verification-final4/summary.json)和[正式、应急 QEMU 回执](qemu-04/receipt.json)。本地回执里的交付状态和时间均为签包当时的记录。
 
+### GitHub 上的构建检查
+
+2026 年 11 月 25 日，GitHub 在首个含全部报告的提交 [`9ff828eb`](https://github.com/SunsetRNE/DSHA-Sunset-mod/commit/9ff828eb03b292f4e48e0d354d7a2d9e1410ec1f) 上启动检查。[文档检查通过](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/45594871833)，Java 和 Kotlin 格式检查也通过。[源码检查共有四个任务失败，两个依赖任务跳过](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/45594871743)。从这个分支直接启动当时的 GitHub 工作流，尚未得到可与本地成品对比的 APK。
+
+| 阶段 | 日志中的实际结果 |
+| --- | --- |
+| Rust 静态检查与差分检查 | 两个任务都在检查原生目录时读到 9 个文件，预算基线要求 14 个。签包树按作者许可将 5 个 proroot 原件交给准备步骤按需恢复。[静态检查](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/45594871743/job/139138176630) · [差分检查](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/45594871743/job/139138176440) |
+| 固定的构建输入 | 恢复的 `dsh-runtime.bin` 未通过分支描述文件的大小或 SHA-256 校验。工作流在装配前终止。[恢复日志](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/45594871743/job/139138177063) |
+| 宿主测试清单 | 仓库里有 [test-local-runtime-policy.mjs](../../../tools/test-local-runtime-policy.mjs)，测试清单没有登记它，校验因此终止。[清单检查](https://github.com/SunsetRNE/DSHA-Sunset-mod/actions/runs/45594871743/job/139138177005) |
+
+本地签包时使用本机按版本准备的输入，原报告已记录那次运行的数据。公开工作流这次跳过了 `unit-source` 和 `host-fast`。本节补记上传后出现的结果，源码仍是上表可核对的签包树。
+
 ### 如何复核
 
 在克隆的仓库里执行以下命令。第一条应输出上表的 Git 源码树，第二条应输出原生源码 ZIP 的摘要。第三条可离线逐项检查文档、验收附件、源码基线及报告清单。
