@@ -390,10 +390,11 @@ public class Rc1MigrationCacheTest {
   @Test
   public void historyHandoffPersistsActualStartupAndLeavesLedgerReadOnly() throws Exception {
     fixture();
-    var reuse = Rc1MigrationCache.reuse(fs, files, home);
     File ledger = fs.child(state, "generations/" + generation + "/settings-result.json");
     byte[] original = fs.small(ledger, 65536);
-    Rc1MigrationCache.bindHistory(fs, files, home, reuse, "second-startup");
+    assertEquals(
+        Rc1MigrationCache.Reuse.Status.REUSABLE_HISTORY,
+        Rc1MigrationCache.prepare(fs, files, home, "second-startup").status);
     var current = BackupJson.read(fs.small(fs.child(state, "current.json"), 65536), 65536);
     assertEquals("second-startup", current.get("startupId"));
     var context = (Map<?, ?>) current.get("startupContext");
@@ -440,6 +441,12 @@ public class Rc1MigrationCacheTest {
     assertThrows(
         java.io.IOException.class,
         () -> Rc1MigrationCache.bindHistory(dropped, files, home, reuse, "second-startup"));
+    assertEquals(
+        Rc1MigrationCache.Reuse.Status.HANDOFF_UNVERIFIED,
+        Rc1MigrationCache.prepare(dropped, files, home, "second-startup").status);
+    assertEquals(
+        Rc1MigrationCache.Reuse.Status.HANDOFF_UNVERIFIED,
+        Rc1MigrationCache.prepare(fs, files, home, null).status);
   }
 
   private static String sha(byte[] data) throws Exception {

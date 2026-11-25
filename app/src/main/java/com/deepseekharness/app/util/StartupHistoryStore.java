@@ -22,7 +22,7 @@ public final class StartupHistoryStore {
   }
 
   public static final class Entry {
-    public final String id, status, stage, log, reason;
+    public final String id, status, stage, log, reason, failureCode;
 
     /** 中文时间线：应用自有的固定前缀不随界面语言变化，仅用于失败分类，不直接展示。 */
     public final String zhLog;
@@ -43,6 +43,7 @@ public final class StartupHistoryStore {
       log = p.getProperty(language + "Log", "");
       zhLog = p.getProperty("zhLog", "");
       reason = p.getProperty("reason", "");
+      failureCode = p.getProperty("failureCode", "");
     }
   }
 
@@ -51,6 +52,18 @@ public final class StartupHistoryStore {
       long started,
       String status,
       String reason,
+      StartupTrace.Snapshot zh,
+      StartupTrace.Snapshot en)
+      throws IOException {
+    save(id, started, status, reason, "", zh, en);
+  }
+
+  public synchronized void save(
+      String id,
+      long started,
+      String status,
+      String reason,
+      String failureCode,
       StartupTrace.Snapshot zh,
       StartupTrace.Snapshot en)
       throws IOException {
@@ -69,6 +82,7 @@ public final class StartupHistoryStore {
     p.setProperty("browserReadyMs", Long.toString(zh.browserReadyMs));
     p.setProperty("safe", Boolean.toString(zh.safe));
     p.setProperty("reason", SensitiveData.redact(reason));
+    if (!failureCode.isEmpty()) p.setProperty("failureCode", failureCode);
     p.setProperty("zhStage", zh.stage);
     p.setProperty("enStage", en.stage);
     p.setProperty("zhLog", zh.log);

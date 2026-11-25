@@ -66,6 +66,18 @@ public class InstallTaskTest {
   }
 
   @Test
+  public void acceptedLastMomentCancellationCannotLoseToNormalPublication() {
+    InstallTask task = new InstallTask();
+    assertTrue(task.start(false, 5));
+    assertTrue(task.requestCancel());
+    assertThrows(
+        InstallTask.Cancelled.class, () -> task.finishChecked(InstallTask.Outcome.SUCCEEDED, "完成"));
+    assertEquals(InstallTask.Outcome.RUNNING, task.snapshot().outcome);
+    task.finish(InstallTask.Outcome.CANCELLED, "已取消");
+    assertFalse(task.requestCancel());
+  }
+
+  @Test
   public void exceptionCompletionReleasesTaskAndClearsOldCancellation() {
     InstallTask task = new InstallTask();
     task.start(false, 3);

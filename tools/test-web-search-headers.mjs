@@ -1,4 +1,4 @@
-// Real locked rc3 provider, credential provider, launch snapshot and native Request.
+// Real locked 0.2.2-rc.5 provider, credential provider, launch snapshot and native Request.
 // All credentials/responses are synthetic; fetch is intercepted before any socket.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -23,7 +23,20 @@ for(const {before,after} of recipe.patches){assert.equal(changed.split(before).l
 assert.equal(sha(changed),recipe.patchedSha256);
 const syntax=spawnSync(process.execPath,['--check','--input-type=module'],{input:changed,encoding:'utf8',windowsHide:true});
 assert.equal(syntax.status,0,syntax.stderr);
-for(const [name,value]of [['official.mjs',canonical],['patched.mjs',changed]])fs.writeFileSync(path.join(output,name),value);
+const compatRecipe=JSON.parse(fs.readFileSync(path.join(root,'app/src/main/assets/deepseek-messages-compat-patch.json'),'utf8'));
+let fixedDeepSeek=fs.readFileSync(path.join(runtime,'node_modules',compatRecipe.module),'utf8');
+for(const patch of compatRecipe.patches){
+  assert.equal(fixedDeepSeek.split(patch.before).length,2);
+  const after=(patch.prependAsset?fs.readFileSync(path.join(root,'app/src/main/assets',patch.prependAsset),'utf8')+'\n':'')+patch.after;
+  fixedDeepSeek=fixedDeepSeek.replace(patch.before,()=>after);
+}
+const deepSeekImport='from "@deepseek-ai/dsh-llm-deepseek"';
+assert.equal(changed.split(deepSeekImport).length,2);
+for(const [name,value] of [
+  ['official.mjs',canonical],
+  ['patched.mjs',changed.replace(deepSeekImport,'from "./deepseek-managed.mjs"')],
+  ['deepseek-managed.mjs',fixedDeepSeek]
+])fs.writeFileSync(path.join(output,name),value);
 const load=name=>import(pathToFileURL(path.join(runtime,'node_modules',name,'lib/index.js')));
 const [Official,Fixed,{Context},{LocalCredentialProvider},{createLaunchEnvironmentSnapshot}]=await Promise.all([
   import(pathToFileURL(path.join(output,'official.mjs'))),import(pathToFileURL(path.join(output,'patched.mjs'))),
@@ -93,7 +106,7 @@ try{
     const python=spawnSync(process.env.DSHA_PYTHON||'python',['-B','-c',[
       'import hashlib,json,sys,os;from pathlib import Path;sys.path.insert(0,"tools");from runtime_stable_patches import apply',
       'p=json.loads(Path("app/src/main/assets/deepseek-web-search-headers-patch.json").read_text(encoding="utf8"))',
-      'pointer=json.loads(Path("app/build/test-runtimes/current.json").read_text());raw=Path(os.environ.get("DSHA_TEST_RUNTIME") or pointer["raw"],"node_modules",p["module"]).read_bytes()',
+      'raw_path=os.environ.get("DSHA_TEST_RUNTIME") or json.loads(Path("app/build/test-runtimes/current.json").read_text())["raw"];raw=Path(raw_path,"node_modules",p["module"]).read_bytes()',
       'chain=[("web-search",[(e["before"],e["after"])for e in p["patches"]],[])]',
       'fixed=apply(raw,chain);assert hashlib.sha256(fixed).hexdigest()==p["patchedSha256"];assert apply(fixed,chain)==fixed',
       'try: apply(raw.replace(p["patches"][0]["before"].encode(),b"DRIFT",1),chain)',
@@ -197,8 +210,9 @@ try{
     try{const error=await f.provider.search({query:'test'}).catch(error=>error);assert.equal(calls.length,before+1);assert.match(error.message,/transmission is unconfirmed/);assert.equal(logs.length,startLogs+1);assert(!JSON.stringify(logs.slice(startLogs)).includes('SECRET_MUST_NOT_APPEAR'));}finally{dispatchMode='success';}
   });
   await test('account 401 retains sign-in guidance and adds no key fallback or extra request',async()=>{
-    dispatchMode='401';const f=direct(Fixed,{resolveAccountToken:async()=>'SYNTHETIC-ACCOUNT-EXACT'}),before=calls.length;
-    try{const error=await f.provider.search({query:'test'}).catch(error=>error);assert.match(error.message,/rejected the account sign-in/);assert.equal(calls.length,before+1);assert.equal(f.events.length,1);}finally{dispatchMode='success';}
+    dispatchMode='401';const retired=[];
+    const f=direct(Fixed,{resolveAccountToken:async()=>'SYNTHETIC-ACCOUNT-EXACT',rejectAccountToken:token=>retired.push(token)}),before=calls.length;
+    try{const error=await f.provider.search({query:'test'}).catch(error=>error);assert.match(error.message,/rejected the account sign-in/);assert.equal(calls.length,before+1);assert.equal(f.events.length,1);assert.deepEqual(retired,['SYNTHETIC-ACCOUNT-EXACT']);}finally{dispatchMode='success';}
   });
   const receipt={status:'PASS',tests:results.length,results,module:recipe.module,sourceSha256:recipe.sourceSha256,patchedSha256:sha(changed),recipeSha256:sha(fs.readFileSync(path.join(root,'app/src/main/assets',recipeName))),networkMode:'synthetic fetch intercept with real native Request; no HTTP sockets or real account/model requests',deviceValidation:false,output};
   fs.writeFileSync(path.join(output,'result.json'),JSON.stringify(receipt,null,2)+'\n');

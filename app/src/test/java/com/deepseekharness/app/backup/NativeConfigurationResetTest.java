@@ -117,7 +117,7 @@ public class NativeConfigurationResetTest {
     File root = temporary.newFolder();
     fixture(root);
     File operation = reset(root, null);
-    assertEquals("{}\n", read(root, SETTINGS));
+    assertFalse(new File(root, SETTINGS).exists());
     assertEquals("DEEPSEEK_API_KEY='test-only'\n", read(root, ENV));
     assertEquals("- id: llm\n  config: {model: user-profile-value}\n", read(root, PROFILE));
     Map<String, Object> plan =
@@ -153,7 +153,7 @@ public class NativeConfigurationResetTest {
     put(root, UserDataLayout.STABLE + "/settings.yaml", "stable original");
     new UserDataLayout(FS, root).choose(UserDataLayout.Home.STABLE);
     File operation = reset(root, null);
-    assertEquals("{}\n", read(root, UserDataLayout.STABLE + "/settings.yaml"));
+    assertFalse(new File(root, UserDataLayout.STABLE + "/settings.yaml").exists());
     assertEquals("model: original\n", read(root, SETTINGS));
     assertEquals("stable original", read(operation, "previous/settings"));
   }
@@ -257,6 +257,7 @@ public class NativeConfigurationResetTest {
             NativeConfigurationResetTest.class,
             NativeConfigurationReset.class,
             com.google.gson.stream.JsonReader.class,
+            kotlin.Unit.class,
             org.junit.Assert.class))
       classes.add(
           new File(type.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath());

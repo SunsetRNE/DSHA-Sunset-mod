@@ -7,18 +7,23 @@ import json
 import os
 from pathlib import Path
 import re
+import sys
 import tarfile
 import zipfile
 from test_runtime_fixture import runtime as verified_runtime
 from runtime_stable_patches import load_chains, apply as apply_stable_patches
+from rootfs_archive import open_rootfs_tar
 
 PREFIX = 'usr/local/lib/node_modules/@deepseek-ai/dsh'
 SIDEBAR_RIGHT = '@deepseek-ai/dsh-client-ui-sidebar-right/lib/client.js'
 SIDEBAR_RECIPE = 'sidebar-layout-recovery-patch.json'
 CONVERSATION = '@deepseek-ai/dsh-client-ui-conversation/lib/client.js'
 CONVERSATION_SPECIAL_INPUTS = ('lexical-claim-patch.json', 'conversation-materialized-patch.json')
+DARWIN_ONLY_OFFICIAL_PACKAGES = {'@deepseek-ai/dsh-experimental-cua-macos'}
 REVIEWED_OFFICIAL_CHAINS = {
     SIDEBAR_RIGHT: (SIDEBAR_RECIPE,),
+    '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/lib/client.js': ('text-page-rejection-patch.json',),
+    '@deepseek-ai/dsh-client-ui-sidebar-files/lib/client.js': ('files-list-rejection-patch.json',),
     CONVERSATION: ('composer-enter-patch.json', 'queue-dock-patch.json'),
     '@deepseek-ai/dsh-web-search-deepseek/lib/index.js': ('deepseek-web-search-headers-patch.json',),
     '@deepseek-ai/dsh-client-file-upload/lib/index.js': (
@@ -29,7 +34,8 @@ REVIEWED_OFFICIAL_CHAINS = {
     '@deepseek-ai/dsh-plugin-manager/lib/index.js': (
         'plugin-manager-policy-patch.json', 'plugin-pnpm-argv-patch.json',
         'retired-market-catalog-patch.json', 'auto-review-native-disabled-patch.json',
-        'plugin-manager-entries-patch.json', 'plugin-bundle-proof-workers-patch.json'),
+        'plugin-manager-web-update-rollback-patch.json', 'plugin-manager-entries-patch.json',
+        'plugin-bundle-proof-workers-patch.json', 'plugin-manager-shell-integrations-patch.json'),
 }
 BUILD192_RECIPE_MODULES = {
     'deepseek-web-search-headers-patch.json': '@deepseek-ai/dsh-web-search-deepseek/lib/index.js',
@@ -123,7 +129,7 @@ def verify_ubuntu_tools(apk, lock, lock_sha256, expected_archive_sha256):
                 and manifest.get('packageLockSha256') == lock_sha256
                 and manifest.get('packages') == len(lock['packages']), 'Ubuntu 工具制备证明不符')
         found = {}
-        with apk.open('assets/ubuntu-tools.bin') as stream, tarfile.open(fileobj=stream, mode='r|gz') as tools:
+        with apk.open('assets/ubuntu-tools.bin') as stream, open_rootfs_tar(stream) as tools:
             for member in tools:
                 name = member.name.removeprefix('./')
                 if name not in ('var/lib/dpkg/status', 'root/.dsha-ubuntu-tools-version'):
@@ -227,15 +233,23 @@ def verify(path):
         # so old package versions cannot hide behind retained patch markers.
         npm_lock = json.loads((root / 'tools/dsh-runtime/package-lock.json').read_text(encoding='utf-8'))
         official_package_digests = {}
+        excluded_official_packages = set()
         for package_key, locked in npm_lock['packages'].items():
             if not package_key.startswith('node_modules/@deepseek-ai/dsh') or len(package_key.split('/')) != 3:
                 continue
             package_name = package_key.removeprefix('node_modules/')
             source_manifest = runtime / package_name / 'package.json'
+            require(locked.get('version') == dsh_version, 'OFFICIAL_DSH_PACKAGE_GENERATION:' + package_name)
+            if package_name in DARWIN_ONLY_OFFICIAL_PACKAGES:
+                require(locked.get('optional') is True and locked.get('os') == ['darwin'],
+                        'OFFICIAL_DSH_PLATFORM_LOCK:' + package_name)
+                if sys.platform != 'darwin':
+                    require(not source_manifest.exists(), 'OFFICIAL_FOREIGN_DSH_RAW_PACKAGE:' + package_name)
+                excluded_official_packages.add(package_name)
+                continue
             metadata = json.loads(source_manifest.read_text(encoding='utf-8'))
             require(metadata.get('name') == package_name and metadata.get('version') == locked.get('version'),
                     'OFFICIAL_PACKAGE_RAW_METADATA:' + package_name)
-            require(locked.get('version') == dsh_version, 'OFFICIAL_DSH_PACKAGE_GENERATION:' + package_name)
             destination = PREFIX if package_name == '@deepseek-ai/dsh' else PREFIX + '/node_modules/' + package_name
             official_package_digests[destination + '/package.json'] = hashlib.sha256(source_manifest.read_bytes()).hexdigest()
         official_package_count = len(official_package_digests)
@@ -285,9 +299,16 @@ def verify(path):
             require((runtime_sha256 == expected_runtime_sha256), 'APK 没有打入当前生成的 dsh-runtime.bin')
         seen = set()
         for asset in assets:
-            with apk.open('assets/' + asset) as stream, tarfile.open(fileobj=stream, mode='r|gz') as archive:
+            with apk.open('assets/' + asset) as stream, (
+                    open_rootfs_tar(stream) if asset == 'offline-rootfs.bin'
+                    else tarfile.open(fileobj=stream, mode='r|gz')) as archive:
                 for item in archive:
                     name = item.name.removeprefix('./').rstrip('/')
+                    for package_name in excluded_official_packages:
+                        for excluded in (PREFIX + '/node_modules/' + package_name,
+                                         'usr/local/lib/node_modules/' + package_name):
+                            require(name != excluded and not name.startswith(excluded + '/'),
+                                    'OFFICIAL_FOREIGN_DSH_APK_PACKAGE:' + name)
                     if not item.isdir():
                         require((name not in seen), '两个归档含重复运行时文件：' + name)
                         seen.add(name)
@@ -359,6 +380,7 @@ def verify(path):
         require('assets/fresh-settings-policy-patch.json' not in apk.namelist(), 'Fresh-only settings policy must not enter production')
         return dict(apk=str(path), dsh=dsh_version, environment=version, plugins=plugins,
                     preservedOfficialFeatures=preserved_features, officialDshPackageManifests=official_package_count,
+                    excludedOfficialDshPackages=sorted(excluded_official_packages),
                     sharedModuleAliases=aliases, expandedBytes=expanded, ubuntuToolPackages=len(tools_lock['packages']),
                     rootfsSha256=digest.hexdigest(), dshRuntimeSha256=runtime_sha256)
 

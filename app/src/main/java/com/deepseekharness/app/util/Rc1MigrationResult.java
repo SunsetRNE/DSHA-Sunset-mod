@@ -4,6 +4,7 @@ import com.deepseekharness.app.backup.BackupJson;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 迁移输出只接受一条完整结构化回执；错误文字中的 status 不能授予启动许可。
@@ -16,6 +17,19 @@ public final class Rc1MigrationResult {
   private Rc1MigrationResult() {}
 
   private static final String PREFIX = "DSHA_RC1_MIGRATION=";
+  public static final String LEGACY_COMPLETION_RECEIPT_MISSING =
+      "LEGACY_COMPLETION_RECEIPT_MISSING";
+  private static final String RC5_RECHECK_INPUT_CHANGED = "RC5_RECHECK_INPUT_CHANGED";
+  private static final Set<String> REVIEW_CODES =
+      Set.of(
+          LEGACY_COMPLETION_RECEIPT_MISSING,
+          "RC5_RECHECK_LEGACY_INPUTS",
+          "RC5_RECHECK_LEGACY_RECORD",
+          "RC5_RECHECK_WRITE_EVIDENCE",
+          "RC5_RECHECK_SNAPSHOT_UNVERIFIED",
+          "RC5_RECHECK_PREPARE_UNVERIFIED",
+          RC5_RECHECK_INPUT_CHANGED,
+          "RC5_RECHECK_UNAVAILABLE");
 
   public static Map<String, Object> parse(String output) throws IOException {
     Map<String, Object> result = null;
@@ -44,6 +58,25 @@ public final class Rc1MigrationResult {
         && startupId != null
         && !startupId.isEmpty()
         && startupId.equals(text(value, "startupId"));
+  }
+
+  public static boolean isReviewCode(String code) {
+    return code != null && REVIEW_CODES.contains(code);
+  }
+
+  /** The current preparation issued a known hold before sending an import. */
+  public static String reviewCode(Map<String, Object> value, String startupId) {
+    if (!boundTo(value, startupId)
+        || !"prepare".equals(text(value, "phase"))
+        || !"pending".equals(text(value, "status"))
+        || !"historical".equals(text(value, "verificationScope"))
+        || !"NOT_SENT".equals(text(value, "executionState"))) return "";
+    String code = text(value, "reason");
+    if (!isReviewCode(code)) return "";
+    String copy = text(value, "contentCopyStatus");
+    if ("verified".equals(copy) || RC5_RECHECK_INPUT_CHANGED.equals(code) && "unknown".equals(copy))
+      return code;
+    return "";
   }
 
   public static boolean isHistorical(Map<String, Object> value) {

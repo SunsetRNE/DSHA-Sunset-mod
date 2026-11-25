@@ -86,6 +86,53 @@ public class StartupRecoveryStateTest {
   }
 
   @Test
+  public void migrationReviewUsesOnlyTheRecordedHostCodeInEveryUiLanguage() {
+    String receipt = "DSHA_RC1_MIGRATION={\"reason\":\"LEGACY_COMPLETION_RECEIPT_MISSING\"}";
+    String code = "LEGACY_COMPLETION_RECEIPT_MISSING";
+    java.util.Set<String> headlines = new java.util.HashSet<>();
+    java.util.Set<String> details = new java.util.HashSet<>();
+    java.util.Set<String> stages = new java.util.HashSet<>();
+    for (String language : UiLanguagePreference.LANGUAGES) {
+      UiText.setLanguage(language);
+      String title = StartupRecoveryState.title(Kind.MIGRATION_REVIEW, "", "");
+      String detail = StartupRecoveryState.migrationReviewDetail(code);
+      String stage = StartupRecoveryState.migrationReviewStage();
+      assertTrue(language, headlines.add(title));
+      assertTrue(language, details.add(detail));
+      assertTrue(language, stages.add(stage));
+      assertEquals(
+          language, Kind.FAILED, StartupRecoveryState.classify(title, receipt, false).kind);
+      assertEquals(language, Kind.FAILED, StartupRecoveryState.classify(code, receipt, false).kind);
+      assertEquals(
+          language, Kind.FAILED, StartupRecoveryState.classify(title, receipt, true, code).kind);
+      Failure classified =
+          StartupRecoveryState.classify("arbitrary old locale", receipt, false, code);
+      assertEquals(language, Kind.MIGRATION_REVIEW, classified.kind);
+      assertFalse(detail.contains(code));
+      java.util.Set<String> rc5Details = new java.util.HashSet<>();
+      String generic = StartupRecoveryState.detail(Kind.MIGRATION_REVIEW);
+      for (String rc5 :
+          java.util.List.of(
+              "RC5_RECHECK_LEGACY_INPUTS",
+              "RC5_RECHECK_LEGACY_RECORD",
+              "RC5_RECHECK_WRITE_EVIDENCE",
+              "RC5_RECHECK_SNAPSHOT_UNVERIFIED",
+              "RC5_RECHECK_PREPARE_UNVERIFIED",
+              "RC5_RECHECK_INPUT_CHANGED",
+              "RC5_RECHECK_UNAVAILABLE")) {
+        String review = StartupRecoveryState.migrationReviewDetail(rc5);
+        assertTrue(language + " " + rc5, rc5Details.add(review));
+        assertNotEquals(language + " " + rc5, generic, review);
+        assertEquals(
+            language,
+            Kind.MIGRATION_REVIEW,
+            StartupRecoveryState.classify("arbitrary old locale", receipt, false, rc5).kind);
+      }
+      System.out.printf("migration locale=%s title=%s stage=%s%n", language, title, stage);
+    }
+  }
+
+  @Test
   public void pluginRegistrationFailuresAreActionableInsteadOfUnclassified() {
     Failure timeout =
         StartupRecoveryState.classify(

@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.res.AssetManager;
+import com.deepseekharness.app.BuildConfig;
 import com.deepseekharness.app.backup.*;
 import com.deepseekharness.app.util.BuiltinPluginRegistry;
 import java.io.File;
@@ -168,12 +169,76 @@ public final class RuntimeBuiltinDeploymentAndroidTest {
         root.resolve("root/dsha-computer-use-android"),
         "dsh-computer-use-android",
         "task-binding.js");
-    var entriesMethod = RuntimeTrial.class.getDeclaredMethod("builtinEntries");
-    entriesMethod.setAccessible(true);
-    JSONArray entries = new JSONObject((String) entriesMethod.invoke(null)).getJSONArray("entries");
-    assertEquals(BuiltinPluginRegistry.SIGNED.size(), entries.length());
-    for (int index = 0; index < entries.length(); index++)
-      assertTrue(Files.isRegularFile(root.resolve(entries.getString(index).substring(1))));
+    // Rootfs installation writes this separately from the managed asset copier above.
+    Files.writeString(
+        root.resolve("root/.dsha-pnpm-version"),
+        BuildConfig.BUNDLED_PNPM_VERSION + "\n",
+        StandardCharsets.US_ASCII);
+    var descriptor =
+        new RuntimeDescriptor(
+            BackupJson.read(
+                Files.readAllBytes(source.resolve("runtime-descriptor.json")), 2 * 1024 * 1024));
+    var inputs =
+        RuntimeTrial.launchInputs(
+            new AndroidBackupFileSystem(),
+            RuntimeAssetFiles.root(context, root.toFile()),
+            descriptor);
+    assertEquals(BuildConfig.BUNDLED_PNPM_VERSION, inputs.pnpmVersion());
+    JSONArray entries = new JSONObject(inputs.builtinEntries()).getJSONArray("entries");
+    Set<String> expected = new HashSet<>();
+    for (String name : BuiltinPluginRegistry.SIGNED)
+      expected.add(
+          BuiltinPluginRegistry.guestDirectory(name)
+              + "/"
+              + BuiltinPluginRegistry.entrypoint(name));
+    assertEquals(expected.size(), entries.length());
+    for (int index = 0; index < entries.length(); index++) {
+      String entry = entries.getString(index);
+      assertTrue("Unexpected trial entry: " + entry, expected.remove(entry));
+      assertTrue(
+          "Missing installed entry: " + entry,
+          Files.isRegularFile(root.resolve(entry.substring(1))));
+    }
+    assertTrue("Missing signed trial entries: " + expected, expected.isEmpty());
+  }
+
+  @Test
+  public void managedDeviceScriptDigestsSurviveNormalDeviceScriptInstallation() throws Exception {
+    Path root = files.resolve("linux/ubuntu");
+    install(root);
+    var fs = new JvmBackupFileSystem();
+    var control = new BackupControl(null);
+    boolean posix = Files.getFileStore(root).supportsFileAttributeView("posix");
+    Map<String, String> assets = new LinkedHashMap<>();
+    assets.put("root/.dsh/device-shell-policy.py", "device-shell-policy.py");
+    assets.put("root/.dsh/adb-shell.py", "adb-shell.py");
+    assets.put("root/.dsh/adb-pair.py", "adb-pair.py");
+    assets.put("root/.dsh/adb-setup.sh", "adb-setup.sh");
+    assets.put("root/.dsh/script-version", "adb-script-version");
+    assets.put("root/dsh-bin/adb-shell", "dsha-device-shell.sh");
+    assertArrayEquals(
+        com.deepseekharness.app.util.DeviceScriptProof.wrapper(
+            Files.readAllBytes(source.resolve("adb-setup.sh"))),
+        Files.readAllBytes(source.resolve("dsha-device-shell.sh")));
+    Map<String, String> managedHashes = new LinkedHashMap<>();
+    for (var entry : assets.entrySet()) {
+      String path = entry.getKey();
+      File file = root.resolve(path).toFile();
+      assertTrue(com.deepseekharness.app.util.ManagedRuntimeLayout.paths().contains(path));
+      assertArrayEquals(
+          path,
+          Files.readAllBytes(source.resolve(entry.getValue())),
+          Files.readAllBytes(file.toPath()));
+      if (posix)
+        assertEquals(path, path.endsWith("/script-version") ? 0 : 0111, fs.stat(file).mode & 0111);
+      managedHashes.put(path, BackupTree.digest(fs, file, control));
+    }
+    RuntimeTools.installDeviceScripts(context, root.toFile());
+    for (var entry : managedHashes.entrySet()) {
+      File file = root.resolve(entry.getKey()).toFile();
+      assertEquals(entry.getKey(), entry.getValue(), BackupTree.digest(fs, file, control));
+    }
+    if (posix) assertTrue(RuntimeTools.deviceScriptsMatch(context, root.toFile()));
   }
 
   @Test

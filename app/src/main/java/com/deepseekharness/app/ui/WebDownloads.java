@@ -69,13 +69,7 @@ public final class WebDownloads {
               try {
                 RecentsPrivacyGuard.launch(picker, intent);
               } catch (RuntimeException error) {
-                model.pickerOpen = false;
-                model.acknowledge();
-                Toast.makeText(
-                        activity,
-                        com.deepseekharness.app.util.UiText.text("无法打开保存位置选择器，请启用系统文件应用后重试"),
-                        Toast.LENGTH_LONG)
-                    .show();
+                model.pickerUnavailable();
               }
             } else if (state.phase().equals("share-ready")) {
               android.net.Uri uri = model.takeShareUri();

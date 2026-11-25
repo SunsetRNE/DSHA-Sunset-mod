@@ -97,18 +97,22 @@ public final class DownloadsExport {
       }
       ContentValues ready = new ContentValues();
       ready.put(MediaStore.MediaColumns.IS_PENDING, 0);
+      control.check();
       if (context.getContentResolver().update(uri, ready, null, null) != 1)
         throw new IOException(com.deepseekharness.app.util.UiText.text("下载文件发布失败"));
+      published = true;
       String actualName = name;
       try (Cursor cursor =
-          DocumentStreams.query(
+          DocumentStreams.optionalQuery(
               context.getContentResolver(),
               uri,
               new String[] {MediaStore.MediaColumns.DISPLAY_NAME},
               control)) {
-        if (cursor != null && cursor.moveToFirst()) actualName = cursor.getString(0);
+        if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0))
+          actualName = cursor.getString(0);
+      } catch (IOException | RuntimeException unavailable) {
+        // The verified file is already public. Its optional display label may be unavailable.
       }
-      published = true;
       return new Result(uri, actualName, expected);
     } finally {
       if (!published)

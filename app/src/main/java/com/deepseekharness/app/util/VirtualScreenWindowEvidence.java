@@ -6,20 +6,14 @@ import java.util.Map;
 /**
  * 虚拟屏窗口证据（T98）：把无障碍窗口清单里与目标窗口身份有关的字段，整理成受控的最小只读快照。
  *
- * <p>只输出 displayId、窗口 id/type/layer/bounds/focused/active、标题和包名；不包含节点文本、控件内容、
- * 截图或完整窗口清单。标题去掉控制字符、折叠空白并截断，包名按 Android 包名格式校验，不合格的值直接
- * 省略。证据只用于解释失败和给出 nextAction，<b>不能用来挑选、替换或自动确认窗口</b>：语义路径仍然
- * 只认 {@link VirtualScreenWindowPolicy} 选出的唯一窗口。
+ * <p>只输出 displayId、窗口 id/type/layer/bounds/focused/active 和包名。窗口标题可能包含应用正文，诊断无需读取。 包名按 Android
+ * 包名格式校验，不合格的值直接 省略。证据只用于解释失败和给出 nextAction，<b>不能用来挑选、替换或自动确认窗口</b>：语义路径仍然 只认 {@link
+ * VirtualScreenWindowPolicy} 选出的唯一窗口。
  *
  * <p>纯逻辑：不 import Android API，也不依赖 org.json；字段表只含 String/Integer/Boolean。
  */
 public final class VirtualScreenWindowEvidence {
-  /** 标题最多保留的码点数；超出部分截断并追加省略号。 */
-  public static final int TITLE_LIMIT = 64;
-
   public static final int PACKAGE_LIMIT = 200;
-
-  private static final String TRUNCATED = "…";
 
   private VirtualScreenWindowEvidence() {}
 
@@ -28,7 +22,6 @@ public final class VirtualScreenWindowEvidence {
     public final int displayId, id, type, layer;
     public final int left, top, right, bottom;
     public final boolean focused, active;
-    public final String title;
 
     public Window(
         int displayId,
@@ -40,8 +33,7 @@ public final class VirtualScreenWindowEvidence {
         int right,
         int bottom,
         boolean focused,
-        boolean active,
-        String title) {
+        boolean active) {
       this.displayId = displayId;
       this.id = id;
       this.type = type;
@@ -52,7 +44,6 @@ public final class VirtualScreenWindowEvidence {
       this.bottom = bottom;
       this.focused = focused;
       this.active = active;
-      this.title = title;
     }
   }
 
@@ -89,8 +80,7 @@ public final class VirtualScreenWindowEvidence {
     /**
      * 目标窗口字段；没有唯一目标时只给计数和歧义，绝不输出“猜出来的”窗口身份。
      *
-     * <p>键名固定为 ASCII；数值都是受控字段：窗口 id/layer 是整数，bounds 是 "left,top,right,bottom"，
-     * title 已去控制字符并截断，package 已按包名格式校验。
+     * <p>键名固定为 ASCII；数值都是受控字段：窗口 id/layer 是整数，bounds 是 "left,top,right,bottom"， package 已按包名格式校验。
      */
     public Map<String, Object> fields() {
       var fields = new java.util.LinkedHashMap<String, Object>();
@@ -110,7 +100,6 @@ public final class VirtualScreenWindowEvidence {
             target.left + "," + target.top + "," + target.right + "," + target.bottom);
         fields.put("targetWindowFocused", target.focused);
         fields.put("targetWindowActive", target.active);
-        if (target.title != null) fields.put("targetWindowTitle", target.title);
       }
       if (targetPackage != null) fields.put("targetWindowPackage", targetPackage);
       return fields;
@@ -150,23 +139,7 @@ public final class VirtualScreenWindowEvidence {
               window.focused,
               window.active));
     var selection = VirtualScreenWindowPolicy.selectDetailed(display, candidates);
-    Window target = null;
-    if (selection.index >= 0) {
-      Window source = windows.get(selection.index);
-      target =
-          new Window(
-              source.displayId,
-              source.id,
-              source.type,
-              source.layer,
-              source.left,
-              source.top,
-              source.right,
-              source.bottom,
-              source.focused,
-              source.active,
-              sanitizeTitle(source.title));
-    }
+    Window target = selection.index < 0 ? null : windows.get(selection.index);
     return new Snapshot(
         selection.index,
         selection.ambiguous,
@@ -193,38 +166,6 @@ public final class VirtualScreenWindowEvidence {
       default:
         return "OTHER";
     }
-  }
-
-  /** 去掉控制字符、折叠空白、截断到 {@link #TITLE_LIMIT} 个码点；空标题返回 null。 */
-  public static String sanitizeTitle(String raw) {
-    if (raw == null || raw.isEmpty()) return null;
-    var out = new StringBuilder();
-    boolean pendingSpace = false;
-    int count = 0;
-    for (int index = 0; index < raw.length(); ) {
-      int point = raw.codePointAt(index);
-      index += Character.charCount(point);
-      if (Character.isISOControl(point) || Character.isWhitespace(point)) {
-        if (out.length() > 0) pendingSpace = true;
-        continue;
-      }
-      if (pendingSpace) {
-        if (count >= TITLE_LIMIT) {
-          out.append(TRUNCATED);
-          break;
-        }
-        out.append(' ');
-        pendingSpace = false;
-        count++;
-      }
-      if (count >= TITLE_LIMIT) {
-        out.append(TRUNCATED);
-        break;
-      }
-      out.appendCodePoint(point);
-      count++;
-    }
-    return out.length() == 0 ? null : out.toString();
   }
 
   /** 只接受 Android 包名字母表（字母/数字/下划线/点），否则省略，避免把任意文本带进诊断。 */

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { knownIdle, confirmedIdle } from '../app/src/main/assets/app-integration/activity.js';
-import { runtimePlugins } from '../app/src/main/assets/app-integration/runtime-plugins.js';
+import { pluginActivityProjection, pluginSessionIdentity, runtimePlugins } from '../app/src/main/assets/app-integration/runtime-plugins.js';
 
 function context({status='idle', queued=[], jobs=[], active=[], missing=false}={}) {
   const agent={status,inbox:{nextTurn:queued,nextStep:[]},whenIdle:async()=>{}};
@@ -38,7 +38,7 @@ test('动态插件摘要只含公开身份，不保存源码或授权细节',()=
   assert.deepEqual(runtimePlugins([{id:'session'}],{listPlugins:()=>[]}),[]);
 });
 test('心跳绑定启动 instance，并同时输出动态与持久插件摘要', async () => {
-  const writes = [], moves = [], cleanups = [];
+  const writes = [], startupWrites = [], moves = [], cleanups = [];
   let tick;
   const persistent = [{ name: 'installed', version: '1.0.0', profile: 'web', state: 'pending' }];
   const samplingContext = {
@@ -63,13 +63,20 @@ test('心跳绑定启动 instance，并同时输出动态与持久插件摘要',
   vm.runInNewContext(source + '\napply(ctx);', {
     ctx, process: { env: environment, pid: 123 }, confirmedIdle: async context => {
       assert.equal(context,samplingContext); return true;
-    }, runtimePlugins,
+    }, pluginActivityProjection, pluginSessionIdentity, runtimePlugins,
     installedPluginSampler(context, identity) {
       assert.equal(context, samplingContext);
       assert.deepEqual(JSON.parse(JSON.stringify(identity)), { generation: 'web-generation', instance: 'launch-instance', profile: 'web' });
-      return () => persistent;
+      return observedAt => persistent.map(bundle => ({...bundle, identity:pluginSessionIdentity(identity,observedAt)}));
     },
-    writeFileSync(file, json, options) { writes.push(JSON.parse(json)); assert.equal(options.mode, 0o600); },
+    writeFileSync(file, json, options) {
+      assert.equal(options.mode, 0o600);
+      if (file.startsWith('/root/.dsha-web-activity.json.')) writes.push(JSON.parse(json));
+      else {
+        assert.match(file, /^\/root\/\.dsha-plugin-startup-evidence\.json\./);
+        startupWrites.push(JSON.parse(json));
+      }
+    },
     renameSync(from, to) { moves.push([from, to]); }, unlinkSync() {},
     setInterval(callback, ms) { tick = callback; assert.equal(ms, 2000); return { unref() {} }; }, clearInterval() {},
   });
@@ -77,20 +84,27 @@ test('心跳绑定启动 instance，并同时输出动态与持久插件摘要',
   environment.DSH_TASK_INSTANCE = 'later-mutated-instance';
   await tick();
   assert.equal(writes.length, 2);
+  assert.equal(startupWrites.length, 2);
+  assert.deepEqual(startupWrites.map(item=>item.observedAt),writes.map(item=>item.at));
   for (const item of writes) {
     assert.equal(item.generation, 'web-generation');
     assert.equal(item.instance, 'launch-instance');
     assert.equal(item.idle, true);
-    assert.deepEqual(item.installedPlugins, persistent);
+    assert.deepEqual(item.installedPlugins.map(({name,version,profile,state})=>({name,version,profile,state})), persistent);
     assert.equal(item.plugins[0].id, 'dynamic');
     assert.equal(item.plugins[0].sessionId, 'session');
     assert.equal(item.installedPluginsComplete, undefined);
   }
-  assert.equal(moves.length, 2);
-  assert(moves.every(([from, to]) => from.endsWith('.123.tmp') && to.endsWith('.dsha-web-activity.json')));
+  assert.equal(moves.length, 4);
+  assert(moves.every(([from, to]) => from === to + '.123.tmp'));
+  assert.deepEqual(moves.map(([,to])=>to),[
+    '/root/.dsha-web-activity.json','/root/.dsha-plugin-startup-evidence.json',
+    '/root/.dsha-web-activity.json','/root/.dsha-plugin-startup-evidence.json',
+  ]);
   for (const cleanup of cleanups.reverse()) cleanup?.();
   await tick();
   assert.equal(writes.length, 2, 'effect 已释放后不再写旧代心跳');
+  assert.equal(startupWrites.length, 2, 'effect 已释放后也不再写旧代插件证据');
 });
 
 test('任务结束恢复空闲，接口失效保持保活',()=>{

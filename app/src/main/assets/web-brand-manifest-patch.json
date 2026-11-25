@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-web-frontend/dist/manifest.webmanifest",
+  "sourceSha256": "0684508930a5e3b36e43afc1dc89252a95893a3d66cdfaccb453cc675012715b",
+  "patches": [
+    {
+      "before": "\"name\": \"DeepSeek Harness\"",
+      "after": "\"name\": \"DSHA\""
+    },
+    {
+      "before": "\"short_name\": \"DSH\"",
+      "after": "\"short_name\": \"DSHA\""
+    },
+    {
+      "before": "\"src\": \"icon-192.png\"",
+      "after": "\"src\": \"icon-192.png?dsha-brand=1\""
+    },
+    {
+      "before": "\"src\": \"icon-512.png\"",
+      "after": "\"src\": \"icon-512.png?dsha-brand=1\""
+    },
+    {
+      "before": "\"src\": \"icon-maskable-512.png\"",
+      "after": "\"src\": \"icon-maskable-512.png?dsha-brand=1\""
+    }
+  ]
+}

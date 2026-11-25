@@ -1,6 +1,9 @@
 package com.deepseekharness.app.ui;
 
 import android.content.Context;
+import android.text.TextUtils;
+import android.widget.ListView;
+import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 import com.deepseekharness.app.R;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -11,7 +14,10 @@ public final class DshaDialogBuilder extends MaterialAlertDialogBuilder {
   private final long consentRevision;
   private android.content.DialogInterface.OnClickListener positive;
   private boolean keepWindowSize;
+  private boolean wrapContentHeight;
   private boolean customView;
+  private boolean hasExplicitView;
+  private CharSequence message;
   private static final java.util.Map<AlertDialog, Long> safetyDialogs =
       new java.util.WeakHashMap<>();
 
@@ -35,9 +41,28 @@ public final class DshaDialogBuilder extends MaterialAlertDialogBuilder {
     return this;
   }
 
+  /** Keep the normal dialog width, but let Android remeasure this form above the keyboard. */
+  DshaDialogBuilder wrapContentHeight() {
+    wrapContentHeight = true;
+    return this;
+  }
+
+  @Override
+  public DshaDialogBuilder setMessage(CharSequence message) {
+    this.message = message;
+    super.setMessage(message);
+    return this;
+  }
+
+  @Override
+  public DshaDialogBuilder setMessage(int textId) {
+    return setMessage(getContext().getText(textId));
+  }
+
   /** 自定义内容（语言网格、应用选择、输入框以外的复合视图）保留较宽的上限，见 SheetGeometry.dialogWindowWidth。 */
   @Override
   public DshaDialogBuilder setView(android.view.View view) {
+    hasExplicitView = view != null;
     customView = view != null && !(view instanceof android.widget.EditText);
     super.setView(view);
     return this;
@@ -45,6 +70,7 @@ public final class DshaDialogBuilder extends MaterialAlertDialogBuilder {
 
   @Override
   public DshaDialogBuilder setView(int layoutResId) {
+    hasExplicitView = layoutResId != 0;
     customView = true;
     super.setView(layoutResId);
     return this;
@@ -114,6 +140,26 @@ public final class DshaDialogBuilder extends MaterialAlertDialogBuilder {
   @Override
   public AlertDialog create() {
     AlertDialog dialog = super.create();
+    // AppCompat installs the ListView only when its message slot is empty. A footer keeps the
+    // explanation in the scrollable content and preserves checked positions and click indices.
+    ListView list = dialog.getListView();
+    if (!hasExplicitView
+        && message != null
+        && list != null
+        && list.getChoiceMode() == ListView.CHOICE_MODE_SINGLE) {
+      dialog.setMessage(null);
+      if (TextUtils.getTrimmedLength(message) > 0) {
+        TextView explanation = new TextView(dialog.getContext());
+        explanation.setId(android.R.id.message);
+        explanation.setTextAppearance(R.style.TextAppearance_DSHA_DialogBody);
+        explanation.setText(message);
+        float density = explanation.getResources().getDisplayMetrics().density;
+        int inset = Math.round(24 * density);
+        explanation.setPaddingRelative(
+            inset, Math.round(8 * density), inset, Math.round(12 * density));
+        list.addFooterView(explanation, null, false);
+      }
+    }
     if (safetyConfirmation) safetyDialogs.put(dialog, consentRevision);
     if (dialog.getWindow() != null) {
       android.view.Window window = dialog.getWindow();
@@ -150,7 +196,10 @@ public final class DshaDialogBuilder extends MaterialAlertDialogBuilder {
                       * density),
               resources.getDisplayMetrics().widthPixels);
       int maxHeight = Math.round((resources.getConfiguration().screenHeightDp - 24) * density);
-      int height = view.getHeight() > maxHeight ? maxHeight : attributes.height;
+      int height =
+          wrapContentHeight
+              ? android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+              : view.getHeight() > maxHeight ? maxHeight : attributes.height;
       if (width != attributes.width || height != attributes.height) window.setLayout(width, height);
     }
   }

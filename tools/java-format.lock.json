@@ -19,9 +19,7 @@
     "--skip-reflowing-long-strings",
     "--skip-javadoc-formatting"
   ],
-  "protectedFiles": [
-    "app/src/main/java/com/deepseekharness/app/ShellService.java"
-  ],
+  "protectedFiles": [],
   "generatedFiles": [
     "app/src/main/java/com/deepseekharness/app/util/BuiltinPluginRegistry.java",
     "app/src/main/java/com/deepseekharness/app/util/CredentialPathRules.java"

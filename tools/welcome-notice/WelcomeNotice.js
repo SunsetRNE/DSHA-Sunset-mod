@@ -60,6 +60,7 @@ function WelcomeNotice(props) {
     children: [
       (0, react_jsx_runtime.jsx)("div", {
         className: WelcomeNotice_module_css_default.copy,
+        "data-dsha-native-back": "leave",
         children: paragraphs.map((paragraph) => (0, react_jsx_runtime.jsx)("p", { children: paragraph }, paragraph))
       }),
       state.error === null ? null : (0, react_jsx_runtime.jsx)("p", {

@@ -1,10 +1,14 @@
 /* 仅处理网页已展示的最上层。普通历史回退由原生处理。 */
 window.__dshaPageBack = function () {
   const visible = el => el && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
-  const layers = Array.from(document.querySelectorAll('[role="dialog"], [aria-modal="true"], [role="menu"], [data-trigger-menu], dialog[open]')).filter(visible);
+  const layerSelector = '[role="dialog"], [aria-modal="true"], [role="menu"], [data-trigger-menu], dialog[open]';
+  const layers = Array.from(document.querySelectorAll(layerSelector)).filter(visible);
   const top = layers[layers.length - 1];
   const escape = target => (target || document.activeElement || document.body).dispatchEvent(new KeyboardEvent('keydown', {key:'Escape', code:'Escape', bubbles:true, cancelable:true}));
   if (top) {
+    // 首次说明必须由用户确认。返回时离开网页，不提交确认或回退到说明背后的历史页。
+    const leave = top.querySelector('[data-dsha-native-back="leave"]');
+    if (visible(leave) && leave.closest(layerSelector) === top) return 'native';
     // 使用组件已有的 Escape 处理，原生不移除 React 持有的 DOM。
     const focus = document.activeElement;
     escape(top.contains(focus) ? focus : top);
@@ -32,6 +36,8 @@ window.__dshaNativePresentation = window.__dshaNativePresentation || (function (
     if (window.DshaTheme && typeof window.DshaTheme.postMessage === 'function') window.DshaTheme.postMessage(text);
     else window.dispatchEvent(new CustomEvent('dsha-native-report', {detail:text}));
   };
+  const canReturnHome = () => !!binding && window.top === window
+    && typeof window.DshaTheme?.postMessage === 'function';
   const color = () => {
     frame = 0;
     if (!binding || document.hidden) return;
@@ -113,6 +119,12 @@ window.__dshaNativePresentation = window.__dshaNativePresentation || (function (
       if (document.body) observer.observe(document.body,{attributes:true,attributeFilter:['class','style','data-ds-dark-theme']});
       if (document.head) observer.observe(document.head,{childList:true,subtree:true,attributes:true,attributeFilter:['content']});
       schedule();
+      if (canReturnHome()) window.dispatchEvent(new CustomEvent('dsha-return-home-ready'));
+    },
+    canReturnHome,
+    returnHome(event) {
+      if (event?.type === 'click' && event.isTrusted && !document.hidden && canReturnHome())
+        send('return-home');
     },
     cancel() { cancelRoute(); window.__dshaIme?.cancel(); },
     ime(request) { window.__dshaIme?.receive(request, result => send('ime-ack', result)); },

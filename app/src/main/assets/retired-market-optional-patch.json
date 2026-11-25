@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-official-bundles/lib/index.js",
-  "sourceSha256": "5c73437f17397f70df11441abce125240c363e05aca0f9aa47bbbe107e634a3a",
+  "sourceSha256": "8ab7b656752709ea805c186f19b85219e974655a8d61b07146ff9d38aa0ae4c0",
   "patches": [
     {
       "before": "\t\"@deepseek-ai/dsh-experimental-liveshare\",\n\t\"@deepseek-ai/dsh-experimental-plugin-market-bundle\",\n",

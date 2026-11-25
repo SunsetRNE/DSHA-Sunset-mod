@@ -101,11 +101,34 @@ public final class EnvironmentRebuildTransaction {
   }
 
   private void verify(File file, String expected) throws IOException {
+    verify(file, expected, new BackupControl(null), null);
+  }
+
+  private void verify(
+      File file, String expected, BackupControl control, BackupTree.DigestProgress observer)
+      throws IOException {
     if (expected == null || !expected.matches("[a-f0-9]{64}"))
       throw new IOException("ENVIRONMENT_CHECKSUM");
+    var read = observer == null ? null : new BackupTree.DigestReadProgress(observer);
+    if (read != null) read.publish(true);
     try (InputStream in = fs.read(file, fs.stat(file))) {
-      if (!expected.equals(BackupArchive.digest(in, new BackupControl(null))))
+      InputStream source =
+          read == null
+              ? in
+              : new java.io.FilterInputStream(in) {
+                @Override
+                public int read(byte[] bytes, int offset, int length) throws IOException {
+                  int count = in.read(bytes, offset, length);
+                  if (count > 0) read.advance(0, count);
+                  return count;
+                }
+              };
+      if (!expected.equals(BackupArchive.digest(source, control)))
         throw new IOException("ENVIRONMENT_CHECKSUM");
+    }
+    if (read != null) {
+      read.advance(1, 0);
+      read.publish(true);
     }
   }
 
@@ -153,6 +176,7 @@ public final class EnvironmentRebuildTransaction {
   public void commit(RuntimeDescriptor descriptor, Map<String, Object> proof) throws IOException {
     if (!marked("switching")
         || !marked("data-restored")
+        || descriptor == null
         || !RuntimeDescriptor.healthy(proof, descriptor.id()))
       throw new IOException("ENVIRONMENT_HEALTH_REQUIRED");
     if (!directory
@@ -237,6 +261,14 @@ public final class EnvironmentRebuildTransaction {
   }
 
   public boolean cleanupRetired(BackupControl control) throws IOException {
+    return cleanupRetired(control, fs::removeOwned, null);
+  }
+
+  private boolean cleanupRetired(
+      BackupControl control,
+      StorageMaintenance.PayloadRemoval remove,
+      BackupTree.DigestProgress observer)
+      throws IOException {
     if (marked("old-environment-cleaned")) return false;
     if (!marked("committed")
         || !marked("data-restored")
@@ -249,19 +281,43 @@ public final class EnvironmentRebuildTransaction {
         || !plan.get("archive").equals(proof.get("archive"))
         || !plan.get("mapping").equals(proof.get("mapping")))
       throw new IOException("RETIRED_PROOF_CHANGED");
-    verify(fs.child(directory, "data.dshdata"), BackupJson.string(plan, "archive"));
-    verify(fs.child(directory, "data-roots.json"), BackupJson.string(plan, "mapping"));
+    verify(
+        fs.child(directory, "data.dshdata"), BackupJson.string(plan, "archive"), control, observer);
+    verify(
+        fs.child(directory, "data-roots.json"),
+        BackupJson.string(plan, "mapping"),
+        control,
+        observer);
     File old = fs.child(directory, "previous-linux");
     if (!fs.stat(old).key.equals(plan.get("oldKey"))
-        || !BackupTree.digest(fs, old, control).equals(proof.get("digest")))
+        || !BackupTree.digest(fs, old, control, observer).equals(proof.get("digest")))
       throw new IOException("RETIRED_TREE_CHANGED");
     control.check();
-    fs.removeOwned(directory, "previous-linux");
+    remove.run(directory, "previous-linux");
     mark("old-environment-cleaned");
     return true;
   }
 
   public static void cleanupCompleted(BackupFileSystem fs, File files, BackupControl control)
+      throws IOException {
+    cleanupCompleted(fs, files, control, fs::removeOwned);
+  }
+
+  static void cleanupCompleted(
+      BackupFileSystem fs,
+      File files,
+      BackupControl control,
+      StorageMaintenance.PayloadRemoval remove)
+      throws IOException {
+    cleanupCompleted(fs, files, control, remove, null);
+  }
+
+  static void cleanupCompleted(
+      BackupFileSystem fs,
+      File files,
+      BackupControl control,
+      StorageMaintenance.PayloadRemoval remove,
+      BackupTree.DigestProgress observer)
       throws IOException {
     if (pending(fs, files) != null) throw new IOException("ENVIRONMENT_RECOVERY_REQUIRED");
     File home = fs.child(files, HOME);
@@ -271,7 +327,7 @@ public final class EnvironmentRebuildTransaction {
         for (String id : fs.list(parent)) {
           if (id.equals(COMPLETED)) continue;
           control.check();
-          open(fs, files, id, null).cleanupRetired(control);
+          open(fs, files, id, null).cleanupRetired(control, remove, observer);
         }
   }
 

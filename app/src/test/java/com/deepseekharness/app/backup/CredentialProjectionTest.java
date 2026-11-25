@@ -149,6 +149,44 @@ public class CredentialProjectionTest {
   }
 
   @Test
+  public void nestedProjectCredentialStoresAndEnvironmentRequireConsentInTheActualArchive()
+      throws Exception {
+    File folder = temporary.newFolder(), nested = new File(folder, "workspace");
+    Files.createDirectory(nested.toPath());
+    Files.writeString(new File(nested, CredentialProjection.FILE).toPath(), credential());
+    Files.writeString(new File(nested, ".env").toPath(), "SYNTHETIC_ENV_FIXTURE");
+    Files.writeString(new File(nested, "keep.txt").toPath(), "SYNTHETIC_ORDINARY_FILE");
+    var ordinary = new FileBackupSource(fs, "project-test", "projects", folder, false, null);
+    for (boolean allow : new boolean[] {false, true}) {
+      File operation = temporary.newFolder(), archive = new File(operation, "test.dshdata");
+      HostSnapshot.create(
+          fs,
+          List.of(CredentialFileBackupSource.forExport(ordinary, allow)),
+          operation,
+          archive,
+          BackupArchiveTest.summary(),
+          false,
+          new BackupControl(null));
+      ByteArrayOutputStream content = new ByteArrayOutputStream();
+      try (InputStream input = fs.read(archive, fs.stat(archive))) {
+        BackupArchive.read(
+            input,
+            new BackupArchive.Visitor() {
+              public OutputStream payload(int ordinal, BackupArchive.Record record) {
+                return record.kind.equals("FILE") ? content : null;
+              }
+            },
+            new BackupControl(null));
+      }
+      String actual = text(content.toByteArray());
+      assertTrue(actual.contains("SYNTHETIC_ORDINARY_FILE"));
+      assertEquals(allow, actual.contains(PROVIDER));
+      assertEquals(allow, actual.contains("SYNTHETIC_ENV_FIXTURE"));
+      assertFalse(actual.contains(LOCAL));
+    }
+  }
+
+  @Test
   public void projectedSourceStillRejectsSameMetadataRawByteChanges() throws Exception {
     File source = new File(temporary.newFolder(), CredentialProjection.FILE);
     Files.write(source.toPath(), bytes(credential()));

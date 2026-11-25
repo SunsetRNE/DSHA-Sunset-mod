@@ -361,7 +361,15 @@ final class WebProcessSession {
       Process launcher) {}
 
   boolean hasLiveLaunchers() {
-    boolean alive = retainedLauncherPending();
+    return hasLiveLaunchers(false);
+  }
+
+  boolean observeLiveLaunchers() {
+    return hasLiveLaunchers(true);
+  }
+
+  private boolean hasLiveLaunchers(boolean observeOnly) {
+    boolean alive = retainedLauncherPending(observeOnly);
     for (WebRun run : state.runs.values()) {
       if (run.recovered != null) {
         try {
@@ -371,9 +379,8 @@ final class WebProcessSession {
         }
       }
       Process process = run.launcher;
-      if (process == null) prune(run);
-      else if (Compat.isAlive(process)) alive = true;
-      else {
+      if (process != null && Compat.isAlive(process)) alive = true;
+      else if (!observeOnly) {
         if (run.launcher == process) run.launcher = null;
         prune(run);
       }
@@ -428,11 +435,20 @@ final class WebProcessSession {
   }
 
   private boolean retainedLauncherPending() {
+    return retainedLauncherPending(false);
+  }
+
+  private boolean retainedLauncherPending(boolean observeOnly) {
     // 所有停止、维护和新启旧实例退休入口共用，不能被先到达的Stop跳过恢复读取。
-    stopEvidence.run();
+    if (!observeOnly) stopEvidence.run();
     try {
       if (state.retainedWebStopProof != null
           && !manager.recoveredLauncherExited(state.retainedWebStopProof)) return true;
+      if (observeOnly) {
+        var saved = records.read();
+        if (saved != null && !manager.recoveredLauncherExited(saved.proof())) return true;
+        return !manager.confirmNoUntrackedWebLaunchers();
+      }
       return state.unreadableWebStopProof && !manager.confirmNoUntrackedWebLaunchers();
     } catch (IOException unknown) {
       return true;

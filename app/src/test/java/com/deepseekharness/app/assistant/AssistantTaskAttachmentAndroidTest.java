@@ -271,6 +271,26 @@ public final class AssistantTaskAttachmentAndroidTest {
     return service;
   }
 
+  private ServiceController<AssistantService> prepareServiceForPostAdmissionTest()
+      throws Exception {
+    // Load the real window resources before starting the timed admission for these scenarios.
+    Host warmHost = new Host(address("fixture-window-preparation"), "0");
+    var controller = new AssistantSessionController(app, warmHost.binding, warmHost, "0");
+    try {
+      var window = new AssistantWindow(app, controller);
+      try {
+        window.show();
+      } finally {
+        window.close();
+      }
+    } finally {
+      controller.close();
+    }
+    var service = Robolectric.buildService(AssistantService.class).create();
+    services.add(service);
+    return service;
+  }
+
   @Test
   public void actualToolAttachesOriginalConversationWithoutCreatingOrSendingAnother()
       throws Exception {
@@ -395,8 +415,9 @@ public final class AssistantTaskAttachmentAndroidTest {
   public void android13PermissionRevokedWhileHiddenPausesInputAndRestoresARealStopButton()
       throws Exception {
     Host host = new Host(address("revoked-during-task"), "7");
+    var service = prepareServiceForPostAdmissionTest();
     var admitted = request(host, "7");
-    var service = dispatchService();
+    service.get().onStartCommand(nextService(), 0, 1);
     assertTrue(admitted.get().ready());
     var coordinator = PhoneControlCoordinator.get(app);
     var task =
@@ -658,8 +679,9 @@ public final class AssistantTaskAttachmentAndroidTest {
   public void expandedPanelStaysVisibleForObservationAndOnlyInvalidatesOldObservation()
       throws Exception {
     Host host = new Host(address("expanded-observation"), "7");
+    var service = prepareServiceForPostAdmissionTest();
     var attached = request(host, "7");
-    var service = dispatchService();
+    service.get().onStartCommand(nextService(), 0, 1);
     assertTrue(attached.get(2, TimeUnit.SECONDS).ready());
     var selected = AssistantSessionController.active();
     var coordinator = PhoneControlCoordinator.get(app);

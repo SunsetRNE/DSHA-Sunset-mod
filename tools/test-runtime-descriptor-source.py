@@ -76,6 +76,33 @@ class DescriptorSourceTest(unittest.TestCase):
         self.launcher.write_bytes(b'changed')
         with self.assertRaisesRegex(ValueError, 'LAUNCHER_BYTES'):self.verify()
 
+    def test_unpacked_vendor_originals_and_absent_inputs_use_the_same_pins(self):
+        name = 'libproroot.so'
+        key = 'app/src/main/jniLibs/arm64-v8a/' + name
+        path = self.root / key
+        path.parent.mkdir(parents=True)
+        pins = self.root/'tools/proroot-compat/abi.lock.json'
+        pins.parent.mkdir()
+        expected = hashlib.sha256(b'vendor-original').hexdigest()
+        pins.write_text(json.dumps({'originalVendorSha256': {name: expected}}))
+        self.manifest['launcherTrees'] = ['app/src/main/jniLibs']
+        manifest_file = self.assets/'managed-runtime-inputs.json'
+        manifest_file.write_text(json.dumps(self.manifest))
+        self.value['inputs']['managed-runtime-inputs.json'] = gate.digest(manifest_file)
+        self.value['launcherInputs'][key] = expected
+        self.save()
+        self.assertEqual([key], self.verify()['deferredVendorInputs'])
+        path.write_bytes(b'vendor-original')
+        self.assertEqual([], self.verify()['deferredVendorInputs'])
+        path.write_bytes(b'wrong file')
+        with self.assertRaisesRegex(ValueError, 'LAUNCHER_BYTES'):
+            self.verify()
+        path.unlink()
+        self.value['launcherInputs'][key] = '0' * 64
+        self.save()
+        with self.assertRaisesRegex(ValueError, 'VENDOR_PIN'):
+            self.verify()
+
     def test_omitted_input_and_bad_identity_cannot_hide_drift(self):
         del self.value['inputs']['script.cjs']
         self.save()

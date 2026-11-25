@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import re
 import tarfile
+from proroot_distribution import LICENSE_NAME, LICENSE_SHA256
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('third_party_notices_generator',
@@ -14,7 +15,16 @@ generator = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(generator)
 REQUIRED_LICENSES = ['proot-COPYING.txt', 'GPL-3.0.txt', 'LGPL-3.0.txt', 'MPL-2.0.txt',
                      'gson-LICENSE.txt', 'bouncycastle-LICENSE.txt', 'certifi-LICENSE.txt',
-                     'Shizuku-MIT.txt', 'Termux-terminal-Apache-2.0.txt', 'snakeyaml-LICENSE.txt']
+                     'Shizuku-MIT.txt', 'Termux-terminal-Apache-2.0.txt', 'snakeyaml-LICENSE.txt',
+                     'xz-LICENSE.txt', LICENSE_NAME, 'libandroid-shmem-0.7-copyright.txt',
+                     'talloc-2.4.3-LICENSE.txt']
+
+
+def verify_shmem(library, license_text, root=ROOT):
+    lock = json.loads((root / 'tools/termux-shmem.lock.json').read_text(encoding='utf-8'))
+    for key, content in [('library', library), ('license', license_text)]:
+        if hashlib.sha256(content).hexdigest() != lock[key]['sha256']:
+            raise ValueError('THIRD_PARTY_SHMEM_BYTES: ' + key)
 
 
 def verify_licenses(root=ROOT):
@@ -22,6 +32,11 @@ def verify_licenses(root=ROOT):
         path = root / 'app/src/main/assets/licenses' / name
         if not path.is_file() or path.stat().st_size < 100:
             raise ValueError('THIRD_PARTY_LICENSE_MISSING: ' + name)
+    vendor_license = root / 'app/src/main/assets/licenses' / LICENSE_NAME
+    if hashlib.sha256(vendor_license.read_bytes()).hexdigest() != LICENSE_SHA256:
+        raise ValueError('THIRD_PARTY_LICENSE_CHANGED: ' + LICENSE_NAME)
+    verify_shmem((root / 'app/src/main/jniLibs/arm64-v8a/libandroidshmem.so').read_bytes(),
+                 (root / 'app/src/main/assets/licenses/libandroid-shmem-0.7-copyright.txt').read_bytes(), root)
     evidence = json.loads((root / 'docs/audits/build156/third-party-license-sources.json').read_text(encoding='utf-8'))
     for row in evidence['licenses']:
         if row['target'] not in {'app/src/main/assets/licenses/LGPL-3.0.txt',

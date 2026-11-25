@@ -2,6 +2,7 @@ package com.deepseekharness.app.util;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 备份、恢复、维护与安装共用的进程级原子任务凭据；获取不阻塞，也不执行停止操作。
@@ -29,6 +30,18 @@ public final class EnvironmentTaskGate {
     Lease lease = new Lease(kind, true);
     sharedLeases.put(lease, Boolean.TRUE);
     return lease;
+  }
+
+  /** 等待当前独占租约释放的信号。返回后仍须通过 tryAcquireShared 原子准入。 */
+  public static synchronized void awaitExclusiveRelease(long millis) throws InterruptedException {
+    if (active != null && millis > 0)
+      TimeUnit.MILLISECONDS.timedWait(EnvironmentTaskGate.class, millis);
+  }
+
+  private static void releaseExclusive(Lease lease) {
+    if (active != lease) return;
+    active = null;
+    EnvironmentTaskGate.class.notifyAll();
   }
 
   /** 仅表示是否有独占环境任务；普通共享使用不再显示为“环境忙”。 */
@@ -128,7 +141,7 @@ public final class EnvironmentTaskGate {
             if (runner == null) {
               retained = null;
               closed = true;
-              if (active == this) active = null;
+              releaseExclusive(this);
               return;
             }
           }
@@ -176,7 +189,7 @@ public final class EnvironmentTaskGate {
               com.deepseekharness.app.util.UiText.text("任务仍在执行，不能提前释放环境锁"));
         closed = true;
         if (shared) sharedLeases.remove(this);
-        else if (active == this) active = null;
+        else releaseExclusive(this);
       }
     }
   }

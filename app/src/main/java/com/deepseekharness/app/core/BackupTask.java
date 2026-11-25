@@ -166,23 +166,44 @@ public final class BackupTask {
     String run(long id) throws Exception;
   }
 
-  private synchronized boolean start(
+  public enum Admission {
+    STARTED,
+    BUSY,
+    NOT_ELIGIBLE,
+    DECLINED
+  }
+
+  private boolean start(
       String requestedKind, boolean recovery, boolean stopWeb, boolean allowForceStop, Work work) {
+    return start(requestedKind, recovery, stopWeb, allowForceStop, null, work) == Admission.STARTED;
+  }
+
+  private synchronized Admission start(
+      String requestedKind,
+      boolean recovery,
+      boolean stopWeb,
+      boolean allowForceStop,
+      java.util.function.BooleanSupplier admit,
+      Work work) {
     String kind = com.deepseekharness.app.util.BackupTaskKinds.normalize(requestedKind);
     invalidatePendingCache();
-    if (busy() || (!recovery && pendingMaintenance())) return false;
+    if (busy()) return Admission.BUSY;
+    if (!recovery && pendingMaintenance()) return Admission.NOT_ELIGIBLE;
     com.deepseekharness.app.util.EnvironmentTaskGate.Lease lease =
         com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquire(kind);
-    if (lease == null) return false;
+    if (lease == null) return Admission.BUSY;
     // 在持有凭据后重查磁盘门禁，不能使用竞争窗口之前的 pending 快照。
-    if (!recovery && pendingMaintenance()) {
-      lease.close();
-      return false;
+    boolean admitted = false;
+    try {
+      admitted = (recovery || !pendingMaintenance()) && (admit == null || admit.getAsBoolean());
+      if (!admitted) return Admission.NOT_ELIGIBLE;
+    } finally {
+      if (!admitted) lease.close();
     }
     long id = state.start(kind);
     if (id < 0) {
       lease.close();
-      return false;
+      return Admission.DECLINED;
     }
     DiagnosticLog.record(app, "MAINTENANCE_TASK_START", kind + ":" + id);
     try {
@@ -190,7 +211,7 @@ public final class BackupTask {
     } catch (IOException e) {
       state.update(id, Status.FAILED, e.getMessage());
       lease.close();
-      return false;
+      return Admission.DECLINED;
     }
     synchronized (decision) {
       accepted = null;
@@ -208,7 +229,7 @@ public final class BackupTask {
         persist();
       } catch (IOException ignored) {
       }
-      return false;
+      return Admission.DECLINED;
     }
     Thread worker =
         new Thread(
@@ -272,9 +293,9 @@ public final class BackupTask {
         persist();
       } catch (IOException ignored) {
       }
-      return false;
+      return Admission.DECLINED;
     }
-    return true;
+    return Admission.STARTED;
   }
 
   public boolean backup(int scope) {
@@ -360,6 +381,17 @@ public final class BackupTask {
         false,
         true,
         allowForceStop,
+        id -> EnvironmentMaintenance.update(controller, detail -> progress(id, detail)));
+  }
+
+  /** Persist the automatic candidate selection only after taking the task's actual lease. */
+  public Admission startAutomaticUpdate(java.util.function.BooleanSupplier admit) {
+    return start(
+        com.deepseekharness.app.util.BackupTaskKinds.UPDATE,
+        false,
+        true,
+        false,
+        java.util.Objects.requireNonNull(admit),
         id -> EnvironmentMaintenance.update(controller, detail -> progress(id, detail)));
   }
 

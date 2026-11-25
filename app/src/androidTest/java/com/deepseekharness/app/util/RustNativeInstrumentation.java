@@ -34,12 +34,12 @@ import org.json.JSONObject;
 /**
  * 显式选择的 Android Rust 候选：真实加载/FD 摘要、archive 流与 PlanView。
  *
- * <p>先核验 App 启动后的后端默认值（随包收据存在时必须为启用），随后临时
- * {@code setEnabled(false)} 跑原始 native 差分与失败清理探针，finally 恢复并断言恢复成功；
- * 不把探针期间的临时关闭当作新的生产默认值。
+ * <p>先核验 App 启动后的后端默认值（随包收据存在时必须为启用），随后临时 {@code setEnabled(false)} 跑原始 native 差分与失败清理探针，finally
+ * 恢复并断言恢复成功； 不把探针期间的临时关闭当作新的生产默认值。
  *
- * <p>仅由 -Pdsha.testRunner=com.deepseekharness.app.util.RustNativeInstrumentation 构建；
- * 运行时必须传入 commit/runId/runAttempt/repository，并与目标 APK 内的 Rust 回执逐项绑定。
+ * <p>仅由 -Pdsha.testRunner=com.deepseekharness.app.util.RustNativeInstrumentation 构建； 默认必须传入
+ * commit/runId/runAttempt/repository，并与目标 APK 内的 Rust 回执逐项绑定。 本地签名包显式传入
+ * bindingMode=local、commit、apkSha256 和 receiptSha256，要求回执的 CI 字段为空。
  * 不输出参数全集、用户文件、私有路径、异常正文或堆栈。静态编译本类不构成 Android 执行证据。
  */
 public final class RustNativeInstrumentation extends Instrumentation {
@@ -145,14 +145,40 @@ public final class RustNativeInstrumentation extends Instrumentation {
 
       output.putString("stage", "receipt");
       String commit = binding("commit", "[0-9a-f]{40}");
-      String runId = binding("runId", "[1-9][0-9]{0,19}");
-      String attempt = binding("runAttempt", "[1-9][0-9]{0,9}");
-      String repository = binding("repository", "[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}");
+      String mode = arguments.getString("bindingMode", "github-actions");
+      require(
+          "local".equals(mode) || "github-actions".equals(mode), Failure.ARGUMENT_BINDING_INVALID);
+      boolean local = "local".equals(mode);
       output.putString("commit", commit);
-      output.putString("runId", runId);
-      output.putString("runAttempt", attempt);
-      output.putString("repository", repository);
       ApplicationInfo application = getTargetContext().getApplicationInfo();
+      String expectedReceiptSha256 = null;
+      String runId = null;
+      String attempt = null;
+      String repository = null;
+      if (local) {
+        require(
+            !arguments.containsKey("runId")
+                && !arguments.containsKey("runAttempt")
+                && !arguments.containsKey("repository"),
+            Failure.ARGUMENT_BINDING_INVALID);
+        String expectedApkSha256 = binding("apkSha256", "[0-9a-f]{64}");
+        expectedReceiptSha256 = binding("receiptSha256", "[0-9a-f]{64}");
+        File installedApk = new File(application.sourceDir);
+        try (InputStream input = new FileInputStream(installedApk)) {
+          require(
+              expectedApkSha256.equals(hash(input, installedApk.length())),
+              Failure.RECEIPT_BINDING_MISMATCH);
+        }
+        output.putString("installedApkSha256", expectedApkSha256);
+        output.putString("provenance", "local");
+      } else {
+        runId = binding("runId", "[1-9][0-9]{0,19}");
+        attempt = binding("runAttempt", "[1-9][0-9]{0,9}");
+        repository = binding("repository", "[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}");
+        output.putString("runId", runId);
+        output.putString("runAttempt", attempt);
+        output.putString("repository", repository);
+      }
       String expectedHash;
       long expectedSize;
       try (ZipFile apk = new ZipFile(application.sourceDir)) {
@@ -172,24 +198,37 @@ public final class RustNativeInstrumentation extends Instrumentation {
         try (InputStream input = apk.getInputStream(entry)) {
           receiptBytes = boundedBytes(input, MAX_RECEIPT_BYTES);
         }
-        output.putString(
-            "embeddedReceiptSha256",
-            hex(MessageDigest.getInstance("SHA-256").digest(receiptBytes)));
+        String receiptSha256 = hex(MessageDigest.getInstance("SHA-256").digest(receiptBytes));
+        require(
+            !local || receiptSha256.equals(expectedReceiptSha256),
+            Failure.RECEIPT_BINDING_MISMATCH);
+        output.putString("embeddedReceiptSha256", receiptSha256);
         JSONObject receipt = new JSONObject(new String(receiptBytes, StandardCharsets.UTF_8));
         require(
             receipt.getInt("schema") == 2
                 && "dsha-rust-native".equals(receipt.getString("kind"))
-                && "github-actions".equals(receipt.getString("provenance"))
+                && (local
+                    ? "local".equals(receipt.getString("provenance"))
+                    : "github-actions".equals(receipt.getString("provenance")))
                 && "android".equals(receipt.getString("target"))
                 && "aarch64-linux-android"
                     .equals(receipt.getJSONObject("toolchain").getString("targetTriple")),
             Failure.RECEIPT_INVALID);
-        require(
-            commit.equals(receipt.getString("commit"))
-                && runId.equals(receipt.getString("runId"))
-                && attempt.equals(receipt.getString("runAttempt"))
-                && repository.equals(receipt.getString("repository")),
-            Failure.RECEIPT_BINDING_MISMATCH);
+        require(commit.equals(receipt.getString("commit")), Failure.RECEIPT_BINDING_MISMATCH);
+        if (local) {
+          require(
+              hasNullField(receipt, "runId")
+                  && hasNullField(receipt, "runAttempt")
+                  && hasNullField(receipt, "repository")
+                  && hasNullField(receipt, "workflow"),
+              Failure.RECEIPT_BINDING_MISMATCH);
+        } else {
+          require(
+              runId.equals(receipt.getString("runId"))
+                  && attempt.equals(receipt.getString("runAttempt"))
+                  && repository.equals(receipt.getString("repository")),
+              Failure.RECEIPT_BINDING_MISMATCH);
+        }
         JSONObject artifact = receipt.getJSONObject("artifact");
         expectedHash = artifact.getString("sha256");
         expectedSize = artifact.getLong("size");
@@ -867,6 +906,10 @@ public final class RustNativeInstrumentation extends Instrumentation {
     String value = arguments.getString(name);
     require(value != null && value.matches(expression), Failure.ARGUMENT_BINDING_INVALID);
     return value;
+  }
+
+  private static boolean hasNullField(JSONObject receipt, String field) {
+    return receipt.has(field) && receipt.isNull(field);
   }
 
   private static void require(boolean condition, Failure failure) throws ProbeFailure {

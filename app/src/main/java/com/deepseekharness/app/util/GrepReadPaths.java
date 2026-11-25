@@ -6,7 +6,7 @@ import java.util.Set;
 
 /** 按受支持的 grep 参数合同收集真正读取的文件，不把模式和过滤条件当作文件。 */
 public final class GrepReadPaths {
-  private static final String FLAGS = "ZzEFHIabhinorRsvwcLlqx";
+  private static final String FLAGS = "ZzEFHIabhinosvwcLlqx";
   private static final Set<String> LONG_FLAGS =
       Set.of(
           "line-buffered",
@@ -28,7 +28,7 @@ public final class GrepReadPaths {
     if (argv == null || argv.isEmpty() || !"grep".equals(argv.get(0))) throw invalid();
     for (String arg : argv) if (arg == null || arg.indexOf('\0') >= 0) throw invalid();
     List<String> paths = new ArrayList<>(), positional = new ArrayList<>();
-    boolean options = true, explicitPattern = false, recursive = false;
+    boolean options = true, explicitPattern = false;
     for (int i = 1; i < argv.size(); i++) {
       String arg = argv.get(i);
       if (arg == null || arg.indexOf('\0') >= 0) throw invalid();
@@ -44,7 +44,8 @@ public final class GrepReadPaths {
       } else if (options && arg.startsWith("-") && !arg.equals("-")) {
         for (int j = 1; j < arg.length(); j++) {
           char flag = arg.charAt(j);
-          if (flag == 'r' || flag == 'R') recursive = true;
+          if (flag == 'r' || flag == 'R')
+            throw new IllegalArgumentException("STRICT_RECURSIVE_READ_UNAVAILABLE");
           if (FLAGS.indexOf(flag) >= 0) continue;
           if ("efMSABCm".indexOf(flag) < 0) throw invalid();
           String value;
@@ -65,7 +66,6 @@ public final class GrepReadPaths {
     int firstFile = explicitPattern ? 0 : 1;
     for (int i = firstFile; i < positional.size(); i++)
       if (!positional.get(i).equals("-")) paths.add(positional.get(i));
-    if (recursive && positional.size() <= firstFile) paths.add(".");
     return List.copyOf(paths);
   }
 

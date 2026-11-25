@@ -8,6 +8,7 @@ public final class LanAccessPresentation {
   public enum State {
     DISABLED,
     PERMISSION_REQUIRED,
+    CONFIRM_NETWORK,
     WAITING_AUTH,
     LISTENER_UNAVAILABLE,
     DISCOVERY_DENIED,
@@ -20,27 +21,35 @@ public final class LanAccessPresentation {
   public final State state;
   public final long generation;
   public final List<String> services;
+  public final String certificateSha256;
 
-  private LanAccessPresentation(State state, long generation, List<String> services) {
+  private LanAccessPresentation(
+      State state, long generation, List<String> services, String certificateSha256) {
     this.state = state;
     this.generation = generation;
     this.services = List.copyOf(services);
+    this.certificateSha256 = state == State.READY ? certificateSha256 : "";
   }
 
   public static LanAccessPresentation capture(
       boolean enabled,
       boolean permission,
+      boolean trusted,
       long generation,
       boolean authenticated,
       int currentListenerPort,
-      LanAddressPolicy.Discovery discovery) {
+      LanAddressPolicy.Discovery discovery,
+      String certificateSha256) {
     State state;
     List<String> services = new ArrayList<>();
     if (!enabled) state = State.DISABLED;
     else if (!permission) state = State.PERMISSION_REQUIRED;
+    else if (!trusted) state = State.CONFIRM_NETWORK;
     else if (generation <= 0 || !authenticated) state = State.WAITING_AUTH;
-    else if (currentListenerPort < 1 || currentListenerPort > 65535)
-      state = State.LISTENER_UNAVAILABLE;
+    else if (currentListenerPort < 1
+        || currentListenerPort > 65535
+        || certificateSha256 == null
+        || certificateSha256.isEmpty()) state = State.LISTENER_UNAVAILABLE;
     else if (discovery == null || discovery.failure() == LanAddressPolicy.Failure.INTERFACES)
       state = State.DISCOVERY_FAILED;
     else if (discovery.failure() == LanAddressPolicy.Failure.PERMISSION)
@@ -50,7 +59,7 @@ public final class LanAccessPresentation {
       // loopback URL, IPv6 literal, or token as an IPv4 LAN listener address.
       for (String address : discovery.addresses())
         if (LanAddressPolicy.privateIpv4(address)) {
-          String service = "http://" + address + ":" + currentListenerPort + "/";
+          String service = "https://" + address + ":" + currentListenerPort + "/";
           if (!services.contains(service)) services.add(service);
         }
       state =
@@ -58,7 +67,7 @@ public final class LanAccessPresentation {
               ? State.READY
               : discovery.ipv6Only() ? State.IPV6_ONLY : State.NO_ADDRESS;
     }
-    return new LanAccessPresentation(state, generation, services);
+    return new LanAccessPresentation(state, generation, services, certificateSha256);
   }
 
   public boolean stillOffers(long currentGeneration, String service) {

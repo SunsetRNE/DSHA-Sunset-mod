@@ -4,10 +4,14 @@ import json
 from pathlib import Path
 import re
 from git_guard import git_output
+from proroot_distribution import VENDOR_SOURCE_GLOB
+from fnmatch import fnmatchcase
 
 ROOT = Path(__file__).resolve().parents[1]
 names = git_output(["ls-files", "-z"], cwd=ROOT).decode("utf-8").split("\0")
 errors = []
+errors.extend('proroot vendor binary tracked separately from the APK: ' + name
+              for name in names if fnmatchcase(name, VENDOR_SOURCE_GLOB))
 byte_pinned = {'app/src/main/assets/ubuntu-tools.manifest.json', 'app/src/main/assets/builtin-plugins/dsh-auto-review/package.json', 'app/src/main/assets/builtin-plugins/dsh-device-shell-guide/package.json', 'app/src/main/assets/lan-settings-upstream-contract.json', 'app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/index.js', 'app/src/main/assets/builtin-plugins/dsh-computer-use-android/package.json', 'app/src/main/assets/ubuntu-tools.layout', 'app/src/main/assets/startup-mcp-timing-patch.json', 'app/src/main/assets/managed-runtime-inputs.json'}
 byte_pinned.add("tools/mobile-server/index.js")
 byte_pinned.add("app/src/main/assets/plugin-manager-policy-patch.json")
@@ -30,20 +34,20 @@ language_source_pins = {
     "docs/releases/build197-changes.ar.md": "a96ff6d4f58886938ada1197aa758da75a19ef378c2347830128ca71eda00030",
     "docs/releases/build197-changes.la.md": "24a72be4658c4874920e25f430bbbfdd912ce7d6deb74b428dd9cd32daabcaaa",
     "docs/releases/build197-changes.pt.md": "9c84cad387a0496aa7a0affa9c8a2ee6617ff5d747236e1ebcce84723cbf8500",
-    "tools/i18n/translations-extra/ar.json": "b7682ede649bdbc2072d023233886e43d0b889f4671fc558f254b851ad35776d",
-    "tools/i18n/translations-extra/fr.json": "b3d1bb13ce3afc468a91f00a17c8b104552b5295d1ae35d61dd17bc412f21e76",
-    "tools/i18n/translations-extra/ja.json": "c5e4f1be3d8e14ccf98098245958a44263aa0f2b4ebb8d043ae073526385fdbe",
-    "tools/i18n/translations-extra/ko.json": "615f042d38a132ea354b844482fc8dc35b0bb2727efb764bbe781875e26f09ad",
-    "tools/i18n/translations-extra/la.json": "080d72d4d25aeeb64da7822df5280fc73ab7fdfaa52bdc5d66d34ba7be76e029",
-    "tools/i18n/translations-extra/pt.json": "ca759ec53dfe4dfa082ba9fa81783d14fc9dfd658f83452c9563a8308378316e",
-    "tools/i18n/translations-extra/ru.json": "41c474a3470068e9dd68c8feff3a1185de61d9497d670573b5f36c0780826181",
-    "tools/i18n/translations-extra/zh-Hant.json": "0ccac2a805b8af436c7891c8cb555ae8760b7a766b88cdbf961935797093c370",
-    "tools/i18n/translations/ar.json": "9ae717af2ae39a745490a81df37a8a5968ef9351f9c2ae9d3838a93147f4173e",
-    "tools/i18n/translations/fr.json": "f8cfe5e6252035248079bd0803cc98e387ee98367ba270e10c97de2bec319931",
-    "tools/i18n/translations/ja.json": "2eb1e78cbb3bbd822fd0d93bc1600c62913be9f1c0038a71ebc4a139a89fc7fa",
-    "tools/i18n/translations/ko.json": "00b0153873119d7ea83d9b0264bb3264aa1a1680929e91994a9748681c7bb83d",
-    "tools/i18n/translations/pt.json": "a1c32658903377c20adaa1d67f43898f72d0e746aa329c58d69889eb84daf0de",
-    "tools/i18n/translations/ru.json": "98f06f71c9e6378dd6180f34c012692bae2cc57dcd74607dde54a62e09dcf2a2",
+    "tools/i18n/translations-extra/ar.json": "46b27ee9a4544cabba992e57299de5a99ec466baff61ded2893375d8f79083de",
+    "tools/i18n/translations-extra/fr.json": "3b1b56e447a06ce5bc19c49d1f781233fef36ba08bf989db489fa1d34fa27a08",
+    "tools/i18n/translations-extra/ja.json": "9e5495911a4e42492e361af8d99186461f4c0cb49ee1b08bc71a768d37ee0f8e",
+    "tools/i18n/translations-extra/ko.json": "b66c9acd9e206903485d6f18f83d05f9ffa7425b379ff0ce3d7d1c647dbf6910",
+    "tools/i18n/translations-extra/la.json": "3e35d12649f2129f5429095c5ba970aa3034b1bbc128dca2ef98404b79cc64cd",
+    "tools/i18n/translations-extra/pt.json": "c7dcb7f8d868af1dc40e6bb09a3701f48b71fa7433034eceb9aff27d6be64607",
+    "tools/i18n/translations-extra/ru.json": "501bff8e3a767327ea1574b7e0c1349362264ad4d59c8da61fdea0e558d4ef2c",
+    "tools/i18n/translations-extra/zh-Hant.json": "b05f23c9bc45821c3af717e615a22a16f8ecf83f1ef0b0577b623ee9495021c1",
+    "tools/i18n/translations/ar.json": "d728d024e0d0ccfda6beaacdf9fea8a87ae03f4af2a9390d440c31c350bf9da0",
+    "tools/i18n/translations/fr.json": "ad6c68d5a94c704f37ee46401899123a4583922a7c0f9f5a8795993de58009d5",
+    "tools/i18n/translations/ja.json": "47ddbcb00da1cf6d5e2cbf40da85e6c21ac1b679d14c7f9512aa514910658aae",
+    "tools/i18n/translations/ko.json": "f53295f2d0438ae7a385b311c21f33ada4db901e937d4289f8d61ae23ccdb41d",
+    "tools/i18n/translations/pt.json": "f22eaf8b017ed045e502515a0a370d830297276c670aa1c5bc184b7f1762c0a3",
+    "tools/i18n/translations/ru.json": "1b88cb7bce492e30e28f9101816b159d4569135bc418c8bb7d1eee148511c4fd",
 }
 descriptor = json.loads((ROOT / "app/src/main/assets/runtime-descriptor.json").read_text(encoding="utf-8"))
 binary = {".so", ".bin", ".jar", ".aar", ".gz", ".tgz", ".zip", ".png", ".jpg", ".webp", ".pdf", ".keystore"}

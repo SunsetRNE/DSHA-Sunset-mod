@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="portable_password">كلمة مرور النسخة الاحتياطية</string>
+    <string name="portable_password_confirm">تأكيد كلمة مرور النسخة</string>
+    <string name="portable_password_help">احتفظ بكلمة المرور في مكان منفصل. ستحتاج إليها للاستعادة على جهاز آخر، ولا يستطيع DSHA استرجاعها.</string>
+    <string name="portable_password_length">أدخل من 12 إلى 1024 حرفًا.</string>
+    <string name="portable_password_mismatch">كلمتا المرور غير متطابقتين.</string>
+    <string name="portable_export_summary">احمِ ملف tar.gz بكلمة مرور لاستعادته على جهاز جديد.</string>
+    <string name="portable_included_secrets">قد تتضمن البيانات المختارة بيانات اعتماد محفوظة في المحادثات والمرفقات والملفات.</string>
+    <string name="portable_import_summary">اختر نسخة احتياطية. تتطلب النسخ المشفرة كلمة مرور. راجع نطاق البيانات بعد التحقق وقبل الاستعادة.</string>
+    <string name="portable_password_restore_help">أدخل كلمة المرور المستخدمة عند إنشاء هذه النسخة.</string>
+    <string name="portable_rescue_diagnostics">يتضمن تصدير الإنقاذ المشفر بيانات النسخة فقط. يتضمن التصدير غير المشفر أيضًا ملخص التشخيص عند توفره.</string>
+    <string name="portable_keep_password">تحتفظ هذه النسخة بكلمة المرور الأصلية. استخدمها للاستعادة على الجهاز الجديد.</string>
+    <string name="portable_plain_opt_in">التصدير دون تشفير للتوافق. يستطيع أي شخص لديه الملف قراءة محتواه بالكامل، بما في ذلك الأسرار في المحادثات والمرفقات.</string>
+    <string name="portable_export_label">تصدير نسخة قابلة للنقل</string>
+    <string name="portable_automatic_help">تؤدي إزالة التطبيق إلى حذف النسخ التلقائية ومفتاح الجهاز. قبل النقل أو إزالة التطبيق، صدّر نسخة بكلمة مرورك واحفظها خارج التطبيق.</string>
+    <string name="portable_retry_password">إعادة إدخال كلمة المرور</string>
+</resources>

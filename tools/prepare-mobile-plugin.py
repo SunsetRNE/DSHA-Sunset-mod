@@ -17,6 +17,8 @@ PATCHED = {'lib/client.js', 'lib/compress.js', 'lib/delete-session.js', 'lib/ind
            'src/client/effects/attachment-mention.ts', 'src/client/index.tsx',
            'src/client/effects/file-share.ts', 'lib/types/client/i18n/locales.d.ts',
            'src/client/effects/drawer-session-log.ts', 'src/client/effects/drawer-quick-settings.ts',
+           'src/client/effects/document-scroll-lock.ts', 'src/client/effects/model-menu-anchor.ts',
+           'src/client/effects/panel-exit.ts', 'src/client/styles/layout.css.ts',
            'lib/types/client/components/file-share-locale.d.ts',
            'lib/types/client/effects/attachment-mention.d.ts'}
 # 上游 3.3.1 起删掉了 lib/file-transfer.js（b52b2cb「清 lib 残留」）；DSHA 的移动服务入口
@@ -89,7 +91,7 @@ def prepare(source, write):
     patch = ROOT / 'tools/apply-mobile-client-patches.mjs'
     subprocess.run([node, str(patch), str(source / 'lib/client.js'), action], cwd=ROOT, check=True)
     subprocess.run([node, str(patch), '--server', str(source / 'lib'), action], cwd=ROOT, check=True)
-    subprocess.run([node, str(patch), '--locale-sources', str(source), action], cwd=ROOT, check=True)
+    subprocess.run([node, str(patch), '--client-sources', str(source), action], cwd=ROOT, check=True)
     # Retire only the explicitly reviewed previous-version members; unknown local files stay errors.
     for name in lock.get('retiredFiles', []):
         relative = PurePosixPath(name)

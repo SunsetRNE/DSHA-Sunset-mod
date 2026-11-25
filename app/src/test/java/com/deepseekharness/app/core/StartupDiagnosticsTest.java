@@ -119,6 +119,32 @@ public class StartupDiagnosticsTest {
   }
 
   @Test
+  public void historyKeepsTheVerifiedHostCodeOnOnlyTheFailedGeneration() throws Exception {
+    try (Fixture fixture = new Fixture()) {
+      var diagnostics = fixture.diagnostics;
+      String first = diagnostics.recordId();
+      String code =
+          com.deepseekharness.app.util.Rc1MigrationResult.LEGACY_COMPLETION_RECEIPT_MISSING;
+      diagnostics.completed(1, "failed", "migration review", code);
+      diagnostics.completed(1, "stopped", "");
+      diagnostics.begin(2, false);
+      String second = diagnostics.recordId();
+      diagnostics.completed(1, "failed", "late event", code);
+      diagnostics.completed(2, "failed", code);
+      diagnostics.drainForFactoryReset(2000);
+      var records = diagnostics.history();
+      assertEquals(2, records.size());
+      assertEquals(
+          code,
+          records.stream().filter(e -> e.id.equals(first)).findFirst().orElseThrow().failureCode);
+      assertEquals(
+          "",
+          records.stream().filter(e -> e.id.equals(second)).findFirst().orElseThrow().failureCode);
+      System.out.println("migration history records=2 typed-host-records=1");
+    }
+  }
+
+  @Test
   public void unidentifiedPageFailureDoesNotBorrowDependencyStackOwner() throws Exception {
     try (Fixture fixture = new Fixture()) {
       fixture.diagnostics.output(

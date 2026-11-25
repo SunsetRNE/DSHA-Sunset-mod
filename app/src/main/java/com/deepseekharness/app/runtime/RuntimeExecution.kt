@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.deepseekharness.app.util.BoundedProcessRunner
 import com.deepseekharness.app.util.Compat
+import com.deepseekharness.app.util.InstallProcess
+import com.deepseekharness.app.util.InstallTask
 import com.deepseekharness.app.util.MaintenanceGate
 import com.deepseekharness.app.util.RuntimeModeLabel
 import com.deepseekharness.app.util.RuntimeWorkPort
@@ -11,6 +13,7 @@ import com.deepseekharness.app.util.SensitiveData
 import com.deepseekharness.app.util.UiText
 import java.io.File
 import java.io.IOException
+import java.util.function.BooleanSupplier
 import java.util.function.Consumer
 
 /** 选择运行方式，负责非交互命令启动、收集及未确认退出的 guest lease。 */
@@ -172,10 +175,11 @@ internal class RuntimeExecution(
         command: String,
         environment: Map<String, String>,
         beforeStart: ProotBootstrap.LaunchCheck?,
+        selected: ContainerRuntime? = null,
     ): Process =
         ports.open().use {
             requireReady()
-            val runtime = runtime()
+            val runtime = selected ?: runtime()
             val links = hardlinks()
             prepareTools()
             launcher.start(
@@ -219,16 +223,109 @@ internal class RuntimeExecution(
     @Throws(IOException::class)
     fun install(command: String, pipedInput: Boolean): Process = install(command, pipedInput, null)
 
+    /** A read-only install probe owns an isolated session, including GNU timeout's other groups. */
+    @Throws(Exception::class)
+    fun checkInstall(
+        command: String,
+        timeoutMs: Long,
+        cancelled: BooleanSupplier,
+        output: Consumer<String>,
+    ): Int = checkInstall(listOf("/bin/bash", "-c", command), timeoutMs, cancelled, output)
+
+    @Throws(Exception::class)
+    fun checkInstall(
+        guestArgv: List<String>,
+        timeoutMs: Long,
+        cancelled: BooleanSupplier,
+        output: Consumer<String>,
+    ): Int {
+        val process =
+            ports.open().use {
+                if (cancelled.asBoolean) throw InstallTask.Cancelled()
+                nativeFiles()
+                if (IsolatedInstallProcess.bundledLauncher(context) == null)
+                    throw IOException("INSTALL_PROBE_SESSION_UNAVAILABLE")
+                val builder = launcher.builder(guestArgv, launch(proot()).isolated(true).build())
+                if (cancelled.asBoolean) throw InstallTask.Cancelled()
+                val record = BoundedGuestSessions.begin(context.filesDir)
+                try {
+                    IsolatedInstallProcess.startProbe(builder, tmp, context, record, cancelled)
+                } catch (failure: Throwable) {
+                    record.uncertain()
+                    throw failure
+                }
+            }
+        return InstallProcess.readOwned(
+            process,
+            timeoutMs,
+            cancelled,
+            output,
+            process::close,
+            process::markRecordUncertain,
+        )
+    }
+
     @Throws(IOException::class)
     private fun install(
         command: String,
         pipedInput: Boolean,
         timing: RuntimeCommandTiming?,
+        beforeStart: ProotBootstrap.LaunchCheck? = null,
     ): Process =
         ports.open().use {
             nativeFiles()
             timing?.mark("native-files")
-            launcher.start(command, launch(proot()).pipedInput(pipedInput).build(), timing)
+            launcher.start(
+                command,
+                launch(proot()).pipedInput(pipedInput).build(),
+                timing,
+                beforeStart,
+            )
+        }
+
+    /** List and refresh have already checked their narrow managed inputs. */
+    @Throws(IOException::class)
+    private fun startPluginQuery(command: String, timing: RuntimeCommandTiming): Process =
+        ports.open().use {
+            requireReady()
+            GuestScriptBudget.checkpoint()
+            timing.mark("launch-admission")
+            val settings = ports.settings()
+            val preferred =
+                if (!forceProot && settings.proroot && android.os.Build.VERSION.SDK_INT >= 26)
+                    ContainerRuntime.Proroot(
+                        context,
+                        ContainerRuntime.Proroot.defaultDir(context),
+                        settings.staticLoader,
+                    )
+                else null
+            if (
+                preferred == null ||
+                    !preferred.available() ||
+                    IsolatedInstallProcess.bundledLauncher(context) == null
+            ) {
+                timing.mark("engine-proot")
+                return@use install(command, false, timing) { GuestScriptBudget.checkpoint() }
+            }
+            timing.mark("engine-proroot")
+            // Proroot uses the APK native directory and always passes --link2symlink.
+            // The proot-only dependency copy and hardlink probe do not affect this launch.
+            val spec = launch(preferred).isolated(true).build()
+            val builder = launcher.builder(command, spec)
+            timing.mark("launcher-prepare")
+            GuestScriptBudget.checkpoint()
+            val record = BoundedGuestSessions.begin(context.filesDir)
+            timing.mark("launch-record")
+            try {
+                IsolatedInstallProcess.start(builder, tmp, context, record).also {
+                    timing.mark("process-create")
+                }
+            } catch (failure: Throwable) {
+                // After begin, preserve the recovery record on an uncertain launch. Do not
+                // dispatch the same query through another engine after a launcher failure.
+                record.uncertain()
+                throw failure
+            }
         }
 
     @Throws(IOException::class)
@@ -292,19 +389,46 @@ internal class RuntimeExecution(
         collect(command, timeoutMs, proot, null as ContainerRuntime?, null, onLine)
 
     @Throws(IOException::class, InterruptedException::class)
+    fun collectPluginQuery(
+        command: String,
+        timeoutMs: Long,
+        report: Consumer<String>,
+    ): BoundedProcessRunner.Result {
+        val timing = RuntimeCommandTiming { line ->
+            report.accept("host-" + line.substringAfter(": "))
+        }
+        var guestRecorded = false
+        val guest =
+            Consumer<String> { line ->
+                if (!guestRecorded && PLUGIN_QUERY_GUEST_TIMING.matches(line)) {
+                    guestRecorded = true
+                    report.accept(line)
+                }
+            }
+        return collect(command, timeoutMs, true, null, timing, guest, pluginQuery = true)
+    }
+
+    @Throws(IOException::class, InterruptedException::class)
     fun collectCasLinks(timing: Consumer<String>?): BoundedProcessRunner.Result {
         // #209：link() 被 ROM 拒绝的设备上，实体化旧 pnpm CAS 链接退化为逐文件全量
         // 复制（实测一例 420MB），固定 120 秒会在复制中段 SIGKILL，把事务留在
         // pending、卡死在下一次启动。脚本本身带进度回调和取消票据，这里的超时
         // 只兜底真正的挂死，不再按快设备的正常耗时定值。
-        return collect(
-            "python3 -u /root/.dsh/materialize-cas-links.py",
-            900_000,
-            true,
-            null as ContainerRuntime?,
-            RuntimeCommandTiming(timing),
-            null,
-        )
+        val phases = timing?.let { RuntimeCommandTiming(it) }
+        return collect(900_000, phases, null, false) {
+            ports.open().use {
+                nativeFiles()
+                phases?.mark("native-files")
+                // PRoot resolves python3 in the guest PATH. CAS uses only the standard library;
+                // skip Python site discovery and avoid writing bytecode during the scan.
+                launcher.start(
+                    listOf("python3", "-B", "-S", "-u", "/root/.dsh/materialize-cas-links.py"),
+                    launch(proot()).build(),
+                    phases,
+                    null,
+                )
+            }
+        }
     }
 
     @Throws(IOException::class, InterruptedException::class)
@@ -315,16 +439,42 @@ internal class RuntimeExecution(
         selected: ContainerRuntime?,
         timing: RuntimeCommandTiming?,
         onLine: Consumer<String>?,
+        pluginQuery: Boolean = false,
+    ): BoundedProcessRunner.Result =
+        collect(timeoutMs, timing, onLine, pluginQuery) {
+            if (pluginQuery) startPluginQuery(command, requireNotNull(timing))
+            else if (proot) install(command, false, timing) else bounded(command, selected)
+        }
+
+    @Throws(IOException::class, InterruptedException::class)
+    private fun collect(
+        timeoutMs: Long,
+        timing: RuntimeCommandTiming?,
+        onLine: Consumer<String>?,
+        includePreparationInBudget: Boolean,
+        dispatch: () -> Process,
     ): BoundedProcessRunner.Result {
+        val started = System.nanoTime()
         val work = RuntimeWorkPort.begin("容器命令")
         var process: Process? = null
         var original: Throwable? = null
         try {
-            process = if (proot) install(command, false, timing) else bounded(command, selected)
+            process = dispatch()
+            val collectMillis =
+                if (includePreparationInBudget) {
+                    val remaining =
+                        timeoutMs -
+                            java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(
+                                System.nanoTime() - started
+                            )
+                    // Even after a slow dispatch, hand the owned process to the collector so expiry
+                    // or interruption triggers its normal termination and exit-proof path.
+                    maxOf(1L, remaining)
+                } else timeoutMs
             val result =
                 BoundedProcessRunner.collect(
                     process,
-                    timeoutMs,
+                    collectMillis,
                     256 * 1024,
                     Compat::destroy,
                     onLine,
@@ -386,6 +536,13 @@ internal class RuntimeExecution(
         }
 
     companion object {
+        private val PLUGIN_QUERY_GUEST_TIMING =
+            Regex(
+                "PLUGIN_QUERY_GUEST_TIMING: bootMs=[0-9]{1,7} revisionMs=[0-9]{1,7} " +
+                    "discoveryMs=[0-9]{1,7} cardsMs=[0-9]{1,7} parseMs=[0-9]{1,7} " +
+                    "nodeMs=[0-9]{1,7} recheckMs=[0-9]{1,7}"
+            )
+
         /** 诊断键：proot 带 seccomp 状态；须在与启动参数相同的配置 scope 内读取。 */
         @JvmStatic
         fun modeKey(runtime: ContainerRuntime): String =

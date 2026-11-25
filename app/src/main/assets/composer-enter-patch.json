@@ -1,29 +1,29 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "patches": [
     {
-      "before": "\t\t\tconst interruptible = running && (continuable || sending && subagent === null);",
-      "after": "\t\t\t// DSHA_STOP_WITH_DRAFT_V1: a pending/new draft must not hide cancellation of an ordinary turn.\n\t\t\tconst interruptible = running && !primaryStops && (subagent === null || continuable);"
+      "before": "const interruptible=running&&(continuable||sending&&subagent===null);",
+      "after": "\n\t\t\t// DSHA_STOP_WITH_DRAFT_V1: a pending/new draft must not hide cancellation of an ordinary turn.\n\t\t\tconst interruptible = running && !primaryStops && (subagent === null || continuable);\n"
     },
     {
-      "before": "\t\tfunction Gn(t) {\n\t\t\tconst e = _i(), n = e._inputState, o = Kr(), r = t.data, l = Hn(t);\n\t\t\tlet c = !1;",
-      "after": "\t\tfunction Gn(t) {\n\t\t\tconst e = _i(), n = e._inputState, o = Kr(), r = t.data, l = Hn(t);\n\t\t\t// DSHA_ANDROID_IME_DOM_COMMIT_V1：Android 原生 input 到达时文字已在 DOM；普通文本同步一次，不能把整段语音作为增量再插入。\n\t\t\tif (f && [\"insertText\", \"insertCompositionText\", \"insertFromComposition\"].includes(t.inputType) && ur(o)) {\n\t\t\t\tconst nativeSelection = Jl(Il(e));\n\t\t\t\tconst nativeRange = nativeSelection !== null ? nc(nativeSelection, e._rootElement) : null;\n\t\t\t\tconst nativeNode = nativeRange?.anchorNode;\n\t\t\t\tconst textNode = nativeNode && zs(nativeNode) ? Zs(nativeNode) : null;\n\t\t\t\tif (nativeRange && nativeNode === nativeRange.focusNode && Xo(textNode) && textNode.getType() === \"text\" && !textNode.isToken()) {\n\t\t\t\t\tul(true, e, r ?? void 0);\n\t\t\t\t\trl();\n\t\t\t\t\treturn true;\n\t\t\t\t}\n\t\t\t}\n\t\t\tlet c = !1;"
+      "before": "function Gn(t){const e=_i(),n=e._inputState,o=Kr(),r=t.data,l=Hn(t);let c=!1;",
+      "after": "\n\t\tfunction Gn(t) {\n\t\t\tconst e = _i(), n = e._inputState, o = Kr(), r = t.data, l = Hn(t);\n\t\t\t// DSHA_ANDROID_IME_DOM_COMMIT_V1：Android 原生 input 到达时文字已在 DOM；普通文本同步一次，不能把整段语音作为增量再插入。\n\t\t\tif (f && [\"insertText\", \"insertCompositionText\", \"insertFromComposition\"].includes(t.inputType) && ur(o)) {\n\t\t\t\tconst nativeSelection = Jl(Il(e));\n\t\t\t\tconst nativeRange = nativeSelection !== null ? nc(nativeSelection, e._rootElement) : null;\n\t\t\t\tconst nativeNode = nativeRange?.anchorNode;\n\t\t\t\tconst textNode = nativeNode && zs(nativeNode) ? Zs(nativeNode) : null;\n\t\t\t\tif (nativeRange && nativeNode === nativeRange.focusNode && Xo(textNode) && textNode.getType() === \"text\" && !textNode.isToken()) {\n\t\t\t\t\tul(true, e, r ?? void 0);\n\t\t\t\t\trl();\n\t\t\t\t\treturn true;\n\t\t\t\t}\n\t\t\t}\n\t\t\tlet c = !1;\n"
     },
     {
-      "before": "\t\t\t\tif (event?.shiftKey === true) return false;\n\t\t\t\tif (event !== null && isComposingEvent(event, recentlyComposing)) return true;",
-      "after": "\t\t\t\tif (event !== null && isComposingEvent(event, recentlyComposing)) return true;\n\t\t\t\tif (event?.shiftKey === true) return false;"
+      "before": "if(event?.shiftKey===true)return false;if(event!==null&&isComposingEvent(event,recentlyComposing))return true;",
+      "after": "\n\t\t\t\tif (event !== null && isComposingEvent(event, recentlyComposing)) return true;\n\t\t\t\tif (event?.shiftKey === true) return false;\n"
     },
     {
-      "before": "\t\t\t\tif (handlers.arbitrate(\"enter\", false) !== \"pass\") {\n\t\t\t\t\tevent?.preventDefault();\n\t\t\t\t\treturn true;\n\t\t\t\t}\n\t\t\t\tevent?.preventDefault();",
-      "after": "\t\t\t\tif (handlers.arbitrate(\"enter\", false) !== \"pass\") {\n\t\t\t\t\tevent?.preventDefault();\n\t\t\t\t\treturn true;\n\t\t\t\t}\n\t\t\t\t// DSHA_COMPOSER_ENTER_NEWLINE_V1：普通回车和 IME 换行交给编辑器，只有显式快捷键提交。\n\t\t\t\tif (event?.ctrlKey !== true && event?.metaKey !== true) return false;\n\t\t\t\tevent?.preventDefault();"
+      "before": "if(handlers.arbitrate(`enter`,false)!==`pass`){event?.preventDefault();return true}event?.preventDefault();",
+      "after": "\n\t\t\t\tif (handlers.arbitrate(\"enter\", false) !== \"pass\") {\n\t\t\t\t\tevent?.preventDefault();\n\t\t\t\t\treturn true;\n\t\t\t\t}\n\t\t\t\t// DSHA_COMPOSER_ENTER_NEWLINE_V1：普通回车和 IME 换行交给编辑器，只有显式快捷键提交。\n\t\t\t\tif (event?.ctrlKey !== true && event?.metaKey !== true) return false;\n\t\t\t\tevent?.preventDefault();\n"
     },
     {
-      "before": "\t\t\t\t\"aria-multiline\": \"true\",\n\t\t\t\t\"data-composer-input\": true,",
-      "after": "\t\t\t\t\"aria-multiline\": \"true\",\n\t\t\t\tenterKeyHint: \"enter\",\n\t\t\t\t\"aria-description\": \"回车换行，点击箭头发送；Ctrl / ⌘ + Enter 快捷发送\",\n\t\t\t\t\"data-dsha-enter-mode\": \"newline\",\n\t\t\t\t\"data-composer-input\": true,"
+      "before": "\"aria-multiline\":`true`,\"data-composer-input\":true,",
+      "after": "\n\t\t\t\t\"aria-multiline\": \"true\",\n\t\t\t\tenterKeyHint: \"enter\",\n\t\t\t\t\"aria-description\": \"回车换行，点击箭头发送；Ctrl / ⌘ + Enter 快捷发送\",\n\t\t\t\t\"data-dsha-enter-mode\": \"newline\",\n\t\t\t\t\"data-composer-input\": true,\n"
     }
   ],
   "module": "@deepseek-ai/dsh-client-ui-conversation/lib/client.js",
-  "sourceSha256": "9a37949cc76603ea3a965ce4d0d6ca65885de4a9808345c38748e595ac396378",
-  "packageIntegrity": "sha512-bxxnfa7meTpRAm6ErErSkVWi/IBVNt7LGg2StoH85wknvIn0jVShg6wqPwCbei6myR0/C5u17CjiBoCqAvsviA=="
+  "sourceSha256": "3d166eab312749bf8c528dd7d26d95340df75a27fec668b3510e4558fe9b343b",
+  "packageIntegrity": "sha512-WDmtmnpdsoleopdilRi6P7N5VjCaH+Hs2s2xRqr6OG+wYDp2FyWSNPV8zIA6I9iyPVnv8WoPc8Xr9V9Xb/BsiA=="
 }

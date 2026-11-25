@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-chat/lib/client.js",
+  "sourceSha256": "eef53e82b8cd584d2f0e543a4a93395f9d90df3bba1218891bd99d07d788de5c",
+  "packageIntegrity": "sha512-ZEw+3zt3+ENW7OpfnHBoEoU7jRCT9js8UZSe9gEYoRvVgAxO8/JKhNAXf1NCL0HLFD3fgkD0v4OkRZ2JXybSXw==",
+  "purpose": "Index changed chat turns and retain stable React row elements; preserve complete history, subscriptions, grouping, keyed DOM, pending input ordering and scroll behavior.",
+  "patches": [
+    {
+      "before": "var MutableTurnNavigationIndex=class{current=EMPTY_ITEMS;byTurn=new Map;",
+      "after": "var MutableTurnNavigationIndex=class{\n        // DSHA_CHAT_RENDER_INCREMENTAL_V1：流式尾部更新只读取受影响轮次。\n        current = EMPTY_ITEMS;\n        byTurn = new Map();\n        positions = new Map();\n    "
+    },
+    {
+      "before": "this.byTurn=byTurn;if(!(next.length===this.current.length&&next.every((item,index)=>item===this.current[index])))this.current=next",
+      "after": "this.byTurn = byTurn;\n        this.positions.clear();\n        for (let index = 0; index < next.length; index++) this.positions.set(next[index].turn, index);\n        if (!(next.length === this.current.length && next.every((item, index) => item === this.current[index]))) this.current = next;\n    "
+    },
+    {
+      "before": "touch(turns,locations,nodes){if(turns.size===0)return;const next=this.current.map(item=>{if(!turns.has(item.turn))return item;const derived=turnNavigationItem(item.turn,locations,nodes);if(derived===void 0||sameTurnNavigationItem(item,derived))return item;this.byTurn.set(item.turn,derived);return derived});if(next.some((item,index)=>item!==this.current[index]))this.current=next}",
+      "after": "touch(turns, locations, nodes) {\n        let next;\n        for (const turn of turns) {\n            const index = this.positions.get(turn);\n            if (index === void 0) continue;\n            const item = this.byTurn.get(turn);\n            const derived = turnNavigationItem(turn, locations, nodes);\n            if (derived === void 0 || sameTurnNavigationItem(item, derived)) continue;\n            // Keep old published snapshots immutable.\n            next ??= this.current.slice();\n            next[index] = derived;\n            this.byTurn.set(turn, derived);\n        }\n        if (next !== void 0) this.current = next;\n    }"
+    },
+    {
+      "before": "const seatProps={nodeStore,useChatNode,useChatNodeBottom,useChatNodeProcess,usePresentation,useStore,actions,renderSlot,t,useGroupAction,deferCollapse,cwd,openFile,inspectCall,forkAt,loadImage};",
+      "after": "\n// DSHA_CHAT_FLOW_ROWS_V1: keep stable element identities and the original row subscriptions.\nconst seatProps = (0, react.useMemo)(() => ({nodeStore, useChatNode, useChatNodeBottom, useChatNodeProcess, usePresentation, useStore, actions, renderSlot, t, useGroupAction, deferCollapse, cwd, openFile, inspectCall, forkAt, loadImage}), [nodeStore, useChatNode, useChatNodeBottom, useChatNodeProcess, usePresentation, useStore, actions, renderSlot, t, useGroupAction, deferCollapse, cwd, openFile, inspectCall, forkAt, loadImage]);\n"
+    },
+    {
+      "before": "const rows=entries.map(entry=>{switch(entry.kind){case`node`:return(0,react.createElement)(ChatNodeSeat,{...seatProps,key:chatRenderKey(entry),nodeKey:entry.key,...entry.groupPart===void 0?{}:{groupPart:entry.groupPart}});case`group`:return(0,react.createElement)(ChatGroupSeat,{...seatProps,key:chatRenderKey(entry),groupKey:entry.key,useChatGroup,useGroupHeaderAction});default:return assertNever(entry)}});",
+      "after": "let rows = (0, react.useMemo)(() => entries.map(entry=>{switch(entry.kind){case`node`:return(0,react.createElement)(ChatNodeSeat,{...seatProps,key:chatRenderKey(entry),nodeKey:entry.key,...entry.groupPart===void 0?{}:{groupPart:entry.groupPart}});case`group`:return(0,react.createElement)(ChatGroupSeat,{...seatProps,key:chatRenderKey(entry),groupKey:entry.key,useChatGroup,useGroupHeaderAction});default:return assertNever(entry)}}), [entries, seatProps, useChatGroup, useGroupHeaderAction]);"
+    },
+    {
+      "before": "rows.splice(rows.length-1,0,...leadingRows.splice(0));",
+      "after": "{\n        // Keep the rc.5 leading/transcript-echo order without mutating memoized rows.\n        rows = rows.slice();\n        rows.splice(rows.length - 1, 0, ...leadingRows.splice(0));\n    }"
+    }
+  ]
+}

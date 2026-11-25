@@ -3,6 +3,7 @@ package com.deepseekharness.app.recovery;
 import android.content.Context;
 import android.os.PowerManager;
 import android.os.SystemClock;
+import com.deepseekharness.app.backup.BackupControl;
 import com.deepseekharness.app.util.DshAuthSession;
 import com.deepseekharness.app.util.DshAuthUrl;
 import com.deepseekharness.app.util.ProcessTermination;
@@ -45,7 +46,8 @@ public final class RecoveryController {
   private volatile RecoveryRepairBroker lastBroker;
   private volatile Process process;
   private volatile RecoveryRuntime runtime;
-  private volatile boolean cancel, resetBlocked;
+  private BackupControl preparation = new BackupControl(null);
+  private volatile boolean resetBlocked;
   private long nextGeneration;
   private PowerManager.WakeLock wake;
 
@@ -111,7 +113,8 @@ public final class RecoveryController {
         || snapshot.ready
         || process != null
         || RecoveryRepairBroker.activeNativeRepairs() > 0) return false;
-    cancel = false;
+    BackupControl control = new BackupControl(null);
+    preparation = control;
     runtime = null;
     long generation = ++nextGeneration;
     String id = UUID.randomUUID().toString().replace("-", "");
@@ -125,7 +128,7 @@ public final class RecoveryController {
         "",
         "");
     String[] key = {temporaryApiKey};
-    worker.execute(() -> run(generation, id, key));
+    worker.execute(() -> run(generation, id, key, control));
     return true;
   }
 
@@ -133,7 +136,7 @@ public final class RecoveryController {
   public synchronized boolean stop() {
     if (snapshot.state.equals("STOPPED") || (snapshot.state.equals("FAILED") && process == null))
       return true;
-    cancel = true;
+    preparation.cancel();
     long generation = snapshot.generation;
     String id = snapshot.instanceId;
     if (snapshot.state.equals("STOP_UNCONFIRMED")) {
@@ -191,12 +194,13 @@ public final class RecoveryController {
     resetBlocked = false;
   }
 
-  private void run(long generation, String id, String[] key) {
+  private void run(long generation, String id, String[] key, BackupControl control) {
     String failure = "";
     String credentialNotice = "";
     try {
       renewWake();
-      RecoveryRuntime.recoverInterrupted(context, () -> cancel || !current(generation));
+      control.check();
+      RecoveryRuntime.recoverInterrupted(context, control::isCancelled);
       if (key[0] == null) {
         com.deepseekharness.app.util.CredentialRead credential =
             new com.deepseekharness.app.core.ConfigStore(context).readApiKey();
@@ -218,15 +222,17 @@ public final class RecoveryController {
           new RecoveryRuntime(
               context,
               id,
-              () -> cancel || !current(generation),
+              control,
               detail -> {
-                if (!cancel) publish(generation, id, "PREPARING", detail, "", "", "", "");
+                if (!control.isCancelled())
+                  publish(generation, id, "PREPARING", detail, "", "", "", "");
               });
       runtime = created;
       created.prepare();
+      control.check();
       created.prepareProfile();
       boolean assetsVerified = true;
-      if (cancel || !current(generation)) return;
+      if (control.isCancelled() || !current(generation)) return;
       broker = RecoveryRepairBroker.createSession(context, id, generation);
       boolean credentialAvailable = key[0] != null && !key[0].trim().isEmpty();
       String outputSecret = key[0];
@@ -255,7 +261,7 @@ public final class RecoveryController {
       outputSecret = "";
       DshAuthSession.Result exchange = null;
       long started = SystemClock.elapsedRealtime(), renewed = started;
-      while (!cancel && current(generation)) {
+      while (!control.isCancelled() && current(generation)) {
         output.drain();
         if (!output.failure.isEmpty()) throw new IOException(output.failure);
         if (ProcessTermination.exited(launched))
@@ -267,7 +273,7 @@ public final class RecoveryController {
               DshAuthSession.exchange(
                   auth.authUrl,
                   URI.create(auth.loopbackBaseUrl).getPort(),
-                  () -> !cancel && current(generation));
+                  () -> !control.isCancelled() && current(generation));
           if (exchange.status == DshAuthSession.Status.NOT_READY) exchange = null;
           else if (!exchange.ready()) throw new IOException("RECOVERY_AUTH_" + exchange.status);
           else {
@@ -354,7 +360,7 @@ public final class RecoveryController {
       if (failure == null || failure.isEmpty()) failure = "RECOVERY_UNAVAILABLE";
     } finally {
       key[0] = "";
-      finishStop(generation, id, failure, !cancel && !failure.isEmpty());
+      finishStop(generation, id, failure, !control.isCancelled() && !failure.isEmpty());
     }
   }
 

@@ -1,0 +1,39 @@
+{
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-settings/lib/index.js",
+  "sourceSha256": "041a2682ed77a7025ceb9bf659b80db8b788c338cd1aa644f0bcc6bc122a4091",
+  "patches": [
+    {
+      "before": "import { parse } from \"yaml\";",
+      "after": "import { parse } from \"yaml\";\nimport { applyConfigFields } from \"@deepseek-ai/cordis-plugin-include\";"
+    },
+    {
+      "before": "function applyPathOp(section, op, schema) {",
+      "after": "// DSHA_CONFIG_FIELD_SETTINGS_V1: Web mutations and native restoration use the same profile field operations.\r\nfunction configExpression(value) {\r\n\treturn isPlainObject(value) && Object.keys(value).length === 1 && typeof value.__jsExpr === \"string\";\r\n}\r\nfunction jsonFieldValue(value) {\r\n\tconst cloned = cloneJsonShaped({ value });\r\n\tif (!Object.hasOwn(cloned, \"value\")) throw new TypeError(\"Config field value is undefined\");\r\n\tconst pending = [cloned.value];\r\n\twhile (pending.length) {\r\n\t\tconst next = pending.pop();\r\n\t\tif (configExpression(next)) throw new TypeError(\"Configuration field inputs must be literal data\");\r\n\t\tif (typeof next === \"object\" && next !== null) {\r\n\t\t\tfor (const child of Object.values(next)) pending.push(child);\r\n\t\t}\r\n\t}\r\n\treturn cloned.value;\r\n}\r\nfunction appendMergedFields(out, current, input, path = []) {\r\n\tif (isPlainObject(input) && (current === void 0 || isPlainObject(current))) {\r\n\t\tif (configExpression(current)) throw new TypeError(\"Cannot edit within a configuration expression\");\r\n\t\tconst keys = Object.keys(input);\r\n\t\tif (keys.length || current !== void 0 || path.length === 0) {\r\n\t\t\tfor (const key of keys) appendMergedFields(out, member(current, key, true), input[key], [...path, key]);\r\n\t\t\treturn;\r\n\t\t}\r\n\t}\r\n\tout.push({ path, value: input });\r\n}\r\n/** Arrays keep the existing index editing behavior and are persisted as a single field. */\r\nfunction mutationFields(current, inherited, schema, ops) {\r\n\tconst fields = [];\r\n\tfor (const op of ops) {\r\n\t\tconst path = [];\r\n\t\tlet node = current;\r\n\t\tlet shape = schema;\r\n\t\tfor (const key of op.path) {\r\n\t\t\tconst value = node === void 0 ? shape?.meta.default : node;\r\n\t\t\tif (configExpression(value)) throw new TypeError(\"Cannot edit within a configuration expression\");\r\n\t\t\tif (Array.isArray(value)) break;\r\n\t\t\tpath.push(key);\r\n\t\t\tnode = member(value, key, true);\r\n\t\t\tshape = shape?.dict?.[key] ?? shape?.inner;\r\n\t\t}\r\n\t\tconst field = path.length < op.path.length\r\n\t\t\t? { path, value: path.reduce((value, key) => member(value, key, true), applyPathOp(current, op, schema)) }\r\n\t\t\t: op.op === \"set\" ? { path, value: op.value } : { path, inherit: true };\r\n\t\tfields.push(field);\r\n\t\tcurrent = applyConfigFields(current, [field], inherited);\r\n\t}\r\n\treturn fields;\r\n}function applyPathOp(section, op, schema) {"
+    },
+    {
+      "before": "entry.options.config ?? {}\n\t\t\t]);",
+      "after": "entry.options.config ?? {},\n\t\t\t\tinherited,\n\t\t\t\toverride\n\t\t\t]);"
+    },
+    {
+      "before": "\t\tconst input = cloneJsonShaped(patch);\n\t\tawait this.write(ns, (current) => mergeLayers(current, input), expectedRevision);",
+      "after": "\t\tif (!isPlainObject(patch)) throw new TypeError(\"Config patch must be a plain object\");\n\t\tconst input = jsonFieldValue(patch);\n\t\tawait this.write(ns, void 0, expectedRevision, [], (current) => {\n\t\t\tconst fields = [];\n\t\t\tappendMergedFields(fields, current, input);\n\t\t\treturn fields;\n\t\t});"
+    },
+    {
+      "before": "\tasync mutate(ns, ops, expectedRevision) {\n\t\tawait this.write(ns,",
+      "after": "\tasync mutate(ns, ops, expectedRevision) {\n\t\tops = ops.map((op) => op.op === \"set\" ? { op: \"set\", path: [...op.path], value: jsonFieldValue(op.value) }\n\t\t\t: { op: \"unset\", path: [...op.path] });\n\t\tif (ops.every((op) => op.path.length > 0)) {\n\t\t\tawait this.write(ns, void 0, expectedRevision, ops.map((op) => op.path),\n\t\t\t\t(current, inherited, schema) => mutationFields(current, inherited, schema, ops));\n\t\t\treturn;\n\t\t}\n\t\tawait this.write(ns,"
+    },
+    {
+      "before": "\tasync write(ns, change, expected, paths = []) {",
+      "after": "\tasync write(ns, change, expected, paths = [], fieldChanges) {"
+    },
+    {
+      "before": "\t\t\tconst next = cloneJsonShaped(change(projectForm(form, raw), projectForm(form, inherited), schema));",
+      "after": "\t\t\tif (fieldChanges) {\n\t\t\t\tconst fields = fieldChanges(raw, inherited, schema);\n\t\t\t\tfor (const { path } of fields) {\n\t\t\t\t\tif (!isVolatilePath(schema, path)) throw new Error(`Config field \"${path.join(\".\")}\" is not volatile`);\n\t\t\t\t}\n\t\t\t\treturn fields;\n\t\t\t}\n\t\t\tconst next = cloneJsonShaped(change(projectForm(form, raw), projectForm(form, inherited), schema));"
+    },
+    {
+      "before": "\t\t\treturn mergeLayers(strip(raw, form), next);\n\t\t});",
+      "after": "\t\t\treturn mergeLayers(strip(raw, form), next);\n\t\t}, fieldChanges !== void 0);"
+    }
+  ]
+}

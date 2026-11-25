@@ -148,6 +148,33 @@ public final class SkillLibraryTest {
   }
 
   @Test
+  public void largeRemovalSampleCanBeMovedAndRestoredWithoutChangingItOrItsNeighbor()
+      throws Exception {
+    setUp();
+    byte[] exact = SkillCatalogueFixture.removalSample();
+    String large = SkillCatalogueFixture.REMOVAL_SAMPLE;
+    imports.install("SKILL.md", exact, control());
+    imports.install("SKILL.md", skill("small-neighbor"), control());
+    var entry = only(large);
+    assertEquals(exact.length, library.preview(entry, control()).bytes);
+    String slot = library.trash(entry, NOW, control());
+    assertFalse(Files.exists(skills.resolve(large)));
+    assertEquals(
+        List.of("small-neighbor"),
+        imports.list(control()).entries.stream().map(item -> item.document.name).toList());
+    assertEquals(slot, library.list(control()).get(0).slot);
+    assertArrayEquals(
+        exact,
+        Files.readAllBytes(
+            trash.resolve(slot).resolve(SkillLifecycle.TRASH_ITEM).resolve("SKILL.md")));
+    assertTrue(library.restore(slot, control()).enabled);
+    assertArrayEquals(exact, Files.readAllBytes(skills.resolve(large).resolve("SKILL.md")));
+    assertArrayEquals(
+        skill("small-neighbor"), Files.readAllBytes(skills.resolve("small-neighbor/SKILL.md")));
+    assertTrue(library.list(control()).isEmpty());
+  }
+
+  @Test
   public void restoreNeverOverwritesAReplacementWithTheSameName() throws Exception {
     setUp();
     imports.install("SKILL.md", skill("web-scraper"), control());

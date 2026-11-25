@@ -12,6 +12,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,8 @@ import com.deepseekharness.app.backup.*;
     instrumentedPackages = {"com.deepseekharness.app.backup"},
     shadows = {RuntimeToolsRegistryAndroidTest.HostFileSystem.class})
 public final class RuntimeToolsRegistryAndroidTest {
+  private static final String CURRENT_LAN_CONTRACT =
+      "lan-settings-upstream-contract-0.2.2-rc.5.json";
   private Path root;
   private Path source;
   private Path temporary;
@@ -132,7 +135,8 @@ public final class RuntimeToolsRegistryAndroidTest {
           "web-integration/startup.js",
           "client-combo-cache/package.json",
           "client-combo-cache/index.js",
-          "lan-settings-upstream-contract.json"
+          "lan-settings-upstream-contract.json",
+          CURRENT_LAN_CONTRACT
         }) content.put(name, Files.readAllBytes(source.resolve(name)));
     for (var entry : overrides.entrySet())
       content.put(entry.getKey(), entry.getValue().toString().getBytes(StandardCharsets.UTF_8));
@@ -181,7 +185,6 @@ public final class RuntimeToolsRegistryAndroidTest {
     Context context = apkAssets(Map.of());
     JSONObject registry = RuntimeTools.readPatchRegistry(context);
     String version = registry.getString("dshVersion");
-    assertEquals("0.2.2-rc.1", version);
     assertEquals(version, Constants.DSH_VERSION);
     assertEquals("dsh-v" + version, Constants.DSH_RUNTIME_ID);
     try (var stream = context.getAssets().open("runtime-descriptor.json")) {
@@ -208,8 +211,27 @@ public final class RuntimeToolsRegistryAndroidTest {
     Context context = apkAssets(Map.of());
     JSONObject registry = RuntimeTools.readPatchRegistry(context);
     var groups = RuntimeTools.readPatchChains(context, registry, Constants.DSH_VERSION);
-    assertEquals(46, groups.size());
-    assertEquals(61, groups.values().stream().mapToInt(java.util.List::size).sum());
+    var expectedChains = new HashMap<String, List<String>>();
+    var active = json("runtime-patches.json").getJSONArray("active");
+    for (int i = 0; i < active.length(); i++) {
+      var entry = active.getJSONObject(i);
+      String id = entry.getString("asset");
+      String module =
+          entry.has("module") ? entry.getString("module") : json(id).getString("module");
+      expectedChains.computeIfAbsent(module, key -> new ArrayList<>()).add(id);
+    }
+    var admittedChains = new HashMap<String, List<String>>();
+    groups.forEach(
+        (module, recipes) ->
+            admittedChains.put(module, recipes.stream().map(recipe -> recipe.id()).toList()));
+    assertEquals(expectedChains, admittedChains);
+    assertEquals(
+        List.of("tool-dispatch-validation-pipeline-patch.json", "guard-tools-pipeline-patch.json"),
+        admittedChains.get("@deepseek-ai/dsh-tools/lib/pipeline.js"));
+    assertEquals(
+        List.of("openai-sse-cjs-patch.json"), admittedChains.get("openai/core/streaming.js"));
+    assertEquals(
+        List.of("openai-sse-esm-patch.json"), admittedChains.get("openai/core/streaming.mjs"));
     assertEquals(
         "web-fetch-http-surrogate-patch.json",
         groups.get("@deepseek-ai/dsh-web-fetch-http/lib/index.js").get(0).id());
@@ -238,12 +260,12 @@ public final class RuntimeToolsRegistryAndroidTest {
     assertEquals("language-patch.json", locale.get(0).id());
     // 0.2.2：V1 前代只存在于 0.2.1-rc.3 归档，新 locale 模块不声明前代形态。
     assertTrue(locale.get(0).previousPatches().isEmpty());
-    assertEquals("ctx.provide(\"locale\", locale);", locale.get(0).patches().get(0).before());
+    assertEquals("ctx.provide(`locale`,locale);", locale.get(0).patches().get(0).before());
     assertTrue(
         locale.get(0).patches().get(0).after().contains("function installDshaLanguageBridge"));
     assertTrue(locale.get(0).patches().get(0).after().contains("DSHA_UI_LANGUAGES_V3"));
     assertTrue(
-        groups.get("@deepseek-ai/dsh-deepseek-account-platform/lib/index.js").stream()
+        groups.get("@deepseek-ai/dsh-deepseek-account/lib/index.js").stream()
             .anyMatch(
                 recipe ->
                     recipe.id().equals("deepseek-account-requests-patch.json")
@@ -271,6 +293,12 @@ public final class RuntimeToolsRegistryAndroidTest {
                         && recipe.markers().contains("DSHA_PLUGIN_REFRESH_REUSE_V1")
                         && recipe.markers().contains("DSHA_PLUGIN_REFRESH_BARRIER_V1")));
     assertTrue(
+        groups.get("@deepseek-ai/dsh-client-ui-plugin-manager/lib/client.js").stream()
+            .anyMatch(
+                recipe ->
+                    recipe.id().equals("plugin-manager-web-update-status-patch.json")
+                        && recipe.markers().equals(List.of("DSHA_PLUGIN_WEB_UPDATE_STATUS_V1"))));
+    assertTrue(
         groups.get("@deepseek-ai/dsh-client-ui-agent-preset/lib/client.js").stream()
             .anyMatch(
                 recipe ->
@@ -286,8 +314,12 @@ public final class RuntimeToolsRegistryAndroidTest {
                         && recipe.markers().contains("DSHA_SESSION_SINGLE_ACTIVATE_V4")));
     var inventory = groups.get("@deepseek-ai/dsh-host-plugin-inventory/lib/index.js");
     assertNotNull(inventory);
-    assertEquals(2, inventory.size());
-    assertEquals("plugin-inventory-entries-patch.json", inventory.get(0).id());
+    assertEquals(
+        List.of(
+            "plugin-inventory-entries-patch.json",
+            "plugin-inventory-management-patch.json",
+            "plugin-inventory-shell-integrations-patch.json"),
+        inventory.stream().map(recipe -> recipe.id()).toList());
     assertEquals(
         java.util.List.of("DSHA_PLUGIN_ENTRIES_PROJECTION_V1"), inventory.get(0).markers());
     assertTrue(
@@ -298,9 +330,8 @@ public final class RuntimeToolsRegistryAndroidTest {
                         && recipe
                             .markers()
                             .equals(java.util.List.of("DSHA_PLUGIN_LIST_ENTRIES_ONLY_V1"))));
-    assertEquals("plugin-inventory-management-patch.json", inventory.get(1).id());
-    assertEquals(
-        java.util.List.of("DSHA_PLUGIN_MANAGEMENT_PROJECTION_V1"), inventory.get(1).markers());
+    assertEquals(List.of("DSHA_PLUGIN_MANAGEMENT_PROJECTION_V1"), inventory.get(1).markers());
+    assertEquals(List.of("DSHA_SHELL_INTEGRATION_POLICY_V1"), inventory.get(2).markers());
     var hostCodec = groups.get("@deepseek-ai/dsh-host-plugin-inventory/lib/typert.host.js");
     assertNotNull(hostCodec);
     assertEquals(1, hostCodec.size());
@@ -329,13 +360,21 @@ public final class RuntimeToolsRegistryAndroidTest {
                             .markers()
                             .equals(java.util.List.of("DSHA_PLUGIN_MANAGEMENT_PROBE_V1"))));
     var manager = groups.get("@deepseek-ai/dsh-plugin-manager/lib/index.js");
-    assertEquals(6, manager.size());
-    assertEquals("plugin-manager-policy-patch.json", manager.get(0).id());
-    assertEquals("plugin-pnpm-argv-patch.json", manager.get(1).id());
-    assertEquals(java.util.List.of("DSHA_PLUGIN_PNPM_ARGV_V3"), manager.get(1).markers());
-    var workers = manager.get(manager.size() - 1);
-    assertEquals("plugin-bundle-proof-workers-patch.json", workers.id());
-    assertEquals(java.util.List.of("DSHA_PLUGIN_BUNDLE_READ_WORKERS_V2"), workers.markers());
+    assertEquals(
+        List.of(
+            "plugin-manager-policy-patch.json",
+            "plugin-pnpm-argv-patch.json",
+            "retired-market-catalog-patch.json",
+            "auto-review-native-disabled-patch.json",
+            "plugin-manager-web-update-rollback-patch.json",
+            "plugin-manager-entries-patch.json",
+            "plugin-bundle-proof-workers-patch.json",
+            "plugin-manager-shell-integrations-patch.json"),
+        manager.stream().map(recipe -> recipe.id()).toList());
+    assertEquals(List.of("DSHA_PLUGIN_PNPM_ARGV_V3"), manager.get(1).markers());
+    assertEquals(List.of("DSHA_PLUGIN_WEB_UPDATE_ROLLBACK_V1"), manager.get(4).markers());
+    assertEquals(List.of("DSHA_PLUGIN_BUNDLE_READ_WORKERS_V2"), manager.get(6).markers());
+    assertEquals(List.of("DSHA_SHELL_INTEGRATION_POLICY_V1"), manager.get(7).markers());
     var oauth = groups.get("@deepseek-ai/dsh-client-ui-settings-account/lib/client.js");
     assertNotNull(oauth);
     assertEquals(2, oauth.size());
@@ -374,7 +413,9 @@ public final class RuntimeToolsRegistryAndroidTest {
             () ->
                 RuntimeTools.readPatchRegistry(
                     apkAssets(Map.of("runtime-patches.json", registry))));
-    assertEquals("PATCH_REGISTRY_VERSION: APK=0.2.2-rc.1 registry=0.2.0-rc.2", error.getMessage());
+    assertEquals(
+        "PATCH_REGISTRY_VERSION: APK=" + Constants.DSH_VERSION + " registry=0.2.0-rc.2",
+        error.getMessage());
   }
 
   @Test
@@ -402,7 +443,11 @@ public final class RuntimeToolsRegistryAndroidTest {
                 RuntimeTools.readPatchChains(
                     context, RuntimeTools.readPatchRegistry(context), Constants.DSH_VERSION));
     assertEquals(
-        "PATCH_REGISTRY_VERSION: recipe=" + first + " expected=0.2.2-rc.1 actual=0.2.0-rc.2",
+        "PATCH_REGISTRY_VERSION: recipe="
+            + first
+            + " expected="
+            + Constants.DSH_VERSION
+            + " actual=0.2.0-rc.2",
         error.getMessage());
   }
 
@@ -693,27 +738,28 @@ public final class RuntimeToolsRegistryAndroidTest {
   }
 
   @Test
-  public void lanHostMirrorContractSupportsRc5AndRc1FamilyOnly() throws Exception {
+  public void lanHostMirrorContractRequiresGenerationSpecificBytes() throws Exception {
     Context context = apkAssets(Map.of());
     File guest = actualManagedModuleClosure(context);
     Path pkg = guest.toPath().resolve(DSH + "package.json");
     Path module = guest.toPath().resolve(DSH + "node_modules/" + LAN);
     String originalPackage = Files.readString(pkg);
     byte[] originalModule = Files.readAllBytes(module);
+    RuntimeTools.patchLanSettingsPersistence(context, guest);
+    assertArrayEquals(originalModule, Files.readAllBytes(module));
     for (String version : List.of("0.2.1-rc.5", "0.2.2-rc.1")) {
       Files.writeString(pkg, new JSONObject(originalPackage).put("version", version).toString());
-      RuntimeTools.patchLanSettingsPersistence(context, guest);
-      assertArrayEquals(
-          "Host mirror must remain byte-exact for " + version,
-          originalModule,
-          Files.readAllBytes(module));
+      IOException mismatch =
+          assertThrows(
+              IOException.class, () -> RuntimeTools.patchLanSettingsPersistence(context, guest));
+      assertEquals("LAN_SETTINGS_SOURCE_MISMATCH", mismatch.getMessage());
+      assertArrayEquals(originalModule, Files.readAllBytes(module));
     }
-    Files.writeString(pkg, new JSONObject(originalPackage).put("version", "0.2.2-rc.1").toString());
+    Files.writeString(pkg, originalPackage);
     Context wrongFamily =
         apkAssets(
             Map.of(
-                "lan-settings-upstream-contract.json",
-                json("lan-settings-upstream-contract.json").put("dshVersion", "0.2.2-rc.1")));
+                CURRENT_LAN_CONTRACT, json(CURRENT_LAN_CONTRACT).put("dshVersion", "0.2.2-rc.1")));
     IOException family =
         assertThrows(
             IOException.class, () -> RuntimeTools.patchLanSettingsPersistence(wrongFamily, guest));
@@ -735,10 +781,7 @@ public final class RuntimeToolsRegistryAndroidTest {
         pkg,
         new JSONObject(Files.readString(pkg)).put("version", Constants.DSH_VERSION).toString());
     Context bad =
-        apkAssets(
-            Map.of(
-                "lan-settings-upstream-contract.json",
-                json("lan-settings-upstream-contract.json").put("schema", 2)));
+        apkAssets(Map.of(CURRENT_LAN_CONTRACT, json(CURRENT_LAN_CONTRACT).put("schema", 2)));
     IOException contract =
         assertThrows(IOException.class, () -> RuntimeTools.patchLanSettingsPersistence(bad, guest));
     assertEquals("LAN_SETTINGS_CONTRACT", contract.getMessage());

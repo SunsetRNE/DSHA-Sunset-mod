@@ -52,7 +52,7 @@ public final class RecoveryService extends Service {
             ? new Notification.Builder(this, CHANNEL)
             : new Notification.Builder(this);
     builder
-        .setSmallIcon(R.mipmap.ic_launcher)
+        .setSmallIcon(R.drawable.ic_dsha_mark)
         .setContentTitle(UiText.choose("DSHA 应急 DSH", "DSHA emergency DSH"))
         .setContentText(text)
         .setContentIntent(content)

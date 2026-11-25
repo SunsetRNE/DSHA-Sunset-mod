@@ -31,6 +31,9 @@ import org.robolectric.shadows.ShadowActivity;
     instrumentedPackages = {"com.deepseekharness.app.backup"},
     shadows = {
       DirectWebEntryTest.Controller.class,
+      DirectWebEntryTest.EntryMaintenance.class,
+      DirectWebEntryTest.EnvironmentAccess.class,
+      DirectWebEntryTest.VisibleStart.class,
       MainEntryLayoutLifecycleTest.Environment.class,
       com.deepseekharness.app.runtime.RuntimeToolsRegistryAndroidTest.HostFileSystem.class
     })
@@ -46,7 +49,7 @@ public final class DirectWebEntryTest {
     static HarnessController value;
     static String authUrl = "";
     static int startRequests;
-    static boolean starting;
+    static boolean starting, environmentReady, unresolved;
     static final List<Runnable> checks = new ArrayList<>();
     static final java.util.Set<Runnable> readyListeners = new java.util.LinkedHashSet<>();
 
@@ -76,12 +79,22 @@ public final class DirectWebEntryTest {
 
     @Implementation
     protected boolean isEnvironmentReady() {
-      return false;
+      return environmentReady;
     }
 
     @Implementation
     protected boolean hasUnresolvedWebSession() {
+      return unresolved;
+    }
+
+    @Implementation
+    protected boolean isRestoringWebSession() {
       return false;
+    }
+
+    @Implementation
+    protected long getWebGeneration() {
+      return 1;
     }
 
     @Implementation
@@ -128,6 +141,50 @@ public final class DirectWebEntryTest {
     }
   }
 
+  @Implements(value = MainEntryMaintenance.class, isInAndroidSdk = false)
+  public static final class EntryMaintenance {
+    static boolean blocked;
+
+    @Implementation
+    protected static boolean blocksEntry(HarnessController ignored) {
+      return blocked;
+    }
+  }
+
+  @Implements(value = com.deepseekharness.app.core.EnvironmentAccess.class, isInAndroidSdk = false)
+  public static final class EnvironmentAccess {
+    @Implementation
+    protected static String limitedEntryKey(HarnessController ignored) {
+      return "synthetic-install-identity";
+    }
+
+    @Implementation
+    protected static boolean requiresMaintenanceBeforeStart(HarnessController ignored) {
+      return false;
+    }
+  }
+
+  @Implements(value = FirstRunWebStart.class, isInAndroidSdk = false)
+  public static final class VisibleStart {
+    static int requests;
+
+    @Implementation
+    protected static boolean enqueueVisible(
+        androidx.fragment.app.FragmentActivity activity,
+        java.util.concurrent.Executor executor,
+        boolean safe,
+        boolean recover,
+        java.util.function.Consumer<String> status,
+        java.util.function.Consumer<Boolean> completed) {
+      assertFalse(safe);
+      assertFalse(recover);
+      requests++;
+      Controller.starting = true;
+      completed.accept(true);
+      return true;
+    }
+  }
+
   @Before
   public void prepare() throws Exception {
     var app = (App) RuntimeEnvironment.getApplication();
@@ -137,6 +194,10 @@ public final class DirectWebEntryTest {
     Controller.authUrl = "";
     Controller.startRequests = 0;
     Controller.starting = false;
+    Controller.environmentReady = false;
+    Controller.unresolved = false;
+    EntryMaintenance.blocked = false;
+    VisibleStart.requests = 0;
     Controller.checks.clear();
     Controller.readyListeners.clear();
     ConfigStore config = new ConfigStore(app);
@@ -361,6 +422,198 @@ public final class DirectWebEntryTest {
       assertFalse(field(main, "directWebArmed"));
       assertNull(drainUntil(main, WebPreviewActivity.class));
     } finally {
+      host.pause().stop().destroy();
+    }
+  }
+
+  @Test
+  public void warmLauncherWaitsForTheCurrentWebThenOpensOnceWithoutReplacingTheMainView()
+      throws Exception {
+    try (var entry = new WarmEntry()) {
+      entry.deliver(launcher());
+      assertEquals(1, Controller.checks.size());
+      assertNotNull(object(entry.main, "bootScreen"));
+      assertSame(
+          entry.root, entry.main.findViewById(com.deepseekharness.app.R.id.fragment_container));
+      assertNull(drainUntil(entry.main, WebPreviewActivity.class));
+      entry.deliverLastCheck();
+      entry.await(
+          () ->
+              Controller.readyListeners.size() == entry.nativeReadyListeners.size() + 1
+                  && VisibleStart.requests == 1);
+      entry.main.onNewIntent(launcher());
+      entry.main.onPostResume();
+      assertEquals("Repeated entry keeps the admitted Web launch", 1, Controller.checks.size());
+      assertEquals(entry.nativeReadyListeners.size() + 1, Controller.readyListeners.size());
+      assertEquals(1, VisibleStart.requests);
+      Controller.authUrl = "http://127.0.0.1:43210/?token=fixture";
+      Controller.notifyReady();
+      Intent web = drainUntil(entry.main, WebPreviewActivity.class);
+      assertNotNull(web);
+      assertEquals(Controller.authUrl, web.getStringExtra("url"));
+      assertNull(drainUntil(entry.main, WebPreviewActivity.class));
+      assertNull(object(entry.main, "bootScreen"));
+      assertNotNull(object(entry.main, "webCover"));
+      assertEquals(0, ((Long) object(entry.main, "entryWindow")).longValue());
+      assertEquals(entry.nativeReadyListeners, Controller.readyListeners);
+      assertEquals(0, Controller.startRequests);
+      assertSame(
+          entry.root, entry.main.findViewById(com.deepseekharness.app.R.id.fragment_container));
+    }
+  }
+
+  @Test
+  public void warmPlainResumeMainPreferenceAndPendingPluginDoNotCheckForWeb() throws Exception {
+    try (var entry = new WarmEntry()) {
+      entry.host.pause().resume().postResume(); // The original getIntent() is still the launcher.
+      assertTrue(Controller.checks.isEmpty());
+      new ConfigStore(entry.main).setEntryTarget(EntryTarget.MAIN);
+      entry.deliver(launcher());
+      assertTrue(Controller.checks.isEmpty());
+      new ConfigStore(entry.main).setEntryTarget(EntryTarget.WEB);
+      entry
+          .main
+          .getSharedPreferences("dsha-install-link", Context.MODE_PRIVATE)
+          .edit()
+          .putString("pending", "synthetic")
+          .commit();
+      entry.deliver(launcher());
+      assertTrue(Controller.checks.isEmpty());
+      assertNull(object(entry.main, "bootScreen"));
+      assertNull(drainUntil(entry.main, WebPreviewActivity.class));
+    }
+  }
+
+  @Test
+  public void warmNotificationIsAdmittedButAnExplicitNativeIntentCancelsIt() throws Exception {
+    try (var entry = new WarmEntry()) {
+      entry.deliver(
+          new Intent(entry.main, MainActivity.class)
+              .putExtra(AppEntryRouterActivity.EXTRA_APP_ENTRY, true)
+              .putExtra("open_launch", true));
+      assertEquals(1, Controller.checks.size());
+      assertNotNull(object(entry.main, "bootScreen"));
+      entry.main.onNewIntent(
+          MainActivity.navigationIntent(entry.main).putExtra("open_config", true));
+      entry.main.onPostResume();
+      entry.main.getSupportFragmentManager().executePendingTransactions();
+      assertTrue(
+          entry
+                  .main
+                  .getSupportFragmentManager()
+                  .findFragmentById(com.deepseekharness.app.R.id.fragment_container)
+              instanceof ConfigFragment);
+      entry.deliverLastCheck();
+      assertNull(object(entry.main, "bootScreen"));
+      assertEquals(0, ((Long) object(entry.main, "entryWindow")).longValue());
+      assertTrue(Controller.readyListeners.isEmpty());
+      assertNull(drainUntil(entry.main, WebPreviewActivity.class));
+    }
+  }
+
+  @Test
+  public void warmUnknownInstanceAndLifecycleCancellationReturnToTheExistingMain()
+      throws Exception {
+    try (var entry = new WarmEntry()) {
+      Controller.unresolved = true;
+      entry.deliver(launcher());
+      entry.deliverLastCheck();
+      entry.await(() -> object(entry.main, "bootScreen") == null);
+      assertEquals(0, ((Long) object(entry.main, "entryWindow")).longValue());
+      assertNull(drainUntil(entry.main, WebPreviewActivity.class));
+      Controller.unresolved = false;
+      entry.deliver(launcher());
+      assertNotNull(object(entry.main, "bootScreen"));
+      entry.main.getOnBackPressedDispatcher().onBackPressed();
+      entry.deliverLastCheck();
+      assertNull(object(entry.main, "bootScreen"));
+      entry.deliver(launcher());
+      entry.host.pause();
+      entry.deliverLastCheck();
+      entry.host.resume().postResume();
+      assertNull(object(entry.main, "bootScreen"));
+      assertEquals(entry.nativeReadyListeners, Controller.readyListeners);
+      assertSame(
+          entry.root, entry.main.findViewById(com.deepseekharness.app.R.id.fragment_container));
+    }
+  }
+
+  @Test
+  public void warmEntryKeepsMaintenanceAheadOfTheReadyWeb() throws Exception {
+    try (var entry = new WarmEntry()) {
+      EntryMaintenance.blocked = true;
+      Controller.authUrl = "http://127.0.0.1:43210/?token=fixture";
+      entry.deliver(launcher());
+      entry.deliverLastCheck();
+      entry.await(entry.main::isFinishing);
+      assertNotNull(drainUntil(entry.main, ExtractActivity.class));
+      assertNull(drainUntil(entry.main, WebPreviewActivity.class));
+      assertEquals(0, Controller.startRequests);
+    }
+  }
+
+  @Test
+  public void warmEntryRetainsThePreviouslyApprovedRestrictedNativePage() throws Exception {
+    try (var entry = new WarmEntry()) {
+      new ConfigStore(entry.main).allowLimitedEntry("synthetic-install-identity");
+      EntryMaintenance.blocked = true;
+      Controller.authUrl = "http://127.0.0.1:43210/?token=fixture";
+      entry.deliver(launcher());
+      assertNotNull(object(entry.main, "bootScreen"));
+      entry.deliverLastCheck();
+      entry.await(() -> object(entry.main, "bootScreen") == null);
+      assertFalse(entry.main.isFinishing());
+      assertNull(drainUntil(entry.main, ExtractActivity.class));
+      assertNull(drainUntil(entry.main, WebPreviewActivity.class));
+      assertEquals(0, VisibleStart.requests);
+      assertEquals(0, ((Long) object(entry.main, "entryWindow")).longValue());
+    }
+  }
+
+  private static final class WarmEntry implements AutoCloseable {
+    final org.robolectric.android.controller.ActivityController<MainActivity> host =
+        Robolectric.buildActivity(MainActivity.class, launcher()).create().start().resume();
+    final MainActivity main = host.get();
+    final android.view.View root =
+        main.findViewById(com.deepseekharness.app.R.id.fragment_container);
+    final java.util.Set<Runnable> nativeReadyListeners;
+
+    WarmEntry() throws Exception {
+      var probe = MainActivity.class.getDeclaredField("restoreProbeStarted");
+      probe.setAccessible(true);
+      probe.setBoolean(main, true);
+      var show =
+          MainActivity.class.getDeclaredMethod(
+              "showMain", Bundle.class, ConfigStore.class, HarnessController.class);
+      show.setAccessible(true);
+      show.invoke(main, null, new ConfigStore(main), Controller.value);
+      main.getSupportFragmentManager().executePendingTransactions();
+      nativeReadyListeners = java.util.Set.copyOf(Controller.readyListeners);
+      Controller.checks.clear();
+      Controller.environmentReady = true;
+      new ConfigStore(main).setEntryTarget(EntryTarget.WEB);
+    }
+
+    void deliver(Intent intent) {
+      host.pause().newIntent(intent).resume().postResume();
+    }
+
+    void deliverLastCheck() {
+      Controller.checks.get(Controller.checks.size() - 1).run();
+    }
+
+    void await(java.util.concurrent.Callable<Boolean> condition) throws Exception {
+      var looper = org.robolectric.shadows.ShadowLooper.shadowMainLooper();
+      long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(3);
+      while (!condition.call() && System.nanoTime() < deadline) {
+        looper.idle();
+        Thread.sleep(5);
+      }
+      assertTrue("Main must consume the finite entry result", condition.call());
+    }
+
+    @Override
+    public void close() {
       host.pause().stop().destroy();
     }
   }

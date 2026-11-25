@@ -57,6 +57,16 @@ class UiI18nInventoryTest(unittest.TestCase):
         self.assertEqual('translated_choose_argument_concat', rows[0][0])
         self.assertEqual('translated_choose_fragment_concat', rows[1][0])
 
+    def test_wrapped_english_fallback_is_one_literal_but_dynamic_fragments_are_checked(self):
+        for source, count in [
+            ('UiText.choose("完整中文", "Long English" + " sentence.");', 0),
+            ('UiText.choose("完整中文", "Total " + count + " items");', 1),
+            ('UiText.choose("中文" + "键", "English");', 1),
+            ('UiText.choose("完整中文", "An" + " example") + name;', 1),
+        ]:
+            with self.subTest(source=source):
+                self.assertEqual(count, len(checker.java_findings(source)[0]))
+
     def test_complete_paragraph_nonfindings_require_exact_source_and_occurrence(self):
         row = {'kind': 'translated_choose_fragment_concat', 'file': 'app/src/main/A.java',
                'signature': 'UiText.choose("完整句。","Whole sentence.")+', 'sourceSha256': 'a'}

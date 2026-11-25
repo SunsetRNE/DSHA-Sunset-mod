@@ -1,73 +1,87 @@
 {
   "schema": 2,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "inputs": {
-    "@deepseek-ai/dsh-client-locale/lib/client.js": "769747aa79323075eba9545ff9982770c0163e0bba3cabcc49ff56581c0f3613",
-    "@deepseek-ai/dsh-client-ui-action-cards/lib/client.js": "78acaa299e36daf3df19c7a1b75310fc278ff5e5021fd7de170d8f87db490a3d",
-    "@deepseek-ai/dsh-client-ui-agent-preset/lib/client.js": "b409e4dd4fdbea1c313382083532f46ca21650b1c3d07c0be0074f60c337b359",
-    "@deepseek-ai/dsh-client-ui-approval/lib/client.js": "a80903a4d6151268bb70de191c8f6f0fd601475910515bd93c7f274398fe0c47",
-    "@deepseek-ai/dsh-client-ui-chat/lib/client.js": "b7e645f2461231e8ece31381f026db2df72d058e425eaef19265f215c823d84e",
-    "@deepseek-ai/dsh-client-ui-commands/lib/client.js": "016760060707b1b67c74c218de48c6a97790c678533c9b5b6c311e1c005bb984",
-    "@deepseek-ai/dsh-client-ui-context-menu/lib/client.js": "b7ca0eb8bf549c420eda1d3772544df65c3dbe35bcd213d008118c765889b5ac",
-    "@deepseek-ai/dsh-client-ui-conversation/lib/client.js": "9a37949cc76603ea3a965ce4d0d6ca65885de4a9808345c38748e595ac396378",
-    "@deepseek-ai/dsh-client-ui-cordis/lib/client.js": "90d2213e806b1f071c6a99f36ec7744730797ea01152cdb7df0a52e6984140a7",
-    "@deepseek-ai/dsh-client-ui-creation-recommendations/lib/client.js": "42c912cbc24e42dd0d3fb1101df76df0cf122a74b61f4b56c978c49579118835",
-    "@deepseek-ai/dsh-client-ui-deliverables/lib/client.js": "0aa3fc762aa1debf106a67dccfbb7a640f40de0c774a2b091a8ddc6730257da5",
-    "@deepseek-ai/dsh-client-ui-directory-picker-browse/lib/client.js": "dbb02027bc8d836cd1a88dbb90d0b7a53124423142c1b7de28866ab2d08dc2fe",
-    "@deepseek-ai/dsh-client-ui-entry-customization/lib/client.js": "607476157d5ba93a0c2b74048591509116764348a275b7d27add6460b467d9a8",
-    "@deepseek-ai/dsh-client-ui-file-actions/lib/client.js": "437f70ba26ff1a11efc0aeb547e3a799948f55e8cabef69839dbc481e96ed40d",
-    "@deepseek-ai/dsh-client-ui-file-drag/lib/client.js": "87fbf7b78248383e30c82e151156938346d767f9e9718077b3a8ec20f9b1d3fc",
-    "@deepseek-ai/dsh-client-ui-goal/lib/client.js": "0b1395a59ca7f8dbb9614073aa197d30b9c53718a95133237abd1c97c6ef8f93",
-    "@deepseek-ai/dsh-client-ui-input-trigger/lib/client.js": "3f57b79e1f5f9a2378caadba05c3fead8baf1aa4dc80e3ffcd3718774f0b887f",
-    "@deepseek-ai/dsh-client-ui-jobs/lib/client.js": "14c57d9e46d6aba597e7a9eac94a6cab1a5a635bafa3427a9cfe57b6fe1d4608",
-    "@deepseek-ai/dsh-client-ui-layout/lib/client.js": "338bcbdea1180e56b0a8e86788d1e75b09296cbe7ba042a06cdc91028001cf93",
-    "@deepseek-ai/dsh-client-ui-message-feedback/lib/client.js": "be3aabb263cfd0f12a98611bc712d9449295f7e0ecca94257554659bc2f65950",
-    "@deepseek-ai/dsh-client-ui-model-selection/lib/client.js": "124c4f0fe80bb7d0c5b2da9bbc071534bfc9a3e96825980c447525eb40f87855",
-    "@deepseek-ai/dsh-client-ui-open-in-app/lib/client.js": "461eefbd89bf448abce7215a2ec60355ed6cb06533833292fece150a8bde90f8",
-    "@deepseek-ai/dsh-client-ui-permission-presets/lib/client.js": "012597974dbc75ac0c545946c3f3d26bbffac6aee56d75a1ca0b9cf1c6e4331b",
-    "@deepseek-ai/dsh-client-ui-plan/lib/client.js": "0baa2cac7f3ae38487010a697734915ca142fd87a6c7dc403c07a3c638c29b63",
-    "@deepseek-ai/dsh-client-ui-plugin-manager/lib/client.js": "15316b20356d8109ddafb7c866928ad3f8dc8adf26c8f27f692c8a5e3d2b120a",
-    "@deepseek-ai/dsh-client-ui-plugin-market/lib/client.js": "6611ed8a4d4317b76a112140fc468cb4a5be5304922e5e2b7782001b72ea6bfd",
-    "@deepseek-ai/dsh-client-ui-plugin-recommendations/lib/client.js": "43c64ff95b00474623e9a3f95850c0f50748e58191830bee3c1a358b93443df9",
-    "@deepseek-ai/dsh-client-ui-reference/lib/client.js": "64f62538326e8fdb44117d312b1b352845a4b93ce9f9da053b4427fb8adb7aea",
-    "@deepseek-ai/dsh-client-ui-schedule/lib/client.js": "e4eb24442e7bdb7e7ff07dc1232739cd09f3ef8343f8f197e2c34b929084d911",
-    "@deepseek-ai/dsh-client-ui-secret-mask/lib/client.js": "1c0b252fb307834f1894e49f16bd6383e1f834de1f1380115cffc8916fffbac4",
-    "@deepseek-ai/dsh-client-ui-settings-account/lib/client.js": "0482b179466e1aaae6d7ff5738f679a8a62b39a0f1c496bda64bef342eb7b7e0",
-    "@deepseek-ai/dsh-client-ui-settings-agent-loop/lib/client.js": "859cb0e7fc7ebc021ab5b5dde4b888f391f8f24eb7451f3103a7a5fd63eb4b3d",
-    "@deepseek-ai/dsh-client-ui-settings-general/lib/client.js": "91f464ea8a6193df07c72aa359c3fa6f167a5420aadaccbd7d93b880e2c3149e",
-    "@deepseek-ai/dsh-client-ui-settings-models/lib/client.js": "e111ecefea8262e0426f528864b9681d818068042e93d053bcb0b6884b317278",
-    "@deepseek-ai/dsh-client-ui-settings-plugin-inventory/lib/client.js": "9d510500f44c99241c8ba8881c47b52dec88a834eec404f7149035bdc330a4aa",
-    "@deepseek-ai/dsh-client-ui-settings-plugins/lib/client.js": "66858a23110681b4576a6d95a8134fa22871fefded012667cbf0e63829567982",
-    "@deepseek-ai/dsh-client-ui-settings-session-log/lib/client.js": "fe9cf2f75c5884219bfee5944658561d0160dd2245e8e75983833883e44034a3",
-    "@deepseek-ai/dsh-client-ui-settings-shell/lib/client.js": "7131ae56345d2f87eff7836de47b88cc5b090c018512c922b7f6e98c7690152b",
-    "@deepseek-ai/dsh-client-ui-settings-subagent/lib/client.js": "59526ec868a348bf3ebeed0c54f6b49a0eedcdc1a2bb4466bf3104054eb12450",
-    "@deepseek-ai/dsh-client-ui-settings-web-search/lib/client.js": "1d42b683573864152655c88d0b2f41dbe88e4c25e5d692e2bdc275dfc708f0df",
-    "@deepseek-ai/dsh-client-ui-shortcuts/lib/client.js": "de518648ca1c3078237e4734339dee5981c549dac299aa17810f6775df41c2d5",
-    "@deepseek-ai/dsh-client-ui-sidebar/lib/client.js": "0a0a32382391acee1a692cf7d2529a2669cc8cc23d4d83b446f6247c3c4562c4",
-    "@deepseek-ai/dsh-client-ui-sidebar-browser/lib/client.js": "f987b046b8cc7384f009bb1cf09f129faac619fc8562bada82ec64b499f6a7b2",
-    "@deepseek-ai/dsh-client-ui-sidebar-documentpreview/lib/client.js": "b36ad2a6504d35290b31eb504838e5fe2ea854687695671a05900cce21b88a0b",
-    "@deepseek-ai/dsh-client-ui-sidebar-files/lib/client.js": "d26ec6bd0bb26d408c4817a71099617895d78113b312732ca1b25c7dc2fc9c1f",
-    "@deepseek-ai/dsh-client-ui-sidebar-right/lib/client.js": "45868a5ae021b850f6ee6451b6d1168d3c72ddea81b3073b6cfbbebaf23c5257",
-    "@deepseek-ai/dsh-client-ui-sidebar-terminal/lib/client.js": "eacbd3ab5ab276e74bcc7ed11c503616722fb9644a48b633a879d628634fae97",
-    "@deepseek-ai/dsh-client-ui-skill/lib/client.js": "1a2a3541a2f8f9cabe20728f5e6f74ed2e927f35c7e106827fac05a3f2942212",
-    "@deepseek-ai/dsh-client-ui-subagent/lib/client.js": "2ed50b153fcd3333194f423851867172e2ce13fb8b2f8dd23082cca8d66b4b99",
-    "@deepseek-ai/dsh-client-ui-theme/lib/client.js": "78d79a77112e2a83cfa1a9015c06f4b980efb9e1b071bc0b2ba46525748c3592",
-    "@deepseek-ai/dsh-client-ui-trajectory/lib/client.js": "25e7a1b6530a222fed6fe6b07441bcf67c1685eb279ffe687a581074b4b81e61",
-    "@deepseek-ai/dsh-client-ui-user-questions/lib/client.js": "c9e5e7869f3fdd1ef6242d547f8a6120fd43e284fac41e93ac8312099855ffd8",
-    "@deepseek-ai/dsh-client-ui-workflow-run/lib/client.js": "b1704958ad7a1fbe7e6497913b0967e4b711d3dded3b52708896a73db59156e3",
-    "@deepseek-ai/dsh-client-ui-workspace/lib/client.js": "bb31f7870381f737b2cb45db4c7911a08a4949856bc86b648a10d3e85a3e9f89",
-    "@deepseek-ai/dsh-experimental-client-ui-agent-team/lib/client.js": "aa1450d2a58014adcc03a09d7309a371b98ddf35a0f2c1c5c9249fa5d1f1925b",
-    "@deepseek-ai/dsh-experimental-client-ui-cot-translation/lib/client.js": "00dd06cffd8fca5ea81beabf93d8cd86911c6c5a06081d120624cf6850da06db",
-    "@deepseek-ai/dsh-experimental-client-ui-forge/lib/client.js": "7e33bd8c0e8e3c19fb7678be418fd134bdb7266b078cd4d6e58c20cf67c19e06",
-    "@deepseek-ai/dsh-experimental-client-ui-stats/lib/client.js": "391be68248d2622a3a1b82e555d6e4c88aab77274965a1cf78b09dd0342897b1",
-    "@deepseek-ai/dsh-experimental-client-ui-voice-input/lib/client.js": "9bded950a75517924aca8daa36097c859dcebcb2e16246f7f4d6e0dbf52c0f26",
-    "@deepseek-ai/dsh-experimental-inspector/lib/client.page.js": "83c8614fc848b9f6012fa0ae373ac7ccceabcceedac08d691e83d0e417a03de4",
-    "@deepseek-ai/dsh-experimental-liveshare/lib/client.js": "46dcbe6afd3165a5f29561522be1bbeae22a5ed90ed49d1dd2b500b2232e591b",
-    "@deepseek-ai/dsh-experimental-session-inspector/lib/client.js": "4bcef718ba27d1bfe31c70c0d7009bce466ab022a30448e62591b8ad76087f38",
-    "@deepseek-ai/dsh-message-quotes/lib/client.js": "8f601d01acf8f577a137bc77b71c77e9cc9c036efd8e25e841ac87a1a352a672",
-    "@deepseek-ai/dsh-session-log-export/lib/client.js": "37f770b0700793d461fa9d06f6835cf78358dfac06ea84797b1a6bbf5e41ff1a"
+    "@deepseek-ai/dsh-client-locale/lib/client.js": "c0b7e8edd44cfbe9f10d17ade90aee2a2d36e1e4f2c2cbb86a79660494673196",
+    "@deepseek-ai/dsh-client-ui-account-notifications/lib/client.js": "3479064a6baa488cf4a80271d6d4aa3cb171e0ee8c538da490dd9a7c628a1fde",
+    "@deepseek-ai/dsh-client-ui-action-cards/lib/client.js": "1fa6240fbb37ee867285bf108400dfc28ae53e6ae48b23b139c955ebe53034a1",
+    "@deepseek-ai/dsh-client-ui-agent-preset/lib/client.js": "29af5e7ebb096e0befaedf77bd42523063c5cca5a328bf450f6c095dd2a6d3a3",
+    "@deepseek-ai/dsh-client-ui-agent-team/lib/client.js": "19e0b6b1f852fc25876e1337337b70e9cb4750e5dcf283543f617a98b88089c4",
+    "@deepseek-ai/dsh-client-ui-approval/lib/client.js": "9cd766f228ddaf7ed5831886c6bb96069644325db24058adf9c4d6a6cc6a3fec",
+    "@deepseek-ai/dsh-client-ui-chat/lib/client.js": "eef53e82b8cd584d2f0e543a4a93395f9d90df3bba1218891bd99d07d788de5c",
+    "@deepseek-ai/dsh-client-ui-commands/lib/client.js": "d93dff7d863183def956c9c8f83bfa8a8dd7f04b8efe1dccc5b681a11d3c3883",
+    "@deepseek-ai/dsh-client-ui-context-menu/lib/client.js": "b8219e60e9408982e8dcba2fd4739953fe182bc729c0f3515242baff97940f60",
+    "@deepseek-ai/dsh-client-ui-conversation/lib/client.js": "3d166eab312749bf8c528dd7d26d95340df75a27fec668b3510e4558fe9b343b",
+    "@deepseek-ai/dsh-client-ui-cordis/lib/client.js": "2de0e6f09d0e34b847ac3ae29cbbb59c657396c07cfcd8f373cbed580fbd052e",
+    "@deepseek-ai/dsh-client-ui-creation-recommendations/lib/client.js": "2fd1f8cb3be08044377ea6a9f2cbd21c56b9be655546e174b119b793cbbde95d",
+    "@deepseek-ai/dsh-client-ui-deliverables/lib/client.js": "aa7a30171ad0ba3b5c49df3d42e9bf6e5530a3b94c96d7a3c269dbc3278919c9",
+    "@deepseek-ai/dsh-client-ui-directory-picker-browse/lib/client.js": "e90178a60fe35c9982bf75e8aa7ac57061eabcf21928a65e6bf4043930a567a5",
+    "@deepseek-ai/dsh-client-ui-entry-customization/lib/client.js": "d7f65b5f629c3e3e2c16a1ee609fbb328a7d2613a6e1f03714e38eda41b53260",
+    "@deepseek-ai/dsh-client-ui-file-actions/lib/client.js": "07282fee83c22e8d87112799680afe73f1203ed5910730e89b22d83c4ea2d9d3",
+    "@deepseek-ai/dsh-client-ui-file-drag/lib/client.js": "3af3763f4785ad7912a5c90e1747b05bccff1081b9aa79258669dc099e186665",
+    "@deepseek-ai/dsh-client-ui-goal/lib/client.js": "32a9a830e7e2d6e601816b2d38163f9e6573f4a0607f97781979461e2b8f303d",
+    "@deepseek-ai/dsh-client-ui-input-trigger/lib/client.js": "8e70bf8380ac3940c6c78adea164d54b921f24ae8237be5f761a2a6ce461b296",
+    "@deepseek-ai/dsh-client-ui-jobs/lib/client.js": "d22bd331658d4f0fd850e66570e4403231df07a6d3ebebbea4b456910e366b85",
+    "@deepseek-ai/dsh-client-ui-layout/lib/client.js": "dfbc793b4147fd695fdb2a57c0982d73c668e57493f609945d5d04fb36fdd48e",
+    "@deepseek-ai/dsh-client-ui-message-feedback/lib/client.js": "f90aa64cff059d7f417a03020e4569d1de44698883d557d923fd22eb77896b20",
+    "@deepseek-ai/dsh-client-ui-model-selection/lib/client.js": "92284b7f585e8252e29b8079279ef8d8584a710592498cc9e1f85133e0d2da05",
+    "@deepseek-ai/dsh-client-ui-open-in-app/lib/client.js": "a864ce62391cef299c1003a419972be060996368e5f3e4438db64976b93b749b",
+    "@deepseek-ai/dsh-client-ui-permission-presets/lib/client.js": "977cfa1952a2f270d4f408358f9abce1140cc1a69226bfdf38aa318a93979baa",
+    "@deepseek-ai/dsh-client-ui-plan/lib/client.js": "3a80c0f9b1c79f84e74ca01737ce15f2e694baa73525af28a923e1ebdcef3bd1",
+    "@deepseek-ai/dsh-client-ui-plugin-manager/lib/client.js": "ec1e18683032730be2f97e76847fc1638e59f86df937af727e9b885991983064",
+    "@deepseek-ai/dsh-client-ui-plugin-market/lib/client.js": "f5c2c2e79495dfbb6a7b74a3adc51c7b59b652cbcc1b09d7f8e6023aad5aede7",
+    "@deepseek-ai/dsh-client-ui-plugin-recommendations/lib/client.js": "c2faec31762a5625f026c474bb0e32315f1354f4b79cf1fe71ace6cfb88d5f1e",
+    "@deepseek-ai/dsh-client-ui-reference/lib/client.js": "99bf7db5babf6a7ca517de59f13338afa2e4fac91be84d6f396e9a1f1317fee2",
+    "@deepseek-ai/dsh-client-ui-schedule/lib/client.js": "b8dda300c8f835d825c8cbc23e56d66ffb4167d9c072f30468897611a9f34379",
+    "@deepseek-ai/dsh-client-ui-secret-mask/lib/client.js": "fa0fcdce386c575df2eb75262dab32ab943b560f9dbfd2834592f066e537f9a2",
+    "@deepseek-ai/dsh-client-ui-settings-account/lib/client.js": "cca3d74cad33dba9947f94046bd91afb0de7d2e48b775a314dcb8a7776d21013",
+    "@deepseek-ai/dsh-client-ui-settings-agent-loop/lib/client.js": "28058c03ce09e23b1781b6a4b465f36ee54bbe1b1092b9184493709fae424dba",
+    "@deepseek-ai/dsh-client-ui-settings-general/lib/client.js": "8afa93d21c3c695eb0b3a33672eaa72042a4052e5084f79ab221b4ac82052a51",
+    "@deepseek-ai/dsh-client-ui-settings-models/lib/client.js": "74b45c32a08a6aa367be684bf89212e0a3b7a2c3de1cc95ccbfe82045533ae31",
+    "@deepseek-ai/dsh-client-ui-settings-plugin-inventory/lib/client.js": "37e5a7fa782425d0428f09792c7186b535415757c52fddcdb83a9ed75c29e9fe",
+    "@deepseek-ai/dsh-client-ui-settings-plugins/lib/client.js": "2cdf81c221ef81dbc1856f13c7b246222174ee3405b1d14e6dadcde8b5f5caea",
+    "@deepseek-ai/dsh-client-ui-settings-session-log/lib/client.js": "f9114ff5c3365d3143adf3838275a0b743f2c03bb4d1883c30c4844b9b9bf18c",
+    "@deepseek-ai/dsh-client-ui-settings-shell/lib/client.js": "1c3af2d234db3d42f6c6b1db42404351a2e7bf9944d0dc8d4aacf6f3b1a83abc",
+    "@deepseek-ai/dsh-client-ui-settings-subagent/lib/client.js": "a3801959cd4f58f4ac824aa1c49bc2fefcddf549f3e5dcc0167b1b81bb584426",
+    "@deepseek-ai/dsh-client-ui-settings-web-search/lib/client.js": "ec02a8103f81a027dff31623be04bdc130a33395f3e25cc993b2d43b567d3d15",
+    "@deepseek-ai/dsh-client-ui-shortcuts/lib/client.js": "111cb97f7e01d366375b1342ed1ed365fa15cd4d9e85c72011c2d6de89f0f29f",
+    "@deepseek-ai/dsh-client-ui-sidebar/lib/client.js": "4fa43eb1a1166a5cae250a9e77a8c5bae4dc08a19daeb9ac6704dbe1fd617061",
+    "@deepseek-ai/dsh-client-ui-sidebar-browser/lib/client.js": "fca9092797afc296d80ca13ab51555794c0a45b6785970e4e577d2395147f64e",
+    "@deepseek-ai/dsh-client-ui-sidebar-documentpreview/lib/client.js": "f4c84ba525e3593c3f9ad1fc19f821fce3ff381320f9e27746fc441d12ce25fd",
+    "@deepseek-ai/dsh-client-ui-sidebar-files/lib/client.js": "b33da4c36cfe673e4eb83b330da538a9d336c6189d9b1ce06364d739ebdfd453",
+    "@deepseek-ai/dsh-client-ui-sidebar-right/lib/client.js": "8d46bbd47ad345dd485c984b7d299d6d401797089548137ecf958e3dd1b007bc",
+    "@deepseek-ai/dsh-client-ui-sidebar-terminal/lib/client.js": "bd67f2bb0ccd39d28f8446f5c85f6d8278b46175e1b8fb87ac0c4dcfe3083b88",
+    "@deepseek-ai/dsh-client-ui-skill/lib/client.js": "c39fa0043b48c75c8dee140ce0051206759434a4053746b9cd63405b0b59abc9",
+    "@deepseek-ai/dsh-client-ui-subagent/lib/client.js": "2930a2c5636f84faea27c0a768d5451169ef9576b4e94d88671134eda81f89a4",
+    "@deepseek-ai/dsh-client-ui-theme/lib/client.js": "e67e24ce75c4048e83a4e885b08896d42bd9d22cebfb3ee37d778eaab3893a50",
+    "@deepseek-ai/dsh-client-ui-trajectory/lib/client.js": "4b9254a7e689b617b80477c0339468a5db00028a9d7c62adf7b0e9f6ed83538b",
+    "@deepseek-ai/dsh-client-ui-user-questions/lib/client.js": "596df090df5f06f4c572ea0a1a8b60a63c4bbd67b20fe3e633f61f8617cec758",
+    "@deepseek-ai/dsh-client-ui-workflow-run/lib/client.js": "37623ad63925f5dfba45c1d62cfdf0dfe4bda6e9344f6d2eb61f5e860c386c58",
+    "@deepseek-ai/dsh-client-ui-workspace/lib/client.js": "3ff4116dc91b7dc5cc57e7672e0d7935f992b339be3444a7a72992df218765ba",
+    "@deepseek-ai/dsh-cua/lib/client.js": "8ca08b6093129ff60a6e3ac460249271edd3ae1cc5e811be431fe1425b725e7c",
+    "@deepseek-ai/dsh-deepseek-chat-import/lib/client.js": "1f9f51b8d9899d6fbec3229dd1aa4f2536e134603d977c7d5bb95da1998fe1bb",
+    "@deepseek-ai/dsh-experimental-client-ui-cot-translation/lib/client.js": "01058840b345f97ea75663e5a13a65b0bb9032e26efd114e96e090736b8b731d",
+    "@deepseek-ai/dsh-experimental-client-ui-forge/lib/client.js": "639e252cf60037fbe0a48f236f5688504a7a12123761cd8ba60db2a5be1f578d",
+    "@deepseek-ai/dsh-experimental-client-ui-stats/lib/client.js": "62e40980785316a7fece8b2beb4acf40347043a4df08553ba75683173e510394",
+    "@deepseek-ai/dsh-experimental-client-ui-voice-input/lib/client.js": "f9c4a7149d52eef2df1f77358aa1b2fb430105e5a2ad91bc1e9d96af8acab399",
+    "@deepseek-ai/dsh-experimental-inspector/lib/client.page.js": "0b240936d17f1a569213e14c72e0fe3fd5817c5e2131e0ded0cfa5f797a86cb8",
+    "@deepseek-ai/dsh-experimental-liveshare/lib/client.js": "47acd0ffa52510e88d120c8233355f5ba1b4c0890dc9c76c6e8e045ad4cd1e1f",
+    "@deepseek-ai/dsh-experimental-session-inspector/lib/client.js": "0ad3c971102afba54e03878004a2a07ac0db2f0ccef52b4be1c3da3658d13fd3",
+    "@deepseek-ai/dsh-message-quotes/lib/client.js": "90c1d68821e00cd68864de085f42bc7ccb33cf8d7ab0c1f90581543405cbea9a",
+    "@deepseek-ai/dsh-session-log-export/lib/client.js": "90b490779c382d93b085ec7633963afbd3665dd9836b007860fd5d726940234c"
   },
   "namespaces": {
+    "account.notifications": {
+      "module": "@deepseek-ai/dsh-client-ui-account-notifications/lib/client.js",
+      "upstreamLocales": [
+        "de",
+        "es",
+        "fr",
+        "ja",
+        "pt",
+        "ru"
+      ]
+    },
     "actionCards": {
       "module": "@deepseek-ai/dsh-client-ui-action-cards/lib/client.js",
       "upstreamLocales": [
@@ -80,7 +94,7 @@
       ]
     },
     "agent-team": {
-      "module": "@deepseek-ai/dsh-experimental-client-ui-agent-team/lib/client.js",
+      "module": "@deepseek-ai/dsh-client-ui-agent-team/lib/client.js",
       "upstreamLocales": [
         "de",
         "es",
@@ -180,6 +194,28 @@
     },
     "creationRecommendations": {
       "module": "@deepseek-ai/dsh-client-ui-creation-recommendations/lib/client.js",
+      "upstreamLocales": [
+        "de",
+        "es",
+        "fr",
+        "ja",
+        "pt",
+        "ru"
+      ]
+    },
+    "cuaPermissions": {
+      "module": "@deepseek-ai/dsh-cua/lib/client.js",
+      "upstreamLocales": [
+        "de",
+        "es",
+        "fr",
+        "ja",
+        "pt",
+        "ru"
+      ]
+    },
+    "deepseekChatImport": {
+      "module": "@deepseek-ai/dsh-deepseek-chat-import/lib/client.js",
       "upstreamLocales": [
         "de",
         "es",
@@ -885,6 +921,13 @@
   },
   "messages": [
     {
+      "id": "account.notifications:close",
+      "namespace": "account.notifications",
+      "key": "close",
+      "zh": "关闭",
+      "en": "Close"
+    },
+    {
       "id": "actionCards:collapseBrief",
       "namespace": "actionCards",
       "key": "collapseBrief",
@@ -990,18 +1033,81 @@
       "en": "Blocked by dependencies"
     },
     {
-      "id": "agent-team:blockedBy",
+      "id": "agent-team:command.done",
       "namespace": "agent-team",
-      "key": "blockedBy",
-      "zh": "依赖",
-      "en": "Blocked by"
+      "key": "command.done",
+      "zh": "已完成",
+      "en": "Completed"
     },
     {
-      "id": "agent-team:current",
+      "id": "agent-team:command.failed",
       "namespace": "agent-team",
-      "key": "current",
-      "zh": "当前会话",
-      "en": "Current chat"
+      "key": "command.failed",
+      "zh": "执行失败",
+      "en": "Failed"
+    },
+    {
+      "id": "agent-team:command.failedReason",
+      "namespace": "agent-team",
+      "key": "command.failedReason",
+      "zh": "执行失败：{reason}",
+      "en": "Failed: {reason}"
+    },
+    {
+      "id": "agent-team:command.running",
+      "namespace": "agent-team",
+      "key": "command.running",
+      "zh": "执行中",
+      "en": "Running"
+    },
+    {
+      "id": "agent-team:command.title",
+      "namespace": "agent-team",
+      "key": "command.title",
+      "zh": "智能体团队协作",
+      "en": "Agent teamwork"
+    },
+    {
+      "id": "agent-team:disable.cancel",
+      "namespace": "agent-team",
+      "key": "disable.cancel",
+      "zh": "取消",
+      "en": "Cancel"
+    },
+    {
+      "id": "agent-team:disable.close",
+      "namespace": "agent-team",
+      "key": "disable.close",
+      "zh": "关闭",
+      "en": "Close"
+    },
+    {
+      "id": "agent-team:disable.confirm",
+      "namespace": "agent-team",
+      "key": "disable.confirm",
+      "zh": "确认停用",
+      "en": "Disable"
+    },
+    {
+      "id": "agent-team:disable.description",
+      "namespace": "agent-team",
+      "key": "disable.description",
+      "zh": "对话过程中停用智能体团队协作，将停止共享任务工具和团队协调指令。",
+      "en": "Disabling agent teamwork during a conversation stops the use of shared task tools and team coordination instructions."
+    },
+    {
+      "id": "agent-team:disable.title",
+      "namespace": "agent-team",
+      "key": "disable.title",
+      "zh": "确认停用智能体团队协作？",
+      "en": "Disable agent teamwork?"
+    },
+    {
+      "id": "agent-team:disable.warning",
+      "namespace": "agent-team",
+      "key": "disable.warning",
+      "zh": "停用后可能影响缓存复用、增加后续 token 用量与开销，并影响当前任务的协作效果。",
+      "en": "Disabling it may affect cache reuse, increase subsequent token usage and costs, and affect collaboration on the current task."
     },
     {
       "id": "agent-team:empty",
@@ -1014,78 +1120,71 @@
       "id": "agent-team:failure",
       "namespace": "agent-team",
       "key": "failure",
-      "zh": "团队持久记录无效：{message}",
-      "en": "Invalid persisted team record: {message}"
+      "zh": "任务记录无效：{message}",
+      "en": "Invalid persisted task record: {message}"
     },
     {
       "id": "agent-team:loading",
       "namespace": "agent-team",
       "key": "loading",
-      "zh": "正在加载团队…",
-      "en": "Loading team…"
+      "zh": "正在加载任务板…",
+      "en": "Loading task board…"
     },
     {
-      "id": "agent-team:memberStatus.failed",
+      "id": "agent-team:mode.description",
       "namespace": "agent-team",
-      "key": "memberStatus.failed",
-      "zh": "失败",
-      "en": "Failed"
+      "key": "mode.description",
+      "zh": "通过共享任务板协调多个智能体的分工与进度，复杂任务表现更佳，token 开销也相应更高。",
+      "en": "Coordinate work and progress across agents with a shared task board for better results on complex tasks, with correspondingly higher token costs."
     },
     {
-      "id": "agent-team:memberStatus.inactive",
+      "id": "agent-team:mode.failed",
       "namespace": "agent-team",
-      "key": "memberStatus.inactive",
-      "zh": "未运行",
-      "en": "Inactive"
+      "key": "mode.failed",
+      "zh": "无法确认智能体团队协作设置已保存，请重试：{message}",
+      "en": "Could not confirm the agent teamwork setting was saved. Try again: {message}"
     },
     {
-      "id": "agent-team:memberStatus.provisioning",
+      "id": "agent-team:mode.infoLabel",
       "namespace": "agent-team",
-      "key": "memberStatus.provisioning",
-      "zh": "准备中",
-      "en": "Provisioning"
+      "key": "mode.infoLabel",
+      "zh": "关于智能体团队协作",
+      "en": "About agent teamwork"
     },
     {
-      "id": "agent-team:memberStatus.running",
+      "id": "agent-team:mode.label",
       "namespace": "agent-team",
-      "key": "memberStatus.running",
-      "zh": "运行中",
-      "en": "Running"
-    },
-    {
-      "id": "agent-team:model",
-      "namespace": "agent-team",
-      "key": "model",
-      "zh": "模型",
-      "en": "Model"
-    },
-    {
-      "id": "agent-team:open",
-      "namespace": "agent-team",
-      "key": "open",
-      "zh": "打开成员会话",
-      "en": "Open member conversation"
+      "key": "mode.label",
+      "zh": "启用智能体团队协作",
+      "en": "Enable agent teamwork"
     },
     {
       "id": "agent-team:owner",
       "namespace": "agent-team",
       "key": "owner",
-      "zh": "Owner",
+      "zh": "负责人",
       "en": "Owner"
     },
     {
-      "id": "agent-team:ready",
+      "id": "agent-team:progress.active",
       "namespace": "agent-team",
-      "key": "ready",
-      "zh": "可开始",
-      "en": "Ready"
+      "key": "progress.active",
+      "zh": "{count} 进行中",
+      "en": "{count} in progress"
     },
     {
-      "id": "agent-team:roster",
+      "id": "agent-team:progress.completed",
       "namespace": "agent-team",
-      "key": "roster",
-      "zh": "成员",
-      "en": "Members"
+      "key": "progress.completed",
+      "zh": "{count} 已完成",
+      "en": "{count} completed"
+    },
+    {
+      "id": "agent-team:progress.pending",
+      "namespace": "agent-team",
+      "key": "progress.pending",
+      "zh": "{count} 待处理",
+      "en": "{count} pending"
     },
     {
       "id": "agent-team:status.completed",
@@ -1109,20 +1208,6 @@
       "en": "Pending"
     },
     {
-      "id": "agent-team:task.collapse",
-      "namespace": "agent-team",
-      "key": "task.collapse",
-      "zh": "收起",
-      "en": "Show less"
-    },
-    {
-      "id": "agent-team:task.expand",
-      "namespace": "agent-team",
-      "key": "task.expand",
-      "zh": "展开",
-      "en": "Show more"
-    },
-    {
       "id": "agent-team:tasks",
       "namespace": "agent-team",
       "key": "tasks",
@@ -1133,15 +1218,15 @@
       "id": "agent-team:trigger",
       "namespace": "agent-team",
       "key": "trigger",
-      "zh": "智能体团队",
-      "en": "Agent team"
+      "zh": "任务板",
+      "en": "Task board"
     },
     {
       "id": "agent-team:unavailable",
       "namespace": "agent-team",
       "key": "unavailable",
-      "zh": "Team 暂不可用",
-      "en": "Team is unavailable"
+      "zh": "任务板暂不可用",
+      "en": "Task board is unavailable"
     },
     {
       "id": "agent-team:unowned",
@@ -1149,13 +1234,6 @@
       "key": "unowned",
       "zh": "未分配",
       "en": "Unowned"
-    },
-    {
-      "id": "agent-team:writeScopes",
-      "namespace": "agent-team",
-      "key": "writeScopes",
-      "zh": "写入范围",
-      "en": "Write scopes"
     },
     {
       "id": "approval:allow",
@@ -1221,6 +1299,13 @@
       "en": "Deep diving for {duration} ···"
     },
     {
+      "id": "chat:chat.historyStart",
+      "namespace": "chat",
+      "key": "chat.historyStart",
+      "zh": "已到会话开头",
+      "en": "Start of conversation"
+    },
+    {
       "id": "chat:chat.loadError",
       "namespace": "chat",
       "key": "chat.loadError",
@@ -1240,6 +1325,27 @@
       "key": "chat.loadingHistory",
       "zh": "载入历史…",
       "en": "Loading history…"
+    },
+    {
+      "id": "chat:chat.loadingOlder",
+      "namespace": "chat",
+      "key": "chat.loadingOlder",
+      "zh": "正在加载",
+      "en": "Loading earlier"
+    },
+    {
+      "id": "chat:chat.processingOlder",
+      "namespace": "chat",
+      "key": "chat.processingOlder",
+      "zh": "正在处理",
+      "en": "Processing"
+    },
+    {
+      "id": "chat:chat.retryOlder",
+      "namespace": "chat",
+      "key": "chat.retryOlder",
+      "zh": "重新加载",
+      "en": "Retry loading"
     },
     {
       "id": "chat:chat.toBottom",
@@ -1557,6 +1663,13 @@
       "en": "Session recall"
     },
     {
+      "id": "chat:message.continuation.requested",
+      "namespace": "chat",
+      "key": "message.continuation.requested",
+      "zh": "已请求继续生成",
+      "en": "Requested to continue generation"
+    },
+    {
       "id": "chat:message.extraBlock",
       "namespace": "chat",
       "key": "message.extraBlock",
@@ -1709,6 +1822,13 @@
       "key": "message.stepProcess.done.commands",
       "zh": "执行了命令",
       "en": "Ran commands"
+    },
+    {
+      "id": "chat:message.stepProcess.done.context",
+      "namespace": "chat",
+      "key": "message.stepProcess.done.context",
+      "zh": "已注入上下文",
+      "en": "Injected context"
     },
     {
       "id": "chat:message.stepProcess.done.edit",
@@ -2150,6 +2270,48 @@
       "key": "message.trigger.subagent",
       "zh": "子任务状态更新",
       "en": "Subtask status updated"
+    },
+    {
+      "id": "chat:message.trigger.subagent.aborted",
+      "namespace": "chat",
+      "key": "message.trigger.subagent.aborted",
+      "zh": "子智能体任务已停止",
+      "en": "Subagent run stopped"
+    },
+    {
+      "id": "chat:message.trigger.subagent.completed",
+      "namespace": "chat",
+      "key": "message.trigger.subagent.completed",
+      "zh": "子智能体已完成任务",
+      "en": "Subagent run completed"
+    },
+    {
+      "id": "chat:message.trigger.subagent.error",
+      "namespace": "chat",
+      "key": "message.trigger.subagent.error",
+      "zh": "子智能体执行失败",
+      "en": "Subagent run failed"
+    },
+    {
+      "id": "chat:message.trigger.subagent.maxTokens",
+      "namespace": "chat",
+      "key": "message.trigger.subagent.maxTokens",
+      "zh": "子智能体已达 token 上限",
+      "en": "Subagent reached the token limit"
+    },
+    {
+      "id": "chat:message.trigger.subagent.refusal",
+      "namespace": "chat",
+      "key": "message.trigger.subagent.refusal",
+      "zh": "子智能体拒绝执行",
+      "en": "Subagent declined the task"
+    },
+    {
+      "id": "chat:message.trigger.subagent.unknown",
+      "namespace": "chat",
+      "key": "message.trigger.subagent.unknown",
+      "zh": "子智能体异常结束",
+      "en": "Subagent run ended unexpectedly"
     },
     {
       "id": "chat:message.trigger.team",
@@ -3055,6 +3217,13 @@
       "en": "Default workspace"
     },
     {
+      "id": "contextMenu:back",
+      "namespace": "contextMenu",
+      "key": "back",
+      "zh": "返回",
+      "en": "Back"
+    },
+    {
       "id": "contextMenu:failed",
       "namespace": "contextMenu",
       "key": "failed",
@@ -3328,6 +3497,20 @@
       "en": "Agent ID"
     },
     {
+      "id": "conversation:detail.field.agentDescription",
+      "namespace": "conversation",
+      "key": "detail.field.agentDescription",
+      "zh": "智能体任务描述",
+      "en": "Agent task description"
+    },
+    {
+      "id": "conversation:detail.field.agentName",
+      "namespace": "conversation",
+      "key": "detail.field.agentName",
+      "zh": "智能体名称",
+      "en": "Agent name"
+    },
+    {
       "id": "conversation:detail.field.agents",
       "namespace": "conversation",
       "key": "detail.field.agents",
@@ -3389,13 +3572,6 @@
       "key": "detail.field.dependencies",
       "zh": "前置任务",
       "en": "Dependencies"
-    },
-    {
-      "id": "conversation:detail.field.depth",
-      "namespace": "conversation",
-      "key": "detail.field.depth",
-      "zh": "层级",
-      "en": "Depth"
     },
     {
       "id": "conversation:detail.field.diagnostics",
@@ -4063,6 +4239,13 @@
       "en": "Completed"
     },
     {
+      "id": "conversation:detail.status.corrupt",
+      "namespace": "conversation",
+      "key": "detail.status.corrupt",
+      "zh": "已损坏",
+      "en": "Corrupt"
+    },
+    {
       "id": "conversation:detail.status.deleted",
       "namespace": "conversation",
       "key": "detail.status.deleted",
@@ -4131,6 +4314,20 @@
       "key": "detail.status.running",
       "zh": "运行中",
       "en": "Running"
+    },
+    {
+      "id": "conversation:detail.status.unavailable",
+      "namespace": "conversation",
+      "key": "detail.status.unavailable",
+      "zh": "不可用",
+      "en": "Unavailable"
+    },
+    {
+      "id": "conversation:detail.status.unsupported",
+      "namespace": "conversation",
+      "key": "detail.status.unsupported",
+      "zh": "不支持",
+      "en": "Unsupported"
     },
     {
       "id": "conversation:detail.tasks.count",
@@ -4231,11 +4428,11 @@
       "en": "Source events"
     },
     {
-      "id": "conversation:detail.wait.changed",
+      "id": "conversation:detail.wait.ended",
       "namespace": "conversation",
-      "key": "detail.wait.changed",
-      "zh": "检测到变化",
-      "en": "Change detected"
+      "key": "detail.wait.ended",
+      "zh": "等待已结束",
+      "en": "Wait ended"
     },
     {
       "id": "conversation:detail.wait.noProgress",
@@ -4248,15 +4445,15 @@
       "id": "conversation:detail.wait.timeout",
       "namespace": "conversation",
       "key": "detail.wait.timeout",
-      "zh": "等待超时",
+      "zh": "等待已超时",
       "en": "Wait timed out"
     },
     {
       "id": "conversation:detail.wait.title",
       "namespace": "conversation",
       "key": "detail.wait.title",
-      "zh": "子智能体状态",
-      "en": "Subagent activity"
+      "zh": "等待结果",
+      "en": "Wait result"
     },
     {
       "id": "conversation:detail.weekday.1",
@@ -4425,6 +4622,13 @@
       "key": "file.uploading",
       "zh": "上传中…",
       "en": "Uploading…"
+    },
+    {
+      "id": "conversation:header.more",
+      "namespace": "conversation",
+      "key": "header.more",
+      "zh": "更多操作",
+      "en": "More actions"
     },
     {
       "id": "conversation:hero.chooseWorkspace",
@@ -4602,6 +4806,13 @@
       "en": "Add files or run commands"
     },
     {
+      "id": "conversation:input.continue",
+      "namespace": "conversation",
+      "key": "input.continue",
+      "zh": "继续生成",
+      "en": "Continue generating"
+    },
+    {
       "id": "conversation:input.file",
       "namespace": "conversation",
       "key": "input.file",
@@ -4656,13 +4867,6 @@
       "key": "placeholder.hero",
       "zh": "描述你想要构建的内容, / 调用指令, @ 文件或对话",
       "en": "Describe what you want to build, / commands, @ files or sessions"
-    },
-    {
-      "id": "conversation:placeholder.parentOffline",
-      "namespace": "conversation",
-      "key": "placeholder.parentOffline",
-      "zh": "父会话已离线，无法继续发送；仍可停止当前运行",
-      "en": "Parent session offline; sending is unavailable but you can still stop the run"
     },
     {
       "id": "conversation:placeholder.plan",
@@ -5291,8 +5495,8 @@
       "id": "conversation:tool.title.applyPatch",
       "namespace": "conversation",
       "key": "tool.title.applyPatch",
-      "zh": "应用补丁",
-      "en": "Apply patch"
+      "zh": "编辑",
+      "en": "Edit"
     },
     {
       "id": "conversation:tool.title.bash",
@@ -5505,6 +5709,27 @@
       "en": "Query code symbols"
     },
     {
+      "id": "conversation:tool.title.officeConvert",
+      "namespace": "conversation",
+      "key": "tool.title.officeConvert",
+      "zh": "转换文档",
+      "en": "Convert document"
+    },
+    {
+      "id": "conversation:tool.title.officeRecalculate",
+      "namespace": "conversation",
+      "key": "tool.title.officeRecalculate",
+      "zh": "重算工作簿",
+      "en": "Recalculate workbook"
+    },
+    {
+      "id": "conversation:tool.title.officeRender",
+      "namespace": "conversation",
+      "key": "tool.title.officeRender",
+      "zh": "渲染文档",
+      "en": "Render document"
+    },
+    {
       "id": "conversation:tool.title.openTerminal",
       "namespace": "conversation",
       "key": "tool.title.openTerminal",
@@ -5638,6 +5863,13 @@
       "en": "Create subagent"
     },
     {
+      "id": "conversation:tool.title.subagentFork",
+      "namespace": "conversation",
+      "key": "tool.title.subagentFork",
+      "zh": "派生子智能体",
+      "en": "Fork subagent"
+    },
+    {
       "id": "conversation:tool.title.traceEvent",
       "namespace": "conversation",
       "key": "tool.title.traceEvent",
@@ -5683,8 +5915,8 @@
       "id": "conversation:tool.title.waitAgent",
       "namespace": "conversation",
       "key": "tool.title.waitAgent",
-      "zh": "等待子智能体",
-      "en": "Wait for subagent"
+      "zh": "等待消息…",
+      "en": "Waiting for messages…"
     },
     {
       "id": "conversation:tool.title.webFetch",
@@ -6520,13 +6752,6 @@
       "en": "Choose a location or describe it in up to 1,000 characters."
     },
     {
-      "id": "creationRecommendations:keep",
-      "namespace": "creationRecommendations",
-      "key": "keep",
-      "zh": "保留",
-      "en": "Keep"
-    },
-    {
       "id": "creationRecommendations:kept",
       "namespace": "creationRecommendations",
       "key": "kept",
@@ -6618,13 +6843,6 @@
       "en": "Create again"
     },
     {
-      "id": "creationRecommendations:scope",
-      "namespace": "creationRecommendations",
-      "key": "scope",
-      "zh": "可随时移除",
-      "en": "You can remove it at any time"
-    },
-    {
       "id": "creationRecommendations:sidebar-left",
       "namespace": "creationRecommendations",
       "key": "sidebar-left",
@@ -6707,6 +6925,685 @@
       "key": "unknown",
       "zh": "这条推荐已不可用",
       "en": "This recommendation is no longer available."
+    },
+    {
+      "id": "cuaPermissions:accessibility",
+      "namespace": "cuaPermissions",
+      "key": "accessibility",
+      "zh": "辅助功能",
+      "en": "Accessibility"
+    },
+    {
+      "id": "cuaPermissions:accessibilityPermission",
+      "namespace": "cuaPermissions",
+      "key": "accessibilityPermission",
+      "zh": "在系统设置中允许 {application} 读取界面、点击和输入。",
+      "en": "In System Settings, allow {application} to read interface controls, click, and type."
+    },
+    {
+      "id": "cuaPermissions:accessibilityUse",
+      "namespace": "cuaPermissions",
+      "key": "accessibilityUse",
+      "zh": "读取界面控件、点击和输入文字",
+      "en": "Read interface controls, click, and type."
+    },
+    {
+      "id": "cuaPermissions:allowedApps",
+      "namespace": "cuaPermissions",
+      "key": "allowedApps",
+      "zh": "始终允许的应用",
+      "en": "Always-allowed applications"
+    },
+    {
+      "id": "cuaPermissions:applicationInteraction",
+      "namespace": "cuaPermissions",
+      "key": "applicationInteraction",
+      "zh": "应用交互",
+      "en": "Application interaction"
+    },
+    {
+      "id": "cuaPermissions:applicationsFailed",
+      "namespace": "cuaPermissions",
+      "key": "applicationsFailed",
+      "zh": "无法读取应用授权：{message}",
+      "en": "Could not load application access: {message}"
+    },
+    {
+      "id": "cuaPermissions:applicationsTitle",
+      "namespace": "cuaPermissions",
+      "key": "applicationsTitle",
+      "zh": "管理 Computer Use 可访问的应用",
+      "en": "Manage applications computer use can access"
+    },
+    {
+      "id": "cuaPermissions:approvalRiskNotice",
+      "namespace": "cuaPermissions",
+      "key": "approvalRiskNotice",
+      "zh": "智能体只能访问你已授权的应用，并可在后台读取应用内容、操作应用。\n\n网络游戏、即时通讯等应用可能对自动化操作有所限制。违反相关规则可能导致你在该应用中的账号被暂停使用或封禁。\n\n请自行承担使用风险。如需停止自动化操作，可随时点击 DeepSeek Harness 中的停止按钮。",
+      "en": "The agent can access only apps you approve, and can read and control them in the background.\n\nOnline games, messaging apps, and other apps may restrict automation. Violating their rules could result in your account with that app being suspended or banned.\n\nProceed at your own risk. To stop automated control at any time, press Stop in DeepSeek Harness."
+    },
+    {
+      "id": "cuaPermissions:approvalRiskTitle",
+      "namespace": "cuaPermissions",
+      "key": "approvalRiskTitle",
+      "zh": "Computer Use 风险提示",
+      "en": "Computer use risks"
+    },
+    {
+      "id": "cuaPermissions:approvalRisks",
+      "namespace": "cuaPermissions",
+      "key": "approvalRisks",
+      "zh": "风险提示",
+      "en": "Risks"
+    },
+    {
+      "id": "cuaPermissions:available",
+      "namespace": "cuaPermissions",
+      "key": "available",
+      "zh": "可用",
+      "en": "Available"
+    },
+    {
+      "id": "cuaPermissions:blockedApps",
+      "namespace": "cuaPermissions",
+      "key": "blockedApps",
+      "zh": "不允许访问的应用",
+      "en": "Applications not allowed"
+    },
+    {
+      "id": "cuaPermissions:close",
+      "namespace": "cuaPermissions",
+      "key": "close",
+      "zh": "关闭",
+      "en": "Close"
+    },
+    {
+      "id": "cuaPermissions:defaultBody",
+      "namespace": "cuaPermissions",
+      "key": "defaultBody",
+      "zh": "Computer Use 仅在 PTC 模式中可用。",
+      "en": "Computer use is available only in PTC mode."
+    },
+    {
+      "id": "cuaPermissions:defaultConfirm",
+      "namespace": "cuaPermissions",
+      "key": "defaultConfirm",
+      "zh": "设为 PTC",
+      "en": "Set to PTC"
+    },
+    {
+      "id": "cuaPermissions:defaultFailed",
+      "namespace": "cuaPermissions",
+      "key": "defaultFailed",
+      "zh": "无法切换默认模式：{message}",
+      "en": "Could not change the default mode: {message}"
+    },
+    {
+      "id": "cuaPermissions:defaultNotSaved",
+      "namespace": "cuaPermissions",
+      "key": "defaultNotSaved",
+      "zh": "默认模式未保存，请重试",
+      "en": "The default mode was not saved. Try again."
+    },
+    {
+      "id": "cuaPermissions:defaultReadOnly",
+      "namespace": "cuaPermissions",
+      "key": "defaultReadOnly",
+      "zh": "默认模式设置为只读",
+      "en": "Default-mode settings are read-only."
+    },
+    {
+      "id": "cuaPermissions:defaultSet",
+      "namespace": "cuaPermissions",
+      "key": "defaultSet",
+      "zh": "已设为 PTC",
+      "en": "PTC is the default"
+    },
+    {
+      "id": "cuaPermissions:defaultTitle",
+      "namespace": "cuaPermissions",
+      "key": "defaultTitle",
+      "zh": "新会话默认模式",
+      "en": "Default mode for new sessions"
+    },
+    {
+      "id": "cuaPermissions:defaultUnavailable",
+      "namespace": "cuaPermissions",
+      "key": "defaultUnavailable",
+      "zh": "无法读取默认模式，请在设置中检查",
+      "en": "Could not read the default mode. Check it in Settings."
+    },
+    {
+      "id": "cuaPermissions:elevated",
+      "namespace": "cuaPermissions",
+      "key": "elevated",
+      "zh": "本机组件正以管理员权限运行。",
+      "en": "The native component is running with administrator privileges."
+    },
+    {
+      "id": "cuaPermissions:failed",
+      "namespace": "cuaPermissions",
+      "key": "failed",
+      "zh": "无法更新权限：{message}",
+      "en": "Could not update permissions: {message}"
+    },
+    {
+      "id": "cuaPermissions:granted",
+      "namespace": "cuaPermissions",
+      "key": "granted",
+      "zh": "已允许",
+      "en": "Allowed"
+    },
+    {
+      "id": "cuaPermissions:iconsFailed",
+      "namespace": "cuaPermissions",
+      "key": "iconsFailed",
+      "zh": "无法读取应用图标：{message}",
+      "en": "Could not load application icons: {message}"
+    },
+    {
+      "id": "cuaPermissions:later",
+      "namespace": "cuaPermissions",
+      "key": "later",
+      "zh": "稍后",
+      "en": "Later"
+    },
+    {
+      "id": "cuaPermissions:locked",
+      "namespace": "cuaPermissions",
+      "key": "locked",
+      "zh": "已锁定或断开连接",
+      "en": "Locked or disconnected"
+    },
+    {
+      "id": "cuaPermissions:noApps",
+      "namespace": "cuaPermissions",
+      "key": "noApps",
+      "zh": "暂无始终允许或不允许访问的应用。",
+      "en": "No always-allowed or blocked applications."
+    },
+    {
+      "id": "cuaPermissions:openSetup",
+      "namespace": "cuaPermissions",
+      "key": "openSetup",
+      "zh": "前往设置",
+      "en": "Open settings"
+    },
+    {
+      "id": "cuaPermissions:opened",
+      "namespace": "cuaPermissions",
+      "key": "opened",
+      "zh": "已打开系统设置",
+      "en": "System Settings opened"
+    },
+    {
+      "id": "cuaPermissions:permissionHint",
+      "namespace": "cuaPermissions",
+      "key": "permissionHint",
+      "zh": "在系统设置中管理辅助功能和屏幕录制权限",
+      "en": "Manage Accessibility and Screen Recording permissions in System Settings."
+    },
+    {
+      "id": "cuaPermissions:persistentBody",
+      "namespace": "cuaPermissions",
+      "key": "persistentBody",
+      "zh": "跨工具调用保留变量和应用对象。切换会重启 PTC 执行器。",
+      "en": "Keep variables and application objects across tool calls. Switching restarts the PTC runtime."
+    },
+    {
+      "id": "cuaPermissions:persistentConfirm",
+      "namespace": "cuaPermissions",
+      "key": "persistentConfirm",
+      "zh": "设为持久化",
+      "en": "Use persistent mode"
+    },
+    {
+      "id": "cuaPermissions:persistentFailed",
+      "namespace": "cuaPermissions",
+      "key": "persistentFailed",
+      "zh": "无法切换 PTC 执行方式：{message}",
+      "en": "Could not change the PTC execution mode: {message}"
+    },
+    {
+      "id": "cuaPermissions:persistentNotSaved",
+      "namespace": "cuaPermissions",
+      "key": "persistentNotSaved",
+      "zh": "PTC 执行方式未保存，请重试",
+      "en": "The PTC execution mode was not saved. Try again."
+    },
+    {
+      "id": "cuaPermissions:persistentReadOnly",
+      "namespace": "cuaPermissions",
+      "key": "persistentReadOnly",
+      "zh": "PTC 执行方式设置为只读",
+      "en": "PTC execution settings are read-only."
+    },
+    {
+      "id": "cuaPermissions:persistentSet",
+      "namespace": "cuaPermissions",
+      "key": "persistentSet",
+      "zh": "已设为持久化",
+      "en": "Persistent mode enabled"
+    },
+    {
+      "id": "cuaPermissions:persistentTitle",
+      "namespace": "cuaPermissions",
+      "key": "persistentTitle",
+      "zh": "PTC 执行方式",
+      "en": "PTC execution mode"
+    },
+    {
+      "id": "cuaPermissions:persistentUnavailable",
+      "namespace": "cuaPermissions",
+      "key": "persistentUnavailable",
+      "zh": "无法读取 PTC 执行方式，请在设置中检查",
+      "en": "Could not read the PTC execution mode. Check it in Settings."
+    },
+    {
+      "id": "cuaPermissions:queryFailed",
+      "namespace": "cuaPermissions",
+      "key": "queryFailed",
+      "zh": "无法检测权限：{message}",
+      "en": "Could not check permissions: {message}"
+    },
+    {
+      "id": "cuaPermissions:request",
+      "namespace": "cuaPermissions",
+      "key": "request",
+      "zh": "申请权限",
+      "en": "Request permission"
+    },
+    {
+      "id": "cuaPermissions:requested",
+      "namespace": "cuaPermissions",
+      "key": "requested",
+      "zh": "请按系统设置底部的引导完成授权",
+      "en": "Follow the guide at the bottom of System Settings"
+    },
+    {
+      "id": "cuaPermissions:retry",
+      "namespace": "cuaPermissions",
+      "key": "retry",
+      "zh": "重试",
+      "en": "Retry"
+    },
+    {
+      "id": "cuaPermissions:retryAllowed",
+      "namespace": "cuaPermissions",
+      "key": "retryAllowed",
+      "zh": "下次选择此应用时将重新询问，当前尚未授权",
+      "en": "The next application selection will ask again; access has not been granted"
+    },
+    {
+      "id": "cuaPermissions:retryApproval",
+      "namespace": "cuaPermissions",
+      "key": "retryApproval",
+      "zh": "允许再次询问",
+      "en": "Allow asking again"
+    },
+    {
+      "id": "cuaPermissions:revoke",
+      "namespace": "cuaPermissions",
+      "key": "revoke",
+      "zh": "撤销",
+      "en": "Revoke"
+    },
+    {
+      "id": "cuaPermissions:revoked",
+      "namespace": "cuaPermissions",
+      "key": "revoked",
+      "zh": "已撤销应用访问权限",
+      "en": "Application access revoked"
+    },
+    {
+      "id": "cuaPermissions:screenRecording",
+      "namespace": "cuaPermissions",
+      "key": "screenRecording",
+      "zh": "屏幕录制",
+      "en": "Screen Recording"
+    },
+    {
+      "id": "cuaPermissions:screenRecordingPermission",
+      "namespace": "cuaPermissions",
+      "key": "screenRecordingPermission",
+      "zh": "在系统设置中允许 {application} 截取应用窗口。",
+      "en": "In System Settings, allow {application} to capture application windows."
+    },
+    {
+      "id": "cuaPermissions:screenRecordingUse",
+      "namespace": "cuaPermissions",
+      "key": "screenRecordingUse",
+      "zh": "截取所选应用的窗口",
+      "en": "Capture the selected application window."
+    },
+    {
+      "id": "cuaPermissions:settings",
+      "namespace": "cuaPermissions",
+      "key": "settings",
+      "zh": "打开系统设置",
+      "en": "Open System Settings"
+    },
+    {
+      "id": "cuaPermissions:setupBody",
+      "namespace": "cuaPermissions",
+      "key": "setupBody",
+      "zh": "Computer Use 插件已开启。使用前请切换到 PTC 模式，并授予辅助功能和屏幕录制权限。请前往插件详情页完成设置。",
+      "en": "computer use is enabled. Before using it, switch to PTC mode and grant Accessibility and Screen Recording permissions. Open the plugin details to complete setup."
+    },
+    {
+      "id": "cuaPermissions:setupQueryFailed",
+      "namespace": "cuaPermissions",
+      "key": "setupQueryFailed",
+      "zh": "Computer Use 插件已开启，但暂时无法检测系统权限。请前往插件详情页查看原因并重试。",
+      "en": "computer use is enabled, but system permissions could not be checked. Open the plugin details to see the error and retry."
+    },
+    {
+      "id": "cuaPermissions:setupTitle",
+      "namespace": "cuaPermissions",
+      "key": "setupTitle",
+      "zh": "使用 Computer Use 前需要设置",
+      "en": "Set up computer use before use"
+    },
+    {
+      "id": "cuaPermissions:standardPrivileges",
+      "namespace": "cuaPermissions",
+      "key": "standardPrivileges",
+      "zh": "本机组件正以普通用户权限运行。",
+      "en": "The native component is running with standard user privileges."
+    },
+    {
+      "id": "cuaPermissions:title",
+      "namespace": "cuaPermissions",
+      "key": "title",
+      "zh": "给 Computer Use 授权",
+      "en": "Authorize computer use"
+    },
+    {
+      "id": "cuaPermissions:unavailable",
+      "namespace": "cuaPermissions",
+      "key": "unavailable",
+      "zh": "不可用",
+      "en": "Unavailable"
+    },
+    {
+      "id": "cuaPermissions:unknown",
+      "namespace": "cuaPermissions",
+      "key": "unknown",
+      "zh": "未确认",
+      "en": "Unknown"
+    },
+    {
+      "id": "cuaPermissions:windowsCapture",
+      "namespace": "cuaPermissions",
+      "key": "windowsCapture",
+      "zh": "窗口截图",
+      "en": "Window capture"
+    },
+    {
+      "id": "cuaPermissions:windowsCaptureUnavailable",
+      "namespace": "cuaPermissions",
+      "key": "windowsCaptureUnavailable",
+      "zh": "当前 Windows 会话不支持窗口截图。请检查 Windows 版本和显卡驱动，然后重新检测。",
+      "en": "This Windows session does not support window capture. Check the Windows version and graphics driver, then check again."
+    },
+    {
+      "id": "cuaPermissions:windowsDesktop",
+      "namespace": "cuaPermissions",
+      "key": "windowsDesktop",
+      "zh": "交互桌面",
+      "en": "Interactive desktop"
+    },
+    {
+      "id": "cuaPermissions:windowsDesktopUse",
+      "namespace": "cuaPermissions",
+      "key": "windowsDesktopUse",
+      "zh": "观察和输入需要已解锁的桌面。",
+      "en": "An unlocked desktop is required for observation and input."
+    },
+    {
+      "id": "cuaPermissions:windowsInstructions",
+      "namespace": "cuaPermissions",
+      "key": "windowsInstructions",
+      "zh": "请保持 Windows 桌面解锁。部分输入需要将目标应用切到前台，运行权限更高的应用可能拒绝访问。",
+      "en": "Keep the Windows desktop unlocked. Some input needs the target application in front. Applications running with higher privileges can refuse access."
+    },
+    {
+      "id": "cuaPermissions:windowsSessionUnknown",
+      "namespace": "cuaPermissions",
+      "key": "windowsSessionUnknown",
+      "zh": "尚未确认可交互的 Windows 桌面。请在已登录的桌面会话中运行 DSH，然后重新检测。",
+      "en": "No interactive Windows desktop was verified. Run DSH in a signed-in desktop session, then check again."
+    },
+    {
+      "id": "cuaPermissions:windowsSetupBody",
+      "namespace": "cuaPermissions",
+      "key": "windowsSetupBody",
+      "zh": "请解锁 Windows 桌面，然后重新检测。DSH 会在访问每个应用前询问授权。",
+      "en": "Unlock the Windows desktop, then check again. DSH asks before accessing each application."
+    },
+    {
+      "id": "cuaPermissions:windowsSetupTitle",
+      "namespace": "cuaPermissions",
+      "key": "windowsSetupTitle",
+      "zh": "检查 Windows 桌面访问状态",
+      "en": "Check Windows desktop access"
+    },
+    {
+      "id": "deepseekChatImport:action.label",
+      "namespace": "deepseekChatImport",
+      "key": "action.label",
+      "zh": "导入 DeepSeek 会话",
+      "en": "Import DeepSeek chats"
+    },
+    {
+      "id": "deepseekChatImport:dialog.cancel",
+      "namespace": "deepseekChatImport",
+      "key": "dialog.cancel",
+      "zh": "取消",
+      "en": "Cancel"
+    },
+    {
+      "id": "deepseekChatImport:dialog.changeFile",
+      "namespace": "deepseekChatImport",
+      "key": "dialog.changeFile",
+      "zh": "重新选择",
+      "en": "Change"
+    },
+    {
+      "id": "deepseekChatImport:dialog.chooseFile",
+      "namespace": "deepseekChatImport",
+      "key": "dialog.chooseFile",
+      "zh": "选择文件…",
+      "en": "Choose file…"
+    },
+    {
+      "id": "deepseekChatImport:dialog.chooseWorkspace",
+      "namespace": "deepseekChatImport",
+      "key": "dialog.chooseWorkspace",
+      "zh": "选择工作区",
+      "en": "Choose workspace"
+    },
+    {
+      "id": "deepseekChatImport:dialog.close",
+      "namespace": "deepseekChatImport",
+      "key": "dialog.close",
+      "zh": "关闭",
+      "en": "Close"
+    },
+    {
+      "id": "deepseekChatImport:dialog.description",
+      "namespace": "deepseekChatImport",
+      "key": "dialog.description",
+      "zh": "选择从 DeepSeek 官网导出的 ZIP 文件（deepseek_data-*.zip），以及接收这些会话的工作区。",
+      "en": "Choose the ZIP file exported from the DeepSeek website (deepseek_data-*.zip) and the workspace that receives the sessions."
+    },
+    {
+      "id": "deepseekChatImport:dialog.done",
+      "namespace": "deepseekChatImport",
+      "key": "dialog.done",
+      "zh": "完成",
+      "en": "Done"
+    },
+    {
+      "id": "deepseekChatImport:dialog.file",
+      "namespace": "deepseekChatImport",
+      "key": "dialog.file",
+      "zh": "导出文件",
+      "en": "Export file"
+    },
+    {
+      "id": "deepseekChatImport:dialog.import",
+      "namespace": "deepseekChatImport",
+      "key": "dialog.import",
+      "zh": "导入",
+      "en": "Import"
+    },
+    {
+      "id": "deepseekChatImport:dialog.importing",
+      "namespace": "deepseekChatImport",
+      "key": "dialog.importing",
+      "zh": "正在导入…",
+      "en": "Importing…"
+    },
+    {
+      "id": "deepseekChatImport:dialog.importingCount",
+      "namespace": "deepseekChatImport",
+      "key": "dialog.importingCount",
+      "zh": "正在导入 {done}/{total}",
+      "en": "Importing {done}/{total}"
+    },
+    {
+      "id": "deepseekChatImport:dialog.title",
+      "namespace": "deepseekChatImport",
+      "key": "dialog.title",
+      "zh": "导入 DeepSeek 会话记录",
+      "en": "Import DeepSeek chat history"
+    },
+    {
+      "id": "deepseekChatImport:dialog.uploading",
+      "namespace": "deepseekChatImport",
+      "key": "dialog.uploading",
+      "zh": "正在上传 {percent}%",
+      "en": "Uploading {percent}%"
+    },
+    {
+      "id": "deepseekChatImport:dialog.workspace",
+      "namespace": "deepseekChatImport",
+      "key": "dialog.workspace",
+      "zh": "工作区",
+      "en": "Workspace"
+    },
+    {
+      "id": "deepseekChatImport:error.busy",
+      "namespace": "deepseekChatImport",
+      "key": "error.busy",
+      "zh": "已有一个导入正在进行，请稍后再试。",
+      "en": "Another import is running. Try again later."
+    },
+    {
+      "id": "deepseekChatImport:error.missing-index",
+      "namespace": "deepseekChatImport",
+      "key": "error.missing-index",
+      "zh": "这不是 DeepSeek 导出数据：缺少 chat_session_index.json，或该文件无法读取。",
+      "en": "This is not a DeepSeek export: chat_session_index.json is missing or unreadable."
+    },
+    {
+      "id": "deepseekChatImport:error.missing-manifest",
+      "namespace": "deepseekChatImport",
+      "key": "error.missing-manifest",
+      "zh": "这不是 DeepSeek 导出数据：缺少 manifest.json。",
+      "en": "This is not a DeepSeek export: manifest.json is missing."
+    },
+    {
+      "id": "deepseekChatImport:error.no-conversations",
+      "namespace": "deepseekChatImport",
+      "key": "error.no-conversations",
+      "zh": "导出数据中没有可导入的会话。",
+      "en": "The export contains no conversations that can be imported."
+    },
+    {
+      "id": "deepseekChatImport:error.too-large",
+      "namespace": "deepseekChatImport",
+      "key": "error.too-large",
+      "zh": "文件过大：最多 {limit}。",
+      "en": "The file is too large: the limit is {limit}."
+    },
+    {
+      "id": "deepseekChatImport:error.unknown",
+      "namespace": "deepseekChatImport",
+      "key": "error.unknown",
+      "zh": "导入失败：{message}",
+      "en": "Import failed: {message}"
+    },
+    {
+      "id": "deepseekChatImport:error.unreadable-archive",
+      "namespace": "deepseekChatImport",
+      "key": "error.unreadable-archive",
+      "zh": "该文件不是可读取的 ZIP 压缩包。",
+      "en": "The file is not a readable ZIP archive."
+    },
+    {
+      "id": "deepseekChatImport:error.unsupported-version",
+      "namespace": "deepseekChatImport",
+      "key": "error.unsupported-version",
+      "zh": "不支持该导出格式版本。",
+      "en": "This export format version is not supported."
+    },
+    {
+      "id": "deepseekChatImport:error.upload-failed",
+      "namespace": "deepseekChatImport",
+      "key": "error.upload-failed",
+      "zh": "上传失败：{message}",
+      "en": "Upload failed: {message}"
+    },
+    {
+      "id": "deepseekChatImport:error.workspace-not-found",
+      "namespace": "deepseekChatImport",
+      "key": "error.workspace-not-found",
+      "zh": "所选工作区已不存在，请重新选择。",
+      "en": "The chosen workspace no longer exists. Choose another one."
+    },
+    {
+      "id": "deepseekChatImport:result.imported.one",
+      "namespace": "deepseekChatImport",
+      "key": "result.imported.one",
+      "zh": "已导入 {count} 个会话到工作区 {name}。",
+      "en": "Imported {count} session into the {name} workspace."
+    },
+    {
+      "id": "deepseekChatImport:result.imported.other",
+      "namespace": "deepseekChatImport",
+      "key": "result.imported.other",
+      "zh": "已导入 {count} 个会话到工作区 {name}。",
+      "en": "Imported {count} sessions into the {name} workspace."
+    },
+    {
+      "id": "deepseekChatImport:result.omitted.one",
+      "namespace": "deepseekChatImport",
+      "key": "result.omitted.one",
+      "zh": "{count} 个较早的会话超出导入上限，未导入。",
+      "en": "{count} older conversation exceeded the import limit and was not imported."
+    },
+    {
+      "id": "deepseekChatImport:result.omitted.other",
+      "namespace": "deepseekChatImport",
+      "key": "result.omitted.other",
+      "zh": "{count} 个较早的会话超出导入上限，未导入。",
+      "en": "{count} older conversations exceeded the import limit and were not imported."
+    },
+    {
+      "id": "deepseekChatImport:result.skipped.one",
+      "namespace": "deepseekChatImport",
+      "key": "result.skipped.one",
+      "zh": "{count} 个会话无法导入。",
+      "en": "{count} conversation could not be imported."
+    },
+    {
+      "id": "deepseekChatImport:result.skipped.other",
+      "namespace": "deepseekChatImport",
+      "key": "result.skipped.other",
+      "zh": "{count} 个会话无法导入。",
+      "en": "{count} conversations could not be imported."
     },
     {
       "id": "deliverables:changes.added",
@@ -7290,6 +8187,20 @@
       "en": "Browse other plugins"
     },
     {
+      "id": "entryCustomization:pin",
+      "namespace": "entryCustomization",
+      "key": "pin",
+      "zh": "将{name}固定到侧边栏",
+      "en": "Pin {name} to sidebar"
+    },
+    {
+      "id": "entryCustomization:pinTooltip",
+      "namespace": "entryCustomization",
+      "key": "pinTooltip",
+      "zh": "固定到左侧栏",
+      "en": "Pin to left sidebar"
+    },
+    {
       "id": "feedback:action.dislike",
       "namespace": "feedback",
       "key": "action.dislike",
@@ -7521,11 +8432,46 @@
       "en": "Drag failed. Try again."
     },
     {
+      "id": "forgePanel:branch.behind",
+      "namespace": "forgePanel",
+      "key": "branch.behind",
+      "zh": "落后于 {base}",
+      "en": "Behind {base}"
+    },
+    {
+      "id": "forgePanel:branch.changed",
+      "namespace": "forgePanel",
+      "key": "branch.changed",
+      "zh": "提交已更新，请重新检查后再打开更新菜单",
+      "en": "New commits arrived. Review them, then open this menu again."
+    },
+    {
+      "id": "forgePanel:branch.confirm",
+      "namespace": "forgePanel",
+      "key": "branch.confirm",
+      "zh": "确认更新",
+      "en": "Confirm update"
+    },
+    {
       "id": "forgePanel:branch.linked",
       "namespace": "forgePanel",
       "key": "branch.linked",
       "zh": "工作树：{path}",
       "en": "Worktree: {path}"
+    },
+    {
+      "id": "forgePanel:branch.method.merge",
+      "namespace": "forgePanel",
+      "key": "branch.method.merge",
+      "zh": "合并更新",
+      "en": "Update with merge commit"
+    },
+    {
+      "id": "forgePanel:branch.method.rebase",
+      "namespace": "forgePanel",
+      "key": "branch.method.rebase",
+      "zh": "变基更新",
+      "en": "Update with rebase"
     },
     {
       "id": "forgePanel:branch.missing",
@@ -7535,11 +8481,39 @@
       "en": "Worktree unavailable: {path}"
     },
     {
+      "id": "forgePanel:branch.note.merge",
+      "namespace": "forgePanel",
+      "key": "branch.note.merge",
+      "zh": "在分支上新增一个合并提交",
+      "en": "Adds a merge commit to the branch"
+    },
+    {
+      "id": "forgePanel:branch.note.rebase",
+      "namespace": "forgePanel",
+      "key": "branch.note.rebase",
+      "zh": "把分支上的提交逐个变基到 {base}，会改写这些提交",
+      "en": "Rebases the branch's commits onto {base}, rewriting them"
+    },
+    {
       "id": "forgePanel:branch.project",
       "namespace": "forgePanel",
       "key": "branch.project",
       "zh": "项目目录：{path}",
       "en": "Project directory: {path}"
+    },
+    {
+      "id": "forgePanel:branch.update",
+      "namespace": "forgePanel",
+      "key": "branch.update",
+      "zh": "更新分支",
+      "en": "Update branch"
+    },
+    {
+      "id": "forgePanel:branch.updateTitle",
+      "namespace": "forgePanel",
+      "key": "branch.updateTitle",
+      "zh": "用 {base} 的新提交更新 {head}",
+      "en": "Update {head} with new commits from {base}"
     },
     {
       "id": "forgePanel:branch.worktree",
@@ -7885,13 +8859,6 @@
       "en": "Review required"
     },
     {
-      "id": "forgePanel:change.review.threads",
-      "namespace": "forgePanel",
-      "key": "change.review.threads",
-      "zh": "{review} · {count} 条未解决讨论",
-      "en": "{review} · {count} unresolved"
-    },
-    {
       "id": "forgePanel:change.row.changes",
       "namespace": "forgePanel",
       "key": "change.row.changes",
@@ -7967,6 +8934,13 @@
       "key": "change.stateAria",
       "zh": "变更请求状态：{state}",
       "en": "Change request state: {state}"
+    },
+    {
+      "id": "forgePanel:change.threads",
+      "namespace": "forgePanel",
+      "key": "change.threads",
+      "zh": "{count} 条未解决讨论",
+      "en": "{count} unresolved threads"
     },
     {
       "id": "forgePanel:change.unserved",
@@ -8116,6 +9090,146 @@
       "en": "Worktree · from {base}"
     },
     {
+      "id": "forgePanel:checks.allPassed",
+      "namespace": "forgePanel",
+      "key": "checks.allPassed",
+      "zh": "{count} 项检查全部通过",
+      "en": "All {count} checks passed"
+    },
+    {
+      "id": "forgePanel:checks.group.cancelled",
+      "namespace": "forgePanel",
+      "key": "checks.group.cancelled",
+      "zh": "已取消",
+      "en": "Cancelled"
+    },
+    {
+      "id": "forgePanel:checks.group.failed",
+      "namespace": "forgePanel",
+      "key": "checks.group.failed",
+      "zh": "失败",
+      "en": "Failed"
+    },
+    {
+      "id": "forgePanel:checks.group.other",
+      "namespace": "forgePanel",
+      "key": "checks.group.other",
+      "zh": "跳过与其他",
+      "en": "Skipped and other"
+    },
+    {
+      "id": "forgePanel:checks.group.passed",
+      "namespace": "forgePanel",
+      "key": "checks.group.passed",
+      "zh": "通过",
+      "en": "Passed"
+    },
+    {
+      "id": "forgePanel:checks.group.running",
+      "namespace": "forgePanel",
+      "key": "checks.group.running",
+      "zh": "进行中",
+      "en": "Running"
+    },
+    {
+      "id": "forgePanel:checks.rerunFailed",
+      "namespace": "forgePanel",
+      "key": "checks.rerunFailed",
+      "zh": "重跑失败项",
+      "en": "Rerun failed"
+    },
+    {
+      "id": "forgePanel:checks.showQuiet",
+      "namespace": "forgePanel",
+      "key": "checks.showQuiet",
+      "zh": "显示其余 {count} 项（通过、跳过）",
+      "en": "Show {count} more (passed, skipped)"
+    },
+    {
+      "id": "forgePanel:commits.all",
+      "namespace": "forgePanel",
+      "key": "commits.all",
+      "zh": "全部提交",
+      "en": "All commits"
+    },
+    {
+      "id": "forgePanel:commits.aria",
+      "namespace": "forgePanel",
+      "key": "commits.aria",
+      "zh": "查看的提交：{commits}",
+      "en": "Commits shown: {commits}"
+    },
+    {
+      "id": "forgePanel:commits.count",
+      "namespace": "forgePanel",
+      "key": "commits.count",
+      "zh": "{count} 个提交",
+      "en": "{count} commits"
+    },
+    {
+      "id": "forgePanel:commits.failed",
+      "namespace": "forgePanel",
+      "key": "commits.failed",
+      "zh": "无法读取提交",
+      "en": "Could not load commits"
+    },
+    {
+      "id": "forgePanel:commits.loading",
+      "namespace": "forgePanel",
+      "key": "commits.loading",
+      "zh": "正在读取提交…",
+      "en": "Loading commits…"
+    },
+    {
+      "id": "forgePanel:commits.missing",
+      "namespace": "forgePanel",
+      "key": "commits.missing",
+      "zh": "所选的提交已不在其中",
+      "en": "The selected commits are no longer included"
+    },
+    {
+      "id": "forgePanel:commits.notLinear",
+      "namespace": "forgePanel",
+      "key": "commits.notLinear",
+      "zh": "这些提交不在同一条提交链上",
+      "en": "These commits are not on one line of history"
+    },
+    {
+      "id": "forgePanel:commits.range",
+      "namespace": "forgePanel",
+      "key": "commits.range",
+      "zh": "{from}…{to}",
+      "en": "{from}…{to}"
+    },
+    {
+      "id": "forgePanel:commits.shiftHint",
+      "namespace": "forgePanel",
+      "key": "commits.shiftHint",
+      "zh": "按住 Shift 选择连续多个提交",
+      "en": "Hold Shift to select consecutive commits"
+    },
+    {
+      "id": "forgePanel:commits.showAll",
+      "namespace": "forgePanel",
+      "key": "commits.showAll",
+      "zh": "查看全部提交",
+      "en": "Show all commits"
+    },
+    {
+      "id": "forgePanel:commits.truncatedNewest",
+      "namespace": "forgePanel",
+      "key": "commits.truncatedNewest",
+      "zh": "只列出了最新的 {count} 个提交",
+      "en": "Only the latest {count} commits are listed"
+    },
+    {
+      "id": "forgePanel:commits.truncatedOldest",
+      "namespace": "forgePanel",
+      "key": "commits.truncatedOldest",
+      "zh": "只列出了最早的 {count} 个提交",
+      "en": "Only the earliest {count} commits are listed"
+    },
+    {
       "id": "forgePanel:creation.base",
       "namespace": "forgePanel",
       "key": "creation.base",
@@ -8228,6 +9342,90 @@
       "en": "Uncommitted"
     },
     {
+      "id": "forgePanel:diff.base.aria",
+      "namespace": "forgePanel",
+      "key": "diff.base.aria",
+      "zh": "基准分支：{base}",
+      "en": "Base branch: {base}"
+    },
+    {
+      "id": "forgePanel:diff.base.automatic",
+      "namespace": "forgePanel",
+      "key": "diff.base.automatic",
+      "zh": "默认",
+      "en": "Default"
+    },
+    {
+      "id": "forgePanel:diff.base.empty",
+      "namespace": "forgePanel",
+      "key": "diff.base.empty",
+      "zh": "没有匹配的分支",
+      "en": "No matching branches"
+    },
+    {
+      "id": "forgePanel:diff.base.loading",
+      "namespace": "forgePanel",
+      "key": "diff.base.loading",
+      "zh": "正在读取分支…",
+      "en": "Reading branches…"
+    },
+    {
+      "id": "forgePanel:diff.base.local",
+      "namespace": "forgePanel",
+      "key": "diff.base.local",
+      "zh": "本地分支",
+      "en": "Local branches"
+    },
+    {
+      "id": "forgePanel:diff.base.note",
+      "namespace": "forgePanel",
+      "key": "diff.base.note",
+      "zh": "与 HEAD 和所选分支的合并基准比较，包含未提交的修改",
+      "en": "Compared with the merge base of HEAD and the selected branch, including uncommitted changes"
+    },
+    {
+      "id": "forgePanel:diff.base.remote",
+      "namespace": "forgePanel",
+      "key": "diff.base.remote",
+      "zh": "远程分支",
+      "en": "Remote branches"
+    },
+    {
+      "id": "forgePanel:diff.base.search",
+      "namespace": "forgePanel",
+      "key": "diff.base.search",
+      "zh": "搜索分支",
+      "en": "Search branches"
+    },
+    {
+      "id": "forgePanel:diff.base.uncommitted",
+      "namespace": "forgePanel",
+      "key": "diff.base.uncommitted",
+      "zh": "包含未提交的修改",
+      "en": "Including uncommitted changes"
+    },
+    {
+      "id": "forgePanel:diff.base.worktree",
+      "namespace": "forgePanel",
+      "key": "diff.base.worktree",
+      "zh": "工作树起点",
+      "en": "Worktree start"
+    },
+    {
+      "id": "forgePanel:diff.baseMissing",
+      "namespace": "forgePanel",
+      "key": "diff.baseMissing",
+      "zh": "找不到基准分支 {base}，它可能已被删除",
+      "en": "The base branch {base} was not found; it may have been deleted"
+    },
+    {
+      "id": "forgePanel:diff.baseUnrelated",
+      "namespace": "forgePanel",
+      "key": "diff.baseUnrelated",
+      "zh": "{base} 与 HEAD 没有共同历史",
+      "en": "{base} shares no history with HEAD"
+    },
+    {
       "id": "forgePanel:diff.binary",
       "namespace": "forgePanel",
       "key": "diff.binary",
@@ -8333,6 +9531,13 @@
       "en": "More actions for {name}"
     },
     {
+      "id": "forgePanel:diff.moreOptions",
+      "namespace": "forgePanel",
+      "key": "diff.moreOptions",
+      "zh": "更多视图选项",
+      "en": "More view options"
+    },
+    {
       "id": "forgePanel:diff.moveFileTreeRight",
       "namespace": "forgePanel",
       "key": "diff.moveFileTreeRight",
@@ -8350,8 +9555,8 @@
       "id": "forgePanel:diff.noForkPoint",
       "namespace": "forgePanel",
       "key": "diff.noForkPoint",
-      "zh": "找不到本分支的分叉点，请选择其他范围",
-      "en": "No fork point was found for this branch; choose another scope"
+      "zh": "找不到本分支的分叉点，请选择基准分支或其他范围",
+      "en": "No fork point was found for this branch; choose a base branch or another scope"
     },
     {
       "id": "forgePanel:diff.noMatchingFiles",
@@ -8445,13 +9650,6 @@
       "en": "Unstaged"
     },
     {
-      "id": "forgePanel:diff.scopeNote.branch",
-      "namespace": "forgePanel",
-      "key": "diff.scopeNote.branch",
-      "zh": "与 {base} 比较，包含未提交的修改",
-      "en": "Compared with {base}, including uncommitted changes"
-    },
-    {
       "id": "forgePanel:diff.scopeNote.staged",
       "namespace": "forgePanel",
       "key": "diff.scopeNote.staged",
@@ -8543,6 +9741,13 @@
       "en": "Show in one column"
     },
     {
+      "id": "forgePanel:diff.useAutomaticBase",
+      "namespace": "forgePanel",
+      "key": "diff.useAutomaticBase",
+      "zh": "使用默认基准分支",
+      "en": "Use the default base branch"
+    },
+    {
       "id": "forgePanel:diff.viewInBrowser",
       "namespace": "forgePanel",
       "key": "diff.viewInBrowser",
@@ -8611,6 +9816,90 @@
       "key": "header.label",
       "zh": "本会话的变更请求",
       "en": "Change requests of this Session"
+    },
+    {
+      "id": "forgePanel:issues.aria",
+      "namespace": "forgePanel",
+      "key": "issues.aria",
+      "zh": "打开 issue {label}：{title}",
+      "en": "Open issue {label}: {title}"
+    },
+    {
+      "id": "forgePanel:issues.label",
+      "namespace": "forgePanel",
+      "key": "issues.label",
+      "zh": "关联 issue",
+      "en": "Linked issues"
+    },
+    {
+      "id": "forgePanel:issues.more",
+      "namespace": "forgePanel",
+      "key": "issues.more",
+      "zh": " 等",
+      "en": " and more"
+    },
+    {
+      "id": "forgePanel:issues.separator",
+      "namespace": "forgePanel",
+      "key": "issues.separator",
+      "zh": "、",
+      "en": ", "
+    },
+    {
+      "id": "forgePanel:lens.all",
+      "namespace": "forgePanel",
+      "key": "lens.all",
+      "zh": "全部",
+      "en": "All"
+    },
+    {
+      "id": "forgePanel:lens.aria",
+      "namespace": "forgePanel",
+      "key": "lens.aria",
+      "zh": "分层透镜",
+      "en": "Review layer"
+    },
+    {
+      "id": "forgePanel:lens.empty",
+      "namespace": "forgePanel",
+      "key": "lens.empty",
+      "zh": "没有要显示的文件",
+      "en": "No files to show"
+    },
+    {
+      "id": "forgePanel:lens.implementation",
+      "namespace": "forgePanel",
+      "key": "lens.implementation",
+      "zh": "实现",
+      "en": "Implementation"
+    },
+    {
+      "id": "forgePanel:lens.interface",
+      "namespace": "forgePanel",
+      "key": "lens.interface",
+      "zh": "接口",
+      "en": "Interface"
+    },
+    {
+      "id": "forgePanel:lens.menuAria",
+      "namespace": "forgePanel",
+      "key": "lens.menuAria",
+      "zh": "分层透镜：{lens}",
+      "en": "Review layer: {lens}"
+    },
+    {
+      "id": "forgePanel:lens.test",
+      "namespace": "forgePanel",
+      "key": "lens.test",
+      "zh": "测试",
+      "en": "Tests"
+    },
+    {
+      "id": "forgePanel:lens.testHidden",
+      "namespace": "forgePanel",
+      "key": "lens.testHidden",
+      "zh": "测试文件已隐藏",
+      "en": "Test files are hidden"
     },
     {
       "id": "forgePanel:list.more",
@@ -8732,6 +10021,20 @@
       "en": "Approve"
     },
     {
+      "id": "forgePanel:review.browserDraft",
+      "namespace": "forgePanel",
+      "key": "review.browserDraft",
+      "zh": "浏览器草稿",
+      "en": "Browser draft"
+    },
+    {
+      "id": "forgePanel:review.browserDrafts",
+      "namespace": "forgePanel",
+      "key": "review.browserDrafts",
+      "zh": "有 {count} 条评论草稿只保存在此浏览器中，不在 GitHub 的待提交评审里。请先将它们加入评审或删除",
+      "en": "{count} comment drafts are saved only in this browser, not in your pending GitHub review. Add them to the review or delete them first."
+    },
+    {
       "id": "forgePanel:review.cancel",
       "namespace": "forgePanel",
       "key": "review.cancel",
@@ -8765,6 +10068,34 @@
       "key": "review.confirmRetry",
       "zh": "已核对，允许重新提交",
       "en": "Checked; allow resubmission"
+    },
+    {
+      "id": "forgePanel:review.discard",
+      "namespace": "forgePanel",
+      "key": "review.discard",
+      "zh": "丢弃评审",
+      "en": "Discard review"
+    },
+    {
+      "id": "forgePanel:review.discardConfirm",
+      "namespace": "forgePanel",
+      "key": "review.discardConfirm",
+      "zh": "丢弃待提交的评审及其中的 {count} 条评论？此操作无法撤销",
+      "en": "Discard your pending review and its {count} comments? This cannot be undone."
+    },
+    {
+      "id": "forgePanel:review.discarded",
+      "namespace": "forgePanel",
+      "key": "review.discarded",
+      "zh": "已丢弃评审",
+      "en": "Review discarded"
+    },
+    {
+      "id": "forgePanel:review.discarding",
+      "namespace": "forgePanel",
+      "key": "review.discarding",
+      "zh": "丢弃中…",
+      "en": "Discarding…"
     },
     {
       "id": "forgePanel:review.done",
@@ -8821,6 +10152,13 @@
       "key": "review.outdated",
       "zh": "代码已更新",
       "en": "Code updated"
+    },
+    {
+      "id": "forgePanel:review.ownChangeRequest",
+      "namespace": "forgePanel",
+      "key": "review.ownChangeRequest",
+      "zh": "这是你自己的 PR，GitHub 只允许评论，不能批准或请求更改",
+      "en": "This is your own PR. GitHub lets you comment on it, but not approve it or request changes."
     },
     {
       "id": "forgePanel:review.pending",
@@ -8977,6 +10315,181 @@
       "en": "Your comment"
     },
     {
+      "id": "forgePanel:reviewers.approved",
+      "namespace": "forgePanel",
+      "key": "reviewers.approved",
+      "zh": "已批准",
+      "en": "Approved"
+    },
+    {
+      "id": "forgePanel:reviewers.bot",
+      "namespace": "forgePanel",
+      "key": "reviewers.bot",
+      "zh": "bot",
+      "en": "Bot"
+    },
+    {
+      "id": "forgePanel:reviewers.changesRequested",
+      "namespace": "forgePanel",
+      "key": "reviewers.changesRequested",
+      "zh": "要求修改",
+      "en": "Changes requested"
+    },
+    {
+      "id": "forgePanel:reviewers.codeOwner",
+      "namespace": "forgePanel",
+      "key": "reviewers.codeOwner",
+      "zh": "代码所有者",
+      "en": "Code owner"
+    },
+    {
+      "id": "forgePanel:reviewers.commented",
+      "namespace": "forgePanel",
+      "key": "reviewers.commented",
+      "zh": "已评论",
+      "en": "Commented"
+    },
+    {
+      "id": "forgePanel:reviewers.dismissed",
+      "namespace": "forgePanel",
+      "key": "reviewers.dismissed",
+      "zh": "已被撤销",
+      "en": "Dismissed"
+    },
+    {
+      "id": "forgePanel:reviewers.empty",
+      "namespace": "forgePanel",
+      "key": "reviewers.empty",
+      "zh": "没有匹配的成员",
+      "en": "No matching people"
+    },
+    {
+      "id": "forgePanel:reviewers.loadFailed",
+      "namespace": "forgePanel",
+      "key": "reviewers.loadFailed",
+      "zh": "无法列出成员",
+      "en": "Could not list people"
+    },
+    {
+      "id": "forgePanel:reviewers.loading",
+      "namespace": "forgePanel",
+      "key": "reviewers.loading",
+      "zh": "正在加载成员",
+      "en": "Loading people"
+    },
+    {
+      "id": "forgePanel:reviewers.none",
+      "namespace": "forgePanel",
+      "key": "reviewers.none",
+      "zh": "还没有评审者",
+      "en": "No reviewers yet"
+    },
+    {
+      "id": "forgePanel:reviewers.older",
+      "namespace": "forgePanel",
+      "key": "reviewers.older",
+      "zh": "早于最新提交",
+      "en": "Before the latest commit"
+    },
+    {
+      "id": "forgePanel:reviewers.pending",
+      "namespace": "forgePanel",
+      "key": "reviewers.pending",
+      "zh": "待评审",
+      "en": "Awaiting review"
+    },
+    {
+      "id": "forgePanel:reviewers.requestMore",
+      "namespace": "forgePanel",
+      "key": "reviewers.requestMore",
+      "zh": "请求其他人评审…",
+      "en": "Request a review from someone else…"
+    },
+    {
+      "id": "forgePanel:reviewers.rerequestAria",
+      "namespace": "forgePanel",
+      "key": "reviewers.rerequestAria",
+      "zh": "重新请求 {login} 评审",
+      "en": "Re-request a review from {login}"
+    },
+    {
+      "id": "forgePanel:reviewers.search",
+      "namespace": "forgePanel",
+      "key": "reviewers.search",
+      "zh": "搜索成员",
+      "en": "Search people"
+    },
+    {
+      "id": "forgePanel:reviewers.suggested",
+      "namespace": "forgePanel",
+      "key": "reviewers.suggested",
+      "zh": "建议",
+      "en": "Suggested"
+    },
+    {
+      "id": "forgePanel:reviewers.team",
+      "namespace": "forgePanel",
+      "key": "reviewers.team",
+      "zh": "团队",
+      "en": "Team"
+    },
+    {
+      "id": "forgePanel:reviewers.truncated",
+      "namespace": "forgePanel",
+      "key": "reviewers.truncated",
+      "zh": "评审者较多，完整列表请在浏览器中查看",
+      "en": "Some reviewers are not listed; open the change request for all of them"
+    },
+    {
+      "id": "forgePanel:settings.readOnly",
+      "namespace": "forgePanel",
+      "key": "settings.readOnly",
+      "zh": "此部署以只读方式保存设置。",
+      "en": "This deployment stores settings read-only."
+    },
+    {
+      "id": "forgePanel:settings.retainOnArchive.description",
+      "namespace": "forgePanel",
+      "key": "settings.retainOnArchive.description",
+      "zh": "开启后，归档会话时保留它创建的工作树；关闭时，干净且无人引用的工作树会被删除，分支和提交仍然保留。",
+      "en": "When on, archiving a Session keeps the worktree it created; when off, a clean, unreferenced worktree is removed while its branch and commits remain."
+    },
+    {
+      "id": "forgePanel:settings.retainOnArchive.title",
+      "namespace": "forgePanel",
+      "key": "settings.retainOnArchive.title",
+      "zh": "归档时不删除工作树",
+      "en": "Keep worktrees when archiving"
+    },
+    {
+      "id": "forgePanel:settings.save",
+      "namespace": "forgePanel",
+      "key": "settings.save",
+      "zh": "保存",
+      "en": "Save"
+    },
+    {
+      "id": "forgePanel:settings.saveFailed",
+      "namespace": "forgePanel",
+      "key": "settings.saveFailed",
+      "zh": "此部署未接受这些值，已保留以便修改。",
+      "en": "The deployment did not accept these values; they were left for you to correct."
+    },
+    {
+      "id": "forgePanel:settings.saving",
+      "namespace": "forgePanel",
+      "key": "settings.saving",
+      "zh": "保存中…",
+      "en": "Saving…"
+    },
+    {
+      "id": "forgePanel:settings.unavailable",
+      "namespace": "forgePanel",
+      "key": "settings.unavailable",
+      "zh": "工作树设置不可用。",
+      "en": "Worktree settings are unavailable."
+    },
+    {
       "id": "forgePanel:signin.copy",
       "namespace": "forgePanel",
       "key": "signin.copy",
@@ -9010,6 +10523,426 @@
       "key": "tab.title",
       "zh": "变更请求",
       "en": "Change requests"
+    },
+    {
+      "id": "forgePanel:tests.hide",
+      "namespace": "forgePanel",
+      "key": "tests.hide",
+      "zh": "隐藏测试文件",
+      "en": "Hide test files"
+    },
+    {
+      "id": "forgePanel:tests.hideHint",
+      "namespace": "forgePanel",
+      "key": "tests.hideHint",
+      "zh": "不显示测试、快照、本地化文件、锁文件和生成的文件",
+      "en": "Hides tests, snapshots, locale files, lockfiles, and generated files"
+    },
+    {
+      "id": "forgePanel:thread.author",
+      "namespace": "forgePanel",
+      "key": "thread.author",
+      "zh": "作者",
+      "en": "Author"
+    },
+    {
+      "id": "forgePanel:thread.back",
+      "namespace": "forgePanel",
+      "key": "thread.back",
+      "zh": "返回变更",
+      "en": "Back to changes"
+    },
+    {
+      "id": "forgePanel:thread.bot",
+      "namespace": "forgePanel",
+      "key": "thread.bot",
+      "zh": "bot",
+      "en": "bot"
+    },
+    {
+      "id": "forgePanel:thread.close",
+      "namespace": "forgePanel",
+      "key": "thread.close",
+      "zh": "关闭讨论列表",
+      "en": "Close the thread list"
+    },
+    {
+      "id": "forgePanel:thread.codeBlock",
+      "namespace": "forgePanel",
+      "key": "thread.codeBlock",
+      "zh": "代码块",
+      "en": "Code block"
+    },
+    {
+      "id": "forgePanel:thread.collapse",
+      "namespace": "forgePanel",
+      "key": "thread.collapse",
+      "zh": "收起",
+      "en": "Collapse"
+    },
+    {
+      "id": "forgePanel:thread.commentActions",
+      "namespace": "forgePanel",
+      "key": "thread.commentActions",
+      "zh": "{author} 的评论操作",
+      "en": "Actions for the comment by {author}"
+    },
+    {
+      "id": "forgePanel:thread.copied",
+      "namespace": "forgePanel",
+      "key": "thread.copied",
+      "zh": "复制成功",
+      "en": "Copied"
+    },
+    {
+      "id": "forgePanel:thread.copy",
+      "namespace": "forgePanel",
+      "key": "thread.copy",
+      "zh": "复制",
+      "en": "Copy"
+    },
+    {
+      "id": "forgePanel:thread.deleteConfirm",
+      "namespace": "forgePanel",
+      "key": "thread.deleteConfirm",
+      "zh": "删除这条评论？",
+      "en": "Delete this comment?"
+    },
+    {
+      "id": "forgePanel:thread.deleteLast",
+      "namespace": "forgePanel",
+      "key": "thread.deleteLast",
+      "zh": "删除这条评论？它是讨论中唯一的评论，讨论也会一并删除",
+      "en": "Delete this comment? It is the only comment, so the thread is deleted too."
+    },
+    {
+      "id": "forgePanel:thread.deletedAuthor",
+      "namespace": "forgePanel",
+      "key": "thread.deletedAuthor",
+      "zh": "已删除的账号",
+      "en": "Deleted account"
+    },
+    {
+      "id": "forgePanel:thread.deleting",
+      "namespace": "forgePanel",
+      "key": "thread.deleting",
+      "zh": "删除中…",
+      "en": "Deleting…"
+    },
+    {
+      "id": "forgePanel:thread.editAria",
+      "namespace": "forgePanel",
+      "key": "thread.editAria",
+      "zh": "编辑评论",
+      "en": "Edit comment"
+    },
+    {
+      "id": "forgePanel:thread.elsewhereTag",
+      "namespace": "forgePanel",
+      "key": "thread.elsewhereTag",
+      "zh": "不在所选提交中",
+      "en": "Not in the chosen commits"
+    },
+    {
+      "id": "forgePanel:thread.empty",
+      "namespace": "forgePanel",
+      "key": "thread.empty",
+      "zh": "还没有评审讨论",
+      "en": "No review threads yet"
+    },
+    {
+      "id": "forgePanel:thread.expand",
+      "namespace": "forgePanel",
+      "key": "thread.expand",
+      "zh": "展开",
+      "en": "Expand"
+    },
+    {
+      "id": "forgePanel:thread.fileLevel",
+      "namespace": "forgePanel",
+      "key": "thread.fileLevel",
+      "zh": "文件级讨论",
+      "en": "File thread"
+    },
+    {
+      "id": "forgePanel:thread.filter.all",
+      "namespace": "forgePanel",
+      "key": "thread.filter.all",
+      "zh": "全部",
+      "en": "All"
+    },
+    {
+      "id": "forgePanel:thread.filter.resolved",
+      "namespace": "forgePanel",
+      "key": "thread.filter.resolved",
+      "zh": "已解决",
+      "en": "Resolved"
+    },
+    {
+      "id": "forgePanel:thread.filter.unresolved",
+      "namespace": "forgePanel",
+      "key": "thread.filter.unresolved",
+      "zh": "未解决",
+      "en": "Unresolved"
+    },
+    {
+      "id": "forgePanel:thread.filterAria",
+      "namespace": "forgePanel",
+      "key": "thread.filterAria",
+      "zh": "筛选讨论",
+      "en": "Filter threads"
+    },
+    {
+      "id": "forgePanel:thread.footnotes",
+      "namespace": "forgePanel",
+      "key": "thread.footnotes",
+      "zh": "脚注",
+      "en": "Footnotes"
+    },
+    {
+      "id": "forgePanel:thread.hideOriginal",
+      "namespace": "forgePanel",
+      "key": "thread.hideOriginal",
+      "zh": "收起当时的文件",
+      "en": "Hide file at that commit"
+    },
+    {
+      "id": "forgePanel:thread.inputFailed",
+      "namespace": "forgePanel",
+      "key": "thread.inputFailed",
+      "zh": "输入框暂时无法添加这个讨论，请稍后重试",
+      "en": "The input could not take this thread; try again later"
+    },
+    {
+      "id": "forgePanel:thread.list",
+      "namespace": "forgePanel",
+      "key": "thread.list",
+      "zh": "讨论",
+      "en": "Threads"
+    },
+    {
+      "id": "forgePanel:thread.listAria",
+      "namespace": "forgePanel",
+      "key": "thread.listAria",
+      "zh": "讨论列表，共 {count} 个",
+      "en": "Review threads, {count} in total"
+    },
+    {
+      "id": "forgePanel:thread.loadFailed",
+      "namespace": "forgePanel",
+      "key": "thread.loadFailed",
+      "zh": "无法读取 GitHub 讨论：{message}",
+      "en": "Could not read GitHub threads: {message}"
+    },
+    {
+      "id": "forgePanel:thread.next",
+      "namespace": "forgePanel",
+      "key": "thread.next",
+      "zh": "跳到下一条未解决的讨论",
+      "en": "Go to the next unresolved thread"
+    },
+    {
+      "id": "forgePanel:thread.none",
+      "namespace": "forgePanel",
+      "key": "thread.none",
+      "zh": "没有符合筛选条件的讨论",
+      "en": "No threads match this filter"
+    },
+    {
+      "id": "forgePanel:thread.onCommit",
+      "namespace": "forgePanel",
+      "key": "thread.onCommit",
+      "zh": "在 {commit} 上",
+      "en": "on {commit}"
+    },
+    {
+      "id": "forgePanel:thread.openAll",
+      "namespace": "forgePanel",
+      "key": "thread.openAll",
+      "zh": "在 GitHub 中查看",
+      "en": "View on GitHub"
+    },
+    {
+      "id": "forgePanel:thread.openOnHost",
+      "namespace": "forgePanel",
+      "key": "thread.openOnHost",
+      "zh": "在 GitHub 中查看",
+      "en": "View on GitHub"
+    },
+    {
+      "id": "forgePanel:thread.originalFailed",
+      "namespace": "forgePanel",
+      "key": "thread.originalFailed",
+      "zh": "无法读取当时的文件：{message}",
+      "en": "Could not read the file at that commit: {message}"
+    },
+    {
+      "id": "forgePanel:thread.originalLoading",
+      "namespace": "forgePanel",
+      "key": "thread.originalLoading",
+      "zh": "正在读取当时的文件…",
+      "en": "Reading the file at that commit…"
+    },
+    {
+      "id": "forgePanel:thread.originally",
+      "namespace": "forgePanel",
+      "key": "thread.originally",
+      "zh": "原在 {range}",
+      "en": "Originally {range}"
+    },
+    {
+      "id": "forgePanel:thread.outdatedSection",
+      "namespace": "forgePanel",
+      "key": "thread.outdatedSection",
+      "zh": "{count} 条讨论已过期：所在代码已被后续提交修改",
+      "en": "{count} outdated threads: later commits changed their code"
+    },
+    {
+      "id": "forgePanel:thread.outdatedTag",
+      "namespace": "forgePanel",
+      "key": "thread.outdatedTag",
+      "zh": "已过期",
+      "en": "Outdated"
+    },
+    {
+      "id": "forgePanel:thread.replies",
+      "namespace": "forgePanel",
+      "key": "thread.replies",
+      "zh": "{count} 条回复",
+      "en": "{count} replies"
+    },
+    {
+      "id": "forgePanel:thread.reply",
+      "namespace": "forgePanel",
+      "key": "thread.reply",
+      "zh": "回复",
+      "en": "Reply"
+    },
+    {
+      "id": "forgePanel:thread.replyActions",
+      "namespace": "forgePanel",
+      "key": "thread.replyActions",
+      "zh": "回复选项",
+      "en": "Reply options"
+    },
+    {
+      "id": "forgePanel:thread.replyPlaceholder",
+      "namespace": "forgePanel",
+      "key": "thread.replyPlaceholder",
+      "zh": "回复…",
+      "en": "Reply…"
+    },
+    {
+      "id": "forgePanel:thread.resolve",
+      "namespace": "forgePanel",
+      "key": "thread.resolve",
+      "zh": "解决讨论",
+      "en": "Resolve thread"
+    },
+    {
+      "id": "forgePanel:thread.resolvedRow",
+      "namespace": "forgePanel",
+      "key": "thread.resolvedRow",
+      "zh": "已解决的讨论 · {author}",
+      "en": "Resolved thread · {author}"
+    },
+    {
+      "id": "forgePanel:thread.save",
+      "namespace": "forgePanel",
+      "key": "thread.save",
+      "zh": "保存",
+      "en": "Save"
+    },
+    {
+      "id": "forgePanel:thread.saving",
+      "namespace": "forgePanel",
+      "key": "thread.saving",
+      "zh": "保存中…",
+      "en": "Saving…"
+    },
+    {
+      "id": "forgePanel:thread.treeCount",
+      "namespace": "forgePanel",
+      "key": "thread.treeCount",
+      "zh": "{count} 条未解决的讨论",
+      "en": "{count} unresolved threads"
+    },
+    {
+      "id": "forgePanel:thread.truncated",
+      "namespace": "forgePanel",
+      "key": "thread.truncated",
+      "zh": "讨论太多，只显示了前 {count} 个",
+      "en": "Too many threads; showing the first {count}"
+    },
+    {
+      "id": "forgePanel:thread.unresolve",
+      "namespace": "forgePanel",
+      "key": "thread.unresolve",
+      "zh": "取消解决",
+      "en": "Unresolve thread"
+    },
+    {
+      "id": "forgePanel:thread.unresolvedAria",
+      "namespace": "forgePanel",
+      "key": "thread.unresolvedAria",
+      "zh": "{name} 有 {count} 条未解决的讨论，跳到下一条",
+      "en": "{name} has {count} unresolved threads; go to the next one"
+    },
+    {
+      "id": "forgePanel:thread.unresolvedCount",
+      "namespace": "forgePanel",
+      "key": "thread.unresolvedCount",
+      "zh": "{count} 条未解决",
+      "en": "{count} unresolved"
+    },
+    {
+      "id": "forgePanel:thread.unwrap",
+      "namespace": "forgePanel",
+      "key": "thread.unwrap",
+      "zh": "取消自动换行",
+      "en": "Do not wrap lines"
+    },
+    {
+      "id": "forgePanel:thread.viewOriginal",
+      "namespace": "forgePanel",
+      "key": "thread.viewOriginal",
+      "zh": "查看当时的文件",
+      "en": "View file at that commit"
+    },
+    {
+      "id": "forgePanel:thread.wrap",
+      "namespace": "forgePanel",
+      "key": "thread.wrap",
+      "zh": "自动换行",
+      "en": "Wrap lines"
+    },
+    {
+      "id": "forgePanel:thread.writeFailed",
+      "namespace": "forgePanel",
+      "key": "thread.writeFailed",
+      "zh": "GitHub 未执行此操作：{message}",
+      "en": "GitHub did not apply this: {message}"
+    },
+    {
+      "id": "forgePanel:thread.writeStale",
+      "namespace": "forgePanel",
+      "key": "thread.writeStale",
+      "zh": "PR 已有新提交。讨论会按新提交重新读取，请核对后重试",
+      "en": "The PR has new commits. The threads are read again at the new head; check them, then retry."
+    },
+    {
+      "id": "forgePanel:thread.writeUnknown",
+      "namespace": "forgePanel",
+      "key": "thread.writeUnknown",
+      "zh": "无法确认 GitHub 是否已执行。正在重新读取讨论，请核对后再重试",
+      "en": "Could not confirm whether GitHub applied this. The threads are being read again; check them before retrying."
+    },
+    {
+      "id": "forgePanel:thread.writeUnsupported",
+      "namespace": "forgePanel",
+      "key": "thread.writeUnsupported",
+      "zh": "此代码托管服务不支持在这里修改讨论",
+      "en": "This code host does not support changing threads here."
     },
     {
       "id": "forgePanel:time.days",
@@ -9059,6 +10992,48 @@
       "key": "time.years",
       "zh": "{n} 年前",
       "en": "{n} y ago"
+    },
+    {
+      "id": "forgePanel:toast.actionUnknown",
+      "namespace": "forgePanel",
+      "key": "toast.actionUnknown",
+      "zh": "未能确认对 {name} 的操作是否已生效，请在浏览器中查看后再重试",
+      "en": "Could not confirm whether the action on {name} took effect. Check it in the browser before trying again."
+    },
+    {
+      "id": "forgePanel:toast.archiveCleanupFailed",
+      "namespace": "forgePanel",
+      "key": "toast.archiveCleanupFailed",
+      "zh": "已归档，工作树清理失败。分支已保留，请检查工作树。",
+      "en": "Archived; worktree cleanup failed. The branch is retained. Check the worktree."
+    },
+    {
+      "id": "forgePanel:toast.archiveCleanupScheduled",
+      "namespace": "forgePanel",
+      "key": "toast.archiveCleanupScheduled",
+      "zh": "已归档，工作树将被清理",
+      "en": "Archived; the worktree will be cleaned up"
+    },
+    {
+      "id": "forgePanel:toast.branchUpdateFailed",
+      "namespace": "forgePanel",
+      "key": "toast.branchUpdateFailed",
+      "zh": "无法更新分支：{message}",
+      "en": "Could not update the branch: {message}"
+    },
+    {
+      "id": "forgePanel:toast.branchUpdateStale",
+      "namespace": "forgePanel",
+      "key": "toast.branchUpdateStale",
+      "zh": "{name} 已有新提交，请重新检查后再更新",
+      "en": "{name} has new commits. Review them before updating."
+    },
+    {
+      "id": "forgePanel:toast.branchUpdated",
+      "namespace": "forgePanel",
+      "key": "toast.branchUpdated",
+      "zh": "已开始更新 {name} 的分支",
+      "en": "Started updating the branch of {name}"
     },
     {
       "id": "forgePanel:toast.branchesFailed",
@@ -9180,6 +11155,27 @@
       "en": "Removed {name} from this Session"
     },
     {
+      "id": "forgePanel:toast.rerunFailed",
+      "namespace": "forgePanel",
+      "key": "toast.rerunFailed",
+      "zh": "无法重跑检查：{message}",
+      "en": "Could not rerun the checks: {message}"
+    },
+    {
+      "id": "forgePanel:toast.rerunRequested",
+      "namespace": "forgePanel",
+      "key": "toast.rerunRequested",
+      "zh": "已请求重跑 {name} 的检查",
+      "en": "Requested a rerun of the checks of {name}"
+    },
+    {
+      "id": "forgePanel:toast.rerunStale",
+      "namespace": "forgePanel",
+      "key": "toast.rerunStale",
+      "zh": "{name} 已有新提交，请查看新提交的检查后再重跑",
+      "en": "{name} has new commits. Check the new commit's checks before rerunning."
+    },
+    {
       "id": "forgePanel:toast.restoreFailed",
       "namespace": "forgePanel",
       "key": "toast.restoreFailed",
@@ -9192,6 +11188,20 @@
       "key": "toast.restored",
       "zh": "工作树已恢复",
       "en": "Worktree restored"
+    },
+    {
+      "id": "forgePanel:toast.reviewRequestFailed",
+      "namespace": "forgePanel",
+      "key": "toast.reviewRequestFailed",
+      "zh": "无法请求评审：{message}",
+      "en": "Could not request the review: {message}"
+    },
+    {
+      "id": "forgePanel:toast.reviewRequested",
+      "namespace": "forgePanel",
+      "key": "toast.reviewRequested",
+      "zh": "已请求 {login} 评审 {name}",
+      "en": "Requested a review of {name} from {login}"
     },
     {
       "id": "forgePanel:toast.undo",
@@ -9220,6 +11230,111 @@
       "key": "toast.worktreeStarted",
       "zh": "会话已开始，无法再改用工作树",
       "en": "This Session has started, so it can no longer use a worktree"
+    },
+    {
+      "id": "forgePanel:viewed.aria",
+      "namespace": "forgePanel",
+      "key": "viewed.aria",
+      "zh": "将 {name} 标记为已审阅",
+      "en": "Mark {name} as viewed"
+    },
+    {
+      "id": "forgePanel:viewed.changed",
+      "namespace": "forgePanel",
+      "key": "viewed.changed",
+      "zh": "有新改动",
+      "en": "Changed since viewed"
+    },
+    {
+      "id": "forgePanel:viewed.count",
+      "namespace": "forgePanel",
+      "key": "viewed.count",
+      "zh": "{viewed}/{total}",
+      "en": "{viewed}/{total}"
+    },
+    {
+      "id": "forgePanel:viewed.hint",
+      "namespace": "forgePanel",
+      "key": "viewed.hint",
+      "zh": "按 V 切换当前文件",
+      "en": "Press V to toggle the current file"
+    },
+    {
+      "id": "forgePanel:viewed.hintHost",
+      "namespace": "forgePanel",
+      "key": "viewed.hintHost",
+      "zh": "保存在 GitHub · 按 V 切换当前文件",
+      "en": "Saved on GitHub · Press V to toggle the current file"
+    },
+    {
+      "id": "forgePanel:viewed.label",
+      "namespace": "forgePanel",
+      "key": "viewed.label",
+      "zh": "已审阅",
+      "en": "Viewed"
+    },
+    {
+      "id": "forgePanel:viewed.progress",
+      "namespace": "forgePanel",
+      "key": "viewed.progress",
+      "zh": "已审阅 {viewed} / {total}",
+      "en": "{viewed} / {total} viewed"
+    },
+    {
+      "id": "forgePanel:viewed.progressAria",
+      "namespace": "forgePanel",
+      "key": "viewed.progressAria",
+      "zh": "已审阅的文件",
+      "en": "Viewed files"
+    },
+    {
+      "id": "forgePanel:viewed.readFailed",
+      "namespace": "forgePanel",
+      "key": "viewed.readFailed",
+      "zh": "未能读取 GitHub 上的已审阅状态，暂时不能标记文件：{message}",
+      "en": "Could not read viewed files from GitHub, so files cannot be marked: {message}"
+    },
+    {
+      "id": "forgePanel:viewed.saveFailed",
+      "namespace": "forgePanel",
+      "key": "viewed.saveFailed",
+      "zh": "无法保存已审阅状态",
+      "en": "Could not save the viewed state"
+    },
+    {
+      "id": "forgePanel:viewed.saving",
+      "namespace": "forgePanel",
+      "key": "viewed.saving",
+      "zh": "正在保存到 GitHub…",
+      "en": "Saving to GitHub…"
+    },
+    {
+      "id": "forgePanel:viewed.syncFailed",
+      "namespace": "forgePanel",
+      "key": "viewed.syncFailed",
+      "zh": "已审阅状态未能保存到 GitHub：{message}",
+      "en": "Could not save the viewed mark to GitHub: {message}"
+    },
+    {
+      "id": "forgePanel:viewed.syncStale",
+      "namespace": "forgePanel",
+      "key": "viewed.syncStale",
+      "zh": "PR 已有新提交，已审阅状态未保存。请刷新后再标记",
+      "en": "The PR has new commits, so the viewed mark was not saved. Refresh and mark the file again."
+    },
+    {
+      "id": "forgePanel:viewed.syncUnknown",
+      "namespace": "forgePanel",
+      "key": "viewed.syncUnknown",
+      "zh": "未能确认已审阅状态是否已保存：{message}。刷新后可查看实际状态",
+      "en": "Could not confirm that the viewed mark was saved: {message}. Refresh to see where it stands."
+    },
+    {
+      "id": "forgePanel:viewed.unavailable",
+      "namespace": "forgePanel",
+      "key": "viewed.unavailable",
+      "zh": "未能读取 GitHub 上的已审阅状态",
+      "en": "Could not read viewed files from GitHub"
     },
     {
       "id": "forgePanel:worktree.base",
@@ -9358,7 +11473,7 @@
       "id": "goal:phase.active.disarmed",
       "namespace": "goal",
       "key": "phase.active.disarmed",
-      "zh": "已暂停的目标",
+      "zh": "待继续的目标",
       "en": "Inactive Goal"
     },
     {
@@ -9423,20 +11538,6 @@
       "key": "count.idle.other",
       "zh": "{count} 个后台任务",
       "en": "{count} background jobs"
-    },
-    {
-      "id": "job:count.live.one",
-      "namespace": "job",
-      "key": "count.live.one",
-      "zh": "{count} 个后台任务运行中",
-      "en": "{count} background job running"
-    },
-    {
-      "id": "job:count.live.other",
-      "namespace": "job",
-      "key": "count.live.other",
-      "zh": "{count} 个后台任务运行中",
-      "en": "{count} background jobs running"
     },
     {
       "id": "job:duration.hours",
@@ -9733,25 +11834,11 @@
       "en": "Plugin endpoints"
     },
     {
-      "id": "liveshare:dialog.capabilities.count",
-      "namespace": "liveshare",
-      "key": "dialog.capabilities.count",
-      "zh": "已向观看者开放 {count} 个端点",
-      "en": "Endpoints open to viewers: {count}"
-    },
-    {
       "id": "liveshare:dialog.capabilities.createFailed",
       "namespace": "liveshare",
       "key": "dialog.capabilities.createFailed",
       "zh": "分享已创建，但插件端点未保存；请到分享权限中重试。",
       "en": "The share was created, but its plugin endpoints were not saved; retry in Share permissions."
-    },
-    {
-      "id": "liveshare:dialog.capabilities.description",
-      "namespace": "liveshare",
-      "key": "dialog.capabilities.description",
-      "zh": "对这个分享统一选一个档位；档位在保存时展开成插件当前声明的全部端点，之后新增的端点不会自动开放。",
-      "en": "Choose one tier for this share; the tier expands at save time into the endpoints the plugins declare now, so endpoints they add later stay closed."
     },
     {
       "id": "liveshare:dialog.capabilities.empty",
@@ -9761,46 +11848,46 @@
       "en": "No plugin currently declares endpoints to share."
     },
     {
-      "id": "liveshare:dialog.capabilities.noReadable",
+      "id": "liveshare:dialog.capabilities.global",
       "namespace": "liveshare",
-      "key": "dialog.capabilities.noReadable",
-      "zh": "没有插件提供只读端点，因此不能选择「可读」。",
-      "en": "No plugin offers a read-only endpoint, so Read-only cannot be chosen."
+      "key": "dialog.capabilities.global",
+      "zh": "插件权限",
+      "en": "Plugin permissions"
     },
     {
-      "id": "liveshare:dialog.capabilities.noWritable",
+      "id": "liveshare:dialog.capabilities.global.all",
       "namespace": "liveshare",
-      "key": "dialog.capabilities.noWritable",
-      "zh": "没有插件提供可写端点，因此不能选择「可写」。",
-      "en": "No plugin offers a writable endpoint, so Writable cannot be chosen."
+      "key": "dialog.capabilities.global.all",
+      "zh": "允许全部",
+      "en": "Allow all"
     },
     {
-      "id": "liveshare:dialog.capabilities.none",
+      "id": "liveshare:dialog.capabilities.global.custom",
       "namespace": "liveshare",
-      "key": "dialog.capabilities.none",
-      "zh": "不向观看者开放",
-      "en": "Not open to viewers"
+      "key": "dialog.capabilities.global.custom",
+      "zh": "自定义",
+      "en": "Custom"
     },
     {
-      "id": "liveshare:dialog.capabilities.stale",
+      "id": "liveshare:dialog.capabilities.global.none",
       "namespace": "liveshare",
-      "key": "dialog.capabilities.stale",
-      "zh": "当前记录不是整档选择；重新保存会按所选档位覆盖。",
-      "en": "The saved selection is not one whole tier; saving again replaces it with the tier you pick."
+      "key": "dialog.capabilities.global.none",
+      "zh": "拒绝全部",
+      "en": "Deny all"
     },
     {
-      "id": "liveshare:dialog.capabilities.summary.read",
+      "id": "liveshare:dialog.capabilities.partial",
       "namespace": "liveshare",
-      "key": "dialog.capabilities.summary.read",
-      "zh": "只读 · {count} 个端点",
-      "en": "Read-only · {count} endpoints"
+      "key": "dialog.capabilities.partial",
+      "zh": "部分",
+      "en": "Partial"
     },
     {
-      "id": "liveshare:dialog.capabilities.summary.write",
+      "id": "liveshare:dialog.capabilities.tier.all",
       "namespace": "liveshare",
-      "key": "dialog.capabilities.summary.write",
-      "zh": "可写 · {readable} 只读 + {writable} 可写",
-      "en": "Writable · {readable} read-only + {writable} writable"
+      "key": "dialog.capabilities.tier.all",
+      "zh": "全部方法",
+      "en": "All methods"
     },
     {
       "id": "liveshare:dialog.capabilities.tier.none",
@@ -9808,27 +11895,6 @@
       "key": "dialog.capabilities.tier.none",
       "zh": "不可用",
       "en": "Unavailable"
-    },
-    {
-      "id": "liveshare:dialog.capabilities.tier.read",
-      "namespace": "liveshare",
-      "key": "dialog.capabilities.tier.read",
-      "zh": "可读",
-      "en": "Read-only"
-    },
-    {
-      "id": "liveshare:dialog.capabilities.tier.write",
-      "namespace": "liveshare",
-      "key": "dialog.capabilities.tier.write",
-      "zh": "可写",
-      "en": "Writable"
-    },
-    {
-      "id": "liveshare:dialog.capabilities.writeHint",
-      "namespace": "liveshare",
-      "key": "dialog.capabilities.writeHint",
-      "zh": "可写端点在被分享会话允许写入时才生效，且在可写分享中具有破坏性。",
-      "en": "A writable endpoint takes effect only when the shared Session allows writing, and is destructive inside a writable share."
     },
     {
       "id": "liveshare:dialog.connectivityChecking",
@@ -10265,6 +12331,13 @@
       "en": "Unsaved changes."
     },
     {
+      "id": "liveshare:dialog.ptcSandboxWarning",
+      "namespace": "liveshare",
+      "key": "dialog.ptcSandboxWarning",
+      "zh": "注意：LiveShare 的 PTC 沙箱尚不完善——被分享者可能通过 run_code 读写分享工作区之外的文件，请只分享给可信任的人。",
+      "en": "Note: LiveShare’s PTC sandbox is not yet complete - a viewer may read or write files outside the shared workspace through run_code. Share only with people you trust."
+    },
+    {
       "id": "liveshare:dialog.relay",
       "namespace": "liveshare",
       "key": "dialog.relay",
@@ -10366,14 +12439,14 @@
       "id": "liveshare:dialog.sessionMode.hint.view",
       "namespace": "liveshare",
       "key": "dialog.sessionMode.hint.view",
-      "zh": "仅可查看：观看者可以读取分享范围内的文件与会话记录，也能向这个会话发消息；所有工具都在只读沙箱中运行，不能写文件。",
+      "zh": "仅可查看：观看者可以读取工作区内的文件与会话记录，也能向这个会话发消息；所有工具都在只读沙箱中运行，不能写文件。",
       "en": "Read only: viewers read files and the session record within the share's scope and can message the session, but every tool runs in a read-only sandbox and no file can be written."
     },
     {
       "id": "liveshare:dialog.sessionMode.hint.write",
       "namespace": "liveshare",
       "key": "dialog.sessionMode.hint.write",
-      "zh": "工作区内修改：观看者在可写沙箱里工作——可以在分享范围内修改文件，写入受可写上限约束；分享范围之外的读写都会被拒绝，你的全局设置、凭据与其它会话仍不开放。",
+      "zh": "工作区内修改：观看者在可写沙箱里工作——可以在工作区内修改文件，写入受可写上限约束；工作区之外的读写都会被拒绝，你的全局设置、凭据与其它会话仍不开放。",
       "en": "Workspace write: the viewer works in a bounded writable sandbox — it modifies files inside the share’s scope under the writable ceiling; reads and writes beyond that scope are refused, and your global settings, credentials, and other Sessions stay closed."
     },
     {
@@ -10727,6 +12800,13 @@
       "en": "LiveShare"
     },
     {
+      "id": "liveshare:viewer.dismiss",
+      "namespace": "liveshare",
+      "key": "viewer.dismiss",
+      "zh": "关闭",
+      "en": "Dismiss"
+    },
+    {
       "id": "liveshare:viewer.empty",
       "namespace": "liveshare",
       "key": "viewer.empty",
@@ -10867,10 +12947,17 @@
       "en": "DSH"
     },
     {
+      "id": "liveshare:viewer.pluginUnsupported",
+      "namespace": "liveshare",
+      "key": "viewer.pluginUnsupported",
+      "zh": "插件 {plugin} 未适配当前分享，部分功能不可用。",
+      "en": "Plugin {plugin} is not available in this share; some features are unavailable."
+    },
+    {
       "id": "liveshare:viewer.readonlyNote",
       "namespace": "liveshare",
       "key": "viewer.readonlyNote",
-      "zh": "仅可查看：可以驱动这个会话，但只能在分享范围内读取文件，不能修改内容。",
+      "zh": "仅可查看：可以驱动这个会话，但只能在工作区内读取文件，不能修改内容。",
       "en": "Read only: you can drive this Session, but you read files inside the share’s scope only and modify nothing."
     },
     {
@@ -11728,6 +13815,13 @@
       "en": "Show in Finder"
     },
     {
+      "id": "open-in-app:menu.openIn",
+      "namespace": "open-in-app",
+      "key": "menu.openIn",
+      "zh": "在应用中打开",
+      "en": "Open in"
+    },
+    {
       "id": "open-in-app:menu.openInFloat",
       "namespace": "open-in-app",
       "key": "menu.openInFloat",
@@ -11913,8 +14007,8 @@
       "id": "permission.access:confirm.description",
       "namespace": "permission.access",
       "key": "confirm.description",
-      "zh": "本次选择同时应用于当前会话和之后新建的会话；其他已有会话不变。完全访问不再逐次请求 DSH 工具审批；Android 和设备系统授权仍单独处理。",
-      "en": "Apply Full access to this session and the default for new sessions; other existing sessions stay unchanged. DSH tool approval prompts are disabled. Android and device system permissions remain separate."
+      "zh": "本次选择同时应用于当前会话及之后新建的会话，其他现有会话不变。完全访问将不再显示 DSH 工具审批，但不会授予 Android 或设备系统权限。",
+      "en": "Apply Full access to this session and the default for new sessions. Other existing sessions stay unchanged. DSH tool approval prompts are disabled. Android and device system permissions remain separate."
     },
     {
       "id": "permission.access:confirm.enable",
@@ -11955,7 +14049,7 @@
       "id": "permission.access:preset.retired",
       "namespace": "permission.access",
       "key": "preset.retired",
-      "zh": "历史权限配置",
+      "zh": "历史权限设置",
       "en": "Legacy permission settings",
       "upstreamMissing": [
         "de",
@@ -13313,6 +15407,13 @@
       "en": "The profile patch cannot address this one uniquely."
     },
     {
+      "id": "pluginManager:reasonUnexpectedPackage",
+      "namespace": "pluginManager",
+      "key": "reasonUnexpectedPackage",
+      "zh": "插件来源安装了与所请求不同的包或版本，已撤销这次安装。请向插件发布者或插件索引维护者报告此问题。",
+      "en": "The plugin source installed another package or version than requested; the installation was undone. Report it to the plugin's publisher or the index maintainer."
+    },
+    {
       "id": "pluginManager:reasonUnknownPlugin",
       "namespace": "pluginManager",
       "key": "reasonUnknownPlugin",
@@ -13577,6 +15678,13 @@
       "key": "statusNotInstalled",
       "zh": "未安装",
       "en": "Not installed"
+    },
+    {
+      "id": "pluginManager:statusNotRunning",
+      "namespace": "pluginManager",
+      "key": "statusNotRunning",
+      "zh": "未运行",
+      "en": "Not running"
     },
     {
       "id": "pluginManager:statusProblem",
@@ -13876,8 +15984,8 @@
       "id": "pluginManager:updateStepInstalling",
       "namespace": "pluginManager",
       "key": "updateStepInstalling",
-      "zh": "从 {registry} 安装 {version}",
-      "en": "Install {version} from {registry}"
+      "zh": "从 {source} 安装 {version}",
+      "en": "Install {version} from {source}"
     },
     {
       "id": "pluginManager:updateStepRemoving",
@@ -14711,6 +16819,20 @@
       "key": "title",
       "zh": "发现",
       "en": "Discover"
+    },
+    {
+      "id": "pluginMarket:update",
+      "namespace": "pluginMarket",
+      "key": "update",
+      "zh": "更新",
+      "en": "Update"
+    },
+    {
+      "id": "pluginMarket:updateTitle",
+      "namespace": "pluginMarket",
+      "key": "updateTitle",
+      "zh": "将 {name} 更新到 {version}",
+      "en": "Update {name} to {version}"
     },
     {
       "id": "pluginMarket:versionDefault",
@@ -17698,8 +19820,8 @@
       "id": "session-log-download:dialog.preparingDescription",
       "namespace": "session-log-download",
       "key": "dialog.preparingDescription",
-      "zh": "正在准备包含当前 Session、子 Session 和附件的 ZIP 文件。",
-      "en": "Preparing a ZIP containing this Session, its sub-Sessions, and attachments."
+      "zh": "正在准备包含指定 Session、子 Session 和附件的 ZIP 文件",
+      "en": "Preparing a ZIP containing the selected Session, its sub-Sessions, and attachments."
     },
     {
       "id": "session-log-download:dialog.preparingTitle",
@@ -17707,6 +19829,13 @@
       "key": "dialog.preparingTitle",
       "zh": "正在导出 Session",
       "en": "Exporting Session"
+    },
+    {
+      "id": "session-log-download:dialog.session",
+      "namespace": "session-log-download",
+      "key": "dialog.session",
+      "zh": "Session：{sessionId}",
+      "en": "Session: {sessionId}"
     },
     {
       "id": "session-log-download:dialog.successDescription",
@@ -17721,13 +19850,6 @@
       "key": "dialog.successTitle",
       "zh": "Session 导出已开始下载",
       "en": "Session download started"
-    },
-    {
-      "id": "session-log-download:header.more",
-      "namespace": "session-log-download",
-      "key": "header.more",
-      "zh": "更多操作",
-      "en": "More actions"
     },
     {
       "id": "session-log-download:menu.copyMarkdown",
@@ -17819,13 +19941,6 @@
       "key": "bonusBalance",
       "zh": "赠金余额",
       "en": "Granted balance"
-    },
-    {
-      "id": "settings.account:bonusNoticeTitle",
-      "namespace": "settings.account",
-      "key": "bonusNoticeTitle",
-      "zh": "赠金已到账",
-      "en": "Bonus credited"
     },
     {
       "id": "settings.account:browserDescription",
@@ -18601,8 +20716,8 @@
       "id": "settings.agentPreset:guideCordisExplanation",
       "namespace": "settings.agentPreset",
       "key": "guideCordisExplanation",
-      "zh": "### 可以创造什么\n\n创造模式具备标准任务工具，并增加运行时检查，以及 Cordis 插件和 Agent 预设的开发指引。可以编写插件来添加功能或界面，也可以组合工具和提示词，创建适合特定任务的模式。\n\n### 插件与模式的关系\n\n插件为 DSH 增加能力，例如工具、服务连接或界面入口。模式是一份 Agent 预设，用来选择任务可用的工具，并约定 Agent 的工作方式。自定义模式中也可以使用自己开发的插件。\n\n### 怎样让成果生效\n\n可以要求 Agent 完成安装并验证实际效果。插件可能即时加载，也可能需要重启，取决于修改内容；新建的模式在创建新任务时选择。",
-      "en": "### What you can create\n\nCreator mode includes the standard task tools plus runtime inspection and guidance for authoring Cordis plugins and agent presets. It can create a plugin that adds a capability or UI, or a preset that combines tools and prompts for a particular job.\n\n### Plugins and modes\n\nA plugin adds capabilities to DSH, such as a tool, a service connection, or a UI entry. A mode is an agent preset that selects tools and defines how the agent works in a task. A plugin can be included in a custom preset.\n\n### How the result takes effect\n\nAsk the agent to install and verify the result, not just generate source code. A plugin may load immediately or require a restart, depending on what it changes. A newly created preset is selected when starting a new task."
+      "zh": "### 可以创造什么\n\n创造模式包含标准任务工具，并增加了运行时检查。标准模式和创造模式共用 dsh-doc 指引，用于插件和预设开发。Agent 可以创建插件来添加能力或界面，也可以创建预设，为特定工作组合工具和提示词。\n\n### 插件与模式的关系\n\n插件为 DSH 增加能力，例如工具、服务连接或界面入口。模式是一份 Agent 预设，用来选择任务可用的工具，并约定 Agent 的工作方式。自定义模式中也可以使用自己开发的插件。\n\n### 怎样让成果生效\n\n可以要求 Agent 完成安装并验证实际效果。插件可能即时加载，也可能需要重启，取决于修改内容；新建的模式在创建新任务时选择。",
+      "en": "### What you can create\n\nCreator mode includes the standard task tools and adds runtime inspection. Standard and Creator share the dsh-doc guidance for plugin and preset development. The agent can create a plugin that adds a capability or UI, or a preset that combines tools and prompts for a particular job.\n\n### Plugins and modes\n\nA plugin adds capabilities to DSH, such as a tool, a service connection, or a UI entry. A mode is an agent preset that selects tools and defines how the agent works in a task. A plugin can be included in a custom preset.\n\n### How the result takes effect\n\nAsk the agent to install and verify the result, not just generate source code. A plugin may load immediately or require a restart, depending on what it changes. A newly created preset is selected when starting a new task."
     },
     {
       "id": "settings.agentPreset:guideCordisIntro",
@@ -18685,8 +20800,8 @@
       "id": "settings.agentPreset:guideStandardExplanation",
       "namespace": "settings.agentPreset",
       "key": "guideStandardExplanation",
-      "zh": "### 工作方式\n\nAgent 直接调用工具来读写文件、检索资料和执行终端命令。包含 Skills、计划、目标、子 Agent、工作流、插件管理和上下文压缩等能力。\n\n### 什么时候选\n\n日常编程、文件处理和资料整理可以从这里开始。标准模式也能编写脚本、批量处理文件；PTC 改变的是工具调用方式，批量任务并不必须使用 PTC。",
-      "en": "### How it works\n\nThe agent calls tools directly to read and edit files, search, and run terminal commands. It includes Skills, planning, goals, subagents, workflows, plugin management, and context compaction.\n\n### When to choose it\n\nStart here for everyday coding, file work, and research. Standard mode can also write scripts and process files in batches. PTC changes how tool calls are organized; it is not required for batch tasks."
+      "zh": "### 工作方式\n\nAgent 直接调用工具来读写文件、检索资料和执行终端命令。包含 Skills、计划、目标、子 Agent、工作流、插件管理和上下文压缩等能力。\n\n对于 DSH 相关问题以及你要求的插件或预设工作，dsh-doc skill 引导 Agent 查阅已安装的文档和源码。其指令仅在被要求加载或与当前任务相关时加载；加载该 skill 不会改变文件、工具或 profile。\n\n### 什么时候选\n\n日常编程、文件处理和资料整理可以从这里开始。标准模式也能编写脚本、批量处理文件；PTC 改变的是工具调用方式，批量任务并不必须使用 PTC。",
+      "en": "### How it works\n\nThe agent calls tools directly to read and edit files, search, and run terminal commands. It includes Skills, planning, goals, subagents, workflows, plugin management, and context compaction.\n\nFor questions about DSH and plugin or preset work you request, the dsh-doc skill guides the agent to the installed documentation and source. Its instructions load only when requested or relevant; loading it does not change files, tools, or the profile.\n\n### When to choose it\n\nStart here for everyday coding, file work, and research. Standard mode can also write scripts and process files in batches. PTC changes how tool calls are organized; it is not required for batch tasks."
     },
     {
       "id": "settings.agentPreset:guideStandardIntro",
@@ -18955,8 +21070,8 @@
       "id": "settings.models:addCustomHint",
       "namespace": "settings.models",
       "key": "addCustomHint",
-      "zh": "连接中转站、自部署服务或其他兼容 OpenAI / Anthropic 协议的接口，需填写 API 地址、协议和模型。",
-      "en": "Connect a relay, a self-hosted server, or any other OpenAI- or Anthropic-compatible endpoint by its base URL, protocol, and models."
+      "zh": "连接中转站、自部署服务或其他兼容 OpenAI / Anthropic / Gemini 协议的接口，需填写 API 地址、协议和模型。",
+      "en": "Connect a relay, a self-hosted server, or any other OpenAI-, Anthropic-, or Gemini-compatible endpoint by its base URL, protocol, and models."
     },
     {
       "id": "settings.models:addCustomUnavailable",
@@ -19146,6 +21261,13 @@
       "key": "customDisplayName",
       "zh": "显示名称",
       "en": "Display name"
+    },
+    {
+      "id": "settings.models:customGeminiBaseUrlPlaceholder",
+      "namespace": "settings.models",
+      "key": "customGeminiBaseUrlPlaceholder",
+      "zh": "https://gateway.example/v1beta",
+      "en": "https://gateway.example/v1beta"
     },
     {
       "id": "settings.models:customNeedsBaseUrl",
@@ -19449,11 +21571,32 @@
       "en": "Leave blank to use env as auth ({hint})"
     },
     {
-      "id": "settings.models:keyPlaceholderSaved",
+      "id": "settings.models:keyRemoveApplied",
       "namespace": "settings.models",
-      "key": "keyPlaceholderSaved",
-      "zh": "留空使用已保存凭据",
-      "en": "Leave blank to use saved credentials"
+      "key": "keyRemoveApplied",
+      "zh": "密钥已清除，请重试保存以完成配置更新；此删除无法撤销",
+      "en": "Key cleared. Apply again to finish settings; this deletion cannot be undone."
+    },
+    {
+      "id": "settings.models:keyRemovePending",
+      "namespace": "settings.models",
+      "key": "keyRemovePending",
+      "zh": "保存以清除已保存的 API key，并改用环境认证。",
+      "en": "Apply to clear the saved API key and use environment authentication."
+    },
+    {
+      "id": "settings.models:keyRemovePendingEnvironment",
+      "namespace": "settings.models",
+      "key": "keyRemovePendingEnvironment",
+      "zh": "保存以清除已保存的 API key。之后使用环境认证（{hint}）。",
+      "en": "Apply to clear the saved API key. Environment authentication will be used ({hint})."
+    },
+    {
+      "id": "settings.models:keyReplacePending",
+      "namespace": "settings.models",
+      "key": "keyReplacePending",
+      "zh": "保存以替换已保存的 API key。",
+      "en": "Apply to replace the saved API key."
     },
     {
       "id": "settings.models:keyRequired",
@@ -19468,6 +21611,13 @@
       "key": "keyReveal",
       "zh": "显示密钥",
       "en": "Show secret"
+    },
+    {
+      "id": "settings.models:keySaved",
+      "namespace": "settings.models",
+      "key": "keySaved",
+      "zh": "使用已保存的 API key。",
+      "en": "Use the existing saved API key."
     },
     {
       "id": "settings.models:loadFailed",
@@ -19631,6 +21781,13 @@
       "en": "Level"
     },
     {
+      "id": "settings.models:modelReasoningLevelsOnly",
+      "namespace": "settings.models",
+      "key": "modelReasoningLevelsOnly",
+      "zh": "此 API 协议仅接受 minimal、low、medium 和 high 档位，且每个档位的 API 参数值须与档位名称相同。请修改或删除其他档位。",
+      "en": "This API protocol accepts only the minimal, low, medium, and high levels, each with its level name as the API value. Change or remove the other levels."
+    },
+    {
       "id": "settings.models:modelReasoningNeedsLevel",
       "namespace": "settings.models",
       "key": "modelReasoningNeedsLevel",
@@ -19743,6 +21900,13 @@
       "en": "Anthropic Messages"
     },
     {
+      "id": "settings.models:protocolGemini",
+      "namespace": "settings.models",
+      "key": "protocolGemini",
+      "zh": "Gemini API",
+      "en": "Gemini API"
+    },
+    {
       "id": "settings.models:protocolOpenAiCompletions",
       "namespace": "settings.models",
       "key": "protocolOpenAiCompletions",
@@ -19818,6 +21982,209 @@
       "key": "retry",
       "zh": "重试",
       "en": "Retry"
+    },
+    {
+      "id": "settings.models:retryAlwaysHint",
+      "namespace": "settings.models",
+      "key": "retryAlwaysHint",
+      "zh": "失败的请求会持续重试，直到成功或本轮被停止。",
+      "en": "Failed requests retry until they succeed or the turn is stopped."
+    },
+    {
+      "id": "settings.models:retryBackoff",
+      "namespace": "settings.models",
+      "key": "retryBackoff",
+      "zh": "退避",
+      "en": "Backoff"
+    },
+    {
+      "id": "settings.models:retryCodeAdd",
+      "namespace": "settings.models",
+      "key": "retryCodeAdd",
+      "zh": "添加",
+      "en": "Add"
+    },
+    {
+      "id": "settings.models:retryCodeCustom",
+      "namespace": "settings.models",
+      "key": "retryCodeCustom",
+      "zh": "自定义错误码",
+      "en": "Custom error code"
+    },
+    {
+      "id": "settings.models:retryCodeEmptyResponse",
+      "namespace": "settings.models",
+      "key": "retryCodeEmptyResponse",
+      "zh": "空响应",
+      "en": "Empty response"
+    },
+    {
+      "id": "settings.models:retryCodeMalformedResponse",
+      "namespace": "settings.models",
+      "key": "retryCodeMalformedResponse",
+      "zh": "响应格式错误",
+      "en": "Malformed response"
+    },
+    {
+      "id": "settings.models:retryCodeQuota",
+      "namespace": "settings.models",
+      "key": "retryCodeQuota",
+      "zh": "配额已用尽",
+      "en": "Quota exceeded"
+    },
+    {
+      "id": "settings.models:retryCodeRateLimit",
+      "namespace": "settings.models",
+      "key": "retryCodeRateLimit",
+      "zh": "请求限流",
+      "en": "Rate limited"
+    },
+    {
+      "id": "settings.models:retryCodeServer",
+      "namespace": "settings.models",
+      "key": "retryCodeServer",
+      "zh": "服务器错误",
+      "en": "Server error"
+    },
+    {
+      "id": "settings.models:retryCodeStreamClosed",
+      "namespace": "settings.models",
+      "key": "retryCodeStreamClosed",
+      "zh": "流提前结束",
+      "en": "Stream closed early"
+    },
+    {
+      "id": "settings.models:retryCodeTimeout",
+      "namespace": "settings.models",
+      "key": "retryCodeTimeout",
+      "zh": "超时",
+      "en": "Timeout"
+    },
+    {
+      "id": "settings.models:retryCodeTransport",
+      "namespace": "settings.models",
+      "key": "retryCodeTransport",
+      "zh": "网络错误",
+      "en": "Network error"
+    },
+    {
+      "id": "settings.models:retryCodes",
+      "namespace": "settings.models",
+      "key": "retryCodes",
+      "zh": "错误码",
+      "en": "Error codes"
+    },
+    {
+      "id": "settings.models:retryCodesDuplicate",
+      "namespace": "settings.models",
+      "key": "retryCodesDuplicate",
+      "zh": "每个错误码只能出现一次。",
+      "en": "Each error code may appear once."
+    },
+    {
+      "id": "settings.models:retryCodesInvalid",
+      "namespace": "settings.models",
+      "key": "retryCodesInvalid",
+      "zh": "错误码必须是非空文本。",
+      "en": "Error codes must be non-empty text."
+    },
+    {
+      "id": "settings.models:retryDelayOrder",
+      "namespace": "settings.models",
+      "key": "retryDelayOrder",
+      "zh": "初始延迟不能大于最大延迟。",
+      "en": "Initial delay cannot exceed max delay."
+    },
+    {
+      "id": "settings.models:retryInitialDelay",
+      "namespace": "settings.models",
+      "key": "retryInitialDelay",
+      "zh": "初始延迟 (ms)",
+      "en": "Initial delay (ms)"
+    },
+    {
+      "id": "settings.models:retryJitter",
+      "namespace": "settings.models",
+      "key": "retryJitter",
+      "zh": "抖动比例",
+      "en": "Jitter ratio"
+    },
+    {
+      "id": "settings.models:retryMaxDelay",
+      "namespace": "settings.models",
+      "key": "retryMaxDelay",
+      "zh": "最大延迟 (ms)",
+      "en": "Max delay (ms)"
+    },
+    {
+      "id": "settings.models:retryMaxRetries",
+      "namespace": "settings.models",
+      "key": "retryMaxRetries",
+      "zh": "最大重试次数",
+      "en": "Max retries"
+    },
+    {
+      "id": "settings.models:retryModeAlways",
+      "namespace": "settings.models",
+      "key": "retryModeAlways",
+      "zh": "所有错误",
+      "en": "All errors"
+    },
+    {
+      "id": "settings.models:retryModeDefault",
+      "namespace": "settings.models",
+      "key": "retryModeDefault",
+      "zh": "默认（{mode}）",
+      "en": "Default ({mode})"
+    },
+    {
+      "id": "settings.models:retryModeNormal",
+      "namespace": "settings.models",
+      "key": "retryModeNormal",
+      "zh": "仅临时错误",
+      "en": "Transient errors"
+    },
+    {
+      "id": "settings.models:retryPolicy",
+      "namespace": "settings.models",
+      "key": "retryPolicy",
+      "zh": "重试策略",
+      "en": "Retry policy"
+    },
+    {
+      "id": "settings.models:retryValueInteger",
+      "namespace": "settings.models",
+      "key": "retryValueInteger",
+      "zh": "请输入整数。",
+      "en": "Enter a whole number."
+    },
+    {
+      "id": "settings.models:retryValueMax",
+      "namespace": "settings.models",
+      "key": "retryValueMax",
+      "zh": "不能大于 {max}。",
+      "en": "Must be at most {max}."
+    },
+    {
+      "id": "settings.models:retryValueMin",
+      "namespace": "settings.models",
+      "key": "retryValueMin",
+      "zh": "不能小于 {min}。",
+      "en": "Must be at least {min}."
+    },
+    {
+      "id": "settings.models:retryValueNumber",
+      "namespace": "settings.models",
+      "key": "retryValueNumber",
+      "zh": "请输入数字。",
+      "en": "Enter a number."
+    },
+    {
+      "id": "settings.models:retryValuePositive",
+      "namespace": "settings.models",
+      "key": "retryValuePositive",
+      "zh": "必须大于 0。",
+      "en": "Must be greater than 0."
     },
     {
       "id": "settings.models:savedProvider",
@@ -20006,7 +22373,7 @@
       "id": "settings.permission:confirm.description",
       "namespace": "settings.permission",
       "key": "confirm.description",
-      "zh": "此设置用于之后新建的会话。完全访问不再逐次请求 DSH 工具审批；Android 和设备系统授权仍单独处理。",
+      "zh": "本次选择应用于之后新建的会话。完全访问将不再显示 DSH 工具审批，但不会授予 Android 或设备系统权限。",
       "en": "Full access lets new sessions reduce confirmation steps and perform more actions directly, including sensitive operations, file changes, or external commands. Only use it when you trust subsequent tasks."
     },
     {
@@ -20055,7 +22422,7 @@
       "id": "settings.permission:preset.retired",
       "namespace": "settings.permission",
       "key": "preset.retired",
-      "zh": "历史权限配置",
+      "zh": "历史权限设置",
       "en": "Legacy permission settings",
       "upstreamMissing": [
         "de",
@@ -20928,20 +23295,6 @@
       "en": "px"
     },
     {
-      "id": "settings.webSearch:apiKey",
-      "namespace": "settings.webSearch",
-      "key": "apiKey",
-      "zh": "API Key",
-      "en": "API key"
-    },
-    {
-      "id": "settings.webSearch:apiKeyHint",
-      "namespace": "settings.webSearch",
-      "key": "apiKeyHint",
-      "zh": "不写入设置文件。留空表示保持当前密钥。",
-      "en": "Stored outside the settings file. Leave blank to keep the current key."
-    },
-    {
       "id": "settings.webSearch:apiKeySet",
       "namespace": "settings.webSearch",
       "key": "apiKeySet",
@@ -20949,25 +23302,81 @@
       "en": "A key is configured."
     },
     {
-      "id": "settings.webSearch:apiKeyUnset",
+      "id": "settings.webSearch:apiKeyUnsetApi",
       "namespace": "settings.webSearch",
-      "key": "apiKeyUnset",
-      "zh": "未配置密钥；仅使用 DeepSeek 账号模型的对话可以通过默认接口地址搜索。",
-      "en": "No key is configured; only conversations using a DeepSeek Account model can search, through the default endpoint."
+      "key": "apiKeyUnsetApi",
+      "zh": "未配置密钥。",
+      "en": "No key is configured."
     },
     {
       "id": "settings.webSearch:baseUrl",
       "namespace": "settings.webSearch",
       "key": "baseUrl",
-      "zh": "Messages API 基础地址",
-      "en": "Messages API base URL"
+      "zh": "Base URL",
+      "en": "Base URL"
     },
     {
       "id": "settings.webSearch:baseUrlHint",
       "namespace": "settings.webSearch",
       "key": "baseUrlHint",
-      "zh": "填写含 API 前缀的地址，例如 https://api.deepseek.com/anthropic/v1；程序追加 /messages，留空恢复默认。",
-      "en": "Include the API prefix, such as https://api.deepseek.com/anthropic/v1. The provider appends /messages. Leave blank to restore the default."
+      "zh": "填写含 API 前缀的地址；留空时使用官方地址；程序追加 {path}",
+      "en": "Include the API prefix. Leave blank to use the official address. The provider appends {path}."
+    },
+    {
+      "id": "settings.webSearch:billing",
+      "namespace": "settings.webSearch",
+      "key": "billing",
+      "zh": "计费方式",
+      "en": "Billing"
+    },
+    {
+      "id": "settings.webSearch:billingAccount",
+      "namespace": "settings.webSearch",
+      "key": "billingAccount",
+      "zh": "已登录的 DeepSeek 账号",
+      "en": "Signed-in DeepSeek account"
+    },
+    {
+      "id": "settings.webSearch:billingAccountHint",
+      "namespace": "settings.webSearch",
+      "key": "billingAccountHint",
+      "zh": "需要先登录 DeepSeek 账号。",
+      "en": "Requires signing in to DeepSeek."
+    },
+    {
+      "id": "settings.webSearch:billingAdvancedOverride",
+      "namespace": "settings.webSearch",
+      "key": "billingAdvancedOverride",
+      "zh": "已被 {fields} 覆盖",
+      "en": "Overridden by {fields}"
+    },
+    {
+      "id": "settings.webSearch:billingApiKey",
+      "namespace": "settings.webSearch",
+      "key": "billingApiKey",
+      "zh": "DeepSeek API Key",
+      "en": "DeepSeek API key"
+    },
+    {
+      "id": "settings.webSearch:billingApiKeyHint",
+      "namespace": "settings.webSearch",
+      "key": "billingApiKeyHint",
+      "zh": "使用「模型」页配置的 API Key，需要先配置。",
+      "en": "Uses the API key from the Models page; set one first."
+    },
+    {
+      "id": "settings.webSearch:billingAuto",
+      "namespace": "settings.webSearch",
+      "key": "billingAuto",
+      "zh": "自动",
+      "en": "Automatic"
+    },
+    {
+      "id": "settings.webSearch:billingAutoHint",
+      "namespace": "settings.webSearch",
+      "key": "billingAutoHint",
+      "zh": "跟随当前会话的 DeepSeek 账号或 API Key；会话用其他模型时，优先用 API Key，没有则用已登录账号。",
+      "en": "Follows the conversation's DeepSeek account or API key; with other models, uses the API key first, then the signed-in account."
     },
     {
       "id": "settings.webSearch:count",
@@ -20980,15 +23389,29 @@
       "id": "settings.webSearch:countHint",
       "namespace": "settings.webSearch",
       "key": "countHint",
-      "zh": "每个查询返回的结果条数，须为 1–50 的整数，默认 10；不控制搜索调用次数。web_search 保留的来源数不超过其自身的结果上限。",
-      "en": "Results returned per query: an integer from 1 to 50, default 10. This controls result count, not search calls. web_search keeps no more sources than its own result limit."
+      "zh": "每次搜索返回的结果条数，1–50，默认 10。",
+      "en": "Results returned per search: 1 to 50, default 10."
+    },
+    {
+      "id": "settings.webSearch:credential",
+      "namespace": "settings.webSearch",
+      "key": "credential",
+      "zh": "API Key",
+      "en": "API key"
     },
     {
       "id": "settings.webSearch:description",
       "namespace": "settings.webSearch",
       "key": "description",
-      "zh": "设置 DeepSeek 的搜索提供方。",
-      "en": "Set up the DeepSeek search provider."
+      "zh": "选择网页搜索与网页获取使用的提供方。",
+      "en": "Choose the providers web search and web fetch use."
+    },
+    {
+      "id": "settings.webSearch:fetchSection",
+      "namespace": "settings.webSearch",
+      "key": "fetchSection",
+      "zh": "网页获取提供方",
+      "en": "Web fetch provider"
     },
     {
       "id": "settings.webSearch:invalidCount",
@@ -20998,6 +23421,13 @@
       "en": "Enter an integer from 1 to 50, or leave blank to use the default."
     },
     {
+      "id": "settings.webSearch:invalidMaxUses",
+      "namespace": "settings.webSearch",
+      "key": "invalidMaxUses",
+      "zh": "请填正整数；留空表示使用默认值",
+      "en": "Enter a positive integer, or leave blank to use the default."
+    },
+    {
       "id": "settings.webSearch:invalidNumber",
       "namespace": "settings.webSearch",
       "key": "invalidNumber",
@@ -21005,18 +23435,25 @@
       "en": "Enter a number, or leave blank to use the default."
     },
     {
+      "id": "settings.webSearch:legacyKeyHint",
+      "namespace": "settings.webSearch",
+      "key": "legacyKeyHint",
+      "zh": "账号模型发起的请求使用已登录账号；其他请求使用此 API Key（{ref}），默认与「模型」页共用",
+      "en": "Uses the signed-in account on account-model requests; otherwise uses this API key ({ref}), shared with Models by default."
+    },
+    {
       "id": "settings.webSearch:maxUses",
       "namespace": "settings.webSearch",
       "key": "maxUses",
       "zh": "单次请求最多搜索次数",
-      "en": "Max searches per request"
+      "en": "Maximum searches per request"
     },
     {
       "id": "settings.webSearch:maxUsesHint",
       "namespace": "settings.webSearch",
       "key": "maxUsesHint",
-      "zh": "辅助模型在一次 Messages 请求内最多可执行的搜索次数，仅适用于 Messages API。",
-      "en": "How many searches the auxiliary model may run within one Messages request. Applies only to the Messages API."
+      "zh": "每次 Messages 请求允许的服务端搜索次数上限，须为正整数，默认 5",
+      "en": "Maximum server-side searches per Messages request: a positive integer, default 5."
     },
     {
       "id": "settings.webSearch:overridden",
@@ -21024,6 +23461,62 @@
       "key": "overridden",
       "zh": "已覆盖",
       "en": "Overridden"
+    },
+    {
+      "id": "settings.webSearch:pluginProviderHint",
+      "namespace": "settings.webSearch",
+      "key": "pluginProviderHint",
+      "zh": "请在该插件自己的设置中配置",
+      "en": "Configure this provider in its own plugin settings."
+    },
+    {
+      "id": "settings.webSearch:providerAuto",
+      "namespace": "settings.webSearch",
+      "key": "providerAuto",
+      "zh": "自动选择",
+      "en": "Automatic"
+    },
+    {
+      "id": "settings.webSearch:providerDeepSeek",
+      "namespace": "settings.webSearch",
+      "key": "providerDeepSeek",
+      "zh": "DeepSeek Search API",
+      "en": "DeepSeek Search API"
+    },
+    {
+      "id": "settings.webSearch:providerDeepSeekFetch",
+      "namespace": "settings.webSearch",
+      "key": "providerDeepSeekFetch",
+      "zh": "DeepSeek Fetch API",
+      "en": "DeepSeek Fetch API"
+    },
+    {
+      "id": "settings.webSearch:providerLegacy",
+      "namespace": "settings.webSearch",
+      "key": "providerLegacy",
+      "zh": "DeepSeek 服务端搜索",
+      "en": "DeepSeek server-side search"
+    },
+    {
+      "id": "settings.webSearch:providerLocal",
+      "namespace": "settings.webSearch",
+      "key": "providerLocal",
+      "zh": "本机直接获取",
+      "en": "Direct fetch"
+    },
+    {
+      "id": "settings.webSearch:providerMissing",
+      "namespace": "settings.webSearch",
+      "key": "providerMissing",
+      "zh": "{id}（未加载）",
+      "en": "{id} (not loaded)"
+    },
+    {
+      "id": "settings.webSearch:providersFailed",
+      "namespace": "settings.webSearch",
+      "key": "providersFailed",
+      "zh": "无法读取提供方列表，此菜单可能不完整",
+      "en": "Couldn't load the provider list, so this menu may be incomplete."
     },
     {
       "id": "settings.webSearch:readOnly",
@@ -21038,6 +23531,13 @@
       "key": "reset",
       "zh": "恢复默认",
       "en": "Reset to default"
+    },
+    {
+      "id": "settings.webSearch:retry",
+      "namespace": "settings.webSearch",
+      "key": "retry",
+      "zh": "重试",
+      "en": "Retry"
     },
     {
       "id": "settings.webSearch:save",
@@ -21061,24 +23561,17 @@
       "en": "Saving…"
     },
     {
-      "id": "settings.webSearch:searchApiBaseUrl",
+      "id": "settings.webSearch:searchAutoHint",
       "namespace": "settings.webSearch",
-      "key": "searchApiBaseUrl",
-      "zh": "Search / Fetch API 基础地址",
-      "en": "Search / Fetch API base URL"
-    },
-    {
-      "id": "settings.webSearch:searchApiBaseUrlHint",
-      "namespace": "settings.webSearch",
-      "key": "searchApiBaseUrlHint",
-      "zh": "填写含 API 前缀的地址，例如 https://api.deepseek.com/v1/tools；程序追加 /search 或 /fetch，留空恢复默认。",
-      "en": "Include the API prefix, such as https://api.deepseek.com/v1/tools. The provider appends /search or /fetch. Leave blank to restore the default."
+      "key": "searchAutoHint",
+      "zh": "跟随当前会话的模型：DeepSeek 模型使用 DeepSeek 服务端搜索，搜索不按次收费；其他模型使用 DeepSeek Search API。",
+      "en": "Follows the conversation's model: DeepSeek models use DeepSeek server-side search, which has no per-search charge; other models use DeepSeek Search API."
     },
     {
       "id": "settings.webSearch:searchGuide",
       "namespace": "settings.webSearch",
       "key": "searchGuide",
-      "zh": "网页搜索与抓取指南",
+      "zh": "网页搜索与获取指南",
       "en": "Search & Fetch guide"
     },
     {
@@ -21089,11 +23582,18 @@
       "en": "https://api-docs.deepseek.com/guides/search"
     },
     {
+      "id": "settings.webSearch:searchSection",
+      "namespace": "settings.webSearch",
+      "key": "searchSection",
+      "zh": "网页搜索提供方",
+      "en": "Web search provider"
+    },
+    {
       "id": "settings.webSearch:title",
       "namespace": "settings.webSearch",
       "key": "title",
-      "zh": "网页搜索",
-      "en": "Web search"
+      "zh": "网页搜索与获取",
+      "en": "Web search and fetch"
     },
     {
       "id": "settings.webSearch:unavailable",
@@ -21101,20 +23601,6 @@
       "key": "unavailable",
       "zh": "该插件当前未加载，暂时无法配置。",
       "en": "This plugin is not loaded, so it cannot be configured right now."
-    },
-    {
-      "id": "settings.webSearch:useSearchApi",
-      "namespace": "settings.webSearch",
-      "key": "useSearchApi",
-      "zh": "启用新版 Web 搜索 API",
-      "en": "Use the new Web Search API"
-    },
-    {
-      "id": "settings.webSearch:useSearchApiHint",
-      "namespace": "settings.webSearch",
-      "key": "useSearchApiHint",
-      "zh": "默认关闭，搜索通过 DeepSeek Messages 完成。新版 Web 搜索 API 功能与计费详见",
-      "en": "Off by default: search runs through DeepSeek Messages. For the new Web Search API's features and pricing, see the "
     },
     {
       "id": "settings:close",
@@ -21159,6 +23645,111 @@
       "en": "Reconnecting, reconnect now"
     },
     {
+      "id": "settings:desktop.channel.description",
+      "namespace": "settings",
+      "key": "desktop.channel.description",
+      "zh": "正式版适合日常使用；开发版可提前体验新功能，但可能不稳定。",
+      "en": "Stable is suitable for everyday use. Development offers early access to new features but may be unstable."
+    },
+    {
+      "id": "settings:desktop.channel.details",
+      "namespace": "settings",
+      "key": "desktop.channel.details",
+      "zh": "查看详情",
+      "en": "View details"
+    },
+    {
+      "id": "settings:desktop.channel.error",
+      "namespace": "settings",
+      "key": "desktop.channel.error",
+      "zh": "未能应用更新配置。请点击桌面更新入口查看原因。",
+      "en": "Could not apply update settings. Open the desktop update indicator for details."
+    },
+    {
+      "id": "settings:desktop.channel.nightly",
+      "namespace": "settings",
+      "key": "desktop.channel.nightly",
+      "zh": "开发版",
+      "en": "Development"
+    },
+    {
+      "id": "settings:desktop.channel.readError",
+      "namespace": "settings",
+      "key": "desktop.channel.readError",
+      "zh": "无法读取更新渠道状态，请重启应用。",
+      "en": "Could not read the update channel. Restart the app."
+    },
+    {
+      "id": "settings:desktop.channel.result.applied",
+      "namespace": "settings",
+      "key": "desktop.channel.result.applied",
+      "zh": "更新渠道已切换",
+      "en": "Update channel changed"
+    },
+    {
+      "id": "settings:desktop.channel.result.apply",
+      "namespace": "settings",
+      "key": "desktop.channel.result.apply",
+      "zh": "设置保存异常",
+      "en": "Settings save error"
+    },
+    {
+      "id": "settings:desktop.channel.result.configuration",
+      "namespace": "settings",
+      "key": "desktop.channel.result.configuration",
+      "zh": "配置文件异常，更新已暂停",
+      "en": "Settings file error; updates are paused"
+    },
+    {
+      "id": "settings:desktop.channel.result.format",
+      "namespace": "settings",
+      "key": "desktop.channel.result.format",
+      "zh": "保存失败，配置文件格式有误",
+      "en": "Could not save: invalid settings file"
+    },
+    {
+      "id": "settings:desktop.channel.result.permission",
+      "namespace": "settings",
+      "key": "desktop.channel.result.permission",
+      "zh": "保存失败，没有写入权限",
+      "en": "Could not save: permission denied"
+    },
+    {
+      "id": "settings:desktop.channel.result.save",
+      "namespace": "settings",
+      "key": "desktop.channel.result.save",
+      "zh": "保存失败",
+      "en": "Could not save"
+    },
+    {
+      "id": "settings:desktop.channel.result.uncertain",
+      "namespace": "settings",
+      "key": "desktop.channel.result.uncertain",
+      "zh": "设置保存异常",
+      "en": "Settings save error"
+    },
+    {
+      "id": "settings:desktop.channel.stable",
+      "namespace": "settings",
+      "key": "desktop.channel.stable",
+      "zh": "正式版",
+      "en": "Stable"
+    },
+    {
+      "id": "settings:desktop.channel.title",
+      "namespace": "settings",
+      "key": "desktop.channel.title",
+      "zh": "更新渠道",
+      "en": "Update channel"
+    },
+    {
+      "id": "settings:desktop.channel.unavailable",
+      "namespace": "settings",
+      "key": "desktop.channel.unavailable",
+      "zh": "配置不可用",
+      "en": "Configuration unavailable"
+    },
+    {
       "id": "settings:desktop.update.available",
       "namespace": "settings",
       "key": "desktop.update.available",
@@ -21187,6 +23778,48 @@
       "en": "Checking for updates…"
     },
     {
+      "id": "settings:desktop.update.configuration.channel",
+      "namespace": "settings",
+      "key": "desktop.update.configuration.channel",
+      "zh": "更新已暂停：channel 只能是 nightly 或 stable",
+      "en": "Updates paused: channel must be nightly or stable"
+    },
+    {
+      "id": "settings:desktop.update.configuration.cleanup",
+      "namespace": "settings",
+      "key": "desktop.update.configuration.cleanup",
+      "zh": "更新已暂停：无法清理旧更新，请重启应用",
+      "en": "Updates paused: cannot discard previous update; restart the app"
+    },
+    {
+      "id": "settings:desktop.update.configuration.format",
+      "namespace": "settings",
+      "key": "desktop.update.configuration.format",
+      "zh": "更新已暂停：配置文件格式有误",
+      "en": "Updates paused: invalid settings file"
+    },
+    {
+      "id": "settings:desktop.update.configuration.read",
+      "namespace": "settings",
+      "key": "desktop.update.configuration.read",
+      "zh": "更新已暂停：无法读取配置文件",
+      "en": "Updates paused: cannot read settings file"
+    },
+    {
+      "id": "settings:desktop.update.configurationFailed",
+      "namespace": "settings",
+      "key": "desktop.update.configurationFailed",
+      "zh": "未能应用更新配置。请点击桌面更新入口查看原因。",
+      "en": "Could not apply update settings. Open the desktop update indicator for details."
+    },
+    {
+      "id": "settings:desktop.update.downloadBusyFailed",
+      "namespace": "settings",
+      "key": "desktop.update.downloadBusyFailed",
+      "zh": "更新文件正被占用，请关闭占用它的程序后重试。",
+      "en": "An update file is in use. Close the program using it, then retry."
+    },
+    {
       "id": "settings:desktop.update.downloadDetail",
       "namespace": "settings",
       "key": "desktop.update.downloadDetail",
@@ -21206,6 +23839,20 @@
       "key": "desktop.update.downloadNetworkFailed",
       "zh": "下载更新失败，请检查网络连接后重试。",
       "en": "Could not download the update. Check your connection and try again."
+    },
+    {
+      "id": "settings:desktop.update.downloadPermissionFailed",
+      "namespace": "settings",
+      "key": "desktop.update.downloadPermissionFailed",
+      "zh": "无法写入更新文件，请检查目录权限后重试。",
+      "en": "Cannot write the update files. Check the folder permissions and retry."
+    },
+    {
+      "id": "settings:desktop.update.downloadSpaceFailed",
+      "namespace": "settings",
+      "key": "desktop.update.downloadSpaceFailed",
+      "zh": "磁盘空间不足，无法下载更新。请释放空间后重试。",
+      "en": "Not enough disk space to download the update. Free up space, then retry."
     },
     {
       "id": "settings:desktop.update.fullscreenTimeout",
@@ -21831,6 +24478,20 @@
       "en": "More"
     },
     {
+      "id": "sidebar:panels.unpin",
+      "namespace": "sidebar",
+      "key": "panels.unpin",
+      "zh": "从侧边栏取消固定{name}",
+      "en": "Unpin {name} from sidebar"
+    },
+    {
+      "id": "sidebar:panels.unpinTooltip",
+      "namespace": "sidebar",
+      "key": "panels.unpinTooltip",
+      "zh": "从左侧栏取消固定",
+      "en": "Unpin from left sidebar"
+    },
+    {
       "id": "sidebar:session.new",
       "namespace": "sidebar",
       "key": "session.new",
@@ -22356,6 +25017,13 @@
       "en": "Empty directory"
     },
     {
+      "id": "sidebarFiles:emptyHidden",
+      "namespace": "sidebarFiles",
+      "key": "emptyHidden",
+      "zh": "隐藏项未显示",
+      "en": "Hidden entries are not shown"
+    },
+    {
       "id": "sidebarFiles:entry.noViewer",
       "namespace": "sidebarFiles",
       "key": "entry.noViewer",
@@ -22452,6 +25120,223 @@
       "key": "reload",
       "zh": "重新读取",
       "en": "Reload"
+    },
+    {
+      "id": "sidebarFiles:search.clear",
+      "namespace": "sidebarFiles",
+      "key": "search.clear",
+      "zh": "清空搜索",
+      "en": "Clear search"
+    },
+    {
+      "id": "sidebarFiles:search.empty",
+      "namespace": "sidebarFiles",
+      "key": "search.empty",
+      "zh": "没有匹配项",
+      "en": "No matches"
+    },
+    {
+      "id": "sidebarFiles:search.emptyHint.all",
+      "namespace": "sidebarFiles",
+      "key": "search.emptyHint.all",
+      "zh": "隐藏项、排除的文件和目录，以及被忽略文件（如 .gitignore）忽略的文件和目录不会显示。",
+      "en": "Hidden entries, excluded files and directories, and those ignored by ignore files such as .gitignore, are not shown."
+    },
+    {
+      "id": "sidebarFiles:search.emptyHint.both",
+      "namespace": "sidebarFiles",
+      "key": "search.emptyHint.both",
+      "zh": "隐藏项以及排除的文件和目录不会显示。",
+      "en": "Hidden entries and excluded files and directories are not shown."
+    },
+    {
+      "id": "sidebarFiles:search.emptyHint.excluded",
+      "namespace": "sidebarFiles",
+      "key": "search.emptyHint.excluded",
+      "zh": "排除的文件和目录不会显示。",
+      "en": "Excluded files and directories are not shown."
+    },
+    {
+      "id": "sidebarFiles:search.emptyHint.excludedIgnored",
+      "namespace": "sidebarFiles",
+      "key": "search.emptyHint.excludedIgnored",
+      "zh": "排除的文件和目录，以及被忽略文件（如 .gitignore）忽略的文件和目录不会显示。",
+      "en": "Excluded files and directories, and those ignored by ignore files such as .gitignore, are not shown."
+    },
+    {
+      "id": "sidebarFiles:search.emptyHint.hidden",
+      "namespace": "sidebarFiles",
+      "key": "search.emptyHint.hidden",
+      "zh": "隐藏项不会显示。",
+      "en": "Hidden entries are not shown."
+    },
+    {
+      "id": "sidebarFiles:search.emptyHint.hiddenIgnored",
+      "namespace": "sidebarFiles",
+      "key": "search.emptyHint.hiddenIgnored",
+      "zh": "隐藏项，以及被忽略文件（如 .gitignore）忽略的文件和目录不会显示。",
+      "en": "Hidden entries, and files and directories ignored by ignore files such as .gitignore, are not shown."
+    },
+    {
+      "id": "sidebarFiles:search.emptyHint.ignored",
+      "namespace": "sidebarFiles",
+      "key": "search.emptyHint.ignored",
+      "zh": "被忽略文件（如 .gitignore）忽略的文件和目录不会显示。",
+      "en": "Files and directories ignored by ignore files such as .gitignore are not shown."
+    },
+    {
+      "id": "sidebarFiles:search.emptyHint.label",
+      "namespace": "sidebarFiles",
+      "key": "search.emptyHint.label",
+      "zh": "为什么没有匹配项",
+      "en": "Why there are no matches"
+    },
+    {
+      "id": "sidebarFiles:search.failed",
+      "namespace": "sidebarFiles",
+      "key": "search.failed",
+      "zh": "搜索失败：{message}",
+      "en": "Search failed: {message}"
+    },
+    {
+      "id": "sidebarFiles:search.incomplete",
+      "namespace": "sidebarFiles",
+      "key": "search.incomplete",
+      "zh": "文件数超过搜索上限，或部分目录未能读取，因此结果可能不完整。",
+      "en": "The search passed its file limit, or some directories could not be read, so results may be incomplete."
+    },
+    {
+      "id": "sidebarFiles:search.placeholder",
+      "namespace": "sidebarFiles",
+      "key": "search.placeholder",
+      "zh": "搜索文件",
+      "en": "Search files"
+    },
+    {
+      "id": "sidebarFiles:search.results",
+      "namespace": "sidebarFiles",
+      "key": "search.results",
+      "zh": "{count} 个结果",
+      "en": "Results: {count}"
+    },
+    {
+      "id": "sidebarFiles:search.retry",
+      "namespace": "sidebarFiles",
+      "key": "search.retry",
+      "zh": "重试",
+      "en": "Retry"
+    },
+    {
+      "id": "sidebarFiles:search.settings",
+      "namespace": "sidebarFiles",
+      "key": "search.settings",
+      "zh": "搜索设置",
+      "en": "Search settings"
+    },
+    {
+      "id": "sidebarFiles:search.showHidden",
+      "namespace": "sidebarFiles",
+      "key": "search.showHidden",
+      "zh": "显示隐藏项",
+      "en": "Show hidden entries"
+    },
+    {
+      "id": "sidebarFiles:search.truncated",
+      "namespace": "sidebarFiles",
+      "key": "search.truncated",
+      "zh": "只显示前 {count} 个结果，请缩小搜索范围。",
+      "en": "Showing only the first {count} results. Narrow the search to see the rest."
+    },
+    {
+      "id": "sidebarFiles:settings.add",
+      "namespace": "sidebarFiles",
+      "key": "settings.add",
+      "zh": "添加文件或目录",
+      "en": "Add file or directory"
+    },
+    {
+      "id": "sidebarFiles:settings.close",
+      "namespace": "sidebarFiles",
+      "key": "settings.close",
+      "zh": "关闭",
+      "en": "Close"
+    },
+    {
+      "id": "sidebarFiles:settings.description",
+      "namespace": "sidebarFiles",
+      "key": "settings.description",
+      "zh": "只影响搜索结果，不影响文件树。",
+      "en": "Only affects search results, not the file tree."
+    },
+    {
+      "id": "sidebarFiles:settings.invalid.absolute",
+      "namespace": "sidebarFiles",
+      "key": "settings.invalid.absolute",
+      "zh": "请使用相对于工作区的路径。",
+      "en": "Use a path relative to the workspace."
+    },
+    {
+      "id": "sidebarFiles:settings.invalid.empty",
+      "namespace": "sidebarFiles",
+      "key": "settings.invalid.empty",
+      "zh": "请输入名称或相对路径。",
+      "en": "Enter a name or relative path."
+    },
+    {
+      "id": "sidebarFiles:settings.invalid.glob",
+      "namespace": "sidebarFiles",
+      "key": "settings.invalid.glob",
+      "zh": "路径不能包含通配符 * ? [ ] { } !。",
+      "en": "The path cannot contain wildcards * ? [ ] { } !."
+    },
+    {
+      "id": "sidebarFiles:settings.invalid.nul",
+      "namespace": "sidebarFiles",
+      "key": "settings.invalid.nul",
+      "zh": "路径不能包含 NUL 字符。",
+      "en": "The path cannot contain a NUL character."
+    },
+    {
+      "id": "sidebarFiles:settings.invalid.parent",
+      "namespace": "sidebarFiles",
+      "key": "settings.invalid.parent",
+      "zh": "路径不能包含 . 或 .. 段。",
+      "en": "The path cannot contain . or .. segments."
+    },
+    {
+      "id": "sidebarFiles:settings.remove",
+      "namespace": "sidebarFiles",
+      "key": "settings.remove",
+      "zh": "删除 {path}",
+      "en": "Remove {path}"
+    },
+    {
+      "id": "sidebarFiles:settings.respectGitignore",
+      "namespace": "sidebarFiles",
+      "key": "settings.respectGitignore",
+      "zh": "尊重忽略文件（.gitignore 等）",
+      "en": "Respect ignore files (.gitignore, etc.)"
+    },
+    {
+      "id": "sidebarFiles:settings.restore",
+      "namespace": "sidebarFiles",
+      "key": "settings.restore",
+      "zh": "还原默认列表",
+      "en": "Restore default list"
+    },
+    {
+      "id": "sidebarFiles:settings.title",
+      "namespace": "sidebarFiles",
+      "key": "settings.title",
+      "zh": "排除的文件和目录",
+      "en": "Excluded files and directories"
+    },
+    {
+      "id": "sidebarFiles:settings.toggle",
+      "namespace": "sidebarFiles",
+      "key": "settings.toggle",
+      "zh": "排除 {path}",
+      "en": "Exclude {path}"
     },
     {
       "id": "sidebarFiles:shortcut.noSession",
@@ -23033,6 +25918,41 @@
       "key": "attachmentEnded",
       "zh": "终端连接已结束，请重新连接。",
       "en": "The terminal connection ended. Reconnect to continue."
+    },
+    {
+      "id": "sidebarTerminal:badge.agent",
+      "namespace": "sidebarTerminal",
+      "key": "badge.agent",
+      "zh": "Agent",
+      "en": "Agent"
+    },
+    {
+      "id": "sidebarTerminal:badge.agentHint",
+      "namespace": "sidebarTerminal",
+      "key": "badge.agentHint",
+      "zh": "由 Agent 打开。你一输入就由你接管，Agent 之后只能读取。",
+      "en": "Opened by the agent. Typing here takes over; the agent can then only read it."
+    },
+    {
+      "id": "sidebarTerminal:badge.readOnlyHint",
+      "namespace": "sidebarTerminal",
+      "key": "badge.readOnlyHint",
+      "zh": "命令在 Agent 的只读沙箱里运行，包括你在这里输入的命令。",
+      "en": "Commands run in the agent's read-only sandbox, including commands you type here."
+    },
+    {
+      "id": "sidebarTerminal:badge.sandbox",
+      "namespace": "sidebarTerminal",
+      "key": "badge.sandbox",
+      "zh": "沙箱",
+      "en": "Sandbox"
+    },
+    {
+      "id": "sidebarTerminal:badge.workspaceWriteHint",
+      "namespace": "sidebarTerminal",
+      "key": "badge.workspaceWriteHint",
+      "zh": "命令在 Agent 的工作区沙箱里运行，包括你在这里输入的命令。",
+      "en": "Commands run in the agent's workspace sandbox, including commands you type here."
     },
     {
       "id": "sidebarTerminal:cleanupFailed",
@@ -24617,13 +27537,6 @@
       "en": "Expand {label} descendants"
     },
     {
-      "id": "subagent:catalog.migrationRequired",
-      "namespace": "subagent",
-      "key": "catalog.migrationRequired",
-      "zh": "需要迁移",
-      "en": "Migration required"
-    },
-    {
       "id": "subagent:count.running.one",
       "namespace": "subagent",
       "key": "count.running.one",
@@ -24736,6 +27649,13 @@
       "en": "Unable to load subagents"
     },
     {
+      "id": "subagent:load.idle",
+      "namespace": "subagent",
+      "key": "load.idle",
+      "zh": "尚未加载子智能体",
+      "en": "Subagents not loaded"
+    },
+    {
       "id": "subagent:loading.label",
       "namespace": "subagent",
       "key": "loading.label",
@@ -24792,11 +27712,32 @@
       "en": "Open {label} in sidebar"
     },
     {
-      "id": "subagent:readonly.body",
+      "id": "subagent:progress.active",
       "namespace": "subagent",
-      "key": "readonly.body",
-      "zh": "父会话当前不在线，重新打开父会话后即可继续发送消息。",
-      "en": "The parent session is offline; reopen it to continue sending messages."
+      "key": "progress.active",
+      "zh": "{count} 进行中",
+      "en": "{count} in progress"
+    },
+    {
+      "id": "subagent:progress.completed",
+      "namespace": "subagent",
+      "key": "progress.completed",
+      "zh": "{count} 已完成",
+      "en": "{count} completed"
+    },
+    {
+      "id": "subagent:progress.external",
+      "namespace": "subagent",
+      "key": "progress.external",
+      "zh": "{count} 外部任务",
+      "en": "{count} external"
+    },
+    {
+      "id": "subagent:progress.inactive",
+      "namespace": "subagent",
+      "key": "progress.inactive",
+      "zh": "{count} 未运行",
+      "en": "{count} not running"
     },
     {
       "id": "subagent:readonly.oneShot.body",
@@ -24832,6 +27773,20 @@
       "key": "retry",
       "zh": "重试",
       "en": "Retry"
+    },
+    {
+      "id": "subagent:section.empty",
+      "namespace": "subagent",
+      "key": "section.empty",
+      "zh": "暂无子智能体",
+      "en": "No subagents"
+    },
+    {
+      "id": "subagent:section.title",
+      "namespace": "subagent",
+      "key": "section.title",
+      "zh": "子智能体",
+      "en": "Subagents"
     },
     {
       "id": "subagent:sidebar.chat",

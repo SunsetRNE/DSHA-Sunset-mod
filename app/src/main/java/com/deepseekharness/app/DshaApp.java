@@ -15,6 +15,12 @@ public class DshaApp extends Application
       new com.deepseekharness.app.capabilities.CapabilityBroker(
           android.os.SystemClock::elapsedRealtime);
   private volatile String screenInstallationId;
+  private final com.deepseekharness.app.ui.UiFrameRate uiFrameRate =
+      new com.deepseekharness.app.ui.UiFrameRate(this);
+
+  public com.deepseekharness.app.ui.UiFrameRate uiFrameRate() {
+    return uiFrameRate;
+  }
 
   public com.deepseekharness.app.capabilities.CapabilityBroker capabilityBroker() {
     return screenCapabilityBroker;
@@ -274,6 +280,7 @@ public class DshaApp extends Application
     registerActivityLifecycleCallbacks(
         new com.deepseekharness.app.ui.ThemeController.PaletteHook());
     registerActivityLifecycleCallbacks(new com.deepseekharness.app.ui.ModernAndroidUi());
+    uiFrameRate.install();
     registerActivityLifecycleCallbacks(new ForegroundActivity());
     // 「隐藏后台」截图守卫与实验性严格模式：所有界面都要重放，不能只靠设置页开关。
     registerActivityLifecycleCallbacks(new com.deepseekharness.app.ui.RecentsPrivacyGuard());

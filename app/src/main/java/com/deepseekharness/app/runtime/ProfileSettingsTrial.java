@@ -160,7 +160,9 @@ public final class ProfileSettingsTrial {
       WebProcessManager manager = new WebProcessManager(proot, payload);
       RuntimeWorkPort.Work lease = RuntimeWorkPort.begin();
       Process process = null;
-      BoundedOutputDrain output = new BoundedOutputDrain();
+      Throwable primary = null;
+      Integer exitCode = null;
+      byte[] discarded = new byte[8192];
       try {
         String command =
             "export DSH_HOME="
@@ -188,10 +190,22 @@ public final class ProfileSettingsTrial {
         while (!fs.stat(result).type.equals("FILE")) {
           control.check();
           wait.check();
-          output.drain(process.getInputStream());
-          if (ProcessTermination.exited(process))
-            throw new IOException(
-                "SETTINGS_TRIAL_EXITED: exit=" + process.exitValue() + "\n" + output.diagnostics());
+          InputStream stdout = process.getInputStream();
+          int remaining = 256 * 1024;
+          int available;
+          while (remaining > 0 && (available = stdout.available()) > 0) {
+            int read =
+                stdout.read(
+                    discarded, 0, Math.min(discarded.length, Math.min(remaining, available)));
+            if (read <= 0) break;
+            remaining -= read;
+          }
+          if (ProcessTermination.exited(process)) {
+            // The guest publishes by rename; it may have exited just after committing the result.
+            if (fs.stat(result).type.equals("FILE")) break;
+            exitCode = process.exitValue();
+            throw new IOException("SETTINGS_TRIAL_EXITED");
+          }
           control.report(
               System.currentTimeMillis() - started > 60000
                   ? "TRIAL_STILL_WAITING"
@@ -209,63 +223,25 @@ public final class ProfileSettingsTrial {
             BackupJson.read(fs.small(result, BackupLimits.MANIFEST), BackupLimits.MANIFEST);
         if (!nonce.equals(review.get("nonce"))) throw new IOException("SETTINGS_TRIAL_GENERATION");
         if ("FAILED".equals(review.get("status")))
-          throw new IOException("SETTINGS_VALIDATION_FAILED:" + review.get("error"));
+          throw new IOException("SETTINGS_VALIDATION_FAILED");
+        if (!Set.of("VERIFIED", "PARTIAL_REVIEW").contains(String.valueOf(review.get("status"))))
+          throw new IOException("SETTINGS_TRIAL_RESULT_INVALID");
         return new Result(
             review,
             fs.small(new File(payload, profileRoot + "/cordis.patch.yml"), BackupLimits.MANIFEST));
-      } catch (IOException | RuntimeException error) {
-        String tail = output.diagnostics();
-        if (tail.length() > 8000) tail = tail.substring(tail.length() - 8000);
-        fs.atomic(
-            operation,
-            "failure.json",
-            BackupJson.write(
-                Map.of(
-                    "runtimeMode",
-                    "proot",
-                    "error",
-                    BackupErrorCode.from(error),
-                    "output",
-                    tail,
-                    "failedAt",
-                    System.currentTimeMillis()),
-                32768));
+      } catch (IOException | RuntimeException | Error error) {
+        primary = error;
         throw error;
       } finally {
-        boolean exited = process == null;
-        if (process != null) {
-          try {
-            String stopped = manager.stop();
-            if (stopped.isEmpty()) ProcessTermination.awaitExit(process, 3000);
-            exited = stopped.isEmpty() && manager.confirmTrackedTrialStopped(process);
-          } catch (IOException | RuntimeException ignored) {
-          }
-        }
-        if (!exited) {
-          lease.retainUntilExit(
-              TrialSupport.checkedExit(
-                  process,
-                  manager::confirmTrackedTrialStopped,
-                  () -> {
-                    try {
-                      manager.stop();
-                    } catch (Exception ignored) {
-                    }
-                  },
-                  "SETTINGS_TRIAL_PROCESS_UNCONFIRMED"));
-          throw new IOException("SETTINGS_TRIAL_PROCESS_UNCONFIRMED");
-        }
-        lease.close();
-        TrialSupport.write(fs, operation, "closed", id.getBytes(StandardCharsets.US_ASCII));
-        fs.removeOwned(operation, "payload");
-        RuntimeTrialRecords.pruneClosed(fs, records);
+        SettingsTrialCleanup.finish(fs, operation, manager, process, lease, primary, exitCode);
       }
     } catch (IOException | RuntimeException preparationFailure) {
-      // 启动前失败没有 guest，关闭本次空现场，避免一次无效 profile 阻塞以后检查。
-      if (fs.stat(new File(operation, "launched")).type.equals("MISSING")) {
-        if (fs.stat(new File(operation, "closed")).type.equals("MISSING"))
-          TrialSupport.write(fs, operation, "closed", id.getBytes(StandardCharsets.US_ASCII));
-        fs.removeOwned(operation, "payload");
+      // Until launch intent is durable there is no guest; once written, recovery must prove exit.
+      try {
+        if (fs.stat(fs.child(operation, "launched")).type.equals("MISSING"))
+          TrialSupport.closeOwnedPayload(fs, operation);
+      } catch (IOException | RuntimeException failure) {
+        preparationFailure.addSuppressed(failure);
       }
       throw preparationFailure;
     }

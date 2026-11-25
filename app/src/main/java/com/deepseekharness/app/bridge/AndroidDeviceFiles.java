@@ -7,6 +7,7 @@ import android.system.OsConstants;
 import android.system.StructStat;
 import com.deepseekharness.app.util.DeviceFileOperations;
 import com.deepseekharness.app.util.DeviceShellPolicy;
+import com.deepseekharness.app.util.LinuxOpenFlags;
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.IOException;
@@ -19,9 +20,6 @@ import java.util.List;
 public final class AndroidDeviceFiles implements DeviceFileOperations.Access {
   private static final int O_PATH = 0x200000;
   private static final int O_CLOEXEC = 0x80000;
-  // NDK 26.3 aarch64-linux-android/asm/fcntl.h: 040000. Production is arm64 only;
-  // asm-generic/x86 00200000 is arm64 O_DIRECT, not its directory flag.
-  private static final int O_DIRECTORY = 040000;
 
   private static IOException failure(ErrnoException error) {
     return new IOException("DEVICE_FILESYSTEM_" + error.errno, error);
@@ -52,7 +50,13 @@ public final class AndroidDeviceFiles implements DeviceFileOperations.Access {
     Pinned at = null;
     try {
       FileDescriptor fd =
-          Os.open(actualRoot, O_PATH | O_CLOEXEC | OsConstants.O_NOFOLLOW | O_DIRECTORY, 0);
+          Os.open(
+              actualRoot,
+              O_PATH
+                  | O_CLOEXEC
+                  | OsConstants.O_NOFOLLOW
+                  | LinuxOpenFlags.directoryFlag(OsConstants.O_NOFOLLOW),
+              0);
       ParcelFileDescriptor rootHandle = null;
       try {
         rootHandle = ParcelFileDescriptor.dup(fd);
@@ -175,7 +179,13 @@ public final class AndroidDeviceFiles implements DeviceFileOperations.Access {
 
     void pinDirectory() throws ErrnoException, IOException {
       FileDescriptor fd =
-          Os.open(at(), O_PATH | O_CLOEXEC | O_DIRECTORY | OsConstants.O_NOFOLLOW, 0);
+          Os.open(
+              at(),
+              O_PATH
+                  | O_CLOEXEC
+                  | LinuxOpenFlags.directoryFlag(OsConstants.O_NOFOLLOW)
+                  | OsConstants.O_NOFOLLOW,
+              0);
       try {
         if (!same(expected, Os.fstat(fd))) throw new IOException("DIRECTORY_TARGET_CHANGED");
         directory = ParcelFileDescriptor.dup(fd);

@@ -1,7 +1,6 @@
 package com.deepseekharness.app.backup;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /** Completed host operations move to a retained, non-destructive history directory. */
@@ -102,6 +101,21 @@ public final class HostOperationArchive {
     throw new IOException("OPERATION_MISSING");
   }
 
+  /** A previous process's native job. Neither an unbound directory nor an unresolved transaction qualifies. */
+  static void clearInterruptedCopies(BackupFileSystem fs, File operations, String id)
+      throws IOException {
+    File operation = locate(fs, operations, id);
+    if (!operation.getParentFile().equals(operations)) return;
+    File journal = fs.child(operation, "operation.json");
+    if (fs.stat(journal).type.equals("MISSING"))
+      journal = fs.child(operation, "operation.json.previous");
+    Map<String, Object> value = BackupJson.read(fs.small(journal, 16384), 16384);
+    if (BackupJson.number(value, "version") != 1 || !id.equals(BackupJson.string(value, "id")))
+      throw new IOException("OPERATION_RECORD");
+    if (Boolean.TRUE.equals(value.get("busy")) && RestoreStaging.safeToClear(fs, operation))
+      RestoreStaging.clearSensitivePlaintext(fs, operation);
+  }
+
   public static void archiveIfTerminal(BackupFileSystem fs, File files, File operation)
       throws IOException {
     File operations = root(files);
@@ -113,7 +127,7 @@ public final class HostOperationArchive {
     if (!fs.stat(operation).type.equals("DIRECTORY")) throw new IOException("OPERATION_DIRECTORY");
     if (NativeConfigurationReset.owns(fs, operation) && marker(fs, operation, "rolled-back"))
       NativeConfigurationReset.clearRolledBackPlaintext(fs, operation);
-    if (terminalState(fs, operation, id) && hasRestorePlaintext(fs, operation))
+    if (terminalState(fs, operation, id) && RestoreStaging.present(fs, operation))
       RestoreStaging.clearSensitivePlaintext(fs, operation);
     if (!terminal(fs, operation, id)) return;
     File history = fs.child(operations, COMPLETED);
@@ -190,6 +204,7 @@ public final class HostOperationArchive {
 
   private static boolean terminalState(BackupFileSystem fs, File directory, String id)
       throws IOException {
+    if (HostPendingTransactions.rotationPending(fs, directory)) return false;
     boolean switching = marker(fs, directory, "switching"),
         finalized = marker(fs, directory, "finalized"),
         rolledBack = marker(fs, directory, "rolled-back");
@@ -246,13 +261,6 @@ public final class HostOperationArchive {
     return true;
   }
 
-  private static boolean hasRestorePlaintext(BackupFileSystem fs, File directory)
-      throws IOException {
-    for (String name : List.of("restore.dshdata", "snapshot.dshdata", "payload"))
-      if (!fs.stat(fs.child(directory, name)).type.equals("MISSING")) return true;
-    return false;
-  }
-
   public static boolean isTerminal(BackupFileSystem fs, File directory, String id)
       throws IOException {
     return uuid(id) && terminal(fs, directory, id);
@@ -260,6 +268,8 @@ public final class HostOperationArchive {
 
   private static boolean hasPlaintextStaging(BackupFileSystem fs, File directory)
       throws IOException {
+    // The immutable history proof predates the additional scratch slots. New writes scrub
+    // all of them in archiveIfTerminal; a valid older history must still be readable.
     for (String name : List.of("restore.dshdata", "snapshot.dshdata", "payload"))
       if (!fs.stat(fs.child(directory, name)).type.equals("MISSING")) return true;
     if (!fs.stat(fs.child(directory, "environment-input")).type.equals("MISSING")) return true;

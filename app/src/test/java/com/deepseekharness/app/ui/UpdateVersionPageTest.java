@@ -248,10 +248,9 @@ public final class UpdateVersionPageTest {
       assertCurrentNotesShown(activity, shown);
       for (String language : UiLanguagePreference.LANGUAGES)
         bundledNotes(inLanguage(activity, language));
-      assertTrue(shown.contains("dsh-web-mobile"));
-      assertTrue(shown.contains("3.3.5"));
-      assertTrue(shown.contains("0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1"));
-      assertTrue(shown.contains("版本码提升为 369"));
+      assertFalse(shown.contains("0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1"));
+      assertFalse(shown.contains("版本码提升为 370"));
+      assertFalse(shown.contains("版本码提升为 369"));
       assertFalse(shown.contains("版本码提升为 368"));
       assertFalse(shown.contains("版本码提升为 367"));
       assertFalse(shown.contains("版本码提升为 366"));
@@ -285,7 +284,7 @@ public final class UpdateVersionPageTest {
       assertFalse(shown.contains("版本码提升为 336"));
       assertFalse(shown.contains("版本码提升为 334"));
       assertFalse(shown.contains("MAINTENANCE_TASK_START"));
-      assertTrue(shown.contains("跨应用文件访问"));
+      assertFalse(shown.contains("跨应用文件访问"));
       assertFalse(shown.contains("管理文件访问权限"));
       assertFalse(shown.contains("DisclosureCard"));
       assertFalse(shown.contains("ShellStatusPill"));
@@ -314,8 +313,6 @@ public final class UpdateVersionPageTest {
       assertFalse(shown.contains("5ff08d58"));
       assertFalse(shown.contains("6f31f111"));
       assertFalse(shown.contains("b8c59df9"));
-      assertTrue(shown.contains("runtimeId"));
-      assertTrue(shown.contains("1d42f79d"));
       assertFalse(shown.contains("52624be1"));
       assertFalse(shown.contains("63adce0a"));
       assertFalse(shown.contains("f540d7f1"));
@@ -376,8 +373,7 @@ public final class UpdateVersionPageTest {
       assertFalse(shown.contains("G0"));
       assertFalse(shown.contains("dsh.android.client.rebirth"));
       assertFalse(shown.contains("UNSIGNED_NOT_FOR_INSTALLATION"));
-      assertTrue(shown.contains("runtimeId"));
-      assertTrue(shown.contains("1d42f79d"));
+      assertFalse(shown.contains("1d42f79d"));
       assertFalse(shown.contains("52624be1"));
       assertFalse(shown.contains("63adce0a"));
       assertFalse(shown.contains("f540d7f1"));
@@ -385,22 +381,12 @@ public final class UpdateVersionPageTest {
       assertFalse(shown.contains("5fd17eac"));
       assertFalse(shown.contains("4d55973d"));
       assertFalse(shown.contains("a2847544"));
-      assertTrue(shown.contains("T6"));
-      assertTrue(shown.contains("SAF"));
-      assertTrue(shown.contains("contract"));
-      assertTrue(shown.contains("T5"));
-      assertTrue(shown.contains("plugins"));
-      assertTrue(shown.contains("25"));
-      assertTrue(shown.contains("UNKNOWN"));
-      assertTrue(shown.contains("368→369"));
-      assertTrue(shown.contains("build368"));
-      assertTrue(shown.contains("运行环境维护页"));
+      assertFalse(shown.contains("build308"));
       assertFalse(shown.contains("A6 插件身份与状态"));
       assertFalse(shown.contains("A7 设备授权与通道事实"));
       assertFalse(shown.contains("366→367"));
       assertFalse(shown.contains("<HHMM>"));
       assertFalse(shown.contains("<HHMMSS>"));
-      assertTrue(shown.contains("build364"));
       assertFalse(shown.contains("build363"));
       assertFalse(shown.contains("build362"));
       assertFalse(shown.contains("build361"));
@@ -451,7 +437,6 @@ public final class UpdateVersionPageTest {
       assertFalse(shown.contains("版本码提升为 330"));
       assertFalse(shown.contains("版本码提升为 329"));
       assertFalse(shown.contains("gh 纳入受管资产"));
-      assertTrue(shown.contains("自动默认禁用"));
       assertFalse(shown.contains("同一 DSH 版本"));
       assertFalse(shown.contains("版本码提升为 327"));
       assertFalse(shown.contains("技能调用确认"));
@@ -627,10 +612,9 @@ public final class UpdateVersionPageTest {
           "English notes must resolve a localized body rather than the default Chinese resource",
           body(bundledNotes(inLanguage(controller.get(), "zh"))),
           englishBody);
-      assertTrue(shown.contains("dsh-web-mobile"));
-      assertTrue(shown.contains("3.3.5"));
-      assertTrue(shown.contains("0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1"));
-      assertTrue(shown.contains("versionCode raised to 369"));
+      assertFalse(shown.contains("0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1"));
+      assertFalse(shown.contains("The version code is 370"));
+      assertFalse(shown.contains("versionCode raised to 369"));
       assertFalse(shown.contains("versionCode raised to 368"));
       assertFalse(shown.contains("versionCode raised to 367"));
       assertFalse(shown.contains("versionCode raised to 366"));
@@ -664,7 +648,7 @@ public final class UpdateVersionPageTest {
       assertFalse(shown.contains("versionCode raised to 336"));
       assertFalse(shown.contains("Raises versionCode to 334"));
       assertFalse(shown.contains("MAINTENANCE_TASK_START"));
-      assertTrue(shown.contains("Cross-app file access"));
+      assertFalse(shown.contains("Cross-app file access"));
       assertFalse(shown.contains("Manage file access"));
       assertFalse(shown.contains("DisclosureCard"));
       assertFalse(shown.contains("ShellStatusPill"));
@@ -693,8 +677,6 @@ public final class UpdateVersionPageTest {
       assertFalse(shown.contains("5ff08d58"));
       assertFalse(shown.contains("6f31f111"));
       assertFalse(shown.contains("b8c59df9"));
-      assertTrue(shown.contains("runtimeId"));
-      assertTrue(shown.contains("1d42f79d"));
       assertFalse(shown.contains("52624be1"));
       assertFalse(shown.contains("63adce0a"));
       assertFalse(shown.contains("f540d7f1"));
@@ -755,8 +737,7 @@ public final class UpdateVersionPageTest {
       assertFalse(shown.contains("G0"));
       assertFalse(shown.contains("dsh.android.client.rebirth"));
       assertFalse(shown.contains("UNSIGNED_NOT_FOR_INSTALLATION"));
-      assertTrue(shown.contains("runtimeId"));
-      assertTrue(shown.contains("1d42f79d"));
+      assertFalse(shown.contains("1d42f79d"));
       assertFalse(shown.contains("52624be1"));
       assertFalse(shown.contains("63adce0a"));
       assertFalse(shown.contains("f540d7f1"));
@@ -764,23 +745,13 @@ public final class UpdateVersionPageTest {
       assertFalse(shown.contains("5fd17eac"));
       assertFalse(shown.contains("4d55973d"));
       assertFalse(shown.contains("a2847544"));
-      assertTrue(shown.contains("T6"));
-      assertTrue(shown.contains("SAF"));
-      assertTrue(shown.contains("contract"));
-      assertTrue(shown.contains("T5"));
-      assertTrue(shown.contains("plugins"));
-      assertTrue(shown.contains("25"));
-      assertTrue(shown.contains("UNKNOWN"));
-      assertTrue(shown.contains("368→369"));
-      assertTrue(shown.contains("build368"));
-      assertTrue(shown.contains("one full-screen managed runtime maintenance page"));
+      assertFalse(shown.contains("build308"));
       assertFalse(shown.contains("A6 plugin identity and state"));
       assertFalse(shown.contains("A7 device authorization and channel facts"));
       assertFalse(shown.contains("366→367"));
       assertFalse(shown.contains("<HHMM>"));
       assertFalse(shown.contains("<HHMMSS>"));
       assertFalse(shown.contains("does not enter the runtime maintenance page"));
-      assertTrue(shown.contains("build364"));
       assertFalse(shown.contains("build363"));
       assertFalse(shown.contains("build362"));
       assertFalse(shown.contains("build361"));

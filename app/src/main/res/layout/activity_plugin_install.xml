@@ -7,7 +7,8 @@
     </LinearLayout>
     <TextView android:id="@+id/link_install_status" style="@style/DshaText.Body" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:textIsSelectable="true" />
     <TextView android:id="@+id/link_install_details" style="@style/DshaText.Body" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:textIsSelectable="true" />
-    <Button android:id="@+id/link_install_confirm" style="@style/ShellPrimaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="@string/ui_m0185" />
+    <Button android:id="@+id/link_install_confirm" style="@style/ShellPrimaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="@string/ui_m0106" />
+    <Button android:id="@+id/link_install_prepare" style="@style/ShellPrimaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:visibility="gone" />
     <Button android:id="@+id/link_install_manage" style="@style/ShellTextButton" android:layout_marginTop="8dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui_m0013" />
   </LinearLayout>
 </ScrollView>

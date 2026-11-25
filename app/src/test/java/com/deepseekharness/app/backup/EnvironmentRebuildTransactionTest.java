@@ -131,6 +131,31 @@ public final class EnvironmentRebuildTransactionTest {
   }
 
   @Test
+  public void missingDescriptorCannotCommitRebuiltEnvironment() throws Exception {
+    EnvironmentRebuildTransaction tx =
+        EnvironmentRebuildTransaction.create(fs, temp.getRoot(), null);
+    byte[] archive = "personal".getBytes(StandardCharsets.UTF_8);
+    byte[] mapping = "roots".getBytes(StandardCharsets.UTF_8);
+    Files.write(new File(tx.directory(), "data.dshdata").toPath(), archive);
+    Files.write(new File(tx.directory(), "data-roots.json").toPath(), mapping);
+    tx.prepare(digest(archive), digest(mapping));
+    tx.begin();
+    tx.dataRestored(digest(archive));
+    RuntimeDescriptor descriptor = ManagedRuntimeTransactionTest.descriptor('z');
+    var healthyProof = ManagedRuntimeTransactionTest.health(descriptor);
+
+    assertEquals(
+        "ENVIRONMENT_HEALTH_REQUIRED",
+        assertThrows(java.io.IOException.class, () -> tx.commit(null, healthyProof)).getMessage());
+    assertFalse(new File(tx.directory(), "health.json").exists());
+    assertFalse(new File(tx.directory(), "committed").exists());
+    assertNotNull(EnvironmentRebuildTransaction.pending(fs, temp.getRoot()));
+
+    tx.commit(descriptor, healthyProof);
+    assertTrue(new File(tx.directory(), "committed").isFile());
+  }
+
+  @Test
   public void readOnlyPendingCannotMoveWorkBetweenCommitAndRetiredCleanup() throws Exception {
     EnvironmentRebuildTransaction first = complete(0);
     File linux = new File(temp.getRoot(), "linux");

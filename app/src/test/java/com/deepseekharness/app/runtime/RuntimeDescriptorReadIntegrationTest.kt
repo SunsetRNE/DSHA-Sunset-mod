@@ -4,7 +4,10 @@ import com.deepseekharness.app.backup.AndroidBackupFileSystem
 import com.deepseekharness.app.backup.BackupFileSystem
 import com.deepseekharness.app.backup.BackupJson
 import com.deepseekharness.app.backup.RuntimeDescriptor
+import com.deepseekharness.app.core.EnvironmentAccess
+import com.deepseekharness.app.core.HarnessController
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
@@ -150,6 +153,46 @@ class RuntimeDescriptorReadIntegrationTest {
             assertNull(assets.health())
         }
         assertEquals(2, healthReads)
+    }
+
+    @Test
+    fun limitedEntryBannerTreatsAnAbsentDescriptorAsNotLatest() {
+        val app = RuntimeEnvironment.getApplication()
+        app.applicationInfo.nativeLibraryDir = File(files, "native").apply { mkdirs() }.absolutePath
+        val controller = HarnessController(app)
+        assertTrue(installed.delete())
+
+        assertFalse(EnvironmentAccess.runtimeLatest(controller))
+        assertNull(controller.proot().installedRuntimeDescriptor())
+        assertFalse(controller.proot().isEnvironmentReady())
+
+        val linux = File(files, "linux")
+        assertTrue(File(linux, "ubuntu").delete())
+        assertTrue(linux.delete())
+        assertFalse(EnvironmentAccess.runtimeLatest(controller))
+        assertNull(controller.proot().installedRuntimeDescriptor())
+    }
+
+    @Test
+    fun runtimeFacadeDistinguishesMissingMalformedAndHealthyRecords() {
+        val app = RuntimeEnvironment.getApplication()
+        app.applicationInfo.nativeLibraryDir = File(files, "native").apply { mkdirs() }.absolutePath
+        val boot = ProotBootstrap(app)
+        val descriptor = boot.installedRuntimeDescriptor() ?: error("Missing test descriptor")
+        assertTrue(RuntimeDescriptor.healthy(boot.runtimeHealth(), descriptor.id()))
+
+        assertTrue(health.delete())
+        assertNull(boot.runtimeHealth())
+        assertEquals(descriptor.id(), boot.installedRuntimeDescriptor()?.id())
+
+        installed.writeBytes(byteArrayOf())
+        assertThrows(IOException::class.java) { boot.installedRuntimeDescriptor() }
+        installed.writeText("{truncated")
+        assertThrows(IOException::class.java) { boot.runtimeHealth() }
+        assertFalse(boot.isEnvironmentReady())
+
+        assertTrue(installed.delete())
+        assertNull(boot.runtimeHealth())
     }
 
     @Test

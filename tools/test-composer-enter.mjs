@@ -11,7 +11,7 @@ for (const {before,after} of policy.patches) {
   assert.equal(source.split(before).length-1,1);
   source=source.replace(before,after);
 }
-const start=source.indexOf('function isComposingEvent('), end=source.indexOf('\n\t\t//#endregion',start);
+const start=source.indexOf('function isComposingEvent('), end=source.indexOf('function installDraftKeyboardDismissal(',start);
 assert.ok(start>0 && end>start);
 function fixture() {
   const commands=new Map(), root=new EventTarget(); let now=100, composingRoot, menu='pass', allowed=true;
@@ -20,7 +20,7 @@ function fixture() {
   const editor={isComposing:()=>false,update(fn,{onUpdate}){fn();onUpdate();},registerUpdateListener(){return()=>{}},registerRootListener(fn){fn(root,null);composingRoot=fn;return()=>fn(null,root)},registerCommand(id,fn){commands.set(id,fn);return()=>commands.delete(id)}};
   const handlers={arbitrate:()=>menu,canSubmit:()=>allowed,submit:accelerated=>sent.push(accelerated),dismissPopup(){},space:()=>false};
   const ctx={Date:{now:()=>now},Eu:(...disposers)=>()=>disposers.forEach(fn=>fn())};
-  // 0.2.2-rc.1 bundles two more Lexical commands (tn$2/nn$2) into the same keymap.
+  // The locked client bundles these Lexical commands into the same keymap.
   for(const name of ['tn$2','nn$2','sn$2','ln$2','hn$2','fn$1','an$1','cn$1','Je$2'])ctx[name]=name;
   vm.createContext(ctx);vm.runInContext(source.slice(start,end)+'\nglobalThis.install=registerComposerKeymap;',ctx);
   const dispose=ctx.install(editor,handlers);

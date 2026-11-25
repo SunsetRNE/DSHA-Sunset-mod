@@ -15,7 +15,9 @@ import androidx.fragment.app.Fragment;
 
 import com.deepseekharness.app.BuildConfig;
 import com.deepseekharness.app.R;
+import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.core.HarnessController;
+import com.deepseekharness.app.util.UiLanguagePreference;
 
 import java.util.function.Supplier;
 
@@ -113,8 +115,7 @@ public class SettingsFragment extends Fragment {
       }
       tabs.addView(buildRow(i), new LinearLayout.LayoutParams(-1, -2));
     }
-    com.deepseekharness.app.core.ConfigStore config =
-        HarnessController.get(requireContext()).config();
+    ConfigStore config = HarnessController.get(requireContext()).config();
     com.google.android.material.materialswitch.MaterialSwitch eco =
         v.findViewById(R.id.settings_eco);
     com.google.android.material.materialswitch.MaterialSwitch keepOn =
@@ -154,6 +155,8 @@ public class SettingsFragment extends Fragment {
               com.deepseekharness.app.util.PowerModePolicy.afterKeepScreenOnToggle(
                   config.isKeepScreenOn(), config.isEcoMode(), checked));
         });
+    v.findViewById(R.id.settings_keep_screen_on).setOnClickListener(x -> keepOn.toggle());
+    v.findViewById(R.id.settings_power).setOnClickListener(x -> eco.toggle());
 
     // 隐藏后台：只改最近任务可见性，不动常驻通知、前台服务与 ADB 保活。
     TextView hiddenTitle = v.findViewById(R.id.settings_hidden_recents_title);
@@ -203,18 +206,10 @@ public class SettingsFragment extends Fragment {
         });
     v.findViewById(R.id.settings_hidden_recents).setOnClickListener(x -> hiddenSwitch.toggle());
 
-    String version = "unknown";
-    try {
-      version =
-          requireContext()
-              .getPackageManager()
-              .getPackageInfo(requireContext().getPackageName(), 0)
-              .versionName;
-    } catch (Exception ignored) {
-    }
     TextView ver = v.findViewById(R.id.settings_ver);
     // 页脚技术说明（B3）：版本留在摘要上，包名与系统版本收进折叠区（不创建隐藏子视图）。
-    ver.setText(com.deepseekharness.app.util.UiText.format("技术说明 · DSHA v%s", version));
+    ver.setText(
+        com.deepseekharness.app.util.UiText.format("技术说明 · DSHA v%s", BuildConfig.VERSION_NAME));
     TechNote.Model tech = new TechNote.Model();
     tech.key = "settings-tech";
     tech.detail =
@@ -231,16 +226,15 @@ public class SettingsFragment extends Fragment {
 
     // 语言入口：标题在中文界面下也带英文「Language」（只写「语言 · 简体中文」时，
     // 非中文用户根本认不出这是语言开关）；右侧只显示当前生效语言，不常显「跟随系统」说明。
-    String preference = config.getUiLanguagePreference();
-    String effective = config.getUiLanguage();
-    String currentLabel = com.deepseekharness.app.util.UiLanguagePreference.nativeName(effective);
-    String summary = currentLabel;
     LinearLayout appearance = v.findViewById(R.id.settings_appearance);
     TextView languageSummary = v.findViewById(R.id.settings_language);
-    languageSummary.setText(summary);
-    // 方案 A：跟随系统卡片 + 母语名网格，点选即生效。
+    renderLanguageSummary(languageSummary, config);
+    // 跟随系统与手选可解析成同一语言，此时 Activity 不会重建。每次打开都读保存的选中项。
     View.OnClickListener openLanguageDialog =
-        x -> LanguagePicker.show(requireContext(), preference);
+        x -> {
+          renderLanguageSummary(languageSummary, config);
+          LanguagePicker.show(requireContext(), config.getUiLanguagePreference());
+        };
     appearance.setOnClickListener(openLanguageDialog);
     languageSummary.setOnClickListener(openLanguageDialog);
     // 主题入口只在设置里：独立页面，主界面顶栏不再直接切换。
@@ -283,8 +277,17 @@ public class SettingsFragment extends Fragment {
   @Override
   public void onResume() {
     super.onResume();
+    View root = getView();
+    if (root == null) return;
+    renderLanguageSummary(
+        root.findViewById(R.id.settings_language),
+        HarnessController.get(requireContext()).config());
     // 从主题页返回且明暗未变时不会重建，这里刷新摘要。
-    if (getView() != null) renderThemeSummary(getView());
+    renderThemeSummary(root);
+  }
+
+  private static void renderLanguageSummary(TextView summary, ConfigStore config) {
+    UiMotion.setTextIfChanged(summary, UiLanguagePreference.nativeName(config.getUiLanguage()));
   }
 
   /** 摘要显示偏好；跟随系统时补上当前实际明暗。 */
@@ -297,7 +300,8 @@ public class SettingsFragment extends Fragment {
     String mode = ThemeController.isDark(requireContext()) ? dark : light;
     String palette = ThemeController.palette(requireContext());
     // 标准色不重复写出，其余配色附在明暗后面。
-    sub.setText(
+    UiMotion.setTextIfChanged(
+        sub,
         com.deepseekharness.app.util.UiThemePalette.needsOverlay(palette)
             ? com.deepseekharness.app.util.UiText.format(
                 "%s · %s", mode, ThemeActivity.paletteName(palette))

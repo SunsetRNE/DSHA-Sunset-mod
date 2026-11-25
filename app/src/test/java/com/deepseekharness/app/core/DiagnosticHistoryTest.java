@@ -5,10 +5,164 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class DiagnosticHistoryTest {
+  private static ScheduledThreadPoolExecutor manualWriter() {
+    return new ScheduledThreadPoolExecutor(1) {
+      @Override
+      public ScheduledFuture<?> schedule(Runnable work, long delay, TimeUnit unit) {
+        return super.schedule(work, 1, TimeUnit.DAYS);
+      }
+    };
+  }
+
+  private static class MemoryStore implements DiagnosticHistory.Store {
+    String persisted = "old\n";
+    int writes;
+
+    @Override
+    public String read() {
+      return persisted;
+    }
+
+    @Override
+    public void publish(String value) throws IOException {
+      writes++;
+      persisted = value;
+    }
+
+    @Override
+    public void syncPublished() throws IOException {}
+  }
+
+  @Test
+  public void exportIncludesPendingSanitizedRowsInSubmissionOrder() throws Exception {
+    var worker = manualWriter();
+    try {
+      var store = new MemoryStore();
+      var writer = new DiagnosticHistory.Writer(worker, store);
+      String first = DiagnosticLog.line("WEB_JS\n]", "api_key=secret1234\nnext");
+      String second = DiagnosticLog.line("WEB_ROUTE", "second");
+      writer.add(first);
+      writer.add(second);
+      assertFalse(first.contains("secret1234"));
+      assertTrue(first.contains("[WEB_JS]"));
+      assertEquals(1, first.chars().filter(c -> c == '\n').count());
+      assertEquals(0, store.writes);
+      assertEquals("old\n" + first + second, writer.read());
+      assertTrue(writer.flush());
+      assertEquals(1, store.writes);
+      assertEquals(store.persisted, writer.read());
+    } finally {
+      worker.shutdownNow();
+    }
+  }
+
+  @Test
+  public void submissionDoesNotWaitForAnInFlightPublication() throws Exception {
+    CountDownLatch writing = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    var worker = manualWriter();
+    var caller = Executors.newSingleThreadExecutor();
+    try {
+      var store =
+          new MemoryStore() {
+            @Override
+            public void publish(String value) throws IOException {
+              writing.countDown();
+              try {
+                if (!release.await(5, TimeUnit.SECONDS)) throw new IOException("TEST_TIMEOUT");
+              } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new IOException(interrupted);
+              }
+              super.publish(value);
+            }
+          };
+      var writer = new DiagnosticHistory.Writer(worker, store);
+      writer.add("first\n");
+      var publishing = worker.submit(writer::flush);
+      assertTrue(writing.await(3, TimeUnit.SECONDS));
+      caller.submit(() -> writer.add("second\n")).get(3, TimeUnit.SECONDS);
+      release.countDown();
+      assertTrue(publishing.get(3, TimeUnit.SECONDS));
+      assertEquals("old\nfirst\n", store.persisted);
+      assertEquals("old\nfirst\nsecond\n", writer.read());
+      assertTrue(writer.flush());
+      assertEquals("old\nfirst\nsecond\n", store.persisted);
+    } finally {
+      release.countDown();
+      caller.shutdownNow();
+      worker.shutdownNow();
+    }
+  }
+
+  @Test
+  public void failuresBeforeAndAfterPublicationPreserveRowsWithoutDuplicates() throws Exception {
+    var worker = manualWriter();
+    try {
+      var store =
+          new MemoryStore() {
+            int attempts;
+            int syncs;
+
+            @Override
+            public void publish(String value) throws IOException {
+              if (++attempts == 1) throw new IOException("BEFORE_MOVE");
+              super.publish(value);
+              if (attempts == 2) throw new IOException("AFTER_MOVE");
+            }
+
+            @Override
+            public void syncPublished() throws IOException {
+              if (++syncs == 1) throw new IOException("SYNC_RETRY");
+            }
+          };
+      var writer = new DiagnosticHistory.Writer(worker, store);
+      writer.add("first\n");
+      assertFalse(writer.flush());
+      assertEquals("old\nfirst\n", writer.read());
+      assertFalse(writer.flush());
+      writer.add("second\n");
+      assertEquals("old\nfirst\nsecond\n", writer.read());
+      assertEquals(0, store.syncs);
+      assertFalse(writer.flush());
+      assertEquals("old\nfirst\n", store.persisted);
+      assertTrue(writer.flush());
+      assertEquals(2, store.syncs);
+      assertEquals("old\nfirst\nsecond\n", store.persisted);
+    } finally {
+      worker.shutdownNow();
+    }
+  }
+
+  @Test
+  public void pendingQueueRetainsTheSameBoundedTailAsTheFile() throws Exception {
+    var worker = manualWriter();
+    try {
+      var store = new MemoryStore();
+      var writer = new DiagnosticHistory.Writer(worker, store);
+      String expected = store.persisted;
+      for (int i = 0; i < 300; i++) {
+        String line = i + " 诊断🙂".repeat(80) + "\n";
+        writer.add(line);
+        expected = DiagnosticHistory.append(expected, line);
+      }
+      assertEquals(expected, writer.read());
+      assertTrue(writer.flush());
+      assertEquals(expected, store.persisted);
+    } finally {
+      worker.shutdownNow();
+    }
+  }
+
   @Test
   public void tenThousandEventsRetainLatestCompleteLinesWithinBudget() {
     String value = "";

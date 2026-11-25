@@ -1,1 +1,5 @@
-<resources><color name="dsha_launcher_background">#A7D1FF</color></resources>
+<resources>
+    <color name="dsha_launcher_background">#193552</color>
+    <item type="mipmap" name="ic_launcher_v137">@mipmap/ic_launcher</item>
+    <item type="mipmap" name="ic_launcher_round_v137">@mipmap/ic_launcher</item>
+</resources>

@@ -142,12 +142,14 @@ public final class DeviceGrantsFragment extends Fragment {
               savePrivilegedExecution(false);
               return;
             }
+            // 提交授权前继续显示实际状态，取消或从外部关闭弹窗都不会留下假开启。
+            showPrivilegedExecution(new DeviceGrants(ctx).privilegedExecutionAllowed());
             new DshaDialogBuilder(ctx, true)
                 .setTitle(UiText.choose("允许特权执行？", "Allow privileged input?"))
                 .setMessage(
                     UiText.choose(
-                        "实体屏助手可以绕过无障碍，直接抓取屏幕并在当前手机任务期间注入点击、滑动和按键，用于游戏等自绘界面。\n\n默认关闭、可随时关闭；动作还要求屏幕操作确认已允许目标应用，密码、支付和系统安全界面一律拒绝。实验阶段只保证 root 通道。",
-                        "The physical-screen assistant can bypass accessibility, capture the screen and inject taps, swipes and keys while a phone task is active — for games and other self-drawn UIs.\n\nOff by default and revocable at any time. Actions still need screen-control permission for the target app; password, payment and system-security screens are always refused. The experimental phase only guarantees the root channel."))
+                        "开启后，当前手机任务可查询特权通道状态。Android 14 及以上通过已启用的无障碍服务读取已批准应用的窗口，点击和滑动使用该窗口的截图凭据。Android 11–13 可读取控件并执行节点操作。你可以随时关闭。",
+                        "During the current phone task, allow privileged channel status queries. On Android 14 or later, the enabled accessibility service can capture the approved app window. Taps and swipes use that window’s screenshot credential. On Android 11–13, read controls and use node actions. You can turn this off at any time."))
                 .setPositiveButton(
                     UiText.choose("允许特权执行", "Allow privileged input"),
                     (dialog, which) -> savePrivilegedExecution(true))
@@ -535,10 +537,8 @@ public final class DeviceGrantsFragment extends Fragment {
   /** 特权执行开关：保存失败恢复原状态；关闭时立即丢弃 Core 连接（Core 自身空闲退出）。 */
   private void savePrivilegedExecution(boolean allowed) {
     boolean saved = new DeviceGrants(requireContext()).setPrivilegedExecutionAllowed(allowed);
+    showPrivilegedExecution(saved ? allowed : !allowed);
     if (!saved) {
-      updating = true;
-      if (privilegedExecution != null) privilegedExecution.setChecked(!allowed);
-      updating = false;
       Toast.makeText(
               requireContext(),
               UiText.choose("保存特权执行设置失败", "Could not save the privileged input setting"),
@@ -555,6 +555,13 @@ public final class DeviceGrantsFragment extends Fragment {
     }
   }
 
+  private void showPrivilegedExecution(boolean allowed) {
+    if (privilegedExecution == null) return;
+    updating = true;
+    privilegedExecution.setChecked(allowed);
+    updating = false;
+  }
+
   @Override
   public void onResume() {
     super.onResume();
@@ -563,12 +570,7 @@ public final class DeviceGrantsFragment extends Fragment {
     // 入口摘要要读取 Shizuku 通道状态：恢复页面时重新绑定一次（通道页内还会各自保活）。
     ShizukuShell.ensureBound(requireContext());
     updateSms();
-    if (privilegedExecution != null) {
-      updating = true;
-      privilegedExecution.setChecked(
-          new DeviceGrants(requireContext()).privilegedExecutionAllowed());
-      updating = false;
-    }
+    showPrivilegedExecution(new DeviceGrants(requireContext()).privilegedExecutionAllowed());
     refreshEntries();
     main.removeCallbacks(refreshEntriesRunnable);
     main.post(refreshEntriesRunnable);

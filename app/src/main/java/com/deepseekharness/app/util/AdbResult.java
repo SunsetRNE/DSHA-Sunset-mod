@@ -24,6 +24,11 @@ public final class AdbResult {
     return marker(output, "PAIR_OK") ? PairState.PAIRED : PairState.FAILED;
   }
 
+  /** 无线调试是整机设置，只允许系统用户的应用安装执行自动恢复。 */
+  public static boolean isWirelessDebugKeepaliveOwner(int applicationUid) {
+    return applicationUid >= 10_000 && applicationUid < 100_000;
+  }
+
   public static boolean shellReady(String output) {
     return output != null
         && output.trim().endsWith("[EXIT=0]")

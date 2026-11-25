@@ -8,22 +8,23 @@ import path from 'node:path';
 import {createRequire, registerHooks} from 'node:module';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {testRuntime} from './test-runtime-fixture.mjs';
-import {reuseConversationRuntime} from './qa-rc21/conversation-stop-runtime.mjs';
 const stage=(phase,facts={})=>process.stderr.write(JSON.stringify({phase,at:new Date().toISOString(),...facts})+'\n');
 stage('conversation-stop-runtime-binding-before');
 const currentDshVersion=JSON.parse(readFileSync('app/src/main/assets/runtime-patches.json','utf8')).dshVersion;
-const namedProof=process.env.DSHA_STOP_REUSE_INPUTS?reuseConversationRuntime(process.env.DSHA_STOP_REUSE_INPUTS,{sourceRoot:process.cwd(),environmentRuntime:process.env.DSHA_STOP_RUNTIME}):undefined;
+const namedProof=process.env.DSHA_STOP_REUSE_INPUTS
+  ?(await import('./qa-rc21/conversation-stop-runtime.mjs')).reuseConversationRuntime(process.env.DSHA_STOP_REUSE_INPUTS,{sourceRoot:process.cwd(),environmentRuntime:process.env.DSHA_STOP_RUNTIME})
+  :undefined;
 const runtime=namedProof?.runtime??(process.env.DSHA_STOP_RUNTIME ? testRuntime('raw', 'DSHA_STOP_RUNTIME') : testRuntime('raw'));
 stage('conversation-stop-runtime-binding-after',{controlRole:namedProof?'PRIOR_MANAGED_UNCHANGED_CONTROL':'RAW_LOCKED_CONTROL',currentWholeRootProofExecuted:!namedProof});
 namedProof?.observe(path.join(runtime,'node_modules/@deepseek-ai/dsh-client-ui-conversation/lib/client.js'));
 let source=readFileSync(runtime+'/node_modules/@deepseek-ai/dsh-client-ui-conversation/lib/client.js','utf8');
 const policy=JSON.parse(readFileSync('app/src/main/assets/composer-enter-patch.json','utf8'));
 for(const {before,after}of policy.patches){if(namedProof&&source.includes(after)){assert.equal(source.split(after).length-1,1);assert.equal(source.split(before).length-1,after.split(before).length-1);}else{assert.equal(source.split(before).length-1,1);source=source.replace(before,after);}}
-const start=source.indexOf('\t\tconst InputBar = '),end=source.indexOf('\n\t\t//#endregion',start);
+const start=source.indexOf('const InputBar=(0,react.memo)'),end=source.indexOf('const css=',start);
 assert.ok(start>0&&end>start);
 function render({running=true,draft='',phase='plain',attachments=[],subagent=null,blocked,stopProvided=true,onStop}={}){
   let stops=0,submits=0;
-  const session={running,subagent,removed:false,promptError:null};
+  const session={running,subagent,removed:false,promptError:null,openState:'open',pendingSubmissions:[]};
   const input={draft,phase,attachmentIds:attachments.map((_,i)=>''+i),queue:[]};
   const jsx=(type,props)=>({type,props});
   const react={memo:f=>f,useState:v=>[v,()=>{}],useRef:current=>({current}),useEffect:()=>{},useLayoutEffect:()=>{},useCallback:f=>f,useMemo:f=>f()};
@@ -118,16 +119,16 @@ function productionChain(agent){
   context.command.ctx={agents:{get:id=>id==='fixture-session'?agent:undefined}};
   const calls=[];
   const remote={session:{async cancel(request){calls.push({...request});return {ok:true,value:context.command.cancel(request)};}}};
-  vm.runInContext('globalThis.session={'+region(controller,'\t\t\tasync cancel() {','\n\t\t\t/**')+'};',context);
+  vm.runInContext('globalThis.session={'+region(controller,'async cancel(){','async rename(')+'};',context);
   Object.assign(context.session,{sessionId:'fixture-session',remote,notifier:{markDirty(){}}});
   const binding={session:context.session};
   const scoped={get:name=>name==='conversation'?context.conversation:undefined};
   context.sessions={binding:id=>id==='fixture-session'?binding:undefined,scope:id=>id==='fixture-session'?scoped:undefined,scopeOf:()=> 'fixture-session'};
-  const cancel=region(source,'\t\t\tasync cancel() {','\n\t\t\t/**');
-  const faces=region(source,'\t\t\tscopedSession(op) {','\n\t\t\t/**\n\t\t\t* Settle');
+  const cancel=region(source,'async cancel(){','async loadOlder(');
+  const faces=region(source,'scopedSession(op){','settleSubmittedAttachments(');
   vm.runInContext('globalThis.conversation=new (class {'+cancel+'\n'+faces+'})();',context);
   context.conversation.ctx={get:name=>name==='sessions'?context.sessions:undefined};
-  vm.runInContext(region(source,'\t\tfunction scopedConversation(sessions, id) {','\n\t\t/**')+'\n'+region(source,'\t\t\tconst stop = (sessionId) => {','\n\t\t\tconst stopShortcut')+'\nglobalThis.stop=stop;',context);
+  vm.runInContext(region(source,'function scopedConversation(sessions,id){','function concreteConversation(')+'\n'+region(source,'const stop=sessionId=>{','const stopShortcut=')+'\nglobalThis.stop=stop;',context);
   return {stop:()=>context.stop('fixture-session'),calls};
 }
 
@@ -143,7 +144,7 @@ function streamLoop(adapter,{preserveQueued=true}={}){
     executeToolCalls(){toolBodies++;throw Error('NO_TOOL_BODY_ALLOWED');}});
   vm.runInContext(region(loop,'var AssistantStreamAttempt = class {','\n//#endregion')+'\n'+region(loop,'function abortedCancelCause(signal) {','\n//#endregion')+'\nglobalThis.Agent=ReactLoopAgent;',context);
   const agent=Object.create(context.Agent.prototype);
-  Object.assign(agent,{id:'fixture-session',options:{},phase:{kind:'running',turn:0,step:0,abort:new AbortController(),wakeRequested:false},assistantAttemptCounter:0,assistantStreamRevision:0,requestSurfaceGeneration:freshSession.surface.contentGeneration,
+  Object.assign(agent,{id:'fixture-session',options:{},lifetimeSignal:new AbortController().signal,phase:{kind:'running',turn:0,step:0,abort:new AbortController(),wakeRequested:false},assistantAttemptCounter:0,assistantStreamRevision:0,requestSurfaceGeneration:freshSession.surface.contentGeneration,
     inbox:{hasPending:true,nextStep:[],messages:[admitted],clear(){throw Error('QUEUE_MUST_REMAIN');},splice(_target,_start,_removed,messages){this.hasPending=true;this.messages=messages;}},
     session:{id:freshSession.id,surface:freshSession.surface,requestHeader:()=>freshSession.requestHeader(),append(type,data){events.push({type,data});return {seq:events.length-1};}},
     ctx:{on:()=>()=>{}},systemPrompt:{project:()=>[]},runtimeContext:{project:()=>undefined},

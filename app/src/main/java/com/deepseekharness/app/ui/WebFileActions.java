@@ -17,6 +17,11 @@ import org.json.JSONObject;
 final class WebFileActions {
   private WebFileActions() {}
 
+  interface SettingsDocument {
+    void open(
+        BooleanSupplier current, java.util.function.Consumer<WebSettingsDocument.Result> result);
+  }
+
   private static final java.util.Map<String, BooleanSupplier> destinations =
       new java.util.HashMap<>();
 
@@ -46,7 +51,8 @@ final class WebFileActions {
       BooleanSupplier current,
       Supplier<WebBlobDownload> transfer,
       java.util.function.LongSupplier navigation,
-      Supplier<BrowserThemeGate> binding) {
+      Supplier<BrowserThemeGate> binding,
+      SettingsDocument settingsDocument) {
     if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) return;
     WebViewCompat.removeWebMessageListener(view, "DshaFiles");
     WebViewCompat.addWebMessageListener(
@@ -78,6 +84,40 @@ final class WebFileActions {
             final String requestId = id;
             final long document = navigation.getAsLong();
             String action = request.getString("action");
+            if (action.equals("open-settings-document")) {
+              if (request.length() != 3) throw new IllegalArgumentException("FILE_REQUEST");
+              BooleanSupplier stillCurrent =
+                  () ->
+                      current.getAsBoolean()
+                          && navigation.getAsLong() == document
+                          && binding.get() == page
+                          && WebPreviewPolicy.sameService(base, source.getUrl());
+              settingsDocument.open(
+                  stillCurrent,
+                  result -> {
+                    if (!stillCurrent.getAsBoolean()) return;
+                    try {
+                      boolean handled =
+                          result == WebSettingsDocument.Result.OPENED
+                              || result == WebSettingsDocument.Result.MISSING;
+                      reply.postMessage(
+                          new JSONObject()
+                              .put("id", requestId)
+                              .put("ok", handled)
+                              .put(
+                                  "detail",
+                                  switch (result) {
+                                    case OPENED -> "opened";
+                                    case MISSING -> "missing";
+                                    case CANCELLED -> "AbortError";
+                                    case FAILED -> "CONFIG_DOCUMENT_UNAVAILABLE";
+                                  })
+                              .toString());
+                    } catch (Exception ignored) {
+                    }
+                  });
+              return;
+            }
             if (action.equals("artifact")) {
               // Only the opaque manifest crosses this bridge. The engine resolves
               // current service identity and credentials itself, never from JS.

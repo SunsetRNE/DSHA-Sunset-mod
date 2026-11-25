@@ -25,10 +25,23 @@ export async function browserFixture(runtime=process.env.DSHA_TEST_RUNTIME||JSON
     throw Error('current frontend boot boundary changed');
   const boundaryIndex=boundaries[0].index;
   bootstrap=bootstrap.slice(0,boundaryIndex)+
-    `globalThis.auditModules=${moduleMatch[1]}();globalThis.auditExports={};window.__ModuleLoader__={load:({id,factory})=>{auditExports[id]=factory(name=>{if(!(name in auditModules))throw Error('Missing static module '+name);return auditModules[name]})}};`;
+    `globalThis.auditModules=${moduleMatch[1]}();globalThis.auditExports={};window.__ModuleLoader__={load:({id,factory})=>{
+      const require=name=>{if(!(name in auditModules))throw Error('Missing static module '+name);return auditModules[name]};
+      require.asset=name=>new URL(name,location.origin+'/').href;
+      auditExports[id]=factory(require);
+    }};`;
   const server=http.createServer((req,res)=>{
     if(req.url==='/'){res.setHeader('Content-Type','text/html');res.end('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div><script type="module" src="/assets/__audit.js"></script></body></html>');return;}
     if(req.url==='/assets/__audit.js'){res.setHeader('Content-Type','text/javascript');res.end(bootstrap);return;}
+    const pluginAsset=req.url.match(/^\/plugins\/(@deepseek-ai\/dsh-[a-z0-9-]+)\/assets\/([\w.%@-]+\.png)$/);
+    if(pluginAsset){
+      let name;
+      try{name=decodeURIComponent(pluginAsset[2]);}catch{res.writeHead(404);res.end();return;}
+      if(!/^[\w.@-]+\.png$/.test(name)){res.writeHead(404);res.end();return;}
+      const file=path.resolve(runtime,'node_modules',pluginAsset[1],'lib/assets',name);
+      if(!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404);res.end();return;}
+      res.setHeader('Content-Type','image/png');res.end(fs.readFileSync(file));return;
+    }
     const file=path.resolve(root,'.'+decodeURIComponent(req.url.split('?')[0]));
     if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404);res.end();return;}
     res.setHeader('Content-Type',file.endsWith('.css')?'text/css':'text/javascript');res.end(fs.readFileSync(file));
@@ -52,7 +65,12 @@ export async function browserFixture(runtime=process.env.DSHA_TEST_RUNTIME||JSON
         if(source.split(patch.before).length!==2)throw Error('Patch anchor: '+patch.before.slice(0,80));
         source=source.replace(patch.before,(patch.prependAsset?fs.readFileSync('app/src/main/assets/'+patch.prependAsset,'utf8')+'\n':'')+patch.after);
       }
-      source=source.replace('return module.exports;',extra+'\nreturn module.exports;');
+      if(extra){
+        const factoryReturns=[...source.matchAll(/\breturn module\.exports(?=;|}}\);)/g)];
+        if(factoryReturns.length!==1)throw Error('Current client module export boundary changed: '+name);
+        const at=factoryReturns[0].index;
+        source=source.slice(0,at)+extra+'\n'+source.slice(at);
+      }
       await page.addScriptTag({content:source});
       const css=path.resolve(runtime,'node_modules/@deepseek-ai',name,'lib/client.css');
       if(fs.existsSync(css))await page.addStyleTag({content:fs.readFileSync(css,'utf8')});

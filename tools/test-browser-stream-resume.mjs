@@ -5,9 +5,11 @@ import vm from 'node:vm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID,webcrypto} from 'node:crypto';
+import {createRequire} from 'node:module';
 import {testRuntime} from './test-runtime-fixture.mjs';
 
 const runtime = testRuntime('raw');
+const {parse} = createRequire(runtime+'/package.json')('acorn');
 const connectionSource = readFileSync(runtime+'/node_modules/@deepseek-ai/dsh-client-connection/lib/client.browser.js','utf8');
 const gatewaySource = readFileSync(runtime+'/node_modules/@deepseek-ai/dsh-api-gateway/lib/client.browser.js','utf8');
 const integrationSource = readFileSync('app/src/main/assets/app-integration/client.js','utf8');
@@ -287,9 +289,14 @@ test('rc3 session and workspace streams rebaseline after foreground recovery and
     f.sandbox._deepseek_ai_dsh_api_gateway_client=gateway;
     for (const [name,pkg,fn] of sources) {
       const source=readFileSync(`${runtime}/node_modules/@deepseek-ai/${pkg}/lib/client.js`,'utf8');
-      const start=source.indexOf(`function ${fn}(`), end=source.indexOf('\n\t\t}',start);
-      assert.ok(start>=0 && end>start,`${fn} source`);
-      vm.runInContext(`globalThis.${name}Factory=${source.slice(start,end+4)};`,f.sandbox);
+      const nodes=[parse(source,{ecmaVersion:'latest'})], matches=[];
+      for(const node of nodes) {
+        if(node.type==='FunctionDeclaration' && node.id?.name===fn) matches.push(node);
+        nodes.push(...Object.values(node).flat().filter(value=>value && typeof value==='object' && typeof value.type==='string'));
+      }
+      assert.equal(matches.length,1,`${fn} source`);
+      const {start,end}=matches[0];
+      vm.runInContext(`globalThis.${name}Factory=${source.slice(start,end)};`,f.sandbox);
     }
     const baseline={session:null,workspace:null}, failed=[];
     const remotes={

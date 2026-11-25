@@ -17,15 +17,17 @@ The one-click entry follows [WorkspaceFragment](../../app/src/main/java/com/deep
 
 The in-app workspace, other private projects, and external workspaces are different sets. One-click backup does not traverse every project or scan external contents through an external-workspace reference. Select external files separately for manual backup, or back them up with their owning app. [NativeDataLocations](../../app/src/main/java/com/deepseekharness/app/backup/NativeDataLocations.java) determines source resolution, exclusions, and projections. A path displayed in the UI does not mean its files are in the archive.
 
+Starting with build375, choosing **Settings** in Manual export includes native preferences such as the working directory, the shared `settings.yaml`, `settings.yaml.imported`, and `cordis.patch.yml` files when present, each supported profile’s `package.json` and `cordis.patch.yml`, and older agent presets’ `preset.yml` and `agent.cordis.yml`. Choose **Application data** to migrate a separate `.env` in the DSH data directory, portable managed credentials, or installed user plugins. The export page has a separate checkbox for the native API key.
+
 ## Save and confirm completion
 
 On API29+, one-click backup creates a new file in system `Download/DSHA` through MediaStore, without all-files access. Low on API23–28 asks for a SAF directory once and retains the grant for reuse; select again if the grant is lost. Provider cancellation and stream I/O run in the background.
 
-A new export is `DSHA-data-v5-<UUID>.tar.gz`, password-free, with a standard tar/gzip shell, `portable.dshbak`, and a readme. Each export uses a new UUID rather than overwriting an existing file. The archive provides integrity checks, not confidentiality. Conversations, projects, `.env`, and plugin configuration may contain secrets, so select a trusted location even when the native API key is excluded.
+Build377 protects `DSHA-data-v5-<UUID>.tar.gz` with a backup password by default. Enter and confirm a password of 12–1024 UTF-16 code units and keep it separately. On the new device choose Restore a backup, select the file, enter the original password and confirm the verified scope. Each export gets a new UUID. Custom and rescue exports offer an explicit plaintext compatibility option. Anyone with a plaintext export can read all included conversations, attachments and files.
 
 The job generates and verifies private payload first, then writes the destination and compares the full readback digest. Downloads pending state is cleared only after closing the stream and completing readback. Failure cleans only the exact target this job created and owns. A SAF object is preserved and failure reported if ownership cannot be established; another file with the same name is not deleted. Process termination does not trigger a scan to clean old public pending entries.
 
-“Written; destination readback unverified” is not “verified backup” and does not update the last successful backup record. Retained private verified output can be exported again, but private copies and local keys are not guaranteed to survive uninstall. New manual exports have no password option. Historical encrypted inputs still require the original password; internal automatic copies remain encrypted with a host-generated local password.
+Only successful readback updates the last verified backup. If a SAF provider cannot read the destination back, export the verified private copy to another location. Before uninstalling, export local automatic copies with your own backup password and save them outside the app. The app uses its device key to read the local automatic copy.
 
 | Payload level | Actual meaning | Follow-up |
 |---|---|---|
@@ -47,7 +49,7 @@ A due check requires completed first-run setup, no other backup, no start/stop o
 ## Restore from a file or private copy
 
 1. Open the native restore entry under “Restore and more backup options,” then choose an archive or verified private copy. This entry does not wait for Ubuntu/Web to be usable.
-2. Supply the original password for historical encrypted input. Password-free v5 is identified by contents, not by an assumption that matching extensions mean encryption or full scope.
+2. Enter the password used to create an encrypted backup. The app recognizes older plaintext v5 and legacy archives by their contents.
 3. Wait for complete authentication and outer/inner digest checks. Input is written only into private numbered slots for this operation; archive paths do not directly become current write targets.
 4. Review actual scope, conflicts, warnings, project destination, and credential selection, then confirm stopping and restoring. Canceling the preview does not commit candidates.
 5. Check the final result and start the regular environment manually. Restored data does not prove model credentials, plugin loading, or Web readiness.

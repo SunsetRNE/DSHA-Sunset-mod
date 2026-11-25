@@ -102,26 +102,35 @@ def main():
     if a.code is not None and not re.fullmatch(r'[0-9]{6}', a.code):
         print('INVALID_CODE: 配对码必须恰好为 6 位数字')
         return 2
-    if not check_deps():
-        return 1
     if a.grant_keepalive:
-        from adb_shell_wifi.adb_device import AdbDeviceTls
-        from adb_shell_wifi.auth.sign_pythonrsa import PythonRSASigner
         # 固定的应用设置操作，没有接收任意命令的“内部跳过”入口。
         try:
-            # Native authenticated plan supplies the actual app identity; no CLI/query package is trusted.
+            # 保活会改整机设置，只允许原生已鉴权的系统用户安装。
             identity = adb.request_device_plan('id', False)
             package = identity.get('selfPackage')
-            if not isinstance(package,str) or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+',package):
+            uid = identity.get('selfUid')
+            if (not isinstance(package, str)
+                    or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+', package)
+                    or type(uid) is not int or uid < 10_000):
                 raise adb.policy.Blocked('SELF_PACKAGE_UNVERIFIED')
-            result = adb.connect_with_retry(AdbDeviceTls, PythonRSASigner,
-                adb.policy.argv_command(['pm','grant',package,'android.permission.WRITE_SECURE_SETTINGS']),
+            if uid >= 100_000:
+                print('KEEPALIVE_SKIPPED: 自动恢复无线调试仅在系统用户中可用\n[EXIT=1]')
+                return 1
+            if not check_deps():
+                return 1
+            from adb_shell_wifi.adb_device import AdbDeviceTls
+            from adb_shell_wifi.auth.sign_pythonrsa import PythonRSASigner
+            result = adb.connect_with_retry(
+                AdbDeviceTls, PythonRSASigner,
+                adb.policy.argv_command(['pm', 'grant', '--user', '0', package, 'android.permission.WRITE_SECURE_SETTINGS']),
                 a.connect_port, a.host, connect_timeout=15, command_timeout=10)
             print(result.output); print('[EXIT=%d]' % result.exit_code)
             return result.exit_code
         except (adb.ConnectFail, adb.ExecutionUnknown, adb.policy.Blocked) as error:
             print('KEEPALIVE_WARN: %s\n[EXIT=1]' % error)
             return 1
+    if not check_deps():
+        return 1
     if a.genkey:
         ensure_key()
         return 0

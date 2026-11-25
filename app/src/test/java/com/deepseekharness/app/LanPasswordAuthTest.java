@@ -27,8 +27,10 @@ public class LanPasswordAuthTest {
         LanAuth.passwordOk(
             "GET / HTTP/1.1\r\nSec-Fetch-Site: cross-site\r\n" + basic("dsha:secret123") + "\r\n",
             verifier));
-    assertFalse(LanAuth.sessionOk("GET /?token=secret123 HTTP/1.1\r\n\r\n", "secret123"));
-    assertTrue(LanAuth.sessionOk("GET / HTTP/1.1\r\nCookie: dsha_lan=random\r\n\r\n", "random"));
-    assertFalse(LanAuth.sessionOk("GET / HTTP/1.1\r\nCookie: dsha_lan=random\r\n\r\n", "rotated"));
+    assertNull(LanAuth.sessionCookie("GET /?token=secret123 HTTP/1.1\r\n\r\n", 3082));
+    assertEquals(
+        "random",
+        LanAuth.sessionCookie(
+            "GET / HTTP/1.1\r\nCookie: __Host-dsha_lan_3082=random\r\n\r\n", 3082));
   }
 }

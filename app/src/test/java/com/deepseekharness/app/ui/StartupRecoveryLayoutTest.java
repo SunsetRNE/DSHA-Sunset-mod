@@ -4,10 +4,13 @@ import static org.junit.Assert.*;
 
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import com.deepseekharness.app.DshaApp;
 import com.deepseekharness.app.R;
+import com.deepseekharness.app.core.HarnessController;
+import com.deepseekharness.app.core.StartupRecoveryModel;
 import com.deepseekharness.app.util.StartupRecoveryState;
 import com.deepseekharness.app.util.UiText;
 import java.util.ArrayList;
@@ -17,9 +20,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadow.api.Shadow;
+import org.robolectric.shadows.ShadowActivity;
 
 /**
  * 启动恢复页的操作行只放动作本身（UI 基准 ①）：效果说明收进行尾 ⓘ，行内只留「不可用：原因」
@@ -122,6 +128,83 @@ public final class StartupRecoveryLayoutTest {
     page.banner(StartupRecoveryState.Tone.IDLE, "");
     assertEquals(View.GONE, page.progress.getVisibility());
     assertEquals(1f, page.progress.getAlpha(), 0.001f);
+  }
+
+  @Test
+  public void migrationReviewOpensRetainedCopiesAndKeepsHostBackupReachable() throws Exception {
+    var activity = Robolectric.buildActivity(StartupRecoveryActivity.class).get();
+    var app = RuntimeEnvironment.getApplication();
+    app.getApplicationInfo().nativeLibraryDir = app.getCacheDir().getAbsolutePath();
+    setField(activity, "controller", new HarnessController(app));
+    setField(activity, "model", new StartupRecoveryModel(app));
+    var renderStatus =
+        StartupRecoveryActivity.class.getDeclaredMethod(
+            "renderStatus",
+            StartupRecoveryState.Kind.class,
+            StartupRecoveryState.Failure.class,
+            boolean.class,
+            org.json.JSONObject.class,
+            String.class);
+    var renderActions =
+        StartupRecoveryActivity.class.getDeclaredMethod(
+            "renderActions",
+            StartupRecoveryState.Kind.class,
+            StartupRecoveryState.Failure.class,
+            boolean.class,
+            org.json.JSONObject.class);
+    renderStatus.setAccessible(true);
+    renderActions.setAccessible(true);
+    String code = "RC5_RECHECK_SNAPSHOT_UNVERIFIED";
+    var failure = StartupRecoveryState.classify("migration review", "", false, code);
+    for (String locale : List.of("zh", "en", "ar")) {
+      UiText.setLanguage(locale);
+      StartupRecoveryLayout page = layout();
+      setField(activity, "layout", page);
+      renderStatus.invoke(activity, failure.kind, failure, false, null, "");
+      renderActions.invoke(activity, failure.kind, failure, false, null);
+      assertNotNull(findText(page.status, StartupRecoveryState.migrationReviewReason()));
+      assertNotNull(findText(page.status, StartupRecoveryState.migrationReviewDetail(code)));
+      TextView retained = findText(page.status, UiText.text("保留副本与旧环境"));
+      assertTrue(retained instanceof Button && retained.isEnabled() && retained.performClick());
+      ShadowActivity shadow = Shadow.extract(activity);
+      assertEquals(
+          RetainedDataActivity.class.getName(),
+          shadow.getNextStartedActivity().getComponent().getClassName());
+      View backup = findDescription(page.tools, UiText.text("宿主备份与只读救援"));
+      assertTrue(backup != null && backup.isEnabled() && backup.performClick());
+      assertEquals(
+          NativeDataActivity.class.getName(),
+          shadow.getNextStartedActivity().getComponent().getClassName());
+      assertNull(findText(page.root, UiText.text("安全启动")));
+      assertNull(findText(page.root, UiText.text("重试启动")));
+      System.out.printf("migration navigation locale=%s retained=1 nativeBackup=1%n", locale);
+    }
+
+    UiText.setLanguage("zh");
+    StartupRecoveryLayout other = layout();
+    setField(activity, "layout", other);
+    var failed = StartupRecoveryState.classify("regular failure", "", false);
+    renderStatus.invoke(activity, failed.kind, failed, false, null, "");
+    renderActions.invoke(activity, failed.kind, failed, false, null);
+    assertNotNull(findText(other.root, "安全启动"));
+    assertNotNull(findText(other.root, "重试启动"));
+  }
+
+  private static void setField(Object target, String name, Object value) throws Exception {
+    var field = target.getClass().getDeclaredField(name);
+    field.setAccessible(true);
+    field.set(target, value);
+  }
+
+  private static View findDescription(View root, String label) {
+    if (root.getContentDescription() != null && label.contentEquals(root.getContentDescription()))
+      return root;
+    if (root instanceof ViewGroup group)
+      for (int i = 0; i < group.getChildCount(); i++) {
+        View found = findDescription(group.getChildAt(i), label);
+        if (found != null) return found;
+      }
+    return null;
   }
 
   private static ImageButton findInfo(View root) {

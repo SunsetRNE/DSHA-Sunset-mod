@@ -58,6 +58,10 @@ public final class WebProcSel {
   /** 看门狗自己写下的 pid 文件（容器内路径）。 */
   public static final String PID_WATCHDOG = "/root/.dsha-watchdog.pid";
 
+  /** The literal command used by the app's default PTY launch. */
+  public static final String INTERACTIVE_PTY_COMMAND =
+      "stty sane 2>/dev/null || stty echo icanon 2>/dev/null || true; exec /bin/bash -l";
+
   /** PID 文件只接受单个正整数；拒绝 PID 1、进程组及任何 shell 语法。 */
   public static int parsePid(String value) {
     if (value == null || value.length() > 32) return -1;
@@ -142,6 +146,50 @@ public final class WebProcSel {
         && argv[6].endsWith("/bin/bash")
         && argv[7].equals("-c")
         && managedWebShell(argv[8]);
+  }
+
+  /** Known ordinary terminal launchers cannot restart a Web instance themselves. */
+  public static boolean isInteractiveTerminalLauncher(String command) {
+    if (command == null || command.indexOf('\0') < 0) return false;
+    String[] argv = directProrootPreloads(command.split("\u0000"));
+    if (argv.length == 0) return false;
+    String executable = basename(argv[0]);
+    if (executable.equals("libproroot-bridge.so")) {
+      return (argv.length == 7 || argv.length == 8 || argv.length == 9)
+          && basename(argv[1]).equals("libproroot-linker.so")
+          && argv[2].equals("--argv0")
+          && basename(argv[3]).equals("bash")
+          && argv[4].equals("--preload")
+          && basename(argv[5]).equals("libproroot-runtime.so")
+          && argv[6].endsWith("/bin/bash")
+          && interactiveShellArguments(argv, 6);
+    }
+    if (!executable.equals("libproot.so") && !executable.equals("libproroot.so")) return false;
+    int shell = 1;
+    while (shell < argv.length && !argv[shell].equals("/bin/bash")) {
+      String option = argv[shell++];
+      if (option.equals("-b") || option.equals("-r") || option.equals("-w")) {
+        if (shell >= argv.length || !argv[shell].startsWith("/")) return false;
+        shell++;
+      } else if (!option.equals("-0")
+          && !option.equals("-L")
+          && !option.equals("--kill-on-exit")
+          && !option.equals("--link2symlink")
+          && !option.equals("--static-loader")
+          && !option.equals("--no-static-loader")
+          && !option.startsWith("--rootfs=/")
+          && !option.equals("--cwd=/root")) return false;
+    }
+    return shell < argv.length && interactiveShellArguments(argv, shell);
+  }
+
+  private static boolean interactiveShellArguments(String[] argv, int shell) {
+    int arguments = argv.length - shell - 1;
+    return arguments == 0
+        || arguments == 1 && argv[shell + 1].equals("-l")
+        || arguments == 2
+            && argv[shell + 1].equals("-c")
+            && argv[shell + 2].equals(INTERACTIVE_PTY_COMMAND);
   }
 
   private static boolean isProrootWebPayload(String[] argv) {
@@ -265,6 +313,15 @@ public final class WebProcSel {
 
   /** 返回严格直启命令绑定的隔离 profile；普通 Web、shell 包装和伪造参数均为空。 */
   public static String trialProfile(String cmdline) {
+    return profileArgument(cmdline, "dsha-recovery-[0-9a-f]{16}");
+  }
+
+  /** Whether a verified restored process is running the ordinary web profile. */
+  public static boolean ordinaryProfile(String cmdline) {
+    return profileArgument(cmdline, "").equals("web");
+  }
+
+  private static String profileArgument(String cmdline, String isolatedPattern) {
     if (cmdline == null || cmdline.isEmpty()) return "";
     String[] args =
         cmdline.indexOf('\0') >= 0 ? cmdline.split("\u0000") : cmdline.trim().split("\\s+");
@@ -283,9 +340,21 @@ public final class WebProcSel {
               || args[entry].endsWith("/node_modules/@deepseek-ai/dsh/lib/bin.js"))) return "";
       argument = entry + 1;
     }
+    if (argument >= args.length) return "";
+    if (isolatedPattern.isEmpty()) {
+      if (args.length != argument + 6
+          || !args[argument].equals("web")
+          || !args[argument + 1].equals("--no-open")
+          || !args[argument + 2].equals("--host")
+          || !args[argument + 3].equals("127.0.0.1")
+          || !args[argument + 4].equals("--port")
+          || !args[argument + 5].matches("[0-9]{1,5}")
+          || Integer.parseInt(args[argument + 5]) > 65535) return "";
+      return "web";
+    }
     if (argument + 1 >= args.length || !args[argument].equals("--profile")) return "";
     String profile = args[argument + 1];
-    return profile.matches("dsha-recovery-[0-9a-f]{16}") ? profile : "";
+    return profile.matches(isolatedPattern) ? profile : "";
   }
 
   /**

@@ -3,10 +3,12 @@ package com.deepseekharness.app.plugins;
 import static org.junit.Assert.*;
 
 import android.os.FileObserver;
+import com.deepseekharness.app.backup.JvmBackupFileSystem;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -44,6 +46,20 @@ public final class PluginChangeDetectorTest {
       constructor.setAccessible(true);
       return constructor.newInstance(
           node.type.equals("DIRECTORY"), node.type.equals("LINK"), node.device, node.key);
+    }
+
+    @Implementation
+    protected static Object versionOrMissing(Path path) throws Exception {
+      var node = PluginHostFiles.stat(path.toFile());
+      if (node.type.equals("MISSING")) return null;
+      var type = Class.forName(PluginChangeDetector.class.getName() + "$Version");
+      var constructor =
+          type.getDeclaredConstructor(
+              Object.class, boolean.class, long.class, FileTime.class, FileTime.class);
+      constructor.setAccessible(true);
+      FileTime modified = Files.getLastModifiedTime(path, java.nio.file.LinkOption.NOFOLLOW_LINKS);
+      return constructor.newInstance(
+          node.key, node.type.equals("FILE"), node.size, modified, modified);
     }
   }
 
@@ -134,6 +150,176 @@ public final class PluginChangeDetectorTest {
     assertEquals(0, runtime.get());
     assertEquals(created, nativeObservers.started.size());
     assertEquals(0, worker.pending());
+  }
+
+  private static final String ORDINARY = "{\"name\":\"ordinary\",\"version\":\"1.0.0\"}";
+  private static final String BUNDLE =
+      "{\"name\":\"bundle\",\"dsh\":{\"bundle\":{\"patch\":\"lib/nested/patch.yml\"}}}";
+
+  private PluginChangeDetector.WatchPath scoped(
+      Path boundary, Path path, PluginChangeDetector.Scope scope, Path data) {
+    var layout =
+        new PluginChangeDetector.GuestLayout(
+            root.toFile(), data.toFile(), new JvmBackupFileSystem());
+    return new PluginChangeDetector.WatchPath(
+        boundary.toFile(), path.toFile(), PluginChangeDetector.Kind.CONTENT, scope, layout);
+  }
+
+  @Test
+  public void packageCatalogWatchesManifestsAndBundlePayloadWithoutWalkingOrdinaryDependencies()
+      throws Exception {
+    Path modules = Files.createDirectories(root.resolve("node_modules"));
+    Path ordinary = Files.createDirectories(modules.resolve("ordinary/lib/nested"));
+    Path bundle = Files.createDirectories(modules.resolve("@scope/bundle/lib/nested"));
+    Files.writeString(modules.resolve("ordinary/package.json"), ORDINARY);
+    Files.writeString(modules.resolve("@scope/bundle/package.json"), BUNDLE);
+    bind(scoped(root, modules, PluginChangeDetector.Scope.PACKAGES, root.resolve("data")));
+    assertFalse(detector.coverageReasons().toString(), detector.coverageLimited());
+    assertNull(nativeObservers.latest(ordinary));
+    assertNotNull(nativeObservers.latest(modules.resolve("ordinary")));
+    assertNotNull(nativeObservers.latest(bundle));
+    assertEquals(2, detector.planningStats().manifests);
+    nativeObservers.latest(bundle).emit(FileObserver.CLOSE_WRITE, "patch.yml");
+    worker.runDue();
+    assertEquals(1, content.get());
+    assertEquals(0, worker.pending());
+
+    Files.writeString(modules.resolve("ordinary/temp.json"), BUNDLE);
+    Files.move(
+        modules.resolve("ordinary/temp.json"),
+        modules.resolve("ordinary/package.json"),
+        java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+    nativeObservers.latest(modules.resolve("ordinary")).emit(FileObserver.MOVED_TO, "package.json");
+    worker.runDue();
+    worker.advance(750);
+    assertTrue(content.get() >= 2);
+    assertNotNull(nativeObservers.latest(ordinary));
+  }
+
+  @Test
+  public void bundleDependencyTreeIsSkippedExceptForExplicitPatchAndRuntimeProofPath()
+      throws Exception {
+    Path imports = Files.createDirectories(root.resolve("plugin-src"));
+    Path packageRoot = Files.createDirectories(imports.resolve("bundle"));
+    Path unrelated = Files.createDirectories(packageRoot.resolve("node_modules/unrelated/lib"));
+    Path explicit = Files.createDirectories(packageRoot.resolve("node_modules/referenced/nested"));
+    Files.writeString(
+        packageRoot.resolve("package.json"),
+        BUNDLE.replace("lib/nested/patch.yml", "node_modules/referenced/nested/patch.yml"));
+    Files.writeString(explicit.resolve("patch.yml"), "[]");
+    Path runtime =
+        Files.createDirectories(
+            root.resolve("usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules"));
+    Path managed = Files.createDirectories(runtime.resolve("bundle/node_modules/provenance"));
+    Files.writeString(runtime.resolve("bundle/package.json"), BUNDLE);
+    Path data = root.resolve("data");
+    bind(
+        scoped(root, imports, PluginChangeDetector.Scope.PACKAGES, data),
+        scoped(root, runtime, PluginChangeDetector.Scope.PACKAGES, data));
+    assertFalse(detector.coverageReasons().toString(), detector.coverageLimited());
+    assertNull(nativeObservers.latest(unrelated));
+    assertNotNull(nativeObservers.latest(explicit));
+    assertNotNull(nativeObservers.latest(managed));
+    nativeObservers.latest(explicit).emit(FileObserver.MODIFY, "unrelated.yml");
+    worker.runDue();
+    assertEquals(0, content.get());
+    nativeObservers.latest(explicit).emit(FileObserver.MODIFY, "patch.yml");
+    worker.runDue();
+    assertEquals(1, content.get());
+  }
+
+  @Test
+  public void scopedAliasAcrossGuestDataBindFollowsOwnedTargetAndReportsUnwatchableRetargeting()
+      throws Exception {
+    Path data = Files.createDirectories(root.resolve("physical-data"));
+    Path modules = Files.createDirectories(data.resolve("profiles/web/node_modules"));
+    Path target = Files.createDirectories(root.resolve("root/dsha-real/lib/nested"));
+    Files.writeString(root.resolve("root/dsha-real/package.json"), BUNDLE);
+    Path alias = modules.resolve("bundle");
+    PluginHostFiles.symlink(alias, Path.of("../../../../dsha-real"));
+    bind(scoped(data, modules, PluginChangeDetector.Scope.PACKAGES, data));
+    assertFalse(detector.coverageReasons().toString(), detector.coverageLimited());
+    assertNotNull(nativeObservers.latest(target));
+    assertNull(nativeObservers.latest(alias));
+    nativeObservers.latest(target).emit(FileObserver.CLOSE_WRITE, "patch.yml");
+    worker.runDue();
+    assertEquals(1, content.get());
+
+    Files.delete(alias);
+    PluginHostFiles.symlink(alias, Path.of("/storage/private"));
+    nativeObservers.latest(modules).emit(FileObserver.MOVED_TO, "bundle");
+    worker.runDue();
+    worker.advance(750);
+    assertTrue(detector.coverageReasons().contains("WATCH_UNSAFE_PATH"));
+    assertNull(nativeObservers.latest(target));
+    assertEquals(0, worker.pending());
+  }
+
+  @Test
+  public void manifestChangeBeforeRegistrationCannotLeaveACompleteShallowWatch() throws Exception {
+    Path modules = Files.createDirectories(root.resolve("node_modules"));
+    Path directory = Files.createDirectories(modules.resolve("pkg/lib/nested"));
+    Path pkg = modules.resolve("pkg");
+    Files.writeString(pkg.resolve("package.json"), ORDINARY);
+    nativeObservers.changeManifestDuringStart = pkg;
+    bind(scoped(root, modules, PluginChangeDetector.Scope.PACKAGES, root.resolve("data")));
+    assertEquals(List.of("WATCH_PATH_CHANGED"), detector.coverageReasons());
+    assertNull(nativeObservers.latest(directory));
+    worker.advance(750);
+    assertNotNull(nativeObservers.latest(directory));
+    assertFalse(detector.coverageLimited());
+  }
+
+  @Test
+  public void verifiedCatalogPulseRepairsSilentMissedCreateWithoutAnotherReconcile()
+      throws Exception {
+    AtomicInteger reconcile = useReconcileCallback();
+    Path modules = Files.createDirectories(root.resolve("node_modules"));
+    bind(scoped(root, modules, PluginChangeDetector.Scope.PACKAGES, root.resolve("data")));
+    assertEquals(1, reconcile.get());
+    Path payload = Files.createDirectories(modules.resolve("new/lib/nested"));
+    Files.writeString(modules.resolve("new/package.json"), BUNDLE);
+    assertNull(nativeObservers.latest(payload));
+    detector.reconcileObservation();
+    detector.reconcileObservation();
+    worker.runDue();
+    worker.advance(750);
+    assertNotNull(nativeObservers.latest(payload));
+    assertEquals(1, reconcile.get());
+    assertEquals(0, content.get());
+    nativeObservers.latest(payload).emit(FileObserver.MODIFY, "patch.yml");
+    worker.runDue();
+    assertEquals(1, content.get());
+    detector.foreground(false);
+    worker.runDue();
+    detector.reconcileObservation();
+    worker.advance(60_000);
+    assertEquals(0, nativeObservers.active());
+    assertEquals(0, worker.pending());
+  }
+
+  @Test
+  public void journalMetadataAndCurrentPackageCoverageExcludeRetainedPayloads() throws Exception {
+    Path operations = Files.createDirectories(root.resolve("plugin-install-operations"));
+    String id = "cf36f89f-b0a2-48c9-849b-efff83e02ced";
+    Path journal = Files.createDirectories(operations.resolve(id));
+    Path backups = Files.createDirectories(journal.resolve("previous/node_modules/dependency"));
+    Path completed = Files.createDirectories(operations.resolve("completed"));
+    Path retained = Files.createDirectories(completed.resolve(id + "/new/node_modules/dependency"));
+    bind(scoped(root, operations, PluginChangeDetector.Scope.JOURNALS, root.resolve("data")));
+    assertFalse(detector.coverageLimited());
+    assertNull(nativeObservers.latest(backups));
+    assertNull(nativeObservers.latest(retained));
+    assertNotNull(nativeObservers.latest(completed));
+    nativeObservers
+        .latest(journal)
+        .emit(FileObserver.CREATE | PluginChangeDetector.IS_DIRECTORY, "staging");
+    worker.runDue();
+    assertEquals(0, content.get());
+    nativeObservers.latest(journal).emit(FileObserver.MOVED_TO, "committed");
+    worker.runDue();
+    assertEquals(1, content.get());
   }
 
   @Test
@@ -319,8 +505,9 @@ public final class PluginChangeDetectorTest {
     detector.bind(List.of(input), "identity-2");
     old.emit(FileObserver.MODIFY, "late.js");
     worker.runDue();
-    assertEquals(1, content.get());
+    assertEquals(0, content.get());
     worker.advance(750);
+    assertEquals(1, content.get());
     assertTrue(old.stopped);
     assertNotSame(old, nativeObservers.latest(plugins));
     content.set(0);
@@ -430,18 +617,18 @@ public final class PluginChangeDetectorTest {
     Path plugins = Files.createDirectories(root.resolve("plugins"));
     bind(path(plugins, PluginChangeDetector.Kind.CONTENT, true));
     assertEquals(0, content.get());
-    assertEquals(2, reconcile.get());
+    assertEquals(1, reconcile.get());
     detector.foreground(false);
     worker.runDue();
     detector.foreground(true);
     worker.runDue();
     worker.advance(750);
     assertEquals(0, content.get());
-    assertEquals(4, reconcile.get());
+    assertEquals(2, reconcile.get());
     nativeObservers.latest(plugins).emit(FileObserver.CLOSE_WRITE, "real.js");
     worker.runDue();
     assertEquals(1, content.get());
-    assertEquals(4, reconcile.get());
+    assertEquals(2, reconcile.get());
   }
 
   @Test
@@ -491,7 +678,7 @@ public final class PluginChangeDetectorTest {
   private static final class FakeObservers {
     final ManualWorker worker;
     final List<FakeWatch> started = new ArrayList<>();
-    Path failure, extendDuringStart, replaceDuringStart;
+    Path failure, extendDuringStart, replaceDuringStart, changeManifestDuringStart;
 
     FakeObservers(ManualWorker worker) {
       this.worker = worker;
@@ -513,6 +700,10 @@ public final class PluginChangeDetectorTest {
         extendDuringStart = null;
         Files.createDirectories(directory.toPath().resolve("late/deep"));
         sink.event(FileObserver.CREATE | PluginChangeDetector.IS_DIRECTORY, "late");
+      }
+      if (directory.toPath().equals(changeManifestDuringStart)) {
+        changeManifestDuringStart = null;
+        Files.writeString(directory.toPath().resolve("package.json"), BUNDLE);
       }
       return watch;
     }

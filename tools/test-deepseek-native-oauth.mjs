@@ -143,7 +143,7 @@ try {
 const load = name => import(pathToFileURL(path.join(runtime, 'node_modules', name, 'lib/index.js')));
 const [{Context}, {default:Authorization}, {default:WebServer}, {default:PlatformAccount}] = await Promise.all([
   load('@deepseek-ai/cordis'),load('@deepseek-ai/dsh-authorization'),load('@deepseek-ai/dsh-host-webserver'),
-  load('@deepseek-ai/dsh-deepseek-account-platform')]);
+  load('@deepseek-ai/dsh-deepseek-account')]);
 const client = {version:'oauth-fixture',locale:'en',timezoneOffsetSeconds:0};
 const delay = ms => new Promise(resolve => setTimeout(resolve,ms));
 async function until(predicate) { for(let i=0;i<400;i++){if(await predicate())return;await delay(5);}throw Error('fixture phase deadline'); }
@@ -242,6 +242,6 @@ await test('exchange failure gives bounded no-store callback error and never com
 });
 console.log(JSON.stringify({scope:'LOCKED_OFFICIAL_CLIENT_BROWSER_AND_REAL_LOOPBACK_HTTP',dshVersion:recipe.dshVersion,
   officialClientSha256:recipe.sourceSha256,recipeSha256:sha(fs.readFileSync(recipeFile)),
-  realAccountProviderSha256:sha(fs.readFileSync(path.join(runtime,'node_modules/@deepseek-ai/dsh-deepseek-account-platform/lib/index.js'))),
+  realAccountProviderSha256:sha(fs.readFileSync(path.join(runtime,'node_modules/@deepseek-ai/dsh-deepseek-account/lib/index.js'))),
   networkScope:'synthetic localhost only; fixed public authorize navigation intercepted before network',
   deviceUsed:false,userCredentialsUsed:false,archiveApplyAndIdempotence:true,cases:results.length,results},null,2));

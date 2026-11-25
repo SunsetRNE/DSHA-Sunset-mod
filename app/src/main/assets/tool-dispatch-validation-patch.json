@@ -1,8 +1,8 @@
 {
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-agent-loop/lib/index.js",
-  "packageVersion": "0.2.2-rc.1",
-  "canonicalSourceSha256": "a6fa8e0c7c90191caf5f4a3bb5c624a86e9845cf3c79d020b71420d0e20ae4c1",
+  "packageVersion": "0.2.2-rc.5",
+  "canonicalSourceSha256": "f09f60814d4e96a880f41b9fc3832f33c56a28f954f48810d8439ce83ad6ffa8",
   "patches": [
     {
       "before": "\t\t\t\tconst message = createAssistantMessage({\n\t\t\t\t\tcontent: live.blocks(),",

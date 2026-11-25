@@ -58,7 +58,7 @@ await new Promise(resolve=>http.listen(0,'127.0.0.1',resolve));
 const server=resolve('app/src/main/assets/builtin-plugins/dsh-computer-use-android/lib/server.cjs');
 const bootstrap="const s=require(process.env.DSHA_IMAGE_TEST_SERVER);s.startServer({fs:{async readFile(){return 'fixture-token';}},fetch:(url,opts)=>fetch('http://127.0.0.1:'+process.env.DSHA_IMAGE_TEST_PORT+url.pathname+url.search,opts)});";
 const transport=new StdioClientTransport({command:process.execPath,args:['-e',bootstrap],maxBufferSize:24*1024*1024,
-  env:{...process.env,DSHA_IMAGE_TEST_SERVER:server,DSHA_IMAGE_TEST_PORT:String(http.address().port)}});
+  env:{...process.env,DSHA_IMAGE_TEST_SERVER:server,DSHA_IMAGE_TEST_PORT:String(http.address().port),DSHA_BRIDGE_PORT:String(http.address().port)}});
 const client=new Client({name:'dsha-image-wire-test',version:'1.0.0'},{capabilities:{}});
 try{
   await client.connect(transport);

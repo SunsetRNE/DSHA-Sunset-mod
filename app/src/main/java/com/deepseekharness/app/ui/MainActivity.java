@@ -43,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
 
   private DirectWebLaunch directWeb;
   private PendingMain directWebMainState;
+  private Intent pendingWarmEntry;
 
   /**
    * 直启打开 Web 后留在 Main 上的加载页遮罩。Main 在 Web 之下完成初始化，但遮罩保持到 Main
@@ -141,6 +142,10 @@ public class MainActivity extends AppCompatActivity {
             new androidx.activity.OnBackPressedCallback(true) {
               @Override
               public void handleOnBackPressed() {
+                if (mainReady && bootScreen != null) {
+                  cancelWarmEntry();
+                  return;
+                }
                 var fragments = getSupportFragmentManager();
                 // 方案 A 双栏：设置详情窗格里的下一级页面先返回到详情首页，再走主返回栈。
                 Fragment current = fragments.findFragmentById(R.id.fragment_container);
@@ -233,9 +238,13 @@ public class MainActivity extends AppCompatActivity {
 
   private void beginEntryCheck() {
     HarnessController controller = HarnessController.get(this);
+    Intent entry = getIntent();
+    boolean warm = mainReady;
     controller.restoreRunningWebSession(
         () -> {
-          if (!mainReady
+          if (mainReady == warm
+              && getIntent() == entry
+              && (!warm || bootScreen != null)
               && !leavingUi
               && !isFinishing()
               && !isDestroyed()
@@ -243,7 +252,7 @@ public class MainActivity extends AppCompatActivity {
                   .getCurrentState()
                   .isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED))
             checkEntry(
-                pendingMainState,
+                warm ? null : pendingMainState,
                 new ConfigStore(this),
                 controller,
                 com.deepseekharness.app.BuildConfig.DEBUG
@@ -255,10 +264,14 @@ public class MainActivity extends AppCompatActivity {
     // FragmentManager可能先于后台磁盘检查恢复页面。首次就保留真实容器，
     // 后面只移除覆盖层，避免替换整个布局后恢复视图无法重新附着。
     setContentView(R.layout.activity_main);
+    attachEntryOverlay(!restored);
+  }
+
+  private void attachEntryOverlay(boolean allowIntro) {
     // 开机加载页：主界面路径用 shell 主题色；直启 Web 时衔接最近一次网页背景色。
     com.deepseekharness.app.util.BootPalette palette = bootPalette(directWebArmed);
     // 开场只在进程冷启动的首次入口播放；换主题 / 语言重建或系统回收后恢复都直接静态显示。
-    boolean intro = !bootIntroPlayed && !restored;
+    boolean intro = !bootIntroPlayed && allowIntro;
     bootIntroPlayed = true;
     bootScreen = new BootScreen(this, palette, intro);
     bootScreen.setStatus(
@@ -332,6 +345,36 @@ public class MainActivity extends AppCompatActivity {
     return intent != null && intent.getBooleanExtra(AppEntryRouterActivity.EXTRA_APP_ENTRY, false);
   }
 
+  private static boolean warmApplicationEntry(Intent intent) {
+    return (BrowserTasks.launcher(intent) || appEntry(intent))
+        && !BrowserTasks.nativeDestination(intent)
+        && !intent.getBooleanExtra("open_config", false)
+        && !intent.getBooleanExtra(EXTRA_OPEN_DEVICE_GRANTS, false)
+        && !intent.getBooleanExtra("limited_entry", false);
+  }
+
+  private void startWarmEntry() {
+    Intent entry = pendingWarmEntry;
+    pendingWarmEntry = null;
+    if (entry == null
+        || entry != getIntent()
+        || isFinishing()
+        || isDestroyed()
+        || BrowserTasks.returnPending()
+        || !armDirectWeb(null, new ConfigStore(this))) return;
+    directWebArmed = true;
+    dropWebCover();
+    attachEntryOverlay(false);
+    beginEntryCheck();
+  }
+
+  private void cancelWarmEntry() {
+    pendingWarmEntry = null;
+    if (bootScreen == null) return;
+    entryGate.cancel();
+    leaveDirectWeb();
+  }
+
   /** 原生页面真正显示在前台：记下来，系统回收后恢复时回到主界面而不是 Web。 */
   private void markNativeForeground() {
     new ConfigStore(this).setLastForegroundWeb(false);
@@ -343,7 +386,8 @@ public class MainActivity extends AppCompatActivity {
     directWebArmed = false;
     if (directWeb != null) directWeb.cancel();
     directWeb = null;
-    if (!mainReady && directWebMainState != null)
+    if (mainReady) dismissEntryOverlay();
+    else if (directWebMainState != null)
       showMain(directWebMainState.saved, directWebMainState.config, directWebMainState.controller);
     directWebMainState = null;
   }
@@ -362,6 +406,8 @@ public class MainActivity extends AppCompatActivity {
       Bundle saved, ConfigStore config, HarnessController controller, boolean skipExtract) {
     long generation = controller.getWebGeneration();
     Intent admittedIntent = getIntent();
+    // Remembered restricted access admits the native page only.
+    var limitedEntry = new java.util.concurrent.atomic.AtomicBoolean();
     entryGate.submit(
         ENTRY_IO,
         this::runOnUiThread,
@@ -370,6 +416,7 @@ public class MainActivity extends AppCompatActivity {
               admittedIntent.getBooleanExtra("limited_entry", false)
                   || config.allowsLimitedEntry(
                       com.deepseekharness.app.core.EnvironmentAccess.limitedEntryKey(controller));
+          limitedEntry.set(limited);
           return !limited
               // 只把崩溃 / 中断残留当成维护；本进程正在写的记录不赶用户去维护页。
               && (MainEntryMaintenance.blocksEntry(controller)
@@ -416,13 +463,18 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(this, ExtractActivity.class));
             finish();
           } else if (com.deepseekharness.app.util.EntryTarget.admitted(
-              directWebArmed, failed, maintenance, unresolved, restoring)) {
+              directWebArmed && (!mainReady || !limitedEntry.get() && armDirectWeb(null, config)),
+              failed,
+              maintenance,
+              unresolved,
+              restoring)) {
             // 门禁已放行：停在开机加载页等待鉴权，就绪后直接进入 Web。
             beginDirectWeb(saved, config, controller);
           } else {
             directWebArmed = false;
             // 原实例证据未知时留在Main提供诊断，不触发解压或静默更新原环境。
-            showMain(saved, config, controller);
+            if (mainReady) dismissEntryOverlay();
+            else showMain(saved, config, controller);
           }
         });
   }
@@ -457,7 +509,8 @@ public class MainActivity extends AppCompatActivity {
                 screen.quiet();
                 webCover = screen;
               }
-              if (pending != null)
+              if (mainReady) endEntryWindow();
+              else if (pending != null)
                 recoveryHandler.post(
                     () -> showMain(pending.saved, pending.config, pending.controller));
             });
@@ -504,7 +557,8 @@ public class MainActivity extends AppCompatActivity {
       }
     }
 
-    TextView title = findViewById(R.id.app_title);
+    TextView toolbarTitle = findViewById(R.id.app_title);
+    if (getResources().getConfiguration().fontScale >= 1.3f) toolbarTitle.setMaxLines(2);
     findViewById(R.id.sub_back)
         .setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
     getSupportFragmentManager().addOnBackStackChangedListener(this::updateToolbar);
@@ -569,7 +623,6 @@ public class MainActivity extends AppCompatActivity {
               pendingOpenWeb = false;
               f.setArguments(args);
             }
-            title.setText(R.string.app_name);
           } else if (id == R.id.nav_plugins) {
             f =
                 com.deepseekharness.app.core.EnvironmentAccess.needsRecovery(controller)
@@ -581,10 +634,8 @@ public class MainActivity extends AppCompatActivity {
               f.setArguments(args);
               getIntent().removeExtra("open_plugins");
             }
-            title.setText(R.string.app_name);
           } else if (id == R.id.nav_settings) {
             f = new SettingsFragment();
-            title.setText(R.string.app_name);
           } else {
             return false;
           }
@@ -754,6 +805,7 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onPostResume() {
     super.onPostResume();
+    startWarmEntry();
     if (mainReady && getIntent().getBooleanExtra(FirstRunWebStart.EXTRA, false))
       scheduleFirstRunWeb();
   }
@@ -761,6 +813,7 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onPause() {
     if (!mainReady) entryGate.cancel();
+    else cancelWarmEntry();
     if (quickActions != null) {
       quickActions.dismiss();
       quickActions = null;
@@ -774,9 +827,15 @@ public class MainActivity extends AppCompatActivity {
   protected void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
     leavingUi = false;
+    boolean applicationEntry = warmApplicationEntry(intent);
+    boolean startingWarmWeb = mainReady && directWeb != null && directWeb.active();
+    if (mainReady && !(applicationEntry && startingWarmWeb)) cancelWarmEntry();
     setIntent(intent);
     BrowserTasks.entry("NEW_INTENT", intent);
-    if (resumeBackground(intent)) return;
+    if (resumeBackground(intent)) {
+      if (mainReady) cancelWarmEntry();
+      return;
+    }
     if (!mainReady) {
       // 加载期间收到明确的原生目的地（插件页、任务等）：放弃直启，交给主界面处理。
       // 桌面图标与常驻通知的应用入口只是“再进一次应用”，不打断正在进行的直启。
@@ -791,6 +850,11 @@ public class MainActivity extends AppCompatActivity {
       beginEntryCheck();
       return;
     }
+    if (applicationEntry && armDirectWeb(null, new ConfigStore(this))) {
+      if (!startingWarmWeb) pendingWarmEntry = intent;
+      return;
+    }
+    if (startingWarmWeb) cancelWarmEntry();
     BottomNavigationView nav = findViewById(R.id.bottom_nav);
     if (nav != null && intent.getBooleanExtra("open_plugins", false))
       nav.setSelectedItemId(R.id.nav_plugins);
@@ -952,33 +1016,31 @@ public class MainActivity extends AppCompatActivity {
         .setVisibility(nested ? android.view.View.VISIBLE : android.view.View.GONE);
     findViewById(R.id.app_logo)
         .setVisibility(nested ? android.view.View.GONE : android.view.View.VISIBLE);
+    CharSequence text;
     if (shown instanceof AboutFragment)
-      title.setText(com.deepseekharness.app.util.UiText.choose("关于 DSHA", "About DSHA"));
+      text = com.deepseekharness.app.util.UiText.choose("关于 DSHA", "About DSHA");
     else if (shown instanceof OverlayFragment)
-      title.setText(com.deepseekharness.app.util.UiText.choose("悬浮条", "Floating status"));
-    else if (shown instanceof ConfigFragment) title.setText(R.string.ui2_runtime_config);
+      text = com.deepseekharness.app.util.UiText.choose("悬浮条", "Floating status");
+    else if (shown instanceof ConfigFragment) text = getText(R.string.ui2_runtime_config);
     else if (shown instanceof DeviceGrantsFragment)
-      title.setText(com.deepseekharness.app.util.UiText.text("设备能力授权"));
+      text = com.deepseekharness.app.util.UiText.text("设备能力授权");
     else if (shown instanceof DeviceChannelsFragment)
-      title.setText(com.deepseekharness.app.util.UiText.text("设备执行通道"));
+      text = com.deepseekharness.app.util.UiText.text("设备执行通道");
     else if (shown instanceof ScreenOperationFragment)
-      title.setText(com.deepseekharness.app.util.UiText.text("屏幕操作"));
+      text = com.deepseekharness.app.util.UiText.text("屏幕操作");
     else if (shown instanceof SafAccessFragment)
-      title.setText(com.deepseekharness.app.util.UiText.choose("跨应用文件访问", "Cross-app files"));
+      text = com.deepseekharness.app.util.UiText.choose("跨应用文件访问", "Cross-app files");
     else if (shown instanceof SafBrowseFragment)
-      title.setText(com.deepseekharness.app.util.UiText.choose("浏览文件夹", "Browse folder"));
+      text = com.deepseekharness.app.util.UiText.choose("浏览文件夹", "Browse folder");
     else if (shown instanceof SkillsFragment)
-      title.setText(com.deepseekharness.app.util.UiText.choose("技能", "Skills"));
+      text = com.deepseekharness.app.util.UiText.choose("技能", "Skills");
     else if (shown instanceof WorkspaceFragment)
-      title.setText(com.deepseekharness.app.util.UiText.text("数据与备份"));
-    else if (shown instanceof InstallFragment) title.setText(R.string.ui2_environment_page);
+      text = com.deepseekharness.app.util.UiText.text("数据与备份");
+    else if (shown instanceof InstallFragment) text = getText(R.string.ui2_environment_page);
     else if (shown instanceof IslandFragment)
-      title.setText(com.deepseekharness.app.util.UiText.text("任务状态上岛"));
-    else if (shown instanceof SettingsFragment) title.setText(R.string.app_name);
-    else if (shown instanceof PluginFragment) title.setText(R.string.app_name);
-    else if (shown instanceof TerminalFragment || shown instanceof PtyTerminalFragment)
-      title.setText(R.string.app_name);
-    else title.setText(R.string.app_name);
+      text = com.deepseekharness.app.util.UiText.text("任务状态上岛");
+    else text = getText(R.string.app_name);
+    UiMotion.setTextIfChanged(title, text);
     renderPageContext(shown);
   }
 
@@ -989,17 +1051,21 @@ public class MainActivity extends AppCompatActivity {
    */
   private void syncShellRail(int selectedId) {
     if (shellRail != null) shellRail.setSelectedItemId(selectedId);
+    renderPageContext(selectedId);
+  }
+
+  private void renderPageContext(int selectedId) {
     TextView context = findViewById(R.id.app_context);
     if (context == null) return;
+    CharSequence text;
     if (selectedId == R.id.nav_plugins)
-      context.setText(
-          com.deepseekharness.app.util.UiText.choose("扩展你的工作方式", "Extend how you work"));
+      text = com.deepseekharness.app.util.UiText.choose("扩展你的工作方式", "Extend how you work");
     else if (selectedId == R.id.nav_settings)
-      context.setText(
-          com.deepseekharness.app.util.UiText.choose("偏好与管理", "Preferences & management"));
+      text = com.deepseekharness.app.util.UiText.choose("偏好与管理", "Preferences & management");
     else if (selectedId == R.id.nav_terminal)
-      context.setText(com.deepseekharness.app.util.UiText.choose("本机终端", "Local terminal"));
-    else context.setText(com.deepseekharness.app.util.UiText.choose("本机环境", "Local environment"));
+      text = com.deepseekharness.app.util.UiText.choose("本机终端", "Local terminal");
+    else text = com.deepseekharness.app.util.UiText.choose("本机环境", "Local environment");
+    UiMotion.setTextIfChanged(context, text);
   }
 
   /** 根页在底栏中的左右顺序；终端等非根页返回 -1，不参与横向动效。 */
@@ -1015,18 +1081,12 @@ public class MainActivity extends AppCompatActivity {
    * 这里以当前根页为准，避免顶栏语境残留上一个页面。
    */
   private void renderPageContext(@Nullable Fragment shown) {
-    TextView context = findViewById(R.id.app_context);
-    if (context == null) return;
     if (shown instanceof PluginFragment || shown instanceof EnvironmentRecoveryFragment)
-      context.setText(
-          com.deepseekharness.app.util.UiText.choose("扩展你的工作方式", "Extend how you work"));
+      renderPageContext(R.id.nav_plugins);
     else if (shown instanceof PtyTerminalFragment || shown instanceof TerminalFragment)
-      context.setText(com.deepseekharness.app.util.UiText.choose("本机终端", "Local terminal"));
-    else if (shown instanceof LaunchFragment || shown == null)
-      context.setText(com.deepseekharness.app.util.UiText.choose("本机环境", "Local environment"));
-    else
-      context.setText(
-          com.deepseekharness.app.util.UiText.choose("偏好与管理", "Preferences & management"));
+      renderPageContext(R.id.nav_terminal);
+    else if (shown instanceof LaunchFragment || shown == null) renderPageContext(R.id.nav_launch);
+    else renderPageContext(R.id.nav_settings);
   }
 
   /**

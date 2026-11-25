@@ -184,6 +184,12 @@ public final class TransferBehaviorTestSupport implements AutoCloseable {
     }
 
     @Implementation
+    protected void deleteChecked(File file, BackupFileSystem.Node expected) throws IOException {
+      if (!expected.same(stat(file))) throw new IOException("SOURCE_CHANGED");
+      delete(file);
+    }
+
+    @Implementation
     protected void syncDirectory(File ignored) {}
   }
 
@@ -193,6 +199,12 @@ public final class TransferBehaviorTestSupport implements AutoCloseable {
     static Media store;
     static volatile UriHook afterInputClose;
     static volatile UriHook beforeQueryReturn;
+
+    @Implementation
+    protected static OutputStream replacementOutput(
+        ContentResolver resolver, Uri uri, BackupControl control) throws IOException {
+      return output(resolver, uri, control);
+    }
 
     @Implementation
     protected static OutputStream output(ContentResolver ignored, Uri uri, BackupControl control)

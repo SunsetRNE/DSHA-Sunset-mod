@@ -34,8 +34,7 @@ public final class StorageHelpActivity extends AppCompatActivity {
     paragraph(
         start,
         "先到「存储与文件」查看占用。完整 Ubuntu、Node 和插件依赖属于应用数据，通常比 Android 缓存大得多。Android「清缓存」可能只有几十 MB，清完不会移除这套运行环境。");
-    paragraph(
-        start, "应用内清理只移除可再生缓存和已核验的多余运行时副本。对话、附件、设置、插件、手动备份和无法核验的原件保留。清理前仍会在原页面确认，并安全停止 DSH 和终端。");
+    paragraph(start, getString(R.string.storage_clean_confirm));
     page.entry(
         start,
         UiText.text("查看占用与清理选项"),

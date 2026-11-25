@@ -8,19 +8,19 @@ from source_text import write_text, matches_text
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'app/src/main/assets'
-VERSION = '0.2.2-rc.1'
+VERSION = '0.2.2-rc.5'
 SERVER = '@deepseek-ai/dsh-client-file-upload/lib/index.js'
 CLIENT = '@deepseek-ai/dsh-client-file-upload/lib/client.js'
 # 0.2.2-rc.1 起图片走上游二进制 uploadImage 且入口按 imageLimits 拒绝超限图片，
 # conversation-large-image-file 已退休；图片路由由上游 readAtMost 按图片上限读取。
 HASHES = {
     SERVER: 'b17e3621ce127ceb4f68919acdeeac64c54cf64c5d42429be8a7a65b5d20bbfe',
-    CLIENT: 'a96d8423b318b76bdda4b138a89c72cfc5492b95b9cfaad3cbc0cb3f188ebec3',
+    CLIENT: '57e8b8c03c98f1a59b03a0a7b9c8fd0b70d48724961dd68a4aef49c4bf860b96',
 }
 
 
-def generate(modules):
-    lock = json.loads((ROOT / 'tools/dsh-runtime/package-lock.json').read_text(encoding='utf8'))
+def generate(modules, lock_path=None):
+    lock = json.loads((lock_path or ROOT / 'tools/dsh-runtime/package-lock.json').read_text(encoding='utf8'))
     sources = {}
     for module, digest in HASHES.items():
         file = modules / module
@@ -98,9 +98,10 @@ async function* dshaUploadChunks(data, state) {
 			};
 		}''')
 
-    start = sources[CLIENT].index('\t\tfunction bytesToBase64(data) {')
-    end = sources[CLIENT].index('\n\t\t//#endregion', start)
-    patch(CLIENT, sources[CLIENT][start:end], '''		// DSHA_UPLOAD_BINARY_ONLY_V1: never aggregate browser files into a base64 RPC.
+    start = sources[CLIENT].index('function bytesToBase64(data){')
+    end = sources[CLIENT].index('var RemoteError=', start)
+    patch(CLIENT, sources[CLIENT][start:end], '''
+		// DSHA_UPLOAD_BINARY_ONLY_V1: never aggregate browser files into a base64 RPC.
 		const DSHA_UPLOAD_FILE_LIMIT = 5000000000;
 		function dshaUploadTooLarge() {
 			return new RemoteError("session/attachment-invalid", "Single file exceeds 5 GB (5,000,000,000 bytes).", { reason: "FILE_TOO_LARGE", maxBytes: DSHA_UPLOAD_FILE_LIMIT });
@@ -124,10 +125,12 @@ async function* dshaUploadChunks(data, state) {
 				},
 				async cancel(reason) { try { await reader.cancel(reason); } finally { release(); } }
 			});
-		}''')
-    start = sources[CLIENT].index('\t\t\tasync upload(sessionId, data, name, signal, onProgress) {')
-    end = sources[CLIENT].index('\n\t\t\t/**', start)
-    patch(CLIENT, sources[CLIENT][start:end], '''			async upload(sessionId, data, name, signal, onProgress) {
+		}
+''')
+    start = sources[CLIENT].index('async upload(sessionId,data,name,signal,onProgress){')
+    end = sources[CLIENT].index('async uploadImage(', start)
+    patch(CLIENT, sources[CLIENT][start:end], '''
+			async upload(sessionId, data, name, signal, onProgress) {
 				signal?.throwIfAborted();
 				if (data instanceof Uint8Array) data = new Blob([data]);
 				if (data instanceof Blob && data.size > DSHA_UPLOAD_FILE_LIMIT) return { ok: false, error: dshaUploadTooLarge() };
@@ -136,11 +139,14 @@ async function* dshaUploadChunks(data, state) {
 				if (name !== void 0) query.set("name", name);
 				// Prompt images keep upstream uploadImage(): Blob only, bounded by Host imageLimits.
 				return parseUploadResult(await this.postRaw(query, data, signal, onProgress), fileUploadValue);
-			}''')
-    patch(CLIENT, '\t\t\t\t\tif (request.body instanceof ReadableStream) worker.postMessage(message, [request.body]);\n\t\t\t\t\telse worker.postMessage(message);', '''					try {
+			}
+''')
+    patch(CLIENT, 'if(request.body instanceof ReadableStream)worker.postMessage(message,[request.body]);else worker.postMessage(message)', '''
+					try {
 						if (request.body instanceof ReadableStream) worker.postMessage(message, [request.body]);
 						else worker.postMessage(message);
-					} catch (error) { finish(() => reject(error)); }''')
+					} catch (error) { finish(() => reject(error)); }
+''')
 
     results = {}
     for name, module in [('file-upload-capacity-patch.json', SERVER),
@@ -157,13 +163,14 @@ async function* dshaUploadChunks(data, state) {
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--modules', type=Path)
+    parser.add_argument('--lock', type=Path)
     parser.add_argument('--check', action='store_true')
     args = parser.parse_args()
     modules = args.modules
     if modules is None:
         pointer = json.loads((ROOT / 'app/build/test-runtimes/current.json').read_text(encoding='utf8'))
         modules = Path(pointer['raw']) / 'node_modules'
-    for name, expected in generate(modules).items():
+    for name, expected in generate(modules, args.lock).items():
         target = ASSETS / name
         if args.check:
             if not matches_text(target, expected):

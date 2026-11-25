@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-layout/lib/client.js",
+  "sourceSha256": "dfbc793b4147fd695fdb2a57c0982d73c668e57493f609945d5d04fb36fdd48e",
+  "patches": [
+    {
+      "before": "const productTitle=`DeepSeek Harness`",
+      "after": "const productTitle=`DSHA`"
+    }
+  ]
+}

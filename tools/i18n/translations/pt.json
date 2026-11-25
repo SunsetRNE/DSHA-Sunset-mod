@@ -417,7 +417,7 @@
   "m0417": "Permissão de rede local não concedida; autorize primeiro",
   "m0418": "Exibir texto dos comandos nas chamadas de ferramentas",
   "m0419": "Salvo: ",
-  "m0420": "Salvo. Reabra a conversa para aplicar as opções de exibição web. Alterações de porta e de ambiente de execução exigem reiniciar o serviço web.",
+  "m0420": "Salvo. A configuração de layout para computador é aplicada ao criar uma nova visualização web do espaço de trabalho. Ao voltar, a página atual continua aberta. Alterações de porta ou de ambiente de execução exigem reiniciar o serviço web.",
   "m0421": "Alterado para o terminal simples. As sessões PTY continuam em segundo plano.",
   "m0422": "Cancelado",
   "m0423": "Download ou salvamento cancelado",
@@ -2967,7 +2967,7 @@
   "ui2_ws2_1": "Protegidas localmente e excluídas dos backups por padrão.",
   "ui2_w2_2": "Ações no dispositivo",
   "ui2_ws2_2": "Root, Shizuku, ADB e SMS têm permissões separadas.",
-  "ui2_online_notice": "Os modelos online recebem as mensagens e os anexos que escolher enviar.",
+  "ui2_online_notice": "O modelo online escolhido pode receber mensagens, anexos e resultados de ferramentas, como texto do ecrã ou capturas de ecrã.",
   "ui2_meet": "Descobrir DSHA",
   "ui2_skip": "Ignorar apresentação",
   "ui2_install_environment": "Instalação e execução",
@@ -3197,7 +3197,7 @@
   "build156_15334f885418": "[ERR] Não foi possível criar o diretório %s",
   "build156_6ecf1c33fed9": "OK Captura de tela salva: %s(%sx%s)",
   "build156_91fa78a28abb": "[ERR] Não foi possível escrever o arquivo da captura de tela: %s",
-  "build156_d1da9750dbcf": "Proxy LAN iniciado: 0.0.0.0:%s -> 127.0.0.1:%s",
+  "build156_d1da9750dbcf": "Proxy LAN iniciado: %s -> 127.0.0.1:%s",
   "build156_30301968b328": "Não foi possível aceitar a conexão: %s",
   "build156_ced8b809645f": "Falha ao associar o proxy LAN: %s",
   "build156_07854ff2bfe5": "Conexão de %s",
@@ -3775,5 +3775,6 @@
   "m9513": "Inventário incompleto",
   "m9514": "Nenhum módulo",
   "m9515": "Remoção pendente",
-  "m9516": "Desativado"
+  "m9516": "Desativado",
+  "m9517": "O Android não aceitou a solicitação de backup. Tente novamente mais tarde."
 }

@@ -343,8 +343,8 @@ final class PermissionChannelCard {
         panel,
         kit.hint(
             UiText.choose(
-                "连接验证通过后，DSHA 会给自己授予 WRITE_SECURE_SETTINGS，用于开机后自动打开无线调试；配对与 ADB 通道开关在 设置 → 设备能力授权 中管理。",
-                "After the connection is verified, DSHA grants itself WRITE_SECURE_SETTINGS so wireless debugging can be re-enabled after boot. Pairing and the ADB channel switch live in Settings → Device access."),
+                "配对与 ADB 通道开关在设置 → 设备能力授权中管理。连接验证通过后，只有系统用户中的 DSHA 可获得开机自动恢复无线调试的权限。",
+                "Manage pairing and the ADB channel in Settings → Device access. After connection verification, only DSHA in the system user can receive permission to restore wireless debugging automatically after boot."),
             OnboardingKit.Tone.ACCENT),
         8);
     Button pair =

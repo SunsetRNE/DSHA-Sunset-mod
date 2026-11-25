@@ -25,7 +25,7 @@ const assets = path.join(root, 'app/src/main/assets');
 const modules = path.join(runtime, 'node_modules');
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const records = [];
-// 0.2.2-rc.1: resolver-lifecycle and conversation-large-image-file are retired (upstream absorbed).
+// The current upstream handles resolver lifecycle and composer image limits.
 const recipes = ['file-upload-capacity-patch.json', 'file-upload-binary-client-patch.json'].map(name => [name, JSON.parse(fs.readFileSync(path.join(assets,name)))]);
 const sources = new Map();
 for (const [name, recipe] of recipes) {
@@ -47,7 +47,9 @@ records.push({name:'two-raw-locked-upload-recipes',status:'PASS'});
 // Run the actual browser service body with browser carriers. A byte-array input
 // must become a Blob and must never invoke the remote/base64 path.
 let clientSource = sources.get('@deepseek-ai/dsh-client-file-upload/lib/client.js');
-clientSource = clientSource.replace('exports.apply = apply;', 'exports.FileUploadRuntime = FileUploadRuntime; exports.dshaBoundedUploadStream = dshaBoundedUploadStream; exports.apply = apply;');
+const clientExport = 'exports.apply=apply;';
+assert.equal(clientSource.split(clientExport).length,2);
+clientSource = clientSource.replace(clientExport, 'exports.FileUploadRuntime = FileUploadRuntime; exports.dshaBoundedUploadStream = dshaBoundedUploadStream; '+clientExport);
 let client;
 let posts = 0;
 const context = vm.createContext({Blob,ReadableStream,Uint8Array,URLSearchParams,URL,AbortController,DOMException,console,
@@ -82,11 +84,12 @@ records.push({name:'actual-client-service-binary-transport-and-synthetic-unknown
 // images through the binary upload route and intake rejects images over imageLimits.
 const conversationSource = fs.readFileSync(path.join(modules,'@deepseek-ai/dsh-client-ui-conversation/lib/client.js'),'utf8');
 assert.equal(conversationSource.includes('DSHA_LARGE_IMAGE_FILE_V1'),false);
-assert.equal(conversationSource.split('if (images.some((file) => file.size > imageLimits.maxImageBytes)) return t("image.fileTooLarge"').length,2);
-assert.equal(conversationSource.split('attachment.kind === "image" ? await this.ctx.fileUpload.uploadImage(sessionId, attachment.file,').length,2);
-const draftStart = conversationSource.indexOf('createDrafts(sessionId, files, uploadImages) {');
+assert.equal(conversationSource.split('if(images.some(file=>file.size>imageLimits.maxImageBytes))return t(`image.fileTooLarge`').length,2);
+assert.equal(conversationSource.split('attachment.kind===`image`?await this.ctx.fileUpload.uploadImage(sessionId,attachment.file,').length,2);
+const draftStart = conversationSource.indexOf('createDrafts(sessionId,files,uploadImages){');
 assert(draftStart>0);
-const draftEnd = conversationSource.indexOf('\n\t\t\t/**',draftStart);
+const draftEnd = conversationSource.indexOf('retryFileUpload(',draftStart);
+assert(draftEnd>draftStart);
 let probes=0,uploadsStarted=[];
 const Drafts = vm.runInNewContext('class Drafts {'+conversationSource.slice(draftStart,draftEnd)+'}; Drafts', {
   randomUUID, browserDraftAttachment:file=>({kind:'image',id:randomUUID(),file}),

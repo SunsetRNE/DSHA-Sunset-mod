@@ -27,10 +27,11 @@ def main():
     cache = args.gradle_home / 'caches'
     capital = args.flavor.capitalize()
     compiled = ROOT / f'app/build/intermediates/javac/{args.flavor}Debug/compile{capital}DebugJavaWithJavac/classes'
+    kotlin = ROOT / f'app/build/intermediates/built_in_kotlinc/{args.flavor}Debug/compile{capital}DebugKotlin/classes'
     resources = list((ROOT / 'app/build/intermediates').glob(f'compile*_r_class_jar/{args.flavor}Debug/**/R.jar'))
-    if not compiled.is_dir() or not resources:
+    if not compiled.is_dir() or not kotlin.is_dir() or not resources:
         raise RuntimeError('EXPLICIT_ANDROID_COMPILATION_DEPENDENCY_REQUIRED')
-    cp = [args.sdk / 'platforms/android-37.0/android.jar', compiled, resources[0]]
+    cp = [args.sdk / 'platforms/android-37.0/android.jar', compiled, kotlin, resources[0]]
     cp.extend(sorted(file for file in (cache / '9.3.1/transforms').rglob('classes.jar') if 'instrumented' not in file.parts))
     cp.extend(sorted(file for file in (cache / 'modules-2/files-2.1').rglob('*.jar')
                      if 'sources' not in file.name and 'javadoc' not in file.name))

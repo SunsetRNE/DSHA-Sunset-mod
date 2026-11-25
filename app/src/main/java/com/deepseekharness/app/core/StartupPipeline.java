@@ -2,11 +2,20 @@ package com.deepseekharness.app.core;
 
 import com.deepseekharness.app.runtime.ProotBootstrap;
 import com.deepseekharness.app.runtime.WebProcessManager;
+import com.deepseekharness.app.util.Rc1MigrationResult;
+import com.deepseekharness.app.util.StartupRecoveryState;
 import java.io.IOException;
 import java.util.Map;
 
 /** Preparation only. The controller owns generation, enqueue, process launch and retry. */
 final class StartupPipeline {
+  /** A checked, current migration receipt stopped startup before it could replay an import. */
+  static final class MigrationReviewRequired extends IOException {
+    MigrationReviewRequired(String code) {
+      super(code);
+    }
+  }
+
   interface Actions {
     boolean current();
 
@@ -103,6 +112,10 @@ final class StartupPipeline {
 
     String legacy() throws Exception;
 
+    default boolean legacyUsesGuest() {
+      return true;
+    }
+
     void close();
   }
 
@@ -195,6 +208,10 @@ final class StartupPipeline {
               public String legacy() throws Exception {
                 return com.deepseekharness.app.util.GuestCommandOutcome.requireCompleted(
                     scripts.legacy(), "PLUGIN_LEGACY_ACTIVATION");
+              }
+
+              public boolean legacyUsesGuest() {
+                return scripts.legacyUsesGuest();
               }
 
               public void close() {
@@ -305,21 +322,23 @@ final class StartupPipeline {
     // rc1 会在第一次真实启动时迁移 Session/settings/profile。先在 .dsh
     // 隔离区留住旧源和摘要；迁移保护失败时不继续启动，避免上游先 rename
     // settings.yaml 后因插件 pending 造成不可重试的导入。
-    String migration =
-        timing.run("rc-one-migration", () -> runtime.migration(diagnostics.recordId()));
+    actions.stage(StartupRecoveryState.migrationReviewStage());
+    String startupId = diagnostics.recordId();
+    String migration = timing.run("rc-one-migration", () -> runtime.migration(startupId));
     timing.observe("guest-helper", "rc-one-migration", 1);
-    Map<String, Object> migrationState =
-        com.deepseekharness.app.util.Rc1MigrationResult.parse(migration);
-    if (!com.deepseekharness.app.util.Rc1MigrationResult.isRoutineReceipt(migrationState))
+    if (!actions.current()) return null;
+    Map<String, Object> migrationState = Rc1MigrationResult.parse(migration);
+    if (!Rc1MigrationResult.isRoutineReceipt(migrationState))
       diagnostics.message(generation, migration);
-    if (!com.deepseekharness.app.util.Rc1MigrationResult.boundTo(
-        migrationState, diagnostics.recordId())) {
+    if (!Rc1MigrationResult.boundTo(migrationState, startupId)) {
       diagnostics.message(generation, "RC1_MIGRATION_STARTUP_BINDING");
       throw new java.io.IOException(
           "RC1_MIGRATION_STARTUP_BINDING: "
               + com.deepseekharness.app.util.SensitiveData.redact(migration));
     }
-    if (!com.deepseekharness.app.util.Rc1MigrationResult.allowsStart(migrationState)) {
+    String reviewCode = Rc1MigrationResult.reviewCode(migrationState, startupId);
+    if (!reviewCode.isEmpty()) throw new MigrationReviewRequired(reviewCode);
+    if (!Rc1MigrationResult.allowsStart(migrationState)) {
       throw new java.io.IOException(
           com.deepseekharness.app.util.UiText.format(
               "rc1 迁移未完成或结果未知，已阻止导入；原件保留，不会自动重放。请在保留数据中检查迁移记录：%s",
@@ -380,7 +399,7 @@ final class StartupPipeline {
         // 覆盖升级时只解除旧版自动生成的待审阅标记；尊重用户主动禁用。
         if (!actions.current()) return null;
         String migratedPlugins = timing.run("legacy-plugin-reviews", plugins::legacy);
-        timing.observe("guest-helper", "legacy-plugin-reviews", 1);
+        timing.observe("guest-helper", "legacy-plugin-reviews", plugins.legacyUsesGuest() ? 1 : 0);
         diagnostics.message(generation, migratedPlugins);
       }
     }

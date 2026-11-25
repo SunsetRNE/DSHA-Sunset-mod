@@ -159,6 +159,8 @@ final class TransferText {
   }
 
   static String failureBody(Failure failure, String raw) {
+    String recovery = com.deepseekharness.app.transfer.SelectedDocumentSave.recoveryMessage(raw);
+    if (recovery != null) return recovery;
     return switch (failure) {
       case CANCELLED -> cancelled();
       case NO_SPACE ->

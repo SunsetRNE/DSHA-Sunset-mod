@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate narrow account request patches from hash-locked official 0.2.2-rc.1 modules."""
+"""Generate narrow account request patches from hash-locked official 0.2.2-rc.5 modules."""
 import argparse
 import hashlib
 import json
@@ -8,12 +8,12 @@ from source_text import write_text, matches_text
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'app/src/main/assets'
-VERSION = '0.2.2-rc.1'
-SERVER = '@deepseek-ai/dsh-deepseek-account-platform/lib/index.js'
+VERSION = '0.2.2-rc.5'
+SERVER = '@deepseek-ai/dsh-deepseek-account/lib/index.js'
 CLIENT = '@deepseek-ai/dsh-client-ui-settings-account/lib/client.js'
 HASHES = {
-    SERVER: '3b82b41e3e94566e43105a2552c0a4804983be39e1e16ad8b0d0646c76ec0057',
-    CLIENT: '0482b179466e1aaae6d7ff5738f679a8a62b39a0f1c496bda64bef342eb7b7e0',
+    SERVER: 'de9da454098b7e8cf9f91e40304de26fbdfce976b470365ff69822a3c610c620',
+    CLIENT: 'cca3d74cad33dba9947f94046bd91afb0de7d2e48b775a314dcb8a7776d21013',
 }
 
 
@@ -60,39 +60,39 @@ def generate(modules):
     # The thrown code stays "network": adding a new wire error enum would also
     # require upstream remote schemas and locale dictionaries to change.
     patch(before, after)
-    patch('\tdetailsLifetime = new AbortController();',
-          '\tdetailsLifetime = new AbortController();\n'
-          '\t// DSHA_ACCOUNT_PROFILE_SINGLE_FLIGHT_V1: pending reads only; no settled cache.\n'
-          '\tprofileReads = /* @__PURE__ */ new Map();')
-    start = source.index('\tasync getDetail(field, headers, captured) {')
-    end = source.index('\n\t/** Deployment account headers', start)
+    patch('\t\tdetailsLifetime = new AbortController();',
+          '\t\tdetailsLifetime = new AbortController();\n'
+          '\t\t// DSHA_ACCOUNT_PROFILE_SINGLE_FLIGHT_V1: pending reads only; no settled cache.\n'
+          '\t\tprofileReads = /* @__PURE__ */ new Map();')
+    start = source.index('\t\tasync getDetail(field, headers, captured) {')
+    end = source.index('\n\t\t/** Deployment account headers', start)
     before = source[start:end]
-    body_start = before.index('\t\ttry {')
-    body = before[body_start:before.rindex('\n\t}')]
-    after = before[:body_start] + '''\t\t// Include every wire header, not just locale: two deployments/callers
-\t\t// with different effective cookies or identity must not share a response.
-\t\tconst key = field === "profile" ? JSON.stringify([stored.issuer, stored.token, [...new Headers(headers)].sort(([a], [b]) => a.localeCompare(b))]) : null;
-\t\tconst existing = key === null ? void 0 : this.profileReads.get(key);
-\t\tif (existing?.lifetime === lifetime) return existing.promise;
-\t\tconst read = async () => {
+    body_start = before.index('\t\t\ttry {')
+    body = before[body_start:before.rindex('\n\t\t}')]
+    after = before[:body_start] + '''\t\t\t// Include every wire header, not just locale: two deployments/callers
+\t\t\t// with different effective cookies or identity must not share a response.
+\t\t\tconst key = field === "profile" ? JSON.stringify([stored.issuer, stored.token, [...new Headers(headers)].sort(([a], [b]) => a.localeCompare(b))]) : null;
+\t\t\tconst existing = key === null ? void 0 : this.profileReads.get(key);
+\t\t\tif (existing?.lifetime === lifetime) return existing.promise;
+\t\t\tconst read = async () => {
 ''' + '\n'.join('\t' + line for line in body.splitlines()) + '''
-\t\t};
-\t\tif (key === null) return read();
-\t\tconst pending = { lifetime, promise: void 0 };
-\t\tpending.promise = read().finally(() => {
-\t\t\tif (this.profileReads.get(key) === pending) this.profileReads.delete(key);
-\t\t});
-\t\tthis.profileReads.set(key, pending);
-\t\treturn pending.promise;
-\t}'''
+\t\t\t};
+\t\t\tif (key === null) return read();
+\t\t\tconst pending = { lifetime, promise: void 0 };
+\t\t\tpending.promise = read().finally(() => {
+\t\t\t\tif (this.profileReads.get(key) === pending) this.profileReads.delete(key);
+\t\t\t});
+\t\t\tthis.profileReads.set(key, pending);
+\t\t\treturn pending.promise;
+\t\t}'''
     patch(before, after)
-    patch('\tinvalidateDetails() {\n\t\tthis.lastProfile = void 0;',
-          '\tinvalidateDetails() {\n\t\tthis.profileReads.clear();\n\t\tthis.lastProfile = void 0;')
+    patch('\t\tinvalidateDetails() {\n\t\t\tthis.lastProfile = void 0;',
+          '\t\tinvalidateDetails() {\n\t\t\tthis.profileReads.clear();\n\t\t\tthis.lastProfile = void 0;')
 
-    client_before = 'if (value?.status === "failed") console.error("[deepseek-account] account read failed", { field });'
+    client_before = 'if(value?.status===`failed`)console.error(`[deepseek-account] account read failed`,{field});'
     if sources[CLIENT].count(client_before) != 1:
         raise ValueError('ACCOUNT_CLIENT_DIAGNOSTIC_ANCHOR_CHANGED')
-    client_patches = [dict(before=client_before, after='// DSHA_ACCOUNT_CLIENT_DIAGNOSTIC_V1: fixed field survives embedded console forwarding.\n\t\t\t\t\tif (value?.status === "failed") console.error("[deepseek-account] account read failed " + JSON.stringify({ field }));')]
+    client_patches = [dict(before=client_before, after='\n/* DSHA_ACCOUNT_CLIENT_DIAGNOSTIC_V1: fixed field survives embedded console forwarding. */\nif(value?.status===`failed`)console.error(`[deepseek-account] account read failed `+JSON.stringify({field}));')]
     results = {}
     for name, module, edits in [('deepseek-account-requests-patch.json', SERVER, patches),
                                ('deepseek-account-client-diagnostic-patch.json', CLIENT, client_patches)]:

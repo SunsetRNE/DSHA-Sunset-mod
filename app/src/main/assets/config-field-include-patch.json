@@ -1,0 +1,27 @@
+{
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/cordis-plugin-include/lib/index.js",
+  "sourceSha256": "067dbc75da6d18e243b9ec72ce1d12a36c1a03663f48e58eee85036ee8568594",
+  "patches": [
+    {
+      "before": "function applyPatches(data, patches, warn) {",
+      "after": "// DSHA_CONFIG_FIELD_INCLUDE_V1: data-only, path-addressed profile overrides.\r\nfunction configRecord(value) {\r\n\tif (value === null || typeof value !== \"object\") return false;\r\n\tconst proto = Object.getPrototypeOf(value);\r\n\treturn proto === Object.prototype || proto === null;\r\n}\r\nfunction configExpression(value) {\r\n\treturn configRecord(value) && Object.keys(value).length === 1 && typeof value.__jsExpr === \"string\";\r\n}\r\nfunction configMember(value, key) {\r\n\treturn configRecord(value) && !configExpression(value) && Object.hasOwn(value, key) ? value[key] : void 0;\r\n}\r\nfunction assertConfigFieldData(root) {\r\n\tconst pending = [root];\r\n\tconst seen = new WeakSet();\r\n\twhile (pending.length) {\r\n\t\tconst value = pending.pop();\r\n\t\tif (value === null || typeof value === \"string\" || typeof value === \"boolean\" || Number.isFinite(value)) continue;\r\n\t\tif (!(configRecord(value) || Array.isArray(value)) || seen.has(value)\r\n\t\t\t|| Object.keys(value).some((key) => [\"__proto__\", \"constructor\", \"prototype\", \"__jsExpr\"].includes(key))) {\r\n\t\t\tthrow new TypeError(\"configFields values must be literal data\");\r\n\t\t}\r\n\t\tseen.add(value);\r\n\t\tfor (const child of Object.values(value)) pending.push(child);\r\n\t}\r\n}\r\nfunction applyConfigFields(current, fields, inherited) {\r\n\tif (!Array.isArray(fields)) throw new TypeError(\"configFields must be a sequence\");\r\n\tlet config = current;\r\n\tfor (const field of fields) {\r\n\t\tif (!configRecord(field) || Object.keys(field).length !== 2 || !Array.isArray(field.path)\r\n\t\t\t|| !field.path.length || field.path.some((key) => typeof key !== \"string\" || !key\r\n\t\t\t\t|| [\"__proto__\", \"constructor\", \"prototype\", \"__jsExpr\"].includes(key))\r\n\t\t\t|| !(Object.hasOwn(field, \"value\") && field.value !== void 0 || Object.hasOwn(field, \"inherit\") && field.inherit === true)) {\r\n\t\t\tthrow new TypeError(\"Invalid configFields operation\");\r\n\t\t}\r\n\t\tif (Object.hasOwn(field, \"value\")) assertConfigFieldData(field.value);\r\n\t\tconst value = field.inherit === true ? field.path.reduce(configMember, inherited) : field.value;\r\n\t\tconst write = (node, index) => {\r\n\t\t\tif (index === field.path.length) return structuredClone(value);\r\n\t\t\tif (configExpression(node)) throw new TypeError(\"Cannot edit within a configuration expression\");\r\n\t\t\tif (value === void 0 && !configRecord(node)) return node;\r\n\t\t\tconst key = field.path[index];\r\n\t\t\tconst copy = configRecord(node) ? { ...node } : {};\r\n\t\t\tconst child = write(configMember(node, key), index + 1);\r\n\t\t\tif (child === void 0) Reflect.deleteProperty(copy, key);\r\n\t\t\telse Object.defineProperty(copy, key, { value: child, enumerable: true, configurable: true, writable: true });\r\n\t\t\treturn copy;\r\n\t\t};\r\n\t\tconfig = write(config, 0);\r\n\t}\r\n\treturn config;\r\n}\r\n/** Preserve the lower layer for reset operations when the loader receives a single ordered patch list. */\r\nfunction markConfigFieldLayers(layers) {\r\n\treturn layers.flatMap((layer) => layer.some((patch) => Object.hasOwn(patch, \"configFields\"))\r\n\t\t? [{ dshaConfigFieldsBoundary: true }, ...layer] : layer);\r\n}\r\nfunction applyPatches(data, patches, warn) {"
+    },
+    {
+      "before": "\tbuildMap(data);\n\tfor (const patch of patches) {\n\t\tconst { id, insert, name, ...overrides } = patch;",
+      "after": "\tbuildMap(data);\n\tconst fieldBases = patches.some((patch) => Object.hasOwn(patch, \"configFields\")) ? new Map() : void 0;\n\tfor (const patch of patches) {\n\t\tif (patch.id === void 0 && patch.insert === void 0 && patch.dshaConfigFieldsBoundary === true) {\n\t\t\tfieldBases?.clear();\n\t\t\tcontinue;\n\t\t}\n\t\tconst { id, insert, name, configFields, ...overrides } = patch;"
+    },
+    {
+      "before": "\n\t\tfor (const [key, value] of Object.entries(overrides)) {\n\t\t\tif (key === \"id\") continue;\n\t\t\ttarget[key] = value;\n\t\t}\n\t}\n\treturn data;\n}",
+      "after": "\n\t\tif (fieldBases && !fieldBases.has(target)) fieldBases.set(target, target.config);\n\t\tfor (const [key, value] of Object.entries(overrides)) {\n\t\t\tif (key === \"id\") continue;\n\t\t\ttarget[key] = value;\n\t\t}\n\t\tif (configFields !== void 0) {\n\t\t\tif (target.group) throw new TypeError(\"configFields must target a plugin entry\");\n\t\t\ttarget.config = applyConfigFields(target.config, configFields, fieldBases?.get(target));\n\t\t}\n\t}\n\treturn data;\n}"
+    },
+    {
+      "before": "const entryListSchema = yaml.JSON_SCHEMA.extend(JsExpr);",
+      "after": "const ConfigFields = new yaml.Type(\"!dsha-config-fields-v1\", { kind: \"sequence\" });\nconst entryListSchema = yaml.JSON_SCHEMA.extend([JsExpr, ConfigFields]);"
+    },
+    {
+      "before": "applyPatches as applyEntryPatches, entryListSchema };",
+      "after": "applyPatches as applyEntryPatches, applyConfigFields, entryListSchema, markConfigFieldLayers };"
+    }
+  ]
+}

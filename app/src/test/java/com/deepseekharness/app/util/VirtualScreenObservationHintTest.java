@@ -164,8 +164,7 @@ public class VirtualScreenObservationHintTest {
                     100,
                     100,
                     true,
-                    false,
-                    "A"),
+                    false),
                 new VirtualScreenWindowEvidence.Window(
                     8,
                     3,
@@ -176,8 +175,7 @@ public class VirtualScreenObservationHintTest {
                     100,
                     100,
                     true,
-                    false,
-                    "B")));
+                    false)));
     assertEquals(
         "ASK_USER_TO_CLOSE_SPLIT_SCREEN",
         VirtualScreenObservationHint.semanticNextAction(
@@ -200,8 +198,7 @@ public class VirtualScreenObservationHintTest {
                     100,
                     100,
                     true,
-                    true,
-                    "Keyboard")));
+                    true)));
     assertEquals(
         "LAUNCH_APP_FIRST",
         VirtualScreenObservationHint.semanticNextAction(

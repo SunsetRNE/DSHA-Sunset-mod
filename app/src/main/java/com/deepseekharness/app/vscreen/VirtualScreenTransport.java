@@ -71,7 +71,10 @@ final class VirtualScreenTransport {
         throw new IOException("VSCREEN_RESPONSE_BOUNDARY_INVALID");
       long length = Long.parseLong(head.value("Content-Length"));
       if (length > MAX_RESPONSE)
-        return failure("VSCREEN_RESPONSE_LIMIT", VirtualScreenRoutes.mutatesCore(route));
+        return failure(
+            "VSCREEN_RESPONSE_LIMIT",
+            VirtualScreenRoutes.mutatesCore(route)
+                || com.deepseekharness.app.util.PrivilegedScreenRoutes.mutatesCore(route));
       ByteArrayOutputStream output = new ByteArrayOutputStream((int) length);
       byte[] buffer = new byte[8192];
       while (length > 0) {

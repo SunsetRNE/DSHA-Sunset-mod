@@ -1,5 +1,9 @@
 # DSHA 现行构建说明
 
+自 build377 起，五个 proroot 原件由构建工具按作者固定提交和 SHA-256 恢复。联网构建仅在缺少相符文件时从原作者获取。离线可使用保留原件和许可的完整 APK，传入 Gradle 参数 `-Pdsha.prorootApk=/path/to/dsha.apk`，或先执行 `python3 tools/proroot_distribution.py --apk /path/to/dsha.apk`。CI 各节点各自恢复，本地正式 build376 可作离线来源。许可和署名随完整 APK 交付。[上游固定版本许可](https://github.com/coderredlab/proroot/blob/14b72a764490d0280eee3915ecfa3e8a132b392e/LICENSE)
+
+本地 build370 使用 DSH `0.2.2-rc.5`。按[本地固定输入说明](docs/fixed-build-inputs-local.md)重建并校验运行时；正式 APK 选择 `-Pdsha.identity=upstream`，按本次提交装配带来源回执的 ARM64 Rust prebuilt，以历史 E7E3 证书签名。下方 build369 的 Mod 发布记录属于 Sunset 上游。
+
 > 当前发布身份（build369）：`DSH-A-Su` / `io.github.sunsetrne.dsha` / `0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1` / versionCode 369。
 > build369 已发布（tag `dsha-a-su-build369-20261116-080147` @ `82eb958d`）；正式 CI 43828110344 通过，七资产与三包签名/来源已独立复核；本版设备验收待完成。
 > 单一 Standard 变体：minSdk 30（Android 11+）、arm64-v8a、系统 WebView。原 `low`/GeckoView 兼容线与独立上岛包已删除。

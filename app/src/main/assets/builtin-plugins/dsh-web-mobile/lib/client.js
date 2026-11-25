@@ -1887,6 +1887,8 @@ exports.LAYOUT_CSS = `
     [data-mobile-nav="frame"][data-mobile-panel-exit]:not(:has([class*="panelRow"][aria-current="page"])) [class*="_centerCol"] > * > * {
       animation: none !important;
     }
+    /* The preference can change while the exit snapshot is still mounted. */
+    [data-mobile-nav="panel-ghost"] { display: none; }
   }
   [data-mobile-nav="frame"] [data-phase] header .dsha-preset-header-anchor {
     order: 1;
@@ -10403,13 +10405,11 @@ function installDocumentScrollLock(ctx) {
         window.scrollBy = patchedScrollBy;
         window.scrollTo = patchedScrollTo;
         window.addEventListener('scroll', pin, { passive: true });
-        document.addEventListener('scroll', pin, true);
         pin();
         return () => {
             window.scrollBy = nativeScrollBy;
             window.scrollTo = nativeScrollTo;
             window.removeEventListener('scroll', pin);
-            document.removeEventListener('scroll', pin, true);
         };
     });
 }
@@ -11282,7 +11282,7 @@ const breakpoints_ts_1 = require("./platform/breakpoints.js");
  *    `getBoundingClientRect()` 只读一次、结果在帧内复用（`frameRects`）。
  * 2. **rAF 槽合并**：旧版 `if (raf !== 0) return` 是「先到者胜」——同一帧里先排了
  *    `follow()` 再来的 `refresh()` 会被整份丢掉，那次交互当帧就不落位。改成「槽位保存
- *    最新那份意图」，后到者覆盖先到者，请求不再丢。
+ *    待执行的意图」，交互刷新不会被滚动重算覆盖。
  * 3. **还值不置空**：旧版收尾统一把 inline left 置成空串，会把宿主自己那行位置一起抹掉；
  *    现在记下第一次接管时的原值并按原值还回去。
  */
@@ -11299,7 +11299,7 @@ const SETTLE_MS = [0, 60, 200];
 function installModelMenuAnchor(ctx) {
     (0, breakpoints_ts_1.installMobileEffect)(ctx, 'dsh-web-mobile: model menu anchor', () => {
         let raf = 0;
-        /** 本帧待跑的那一份意图。后到的请求覆盖它（见 schedule()）。 */
+        /** 本帧待跑的那一份意图。交互刷新优先于滚动重算。 */
         let pending = null;
         /**
          * 本帧的 rect 缓存（键 = 元素）。同一趟定位里同一个元素只读一次：`findMenu()` 判定
@@ -11384,7 +11384,13 @@ function installModelMenuAnchor(ctx) {
         };
         /** 交互路径：刷新缓存（会查询）并按新位置落位。 */
         const refresh = () => {
-            active = findMenu();
+            const menu = findMenu();
+            if (menu === null) {
+                stopFollowing();
+                return;
+            }
+            if (active === null) document.addEventListener('scroll', onViewportChange, { capture: true, passive: true });
+            active = menu;
             activeTrigger = active === null ? null : document.querySelector(MODEL_TRIGGER);
             activeCard = active === null ? null : document.querySelector(COMPOSER_CARD);
             if (active !== null)
@@ -11396,24 +11402,21 @@ function installModelMenuAnchor(ctx) {
                 return;
             if (laidOut(active) === null) {
                 // 菜单已经不在了（收起/卸载）：把位置还回去，别再占着。
-                releasePlacement();
-                active = null;
-                activeTrigger = null;
-                activeCard = null;
+                stopFollowing();
                 return;
             }
             place(active);
         };
         /**
          * 把一次定位请求排进下一帧。**合并语义**：一帧只跑一次，槽位存的是「最新那份意图」，
-         * 后到的请求覆盖先到的（不是被丢掉）。
+         * 同一帧的 refresh() 优先于 follow()。
          *
          * 旧版是「先到者胜」的 `if (raf !== 0) return`：同一帧里 `follow()` 之后来的
          * `refresh()` 会被整份吃掉 —— 用户刚点开菜单、同一帧页面又在滚（流式输出时常态）时，
          * 那次交互当帧不落位，只能等 60ms/200ms 的收尾计时器兜底。
          */
         const schedule = (run) => {
-            pending = run;
+            if (pending !== refresh) pending = run;
             if (raf !== 0)
                 return;
             raf = window.requestAnimationFrame(() => {
@@ -11466,23 +11469,28 @@ function installModelMenuAnchor(ctx) {
             if (touchesMenu(event))
                 scheduleRefresh();
         };
+        const stopFollowing = () => {
+            document.removeEventListener('scroll', onViewportChange, true);
+            releasePlacement();
+            active = null;
+            activeTrigger = null;
+            activeCard = null;
+        };
         // 视口变化只走"零查询"的重算路径。
         const onViewportChange = () => {
-            schedule(follow);
+            if (active !== null) schedule(follow);
         };
         document.addEventListener('pointerdown', onPointerDown, true);
         document.addEventListener('keydown', onKeyDown, true);
         document.addEventListener('focusin', onFocusIn, true);
         document.addEventListener('click', onClick, true);
         window.addEventListener('resize', onViewportChange);
-        document.addEventListener('scroll', onViewportChange, true);
         return () => {
             document.removeEventListener('pointerdown', onPointerDown, true);
             document.removeEventListener('keydown', onKeyDown, true);
             document.removeEventListener('focusin', onFocusIn, true);
             document.removeEventListener('click', onClick, true);
             window.removeEventListener('resize', onViewportChange);
-            document.removeEventListener('scroll', onViewportChange, true);
             if (raf !== 0)
                 window.cancelAnimationFrame(raf);
             pending = null;
@@ -11491,10 +11499,7 @@ function installModelMenuAnchor(ctx) {
                 window.clearTimeout(timer);
             timers.length = 0;
             // 还回我们改写的那行 inline left（只在值仍是我们写的时候，按第一次接管时的原值还原）。
-            releasePlacement();
-            active = null;
-            activeTrigger = null;
-            activeCard = null;
+            stopFollowing();
         };
     });
 }
@@ -14866,10 +14871,10 @@ function createPanelExit(layout) {
      * panelLeavingOwner and for the frame marker one function up.
      */
     function freezePanel(panel) {
-        finishGhost();
         const ghost = document.createElement('div');
         ghost.dataset.mobileNav = PANEL_GHOST_VALUE;
         ghost.setAttribute('aria-hidden', 'true');
+        ghost.setAttribute('inert', '');
         ghost.append(panel.cloneNode(true));
         document.body.append(ghost);
         return ghost;
@@ -14882,11 +14887,15 @@ function createPanelExit(layout) {
         panelLeavingOwner = owner;
         // The marker goes on BEFORE the swap: the incoming conversation must carry its
         // reveal from its first style resolution (no full-opacity frame).
-        const frame = (0, frame_ts_1.getFrame)();
-        if (frame !== null)
-            frame.setAttribute(PANEL_EXIT_ATTR, '');
-        const panel = panelElement();
-        ghost = panel === null ? null : freezePanel(panel);
+        const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+        finishGhost();
+        if (!reduceMotion) {
+            const frame = (0, frame_ts_1.getFrame)();
+            if (frame !== null)
+                frame.setAttribute(PANEL_EXIT_ATTR, '');
+            const panel = panelElement();
+            ghost = panel === null ? null : freezePanel(panel);
+        }
         // Commit on this very tick — the whole point of the snapshot is that the
         // remount no longer waits for any animation to finish.
         // 2026-10-13：selectPanel 由**宿主**实现，可能抛。它排在本行的上面（冻结全屏快照）
@@ -14901,7 +14910,10 @@ function createPanelExit(layout) {
             // this handler returns, and by then the animation objects exist.
             settleRaf = requestAnimationFrame(() => {
                 settleRaf = 0;
-                armExit(0);
+                if (reduceMotion)
+                    finishMain();
+                else
+                    armExit(0);
             });
             if (ghost !== null) {
                 const owned = ghost;
@@ -14910,8 +14922,8 @@ function createPanelExit(layout) {
                         finishGhost();
                 };
                 owned.addEventListener('animationend', ghostEnd, true);
-                // Fallback: reduced-motion kills the animation, and a layer left behind
-                // would cover the whole screen — never rely on animationend alone.
+                // Fallback: settings can change mid-animation, or the browser
+                // may skip animationend if the layer is detached.
                 ghostTimer = window.setTimeout(finishGhost, PANEL_GHOST_MS + 120);
             }
         }
@@ -15417,7 +15429,10 @@ function conversationScrollers() {
  * 「时不时跳到上文很久以前的内容」 is exactly that.
  */
 function rememberConversationScroll() {
-    for (const element of conversationScrollers()) {
+    delete scrollWindow.__dshaMobileScrollRestore;
+    const elements = conversationScrollers();
+    if (elements.length > 0) delete scrollWindow.__dshaMobileLastScroll;
+    for (const element of elements) {
         if (element.scrollTop > 0) {
             const saved = { top: element.scrollTop, savedAt: Date.now(), url: location.href };
             scrollState.set(element, saved);
@@ -15428,6 +15443,9 @@ function rememberConversationScroll() {
     }
 }
 function restoreConversationScroll() {
+    const token = {};
+    scrollWindow.__dshaMobileScrollRestore = token;
+    const isCurrent = () => scrollWindow.__dshaMobileScrollRestore === token;
     // Same node (stylesheet-only swap): the cheap path.
     for (const element of conversationScrollers()) {
         const saved = scrollState.get(element);
@@ -15435,7 +15453,7 @@ function restoreConversationScroll() {
         if (!saved || Date.now() - saved.savedAt > SWAP_RESTORE_MS || saved.url !== location.href)
             continue;
         requestAnimationFrame(() => {
-            if (element.isConnected && saved.url === location.href &&
+            if (isCurrent() && element.isConnected && saved.url === location.href &&
                 Date.now() - saved.savedAt <= SWAP_RESTORE_MS && element.scrollTop === 0)
                 element.scrollTop = saved.top;
         });
@@ -15449,10 +15467,11 @@ function restoreConversationScroll() {
     let tries = 0;
     const attempt = () => {
         tries += 1;
-        if (saved.url !== location.href || Date.now() - saved.savedAt > SWAP_RESTORE_MS)
+        if (!isCurrent() || saved.url !== location.href || Date.now() - saved.savedAt > SWAP_RESTORE_MS)
             return;
         const element = document.querySelector('[class*="scrollBody"]');
-        if (element !== null && element.scrollTop === 0 && element.scrollHeight >= saved.top + element.clientHeight) {
+        if (element !== null && element.scrollTop !== 0) return;
+        if (element !== null && element.scrollHeight >= saved.top + element.clientHeight) {
             element.scrollTop = saved.top;
             return;
         }

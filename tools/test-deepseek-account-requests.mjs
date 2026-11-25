@@ -1,4 +1,4 @@
-// Real hash-locked rc3 PlatformAccount/Authorization/Cordis and browser client.
+// Real hash-locked 0.2.2-rc.5 PlatformAccount/Authorization/Cordis and browser client.
 // Only the credential adapter and localhost Platform replies are synthetic.
 // No production fixture bytes, actual accounts, or public network are used.
 import assert from 'node:assert/strict';
@@ -45,7 +45,7 @@ function capture(...values){logs.push(values);}
 const originalConsole=console.error;
 console.error=capture;
 async function backend(Provider=Fixed,options={}){
-  const context=new Context(),memory=new Map(),wire={profile:[],balance:0,bonus:0,deletes:0};
+  const context=new Context(),memory=new Map(),wire={profile:[],balance:0,deletes:0};
   const platform=http.createServer((req,res)=>{
     const pathname=new URL(req.url,'http://127.0.0.1').pathname;
     const reply=(value,status=200)=>res.writeHead(status,{'content-type':'application/json'}).end(JSON.stringify({code:0,data:{biz_code:0,biz_data:value}}));
@@ -55,7 +55,6 @@ async function backend(Provider=Fixed,options={}){
       wire.profile.push(call);
       if(options.immediateStatus)call.raw('untrusted response token=SHOULD_NOT_BE_LOGGED',options.immediateStatus);
     }else if(pathname==='/api/v0/users/get_user_summary'){++wire.balance;reply({normal_wallets:[],bonus_wallets:[]});}
-    else if(pathname==='/api/v0/users/get_unnotified_bonuses'){++wire.bonus;reply([]);}
     else if(pathname==='/auth-api/v0/users/logout')reply({});
     else res.writeHead(404).end();
   });
@@ -80,13 +79,13 @@ async function backend(Provider=Fixed,options={}){
 }
 
 try{
-  await test('archive stable engine applies from official canonical rc3, repeats identically, and rejects drift',async()=>{
+  await test('archive stable engine applies from official canonical 0.2.2-rc.5, repeats identically, and rejects drift',async()=>{
     const python=spawnSync(process.env.DSHA_PYTHON||'python',['-B','-c',[
       'import json,sys,os;from pathlib import Path;sys.path.insert(0,"tools");from runtime_stable_patches import apply',
       'for name in sys.argv[1:]:',
       ' p=json.loads(Path("app/src/main/assets",name).read_text(encoding="utf8"))',
-      ' pointer=json.loads(Path("app/build/test-runtimes/current.json").read_text())',
-      ' raw=Path(os.environ.get("DSHA_TEST_RUNTIME") or pointer["raw"],"node_modules",p["module"]).read_bytes()',
+      ' raw_path=os.environ.get("DSHA_TEST_RUNTIME") or json.loads(Path("app/build/test-runtimes/current.json").read_text())["raw"]',
+      ' raw=Path(raw_path,"node_modules",p["module"]).read_bytes()',
       ' chain=[(name,[(x["before"],x["after"]) for x in p["patches"]],[])]',
       ' changed=apply(raw,chain);assert changed!=raw;assert apply(changed,chain)==changed',
       ' try: apply(raw.replace(p["patches"][0]["before"].encode(),b"DRIFT",1),chain)',
@@ -96,20 +95,20 @@ try{
     ].join('\n'),...recipes.map(row=>row.name)],{encoding:'utf8',windowsHide:true,timeout:30000});
     assert.equal(python.status,0,python.stderr);assert.match(python.stdout,/PASS_ARCHIVE_CANONICAL_REPEAT_DRIFT/);
   });
-  await test('official negative control issues two users/current calls for concurrent profile and bonus readers',async()=>{
+  await test('official negative control issues two users/current calls for concurrent profile readers',async()=>{
     const f=await backend(Official);try{
-      const reads=[f.account.getProfile(client),f.account.getUnnotifiedBonuses(client)];
+      const reads=[f.account.getProfile(client),f.account.getProfile(client)];
       await until(()=>f.wire.profile.length===2);f.wire.profile.forEach(call=>call.reply());
-      const [profile,bonus]=await Promise.all(reads);assert.equal(profile.status,'ready');assert.equal(bonus.accountId,'synthetic-user');
+      const profiles=await Promise.all(reads);assert(profiles.every(value=>value.status==='ready'&&value.value.id==='synthetic-user'));
     }finally{await f.close();}
   });
-  await test('patched profile and bonus consumers share exactly one in-flight users/current read',async()=>{
+  await test('patched profile consumers share exactly one in-flight users/current read',async()=>{
     const f=await backend();try{
-      const reads=[f.account.getProfile(client),f.account.getUnnotifiedBonuses(client),f.account.getProfile({...client})];
+      const reads=[f.account.getProfile(client),f.account.getProfile(client),f.account.getProfile({...client})];
       await until(()=>f.wire.profile.length===1);await delay(30);assert.equal(f.wire.profile.length,1);
       const balance=await f.account.getBalance(client);assert.equal(balance.status,'ready');assert.equal(f.wire.balance,1,'balance is not blocked by profile');
       f.wire.profile[0].reply();const [a,b,c]=await Promise.all(reads);
-      assert.equal(a.status,'ready');assert.equal(b.accountId,'synthetic-user');assert.deepEqual(a,c);assert.equal(f.account.profileReads.size,0);
+      assert.equal(a.status,'ready');assert.deepEqual(a,b);assert.deepEqual(a,c);assert.equal(f.account.profileReads.size,0);
       const later=f.account.getProfile(client);await until(()=>f.wire.profile.length===2);f.wire.profile[1].reply();await later;
       assert.equal(f.wire.profile.length,2,'a settled read is not a permanent cache');
     }finally{await f.close();}
@@ -126,9 +125,9 @@ try{
   await test('403 failure is shared only while pending, preserves credentials, and emits one safe structured HTTP diagnosis',async()=>{
     const f=await backend();try{
       const start=logs.length;
-      const reads=[f.account.getProfile(client),f.account.getProfile(client),f.account.getUnnotifiedBonuses(client).catch(error=>error)];
+      const reads=[f.account.getProfile(client),f.account.getProfile(client),f.account.getProfile(client)];
       await until(()=>f.wire.profile.length===1);f.wire.profile[0].raw('token=SHOULD_NOT_BE_LOGGED email=private@example.invalid',403);
-      const [a,b,notice]=await Promise.all(reads);assert.deepEqual(a,{status:'failed'});assert.deepEqual(a,b);assert.equal(notice.code,'network');
+      const [a,b,c]=await Promise.all(reads);assert.deepEqual(a,{status:'failed'});assert.deepEqual(a,b);assert.deepEqual(a,c);
       assert.equal((await f.account.getState()).status,'credential-stored');assert.equal(f.wire.deletes,0);assert.equal(f.account.profileReads.size,0);
       const emitted=logs.slice(start).filter(args=>String(args[0]).startsWith('[deepseek-account] request failed '));
       assert.equal(emitted.length,1);assert.equal(emitted[0].length,1);
@@ -141,7 +140,7 @@ try{
   });
   await test('credential replacement aborts old shared read, starts the new token, and cannot publish old identity',async()=>{
     const f=await backend();try{
-      const old=[f.account.getProfile(client),f.account.getUnnotifiedBonuses(client)];await until(()=>f.wire.profile.length===1);
+      const old=[f.account.getProfile(client),f.account.getProfile(client)];await until(()=>f.wire.profile.length===1);
       f.store('fixture-grant-two');const next=f.account.getProfile(client);await until(()=>f.wire.profile.length===2);
       assert.equal(f.wire.profile[0].headers['x-dsh-auth-token'],'fixture-grant-one');assert.equal(f.wire.profile[1].headers['x-dsh-auth-token'],'fixture-grant-two');
       f.wire.profile[1].reply({id:'new-user',email:'new@example.invalid'});
@@ -160,15 +159,15 @@ try{
   await test('caller watch cancellation does not cancel another consumer shared request',async()=>{
     const f=await backend();try{
       const controller=new AbortController(),watch=f.account.watch(controller.signal);await watch.next();
-      const reads=[f.account.getProfile(client),f.account.getUnnotifiedBonuses(client)];await until(()=>f.wire.profile.length===1);
+      const reads=[f.account.getProfile(client),f.account.getProfile(client)];await until(()=>f.wire.profile.length===1);
       controller.abort();await watch.return();f.wire.profile[0].reply();const values=await Promise.all(reads);
-      assert.equal(values[0].status,'ready');assert.equal(values[1].accountId,'synthetic-user');assert.equal(f.wire.deletes,0);
+      assert.equal(values[0].status,'ready');assert.deepEqual(values[0],values[1]);assert.equal(f.wire.deletes,0);
     }finally{await f.close();}
   });
   await test('401 and successful HTTP code 40003 retain the official credential-expiry behavior',async()=>{
     for(const response of ['401','40003']){
       const f=await backend();try{
-        const reads=[f.account.getProfile(client),f.account.getUnnotifiedBonuses(client)];await until(()=>f.wire.profile.length===1);
+        const reads=[f.account.getProfile(client),f.account.getProfile(client)];await until(()=>f.wire.profile.length===1);
         f.wire.profile[0].raw(response==='401'?'untrusted':'{"code":40003}',response==='401'?401:200);
         assert.deepEqual(await Promise.all(reads),[null,null]);assert.equal((await f.account.getState()).status,'signed-out');assert.equal(f.wire.deletes,1);
       }finally{await f.close();}
@@ -198,11 +197,18 @@ try{
       const observed=await browser.page.evaluate(async()=>{
         const messages=[],dispose=[];
         console.error=(...args)=>messages.push(args);
-        const stream={async *[Symbol.asyncIterator](){yield {value:{status:'credential-stored',attempt:null,links:{}},accept(){}};},async dispose(){}};
+        const stream={async *[Symbol.asyncIterator](){yield {generation:1,value:{type:'snapshot',state:{status:'credential-stored',attempt:null,links:{}}},accept(){}};},async dispose(){}};
         const ctx={effect(fn){const cleanup=fn();if(typeof cleanup==='function')dispose.push(cleanup);return cleanup;},
           locale:{register(){return ()=>{};},bind(){return key=>key;},getSnapshot(){return {active:'en'};}},
           theme:{getTheme(){return {active:{colorScheme:'light'}};}},slots:{inject(){}},
-          remote:{$stream(){return stream;},account:{async getProfile(){return {ok:true,value:{status:'failed'}};},async getBalance(){return {ok:true,value:{status:'failed'}};},async getUnnotifiedBonuses(){return {ok:true,value:null};}}}};
+          provide(){},emit(){},remoteAccess:{whenAccess(_scope,start){
+            const frame=start();
+            if (frame?.next) {
+              dispose.push(frame.next().value);
+              frame.next();
+            }
+          }},
+          remote:{$stream(){return stream;},account:{async getProfile(){return {ok:true,value:{status:'failed'}};},async getBalance(){return {ok:true,value:{status:'failed'}};}}}};
         auditExports['@deepseek-ai/dsh-client-ui-settings-account'].apply(ctx);
         await new Promise(resolve=>setTimeout(resolve,40));for(const cleanup of dispose.reverse())await cleanup();
         return messages.filter(args=>String(args[0]).startsWith('[deepseek-account] account read failed '));

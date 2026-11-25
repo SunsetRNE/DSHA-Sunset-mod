@@ -14,6 +14,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 import com.deepseekharness.app.core.HarnessController;
+import com.deepseekharness.app.util.PowerPolicy;
 import com.deepseekharness.app.util.SensitiveData;
 
 /**
@@ -41,7 +42,7 @@ public class HarnessService extends Service {
 
   // ================= WebUI 监听保活 =================
   private volatile Thread keepAliveThread;
-  private volatile boolean keepAliveRunning;
+  private final android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
   private final java.util.concurrent.atomic.AtomicLong lastRestartAt =
       new java.util.concurrent.atomic.AtomicLong(0);
   private static final long KEEPALIVE_INTERVAL_MS = 15000L;
@@ -52,8 +53,7 @@ public class HarnessService extends Service {
   private android.os.PowerManager.WakeLock wakeLock;
 
   private android.net.wifi.WifiManager.WifiLock wifiLock;
-  private final com.deepseekharness.app.util.PowerPolicy powerPolicy =
-      new com.deepseekharness.app.util.PowerPolicy();
+  private final PowerPolicy powerPolicy = new PowerPolicy();
   private String notificationState = "";
   private boolean receiverRegistered;
   private volatile boolean foregroundPromoted;
@@ -74,11 +74,17 @@ public class HarnessService extends Service {
   /** Main-thread visible user action only; request the FGS before dispatching startup work. */
   public static com.deepseekharness.app.util.WebStartProtection.Ticket prepareVisibleStart(
       androidx.fragment.app.FragmentActivity activity) throws java.io.IOException {
+    return prepareVisibleStart(activity, true);
+  }
+
+  public static com.deepseekharness.app.util.WebStartProtection.Ticket prepareVisibleStart(
+      androidx.fragment.app.FragmentActivity activity, boolean waitForMaintenance)
+      throws java.io.IOException {
     if (android.os.Looper.myLooper() != android.os.Looper.getMainLooper()
         || !ForegroundActivity.isResumed(activity))
       throw new java.io.IOException("WEB_START_REQUIRES_VISIBLE_ACTIVITY");
     HarnessController controller = HarnessController.get(activity);
-    var ticket = controller.webStartProtection().begin();
+    var ticket = controller.webStartProtection().begin(waitForMaintenance);
     if (ticket == null) throw new java.io.IOException("WEB_START_PREPARATION_BUSY");
     Context app = activity.getApplicationContext();
     try {
@@ -220,7 +226,7 @@ public class HarnessService extends Service {
         if (!keepAliveHealthy()) startKeepAlive();
         else refreshLocks();
         boolean cpuHeld = wakeLock != null && wakeLock.isHeld();
-        if (!cpuHeld || !c.webStartProtection().promote(id, this, this::startupProtectionCurrent)) {
+        if (!cpuHeld || !c.webStartProtection().promote(id, this, this::keepAliveHealthy)) {
           c.webStartProtection().reject(id, "WEB_FOREGROUND_PROTECTION_UNAVAILABLE");
           return finishPreparationAttempt();
         }
@@ -314,19 +320,21 @@ public class HarnessService extends Service {
   }
 
   /** Pure slot/thread/flag observation; safe under the lifecycle monitor, no controller or Binder. */
-  private boolean startupProtectionCurrent() {
+  private boolean keepAliveHealthy() {
     Thread thread = keepAliveThread;
-    return foregroundPromoted
-        && keepAliveRunning
-        && thread != null
-        && thread.isAlive()
-        && !thread.isInterrupted()
+    return ownsKeepAlive(thread) && thread.isAlive() && !thread.isInterrupted();
+  }
+
+  private boolean ownsKeepAlive(Thread owner) {
+    return owner != null
+        && owner == keepAliveThread
+        && foregroundPromoted
         && DshaApp.from(this).harnessService().current() == this;
   }
 
   private void retireIdlePreparation() {
     if (c.webStartProtection().hasPreparing() || c.requiresRuntimeProtection()) {
-      if (keepAliveRunning) refreshLocks();
+      refreshLocks();
       return;
     }
     stopKeepAlive();
@@ -350,7 +358,7 @@ public class HarnessService extends Service {
 
   // ================= 息屏保活 =================
 
-  private synchronized void acquireLocks(boolean needWifi) {
+  private void acquireLocks(boolean needWifi) {
     try {
       android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
       if (pm != null && (wakeLock == null || !wakeLock.isHeld())) {
@@ -379,28 +387,38 @@ public class HarnessService extends Service {
   }
 
   private void refreshLocks() {
-    if (!keepAliveRunning) return;
+    Thread owner = keepAliveThread;
+    if (android.os.Looper.myLooper() != main.getLooper()) {
+      main.post(() -> refreshLocks(owner));
+      return;
+    }
+    refreshLocks(owner);
+  }
+
+  /** Main looper serializes all Web lock and notification changes with stop and replacement. */
+  private void refreshLocks(Thread owner) {
+    if (!ownsKeepAlive(owner)) return;
     com.deepseekharness.app.core.RuntimeTasks.renew();
     boolean preparing = c.webStartProtection().hasPreparing();
     boolean eco = c.config().isEcoMode(), starting = preparing || c.isStarting();
     boolean active = preparing || c.requiresRuntimeProtection();
     boolean lan = c.config().isLanMode(), work = com.deepseekharness.app.core.RuntimeTasks.isBusy();
     android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
-    // LAN 需要随时接收远端请求；不读取页面空闲文件决定是否允许休眠。
-    boolean idle = !lan && knownWebIdle();
-    boolean keep;
-    synchronized (powerPolicy) {
-      keep =
-          powerPolicy.keepCpu(
-              eco,
-              active,
-              starting,
-              pm == null || pm.isInteractive(),
-              lan,
-              work,
-              idle,
-              android.os.SystemClock.elapsedRealtime());
-    }
+    var identity = eco && !lan && active && !starting ? c.getReadyWebPageIdentity() : null;
+    boolean idle =
+        identity != null
+            && powerPolicy.knownIdle(
+                identity.generation(), identity.instanceId(), System.currentTimeMillis());
+    boolean keep =
+        powerPolicy.keepCpu(
+            eco,
+            active,
+            starting,
+            pm == null || pm.isInteractive(),
+            lan,
+            work,
+            idle,
+            android.os.SystemClock.elapsedRealtime());
     if (keep) acquireLocks(!eco || lan || work || !idle);
     else releaseLocks();
     String state =
@@ -433,28 +451,32 @@ public class HarnessService extends Service {
     }
   }
 
-  private boolean knownWebIdle() {
-    if (c.getWebAuthUrl().isEmpty()) return false;
+  /** Only the watchdog reads the atomically replaced, size-limited heartbeat. */
+  private PowerPolicy.IdleFrame readIdleFrame() {
+    if (!c.config().isEcoMode() || c.config().isLanMode() || c.getReadyWebPageIdentity() == null)
+      return null;
     try {
-      java.io.File file =
-          new java.io.File(c.proot().getRootfsDir(), "root/.dsha-web-activity.json");
-      if (file.length() > 2048) return false;
-      org.json.JSONObject status =
-          new org.json.JSONObject(
-              new String(
-                  com.deepseekharness.app.util.Compat.readAllBytes(file),
-                  java.nio.charset.StandardCharsets.UTF_8));
-      long age = System.currentTimeMillis() - status.getLong("at");
-      return status.getLong("generation") == c.getWebGeneration()
-          && age >= 0
-          && age <= 30_000
-          && status.getBoolean("idle");
-    } catch (Exception error) {
-      return false;
+      var file =
+          com.deepseekharness.app.plugins.PluginRuntimeProjection.snapshotPath(
+              c.proot().getRootfsDir());
+      return PowerPolicy.readIdleFrame(
+          new com.deepseekharness.app.backup.AndroidBackupFileSystem()
+              .currentSnapshot(file, PowerPolicy.MAX_ACTIVITY_BYTES));
+    } catch (java.io.IOException | RuntimeException unavailable) {
+      return null;
     }
   }
 
-  private synchronized void releaseLocks() {
+  private void postPowerSample(Thread owner, PowerPolicy.IdleFrame sample) {
+    main.post(
+        () -> {
+          if (!ownsKeepAlive(owner)) return;
+          powerPolicy.observe(sample, System.currentTimeMillis());
+          refreshLocks(owner);
+        });
+  }
+
+  private void releaseLocks() {
     try {
       if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
     } catch (Throwable ignored) {
@@ -469,29 +491,21 @@ public class HarnessService extends Service {
 
   // ================= 看门狗 =================
 
-  private synchronized boolean keepAliveHealthy() {
-    return keepAliveRunning
-        && keepAliveThread != null
-        && keepAliveThread.isAlive()
-        && !keepAliveThread.isInterrupted();
-  }
-
   private void startKeepAlive() {
     stopKeepAlive();
-    keepAliveRunning = true;
-    refreshLocks();
-    ensureBridge();
     keepAliveThread =
         new Thread(
             () -> {
+              Thread owner = Thread.currentThread();
               int fail = 0;
-              while (keepAliveRunning && !Thread.currentThread().isInterrupted()) {
+              while (ownsKeepAlive(owner) && !owner.isInterrupted()) {
+                postPowerSample(owner, readIdleFrame());
                 try {
                   Thread.sleep(KEEPALIVE_INTERVAL_MS);
                 } catch (InterruptedException e) {
                   break;
                 }
-                if (!keepAliveRunning) break;
+                if (!ownsKeepAlive(owner)) break;
                 HttpShellService.Lease bridge = shellHttp;
                 try {
                   if (bridge != null) bridge.ensureStarted();
@@ -499,13 +513,14 @@ public class HarnessService extends Service {
                   com.deepseekharness.app.core.DiagnosticLog.record(
                       this, "BRIDGE_KEEPALIVE", error.getClass().getSimpleName());
                 }
-                refreshLocks();
                 if (!c.webStartProtection().hasPreparing() && !c.requiresRuntimeProtection()) {
-                  new android.os.Handler(android.os.Looper.getMainLooper())
-                      .post(this::retireIdlePreparation);
+                  main.post(
+                      () -> {
+                        if (ownsKeepAlive(owner)) retireIdlePreparation();
+                      });
                   continue;
                 }
-                ensureLanListening();
+                ensureLanListening(owner);
                 c.refreshRecoveredWebSession();
                 if (c.webStartProtection().hasPreparing() || c.isRestoringWebSession()) {
                   fail = 0;
@@ -529,11 +544,12 @@ public class HarnessService extends Service {
                         c.getWebAuthUrl(),
                         c.getWebPort(),
                         () ->
-                            keepAliveRunning
-                                && !Thread.currentThread().isInterrupted()
+                            ownsKeepAlive(owner)
+                                && !owner.isInterrupted()
                                 && generation == c.getWebGeneration()
                                 && c.canAutoRestart(),
                         3000);
+                if (!ownsKeepAlive(owner)) break;
                 if (health.state == com.deepseekharness.app.util.WebHealthProbe.State.STALE) {
                   fail = 0;
                   continue;
@@ -545,8 +561,8 @@ public class HarnessService extends Service {
                 }
                 c.reportWebHealth(generation, false);
                 // 探测期间可能发生手动启停，不能沿用旧探测结果。
-                if (!keepAliveRunning
-                    || Thread.currentThread().isInterrupted()
+                if (!ownsKeepAlive(owner)
+                    || owner.isInterrupted()
                     || generation != c.getWebGeneration()
                     || !c.canAutoRestart()) {
                   fail = 0;
@@ -573,23 +589,25 @@ public class HarnessService extends Service {
               }
             },
             "dsha-keepalive");
+    refreshLocks();
+    ensureBridge();
     keepAliveThread.setDaemon(true);
     keepAliveThread.start();
   }
 
-  private synchronized void stopKeepAlive() {
-    keepAliveRunning = false;
+  private void stopKeepAlive() {
+    Thread owner = keepAliveThread;
+    keepAliveThread = null;
+    if (owner != null) owner.interrupt();
     releaseLocks();
-    if (keepAliveThread != null) {
-      keepAliveThread.interrupt();
-      keepAliveThread = null;
-    }
+    powerPolicy.observe(null, 0);
+    notificationState = "";
   }
 
   /** 与 Web 前台服务同寿命，后台监听失败也可恢复，不依赖重新打开页面。 */
-  private void ensureLanListening() {
+  private void ensureLanListening(Thread owner) {
     long generation = c.getWebGeneration();
-    if (!keepAliveRunning
+    if (!ownsKeepAlive(owner)
         || !c.config().isLanMode()
         || c.isUserStopped()
         || c.isRestartBlocked()

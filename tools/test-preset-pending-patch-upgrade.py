@@ -17,7 +17,7 @@ import tempfile
 OLD_SHA256 = '997570271fb7b48c188ad6e93a6965710ff99487f2076e37de11bfef8210fce9'
 OLD_MARKERS = ['DSHA_PRESET_PENDING_V2', 'DSHA_PRESET_POST_WRITE_READ_V1', 'DSHA_PRESET_PENDING_VIEW_V1']
 CURRENT_MARKERS = ['DSHA_PRESET_PENDING_V2', 'DSHA_PRESET_POST_WRITE_READ_V1', 'DSHA_PRESET_PENDING_VIEW_V2']
-BOUNDARY = '\n\t\t\t\t\tstate.error === null ? null : (0, react_jsx_runtime.jsx)("p", {'
+BOUNDARY = 'state.error===null?null:(0,react_jsx_runtime.jsx)(`p`,{'
 
 JAVA = r'''
 import com.deepseekharness.app.util.ManagedPatchChain;
@@ -39,6 +39,7 @@ public final class PresetPendingUpgradeFixture {
           Files.readString(root.resolve("after-" + index + ".txt"))));
     String canonical = Files.readString(root.resolve("canonical.js"));
     String old = Files.readString(root.resolve("old-v1.js"));
+    String sameGenerationOld = Files.readString(root.resolve("same-generation-v1.js"));
     String expected = Files.readString(root.resolve("current-v2.js"));
     var recipe = new ManagedPatchChain.Recipe("preset", patches,
         Files.readAllLines(root.resolve("current-markers.txt")));
@@ -62,6 +63,11 @@ public final class PresetPendingUpgradeFixture {
     require(upgraded.equals(expected), "old V1 must become exact canonical V2 without the old extra paragraph");
     require(restores.get() == 1, "old V1 requires one complete canonical restoration");
     require(!upgraded.contains("DSHA_PRESET_PENDING_VIEW_V1"), "old standalone pending paragraph survived");
+    restores.set(0);
+    require(ManagedPatchChain.apply(sameGenerationOld, List.of(recipe), () -> {
+      restores.incrementAndGet(); return canonical;
+    }).equals(expected), "short view anchor accepted a stale current-generation paragraph");
+    require(restores.get() == 1, "current-generation V1 must also restore canonical once");
     require(ManagedPatchChain.apply(upgraded, List.of(recipe), () -> {
       throw new AssertionError("current V2 must not restore on reapplication");
     }).equals(expected), "current V2 must remain idempotent");
@@ -114,11 +120,22 @@ def main():
     assert current['sourceSha256'] == sha(canonical), 'unknown current runtime canonical bytes'
     assert current['packageIntegrity'] == lock['packages'][package]['integrity']
     business = lambda recipe: [patch for patch in recipe['patches'] if 'DSHA_PRESET_PENDING_VIEW_' not in patch['after']]
-    assert business(old) == business(current), 'layout fix must not change save/read/sync patches'
+    historical_business, current_business = business(old), business(current)
+    assert len(historical_business) == len(current_business) == 3
+    for original, ported in zip(historical_business[:2], current_business[:2]):
+        assert original['after'].removeprefix(original['before']).strip() == ported['after'].removeprefix(ported['before']).strip(), 'locale text changed'
+    assert historical_business[2]['after'].strip() == current_business[2]['after'].strip(), 'save/read/sync implementation changed'
     views = [patch for patch in current['patches'] if 'DSHA_PRESET_PENDING_VIEW_V2' in patch['after']]
     assert len(views) == 1
     view = views[0]
     assert view['before'].endswith(BOUNDARY) and view['after'].endswith(BOUNDARY), 'V1 extra paragraph must invalidate the whole contiguous anchor'
+    historical_view = next(patch for patch in old['patches'] if 'DSHA_PRESET_PENDING_VIEW_V1' in patch['after'])
+    assert historical_view['after'].endswith(historical_view['before'])
+    old_extra_paragraph = historical_view['after'][:-len(historical_view['before'])]
+    same_generation_business = apply_recipe(canonical, {'patches': current_business})
+    same_generation_old = apply_recipe(same_generation_business, {
+        'patches': [{'before': BOUNDARY, 'after': old_extra_paragraph + BOUNDARY}]
+    })
     if args.anchor_negative:
         view['before'] = view['before'][:-len(BOUNDARY)]
         view['after'] = view['after'][:-len(BOUNDARY)]
@@ -136,15 +153,17 @@ def main():
     assert chain[0][2] == CURRENT_MARKERS
     assert runtime_stable_patches.apply(canonical, chain) == expected
     assert runtime_stable_patches.apply(expected, chain) == expected
-    try:
-        runtime_stable_patches.apply(previous, chain)
-    except ValueError as failure:
-        assert 'STABLE_PATCH_ANCHOR' in str(failure)
-    else:
-        raise AssertionError('archive patcher silently accepted the old extra paragraph')
+    for prior in [previous, same_generation_old]:
+        try:
+            runtime_stable_patches.apply(prior, chain)
+        except ValueError as failure:
+            assert 'STABLE_PATCH_ANCHOR' in str(failure)
+        else:
+            raise AssertionError('archive patcher silently accepted the old extra paragraph')
     build = root / 'app/build'
     output = Path(tempfile.mkdtemp(prefix='preset-pending-upgrade-', dir=build))
-    for name, data in [('canonical.js', canonical), ('old-v1.js', previous), ('current-v2.js', expected)]:
+    for name, data in [('canonical.js', canonical), ('old-v1.js', previous),
+                       ('same-generation-v1.js', same_generation_old), ('current-v2.js', expected)]:
         (output / name).write_bytes(data)
     (output / 'count.txt').write_bytes(str(len(current['patches'])).encode('utf-8'))
     for index, patch in enumerate(current['patches']):
@@ -175,7 +194,7 @@ def main():
                   historicalRecipeSha256=OLD_SHA256, currentRecipeSha256=sha(current_bytes),
                   canonicalSha256=sha(canonical), historicalCanonicalSha256=sha(historical_canonical), oldV1ModuleSha256=sha(previous), currentV2ModuleSha256=sha(expected),
                   productionAlgorithmSha256={name: sha((production / name).read_bytes()) for name in ['ManagedPatchChain.java', 'ExactTextPatch.java']},
-                  registrySha256=sha((assets / 'runtime-patches.json').read_bytes()), javaCases=4, archiveCases=3,
+                  registrySha256=sha((assets / 'runtime-patches.json').read_bytes()), javaCases=5, archiveCases=4,
                   deviceValidation=False, exitCode=ran.returncode, output=str(output))
     (output / 'result.json').write_text(json.dumps(result, indent=2), encoding='utf-8')
     print(json.dumps(result))

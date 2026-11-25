@@ -696,10 +696,7 @@ public class DeviceBridgeService extends Service {
   private boolean tryReopenWirelessDebug() {
     if (!running || !isAdbEnabled(this) || Thread.currentThread().isInterrupted()) return false;
     try {
-      boolean hasSecure =
-          checkSelfPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS)
-              == android.content.pm.PackageManager.PERMISSION_GRANTED;
-      if (hasSecure) {
+      if (AdbBridge.canRestoreWirelessDebugging(this)) {
         int cur = Settings.Global.getInt(getContentResolver(), "adb_wifi_enabled", 0);
         if (cur != 1) {
           Settings.Global.putInt(getContentResolver(), "adb_wifi_enabled", 1);

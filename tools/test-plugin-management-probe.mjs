@@ -43,8 +43,8 @@ const managerSource=manager.text.replace(needle,'from '+JSON.stringify(pathToFil
 assert.equal(managerSource.replace('from '+JSON.stringify(pathToFileURL(afterFile).href),needle),manager.text);
 const managerFile=path.join(owned,'manager.mjs');fs.writeFileSync(managerFile,managerSource);
 const mod=name=>import(pathToFileURL(path.join(raw,'node_modules/@deepseek-ai',name,'lib/index.js')));
-const [{PluginInventoryGateway:Before,readPluginInventory:readBefore},{PluginInventoryGateway:After,readPluginInventory:readAfter},{PluginManager},{boot,readProfilePatches},{default:Hmr},{default:Timer},{AgentPresetRegistry}]=await Promise.all([
- import(pathToFileURL(beforeFile)),import(pathToFileURL(afterFile)),import(pathToFileURL(managerFile)),mod('dsh-app-boot'),mod('dsh-hmr'),mod('cordis-plugin-timer'),mod('dsh-agent-preset-registry')
+const [{PluginInventoryGateway:Before,readPluginInventory:readBefore},{PluginInventoryGateway:After,readPluginInventory:readAfter},{PluginManager},{boot,readProfilePatches},{default:Hmr},{default:Timer},{AgentPresetRegistry},{AgentRegistry}]=await Promise.all([
+ import(pathToFileURL(beforeFile)),import(pathToFileURL(afterFile)),import(pathToFileURL(managerFile)),mod('dsh-app-boot'),mod('dsh-hmr'),mod('cordis-plugin-timer'),mod('dsh-agent-preset-registry'),mod('dsh-agent')
 ]);
 const home=path.join(owned,'home'),profileDir=path.join(home,'profiles/web');fs.mkdirSync(path.join(profileDir,'node_modules'),{recursive:true});
 const state={events:[],gate:Promise.withResolvers()};globalThis.__DSHA_MANAGEMENT_PROBE__=state;
@@ -63,7 +63,7 @@ const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let browser,managerFiber,wireServer;
 const calls={};let transportFailure=false,holdBundles;
 try{
- await ctx.plugin(Timer,{});await ctx.plugin(Hmr,{base:pathToFileURL(owned+'/').href,root:[],ignored:[]});await ctx.plugin(After,{});await ctx.plugin(AgentPresetRegistry,{default:'pending-preset'});await ctx.loader.await();
+ await ctx.plugin(Timer,{});await ctx.plugin(Hmr,{base:pathToFileURL(owned+'/').href,root:[],ignored:[]});await ctx.plugin(After,{});await ctx.plugin(AgentRegistry,{});await ctx.plugin(AgentPresetRegistry,{default:'pending-preset'});await ctx.loader.await();
  await ctx.agentPresets.register({id:'pending-preset',name:'Actual pending preset',plugins:[{id:'pending-row',name:pathToFileURL(pendingFile).href}]});
  const gateway=ctx.pluginInventory;
  assert.deepEqual(await gateway.management(),{managementAvailable:false});

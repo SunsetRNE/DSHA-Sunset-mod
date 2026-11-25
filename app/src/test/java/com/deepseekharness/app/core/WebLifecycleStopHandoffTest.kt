@@ -272,7 +272,7 @@ class WebLifecycleStopHandoffTest {
                     afterStop()
                     if (finishFailure) throw IllegalStateException("LAST_SYNC_CLOSE_FAILED")
                 },
-                WebLifecycleController.Launcher { _, _, _, check ->
+                WebLifecycleController.Launcher { _, _, _, _, check ->
                     duringLauncherPrepare()
                     check?.verify()
                     dispatches++

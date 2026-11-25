@@ -12,6 +12,7 @@ import tarfile
 import tempfile
 import unittest
 from unittest.mock import patch
+from runtime_fixture_proof import io_path
 
 SPEC = importlib.util.spec_from_file_location(
     'prepare_backup_signed_files', Path(__file__).with_name('prepare-backup-assets.py'))
@@ -21,7 +22,8 @@ SPEC.loader.exec_module(GENERATOR)
 
 class SignedBuiltinFilesTest(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix='signed-builtin-proof-')
+        self.temporary = tempfile.TemporaryDirectory(
+            prefix='signed-builtin-proof-', dir=io_path(tempfile.gettempdir()))
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.assets = self.root / 'app/src/main/assets'

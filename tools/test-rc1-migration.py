@@ -1,4 +1,4 @@
-import importlib.util, json, tempfile, unittest, os
+import importlib.util, json, shutil, tempfile, unittest, os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -88,7 +88,7 @@ class Migration(unittest.TestCase):
         self.assertFalse(mod.same_input(stamp({'settings.yaml':'invalid'}),stamp({'settings.yaml.imported':'invalid'})))
         self.assertFalse(mod.same_input(stamp({'unknown':a}),stamp({'unknown':a})))
     def test_restore_epoch_same_bytes_has_new_generation(self):
-        self.prepare();first=self.folder();(self.dsh/'.dsha-rc1-restore-generation').write_text('restore-operation-2');self.prepare();self.assertNotEqual(first,self.folder())
+        self.prepare();first=self.folder();self.replace_home_for_restore();self.prepare();self.assertNotEqual(first,self.folder())
     def test_completed_ordinary_prepare_does_not_scan_sessions(self):
         self.prepare();self.verified();self.finalize()
         with patch.object(mod.Resolver,'files',side_effect=AssertionError('ordinary startup must not enumerate')):self.prepare()
@@ -121,7 +121,11 @@ class Migration(unittest.TestCase):
     def test_snapshot_modified_detected_even_source_unchanged(self):
         self.prepare();(self.folder()/self.doc()['sources'][0]['snapshot']).write_text('changed');self.assertEqual(self.finalize(),1)
     def test_source_replaced_with_same_bytes_keeps_content_copy_and_unknown_object_identity(self):
-        self.prepare();self.verified();source=self.dsh/'settings.yaml';value=source.read_text();source.unlink();source.write_text(value)
+        self.prepare();self.verified();source=self.dsh/'settings.yaml'
+        replacement=self.dsh/'settings-replacement.yaml';replacement.write_bytes(source.read_bytes())
+        before,replaced=source.stat(),replacement.stat()
+        self.assertNotEqual((before.st_dev,before.st_ino),(replaced.st_dev,replaced.st_ino))
+        replacement.replace(source)
         code,payload=self.capture(self.finalize);self.assertEqual(code,0)
         self.assertEqual(payload['contentCopyStatus'],'verified');self.assertEqual(payload['sourceObjectIdentity'],'unknown')
         self.assertNotIn('sourcePreserved',payload);self.assertTrue(any(x.startswith('SOURCE_IDENTITY_CHANGED:') for x in payload['warnings']))
@@ -278,6 +282,286 @@ class Migration(unittest.TestCase):
         self.assertEqual(code,0);self.assertNotEqual(payload['status'],'historical-complete')
         self.assertEqual(payload['status'],'pending');self.assertIn(payload['reason'],('LEGACY_COMPLETION_RECEIPT_MISSING','SETTINGS_LEDGER_MISSING'))
         self.assertFalse((self.folder()/'receipt.json').exists())
+    def use_current_input(self):
+        (self.dsh/'settings.yaml').unlink()
+        (self.dsh/'sessions/session.v3.jsonl').rename(self.dsh/'sessions/session.v4.jsonl')
+        (self.dsh/'sessions/session.v4.jsonl').write_text('{"version":4}\n')
+        profile = self.dsh/'profiles/web'
+        profile.mkdir(parents=True)
+        (profile/'package.json').write_text('{"name":"fixture-web"}\n')
+        (self.dsh/'sessions/session.v4.jsonl.zstd').write_bytes(b'\x28\xb5\x2f\xfd')
+
+    def replace_home_for_restore(self):
+        candidate = self.root/'restore-candidate'
+        shutil.copytree(self.dsh, candidate)
+        (candidate/'.dsha-rc1-restore-generation').write_text('02345678-1234-4234-8234-123456789abc')
+        self.dsh.rename(self.root/'restore-previous')
+        candidate.rename(self.dsh)
+
+    def assert_current_readonly_start(self, startup_id):
+        folder = self.folder()
+        receipt = folder/'receipt.json'
+        before = {entry: entry.read_bytes() for entry in folder.rglob('*') if entry.is_file()}
+        code, payload = self.capture(mod.prepare, str(self.root), str(self.state), startup_id)
+        self.assertEqual(code, 0)
+        self.assertEqual(payload['startupId'], startup_id)
+        self.assertEqual(payload['phase'], 'prepare')
+        self.assertEqual(payload['status'], 'prepared')
+        self.assertEqual(payload['verificationScope'], 'current')
+        self.assertEqual(payload['contentCopyStatus'], 'verified')
+        self.assertEqual(payload['settingsImportStatus'], 'not-required')
+        self.assertEqual(payload['executionState'], 'COMPLETED')
+        self.assertEqual(self.folder(), folder)
+        context = json.loads((self.state/'current.json').read_text())['startupContext']
+        self.assertEqual(context['mode'], 'history-only')
+        self.assertIs(context['readOnlyRecheck'], True)
+        self.assertEqual({entry: entry.read_bytes() for entry in folder.rglob('*') if entry.is_file()}, before)
+        self.assertFalse(receipt.exists())
+        self.assertFalse((folder/'settings-result.json').exists())
+
+    def test_current_restored_input_can_start_after_safe_without_replay(self):
+        self.use_current_input()
+        self.prepare()
+        self.finalize()
+        previous = self.folder()
+        old_receipt = (previous/'receipt.json').read_bytes()
+        self.replace_home_for_restore()
+        _, prepared = self.capture(mod.prepare, str(self.root), str(self.state), 'safe')
+        self.assertEqual(prepared['status'], 'prepared')
+        self.assertNotEqual(self.folder(), previous)
+        self.assertTrue((self.folder()/'legacy-prepare.json').exists())
+        self.assertTrue((self.folder()/'legacy-receipt.json').exists())
+        self.assert_current_readonly_start('ordinary')
+        self.assertEqual((previous/'receipt.json').read_bytes(), old_receipt)
+        _, finalized = self.capture(mod.finalize, str(self.root), str(self.state), 'ordinary')
+        self.assertEqual(finalized['status'], 'committed')
+        self.assertEqual(finalized['settingsImportStatus'], 'not-required')
+        with patch.object(mod, 'inventory', side_effect=AssertionError('healthy startup must not rescan')):
+            _, healthy = self.capture(self.prepare)
+        self.assertEqual(healthy['status'], 'historical-complete')
+
+    def test_current_input_can_start_after_repeated_fast_stop(self):
+        self.use_current_input()
+        self.prepare()
+        self.assert_current_readonly_start('stopped-before-ready')
+        self.assert_current_readonly_start('stopped-before-finalize')
+        self.assert_current_readonly_start('ordinary')
+
+    def interrupted_empty_reset(self):
+        self.use_current_input()
+        self.capture(self.prepare)
+        self.capture(self.finalize)
+        active = self.dsh/'settings.yaml'
+        imported = self.dsh/'settings.yaml.imported'
+        active.write_bytes(b'{}\n')
+        self.capture(mod.prepare, str(self.root), str(self.state), 'reset-started')
+        prepared = self.doc()
+        source = next(row for row in prepared['sources'] if row['kind'] == 'settings')
+        # The signed CJS adapter writes this zero-section verified ledger and
+        # renames the same inode before ordinary finalization can run.
+        ledger = dict(version=2, generation=prepared['generation'], startupId=prepared['startupId'],
+                      sourceSha256=source['sha256'], status='verified', expectedSections=[], sections={})
+        (self.folder()/'settings-result.json').write_text(json.dumps(ledger), encoding='utf8')
+        active.rename(imported)
+        node = imported.stat()
+        return (f'{node.st_dev}:{node.st_ino}:{node.st_mtime_ns//1_000_000_000}:1:'
+                '02345678-1234-4234-8234-123456789abc')
+
+    def test_verified_native_empty_reset_finishes_the_same_generation(self):
+        proof = self.interrupted_empty_reset()
+        folder = self.folder()
+        retained = {path: path.read_bytes() for path in (folder/'prepare.json', folder/'settings-result.json',
+                    self.state/'pending.json', *(folder/'snapshots').iterdir())}
+        _, start = self.capture(mod.prepare, str(self.root), str(self.state), 'ordinary', (), proof)
+        self.assertEqual(start['reason'], 'RC5_NATIVE_EMPTY_RESET_REVERIFIED_READ_ONLY')
+        self.assertEqual(start['settingsImportStatus'], 'not-required')
+        _, final = self.capture(mod.finalize, str(self.root), str(self.state), 'ordinary', (), proof)
+        self.assertEqual(final['status'], 'committed')
+        self.assertEqual(folder, self.folder())
+        self.assertEqual({path: path.read_bytes() for path in retained}, retained)
+
+    def test_same_empty_imported_content_without_native_reset_proof_still_blocks(self):
+        self.interrupted_empty_reset()
+        _, start = self.capture(mod.prepare, str(self.root), str(self.state), 'ordinary')
+        self.assertEqual(start['status'], 'pending')
+        self.assertEqual(start['reason'], 'RC5_NATIVE_RESET_PROOF_MISSING')
+        self.assertFalse((self.folder()/'receipt.json').exists())
+
+    def test_safe_session_materialization_and_profile_rebuild_keep_the_old_snapshots(self):
+        self.use_current_input()
+        self.prepare()
+        profile = self.dsh/'profiles/web/package.json'
+        replacement = profile.with_suffix('.new')
+        replacement.write_text('{"name":"fixture-rebuilt"}\n')
+        replacement.replace(profile)
+        log = self.dsh/'sessions/session.v4.jsonl'
+        log.write_text(log.read_text() + '{"version":4,"continuation":true}\n')
+        session = self.dsh/'sessions/--fixture--/new-session'
+        session.mkdir(parents=True)
+        (session/'session.lock').touch()
+        (session/'session.v4.jsonl.zstd').write_bytes(b'\x28\xb5\x2f\xfd')
+        self.assert_current_readonly_start('ordinary')
+        _, result = self.capture(mod.finalize, str(self.root), str(self.state), 'ordinary')
+        self.assertEqual(result['status'], 'committed')
+        self.assertEqual(result['settingsImportStatus'], 'not-required')
+        self.assertEqual(self.result()['sessionsStatus'], 'no-legacy-input')
+        self.assertTrue((session/'session.lock').is_file())
+
+    def test_noncanonical_or_unrelated_session_lease_remains_pending(self):
+        self.use_current_input()
+        self.prepare()
+        cases = (
+            ('--fixture--/new-session', b'contents', ('session.v4.jsonl',)),
+            ('--fixture--/new-session', b'', ()),
+            ('--fixture--/new-session', b'', ('session.v3.jsonl',)),
+            ('--fixture--/new-session', b'', ('session.v4.jsonl', 'session.v4.jsonl.zstd')),
+            ('noncurrent/new-session', b'', ('session.v4.jsonl',)),
+            ('--fixture--/nested/new-session', b'', ('session.v4.jsonl',)),
+        )
+        for relative, contents, names in cases:
+            with self.subTest(relative=relative, contents=contents, names=names):
+                session = self.dsh/'sessions'/relative
+                session.mkdir(parents=True)
+                (session/'session.lock').write_bytes(contents)
+                for name in names:
+                    (session/name).write_bytes(b'fixture')
+                _, result = self.capture(self.prepare)
+                self.assertEqual(result['status'], 'pending')
+                self.assertEqual(result['reason'], 'RC5_RECHECK_LEGACY_INPUTS')
+                self.assertEqual(result['executionState'], 'NOT_SENT')
+                self.assertFalse((self.folder()/'receipt.json').exists())
+                shutil.rmtree(session)
+
+    def test_linked_lease_or_profile_target_cannot_resume(self):
+        self.use_current_input()
+        self.prepare()
+        session = self.dsh/'sessions/_no-cwd/current'
+        session.mkdir(parents=True)
+        (session/'session.v4.jsonl').write_bytes(b'fixture')
+        empty = self.dsh/'fixture-empty'
+        empty.touch()
+        lease = session/'session.lock'
+        self.link(empty, lease)
+        _, result = self.capture(self.prepare)
+        self.assertEqual(result['status'], 'pending')
+        lease.unlink()
+        profile = self.dsh/'profiles/web/package.json'
+        profile.unlink()
+        self.link(empty, profile)
+        _, result = self.capture(self.prepare)
+        self.assertEqual(result['status'], 'pending')
+        self.assertFalse((self.folder()/'receipt.json').exists())
+
+    def test_live_legacy_session_after_readonly_start_invalidates_finalization(self):
+        self.use_current_input()
+        self.prepare()
+        self.assert_current_readonly_start('ordinary')
+        old_session = self.dsh/'sessions/session.v3.jsonl'
+        old_session.write_bytes(b'old session remains untouched')
+        code, result = self.capture(mod.finalize, str(self.root), str(self.state), 'ordinary')
+        self.assertEqual(code, 1)
+        self.assertEqual(result['reason'], 'RC5_RECHECK_SCOPE_CHANGED')
+        self.assertTrue(old_session.is_file())
+        self.assertFalse((self.folder()/'receipt.json').exists())
+
+    def test_new_settings_without_restore_never_grants_interrupted_generation_a_write_ticket(self):
+        self.use_current_input()
+        self.prepare()
+        folder = self.folder()
+        prepare_bytes = (folder/'prepare.json').read_bytes()
+        for name in ('settings.yaml', 'settings.yaml.imported'):
+            with self.subTest(name=name):
+                source = self.dsh/name
+                source.write_bytes(b'legacy: keep\n')
+                _, result = self.capture(self.prepare)
+                self.assertEqual(result['status'], 'pending')
+                self.assertEqual(result['reason'], 'RC5_RECHECK_INPUT_CHANGED')
+                self.assertEqual(result['executionState'], 'NOT_SENT')
+                self.assertEqual(self.folder(), folder)
+                self.assertEqual((folder/'prepare.json').read_bytes(), prepare_bytes)
+                self.assertFalse((folder/'receipt.json').exists())
+                self.assertFalse((folder/'settings-result.json').exists())
+                self.assertEqual(source.read_bytes(), b'legacy: keep\n')
+                self.assertEqual(json.loads((self.state/'current.json').read_text())['startupContext']['mode'], 'history-only')
+                source.unlink()
+
+    def test_changed_settings_with_unknown_write_need_an_explicit_restore(self):
+        self.prepare()
+        original = self.folder()
+        ledger = original/'settings-result.json'
+        ledger.write_bytes(b'{"status":"writing"}\n')
+        settings = self.dsh/'settings.yaml'
+        settings.write_bytes(b'legacy: changed\n')
+        marker = self.dsh/'.dsha-rc1-restore-generation'
+        marker.write_text('untrusted restore marker')
+        _, blocked = self.capture(self.prepare)
+        self.assertEqual(blocked['status'], 'pending')
+        self.assertEqual(blocked['reason'], 'RC5_RECHECK_INPUT_CHANGED')
+        self.assertEqual(self.folder(), original)
+        self.assertEqual(ledger.read_bytes(), b'{"status":"writing"}\n')
+        self.assertEqual(json.loads((self.state/'current.json').read_text())['startupContext']['mode'], 'history-only')
+        marker.write_text('02345678-1234-4234-8234-123456789abc')
+        _, marker_only = self.capture(self.prepare)
+        self.assertEqual(marker_only['status'], 'pending')
+        self.assertEqual(self.folder(), original)
+        self.replace_home_for_restore()
+        _, restored = self.capture(self.prepare)
+        self.assertEqual(restored['status'], 'prepared')
+        self.assertNotEqual(self.folder(), original)
+        self.assertEqual(ledger.read_bytes(), b'{"status":"writing"}\n')
+        self.assertEqual(settings.read_bytes(), b'legacy: changed\n')
+        self.assertEqual(json.loads((self.state/'current.json').read_text())['startupContext']['mode'], 'write-allowed')
+
+    def test_write_evidence_after_readonly_start_blocks_finalize(self):
+        self.use_current_input()
+        self.prepare()
+        self.assert_current_readonly_start('ordinary')
+        folder = self.folder()
+        ledger = folder/'settings-result.json'
+        ledger.write_bytes(b'{"status":"unknown"}\n')
+        code, result = self.capture(mod.finalize, str(self.root), str(self.state), 'ordinary')
+        self.assertEqual(code, 1)
+        self.assertEqual(result['reason'], 'RC5_RECHECK_SCOPE_CHANGED')
+        self.assertEqual(ledger.read_bytes(), b'{"status":"unknown"}\n')
+        self.assertFalse((folder/'receipt.json').exists())
+
+    def test_current_input_with_unknown_write_evidence_stays_pending(self):
+        self.use_current_input()
+        self.prepare()
+        path = self.folder()/'settings-result.json'
+        path.write_text('{"status":"writing"}')
+        before = path.read_bytes()
+        _, payload = self.capture(self.prepare)
+        self.assertEqual(payload['status'], 'pending')
+        self.assertEqual(path.read_bytes(), before)
+        self.assertFalse((self.folder()/'receipt.json').exists())
+
+    def test_current_input_with_changed_snapshot_stays_pending(self):
+        self.use_current_input()
+        self.prepare()
+        snapshot = self.folder()/self.doc()['sources'][0]['snapshot']
+        snapshot.write_text('changed')
+        _, payload = self.capture(self.prepare)
+        self.assertEqual(payload['status'], 'pending')
+        self.assertFalse((self.folder()/'receipt.json').exists())
+
+    def test_no_settings_does_not_grant_current_start_for_legacy_session(self):
+        (self.dsh/'settings.yaml').unlink()
+        self.prepare()
+        _, payload = self.capture(self.prepare)
+        self.assertEqual(payload['status'], 'pending')
+        self.assertFalse((self.folder()/'receipt.json').exists())
+
+    def test_live_legacy_preset_added_after_prepare_blocks_current_start(self):
+        self.use_current_input()
+        self.prepare()
+        preset = self.dsh/'.agent-presets/fixture/agent.cordis.yml'
+        preset.parent.mkdir(parents=True)
+        preset.write_text('fixture: true\n')
+        _, payload = self.capture(self.prepare)
+        self.assertEqual(payload['status'], 'pending')
+        self.assertFalse((self.folder()/'receipt.json').exists())
+
     def test_pending_receipt_is_not_historical_complete(self):
         self.prepare();self.finalize();self.assertEqual(self.result()['status'],'pending')
         code,payload=self.capture(self.prepare)

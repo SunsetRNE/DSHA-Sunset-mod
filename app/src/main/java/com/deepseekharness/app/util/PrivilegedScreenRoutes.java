@@ -3,9 +3,8 @@ package com.deepseekharness.app.util;
 /**
  * 实体屏特权执行（T130 Phase A）的固定端点表，纯逻辑、不依赖 Android。
  *
- * <p>桥端点与特权 Core 端点各自只接受完整精确路径；未知子路径不能借末尾名称执行动作。
- * 动作路由表同时在 Core 进程侧（{@code PhysicalScreenCore.route}）与桥侧（{@code HttpShellService.appPriv}）
- * 使用，两边新增动作路由时必须同步。
+ * <p>桥端点与特权 Core 端点各自只接受完整精确路径；未知子路径不能借末尾名称执行动作。 动作路由表同时在 Core 进程侧（{@code
+ * PhysicalScreenCore.route}）与桥侧（{@code HttpShellService.appPriv}） 使用，两边新增动作路由时必须同步。
  */
 public final class PrivilegedScreenRoutes {
   public static final String CORE_PREFIX = "/priv/";
@@ -49,6 +48,35 @@ public final class PrivilegedScreenRoutes {
       case "tap", "swipe", "key" -> true;
       default -> false;
     };
+  }
+
+  /**
+   * All of these legacy routes require a display-mirror observation, including each benchmark
+   * input.
+   */
+  public static boolean needsMirrorObservation(String operation) {
+    return "frame".equals(operation) || "benchmark".equals(operation) || mutates(operation);
+  }
+
+  /**
+   * The window pipeline verifies its own observation ID. Legacy implicit gestures cannot be
+   * converted.
+   */
+  public static String windowOperation(
+      String operation, String source, boolean hasObservation, int sdk) {
+    if (sdk < 34 || !source.isEmpty() && !"window".equals(source)) return "";
+    if ("frame".equals(operation)) return "screenshot";
+    return hasObservation && ("tap".equals(operation) || "swipe".equals(operation))
+        ? operation
+        : "";
+  }
+
+  public static final String WINDOW_SOURCE_REQUIRED = "PRIV_AUTHORIZED_WINDOW_SOURCE_REQUIRED";
+
+  public static String windowSourceNextAction(int sdk) {
+    return sdk >= 34
+        ? "USE_ANDROID_SCREENSHOT_THEN_ANDROID_CLICK_OR_SWIPE"
+        : "USE_ANDROID_GET_STATE_FOR_THE_AUTHORIZED_WINDOW";
   }
 
   /** 会改动 Core 帧通道配置（尺寸/质量/帧率）的端点；配置变化会重建显示代次。 */

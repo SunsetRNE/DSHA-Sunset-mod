@@ -23,6 +23,20 @@ class DshRuntimePackaging(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
 
+    def add_web_inputs(self, modules):
+        # Synthetic originals have their own SHA pins. Both the replacement
+        # bytes and destination paths still come from the actual release assets.
+        pins = {}
+        for module in builder.WEB_BRAND_INPUTS:
+            content = ('synthetic upstream icon: ' + module).encode()
+            path = modules / module
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
+            pins[module] = hashlib.sha256(content).hexdigest()
+        pinned = patch.object(builder, 'WEB_BRAND_INPUTS', pins)
+        pinned.start()
+        self.addCleanup(pinned.stop)
+
     def fixture_assets(self):
         assets = self.root / 'assets'
         for relative in ('destructive-policy', 'builtin-plugins/dsh-destructive-guard/lib'):
@@ -37,6 +51,7 @@ class DshRuntimePackaging(unittest.TestCase):
 
     def test_real_archive_keeps_dsh_and_hooks_while_policy_comes_from_exact_signed_installs(self):
         modules = self.root / 'node_modules'
+        self.add_web_inputs(modules)
         version = json.loads((builder.LOCK_ROOT / 'package.json').read_text(encoding='utf-8'))['dependencies'][builder.PACKAGE]
         for name in (builder.PACKAGE, '@deepseek-ai/dsh-llm-deepseek'):
             package = modules / name
@@ -69,11 +84,14 @@ class DshRuntimePackaging(unittest.TestCase):
             names = output.getnames()
             prefix = builder.PREFIX + '/lib/'
             self.assertEqual([name[len(prefix):] for name in names if name.startswith(prefix)],
-                             ['A-first.js', 'alpha/child.js', 'bin.js', 'middle.js',
-                              'Z-last.js', 'Zoo/child.js'])
+                             ['A-first.js', 'Z-last.js', 'bin.js', 'alpha/child.js',
+                              'Zoo/child.js', 'middle.js'])
             self.assertEqual(entry.read_bytes().replace(b'fixture', b'prepared'), output.extractfile(builder.PREFIX + '/lib/bin.js').read())
             self.assertEqual(version + '\n', output.extractfile('usr/local/share/dsha/dsh-runtime.version').read().decode())
             self.assertFalse(any('/dsha-destructive-policy/' in name for name in names))
+            for module in builder.WEB_BRAND_INPUTS:
+                self.assertEqual(builder.web_brand_asset(module).read_bytes(),
+                                 output.extractfile(builder.PREFIX + '/node_modules/' + module).read())
             for folder, package in ((builder.HOOKS, 'dsha-runtime-fs'),
                                     (builder.SESSION_HOOKS, 'dsha-session-compat'),
                                     (builder.COMBO_HOOKS, 'dsha-client-combo-cache')):
@@ -99,8 +117,10 @@ class DshRuntimePackaging(unittest.TestCase):
                              (candidate / builder.PREFIX / 'node_modules/dsha-destructive-policy' / filename).read_bytes())
 
     def test_path_order_is_identical_for_both_host_path_flavors(self):
-        relative = ['pkg/dir/index.js', 'pkg/dir-a.js', 'pkg/Z.js', 'pkg/a.js', 'pkg/A.js']
-        expected = ['pkg/A.js', 'pkg/a.js', 'pkg/dir/index.js', 'pkg/dir-a.js', 'pkg/Z.js']
+        relative = ['pkg/dir/index.js', 'pkg/dir-a.js', 'pkg/Z.js', 'pkg/a.js', 'pkg/A.js',
+                    'pkg/z/index.js', 'pkg/A/index.js', 'pkg/a/index.js']
+        expected = ['pkg/A.js', 'pkg/Z.js', 'pkg/a.js', 'pkg/dir-a.js',
+                    'pkg/A/index.js', 'pkg/a/index.js', 'pkg/dir/index.js', 'pkg/z/index.js']
         for kind in (PurePosixPath, PureWindowsPath):
             base = kind('/fixture/node_modules')
             paths = [base / name for name in relative]
@@ -109,6 +129,7 @@ class DshRuntimePackaging(unittest.TestCase):
 
     def small_modules(self):
         modules = self.root / 'small-node-modules'
+        self.add_web_inputs(modules)
         version = json.loads((builder.LOCK_ROOT / 'package.json').read_text(encoding='utf-8'))['dependencies'][builder.PACKAGE]
         for name in (builder.PACKAGE, '@deepseek-ai/dsh-llm-deepseek'):
             package = modules / name
@@ -119,6 +140,19 @@ class DshRuntimePackaging(unittest.TestCase):
         entry.write_bytes(b'console.log("before");\n')
         chain = [('fixture-chain', [('"before"', '"after"')], [])]
         return modules, version, {builder.PACKAGE + '/lib/bin.js': chain}
+
+    def test_missing_or_unreviewed_web_icon_rejects_the_new_archive(self):
+        modules, version, chains = self.small_modules()
+        icon = modules / next(iter(builder.WEB_BRAND_INPUTS))
+        output = self.root / 'rejected.bin'
+        with patch.object(builder, 'load_chains', return_value=(chains, [])):
+            icon.write_bytes(b'new upstream artwork')
+            with self.assertRaisesRegex(ValueError, 'WEB_BRAND_OFFICIAL_INPUT'):
+                builder.build(modules, output, version)
+            icon.unlink()
+            with self.assertRaisesRegex(ValueError, 'WEB_BRAND_FILE_MISSING'):
+                builder.build(modules, output, version)
+        self.assertFalse(output.exists())
 
     def test_recipe_edit_during_real_gzip_keeps_previous_archive_and_receipt(self):
         modules, version, chains = self.small_modules()

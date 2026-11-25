@@ -96,7 +96,13 @@ def java_findings(source):
             while start >= 2 and values[start - 1] == '.' and re.fullmatch(r'[A-Za-z_$][\w$]*', values[start - 2]):
                 start -= 2
             before = start > 0 and values[start - 1] == '+'
-            inner = any(top_level_concat(argument) for argument in arguments)
+            # javac folds a series of quoted English literals into one fallback string.
+            # A dynamic value on either side, or a fragmented Chinese lookup key, still needs review.
+            english = arguments[1]
+            literal_fallback = (len(english) % 2 == 1 and all(
+                token.startswith('"') if i % 2 == 0 else token == '+'
+                for i, token in enumerate(english)))
+            inner = top_level_concat(arguments[0]) or (top_level_concat(english) and not literal_fallback)
             if before or after or inner:
                 call = ''.join(values[index:end + 1])
                 signature = call + '+' if after else '+' + call

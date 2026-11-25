@@ -186,6 +186,31 @@ public class InstallRepositoryTest {
   }
 
   @Test
+  public void unconfirmedOwnedSessionDoesNotPublishCancellationOrPermitRetry() {
+    try (Queue queue = new Queue()) {
+      AtomicBoolean durableFence = new AtomicBoolean();
+      InstallRepository repository =
+          new InstallRepository(
+              queue,
+              durableFence::get,
+              (task, repair, step) -> {
+                durableFence.set(true);
+                assertTrue(EnvironmentTaskGate.ownsCurrentThread());
+                throw new InstallProcess.OwnedExitFailure(
+                    new IllegalStateException("unknown session members"),
+                    new InstallTask.Cancelled());
+              });
+      assertTrue(repository.start(false, 5));
+      assertTrue(repository.cancel());
+      queue.runNext();
+      assertEquals(InstallTask.Outcome.FAILED, repository.snapshot().outcome);
+      assertTrue(repository.snapshot().failure.contains("无法确认"));
+      assertFalse(repository.start(false, 5));
+      assertFalse(EnvironmentTaskGate.isBusy());
+    }
+  }
+
+  @Test
   public void missingCompletionCannotLeakRunningStateOrLease() {
     try (Queue queue = new Queue()) {
       InstallRepository repository =

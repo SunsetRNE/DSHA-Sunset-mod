@@ -1,6 +1,8 @@
 """Verify actual license bytes in each selected APK and inventory shipped npm packages."""
 import argparse,hashlib,importlib.util,json,tarfile,zipfile
 from pathlib import Path
+from proroot_distribution import verify_apk as verify_proroot
+from proot_source_distribution import verify_apk as verify_proot
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('third_party_gate',ROOT/'tools/check-third-party-notices.py')
 gate=importlib.util.module_from_spec(spec);spec.loader.exec_module(gate)
@@ -19,6 +21,10 @@ def main():
  receipts=[]
  for path in args.apks:
   with zipfile.ZipFile(path) as apk:
+   proroot=verify_proroot(apk)
+   proot=verify_proot(apk)
+   gate.verify_shmem(apk.read('lib/arm64-v8a/libandroidshmem.so'),
+                     apk.read('assets/licenses/libandroid-shmem-0.7-copyright.txt'))
    for name in required:
     source=(ROOT/'app/src/main/assets/licenses'/name).read_bytes()
     if apk.read('assets/licenses/'+name)!=source:raise ValueError('APK_LICENSE_BYTES:'+name)
@@ -26,7 +32,8 @@ def main():
    if apk.read('assets/web-integration/core-js.LICENSE')!=(ROOT/'app/src/main/assets/web-integration/core-js.LICENSE').read_bytes():raise ValueError('APK_CORE_JS_LICENSE_BYTES')
    with apk.open('assets/dsh-runtime.bin') as stream:
     if stream_digest(stream)!=runtime_sha:raise ValueError('APK_THIRD_PARTY_RUNTIME_CHANGED')
-   receipts.append(dict(apk=path.name,sha256=hashlib.sha256(path.read_bytes()).hexdigest(),verifiedLicenses=required,runtimeSha256=runtime_sha))
+   with path.open('rb') as stream:apk_sha=stream_digest(stream)
+   receipts.append(dict(apk=path.name,sha256=apk_sha,verifiedLicenses=required,prorootSha256=proroot,prootSha256=proot,runtimeSha256=runtime_sha))
  packages=gate.inventory(ROOT/'app/src/main/assets/dsh-runtime.bin',
                          json.loads((ROOT/'tools/dsh-runtime/package-lock.json').read_text(encoding='utf-8')),notices)
  report=dict(schema=1,apks=receipts,shippedPackageRecords=packages,note='Actual archive members; declarations are not a legal conclusion or byte-for-byte source reproducibility proof.')

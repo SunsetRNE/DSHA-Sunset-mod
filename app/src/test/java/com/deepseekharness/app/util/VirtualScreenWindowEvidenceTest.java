@@ -9,15 +9,14 @@ public final class VirtualScreenWindowEvidenceTest {
   private static final int DISPLAY = 8;
 
   private static VirtualScreenWindowEvidence.Window window(
-      int display, int id, int type, int layer, boolean focused, boolean active, String title) {
+      int display, int id, int type, int layer, boolean focused, boolean active) {
     return new VirtualScreenWindowEvidence.Window(
-        display, id, type, layer, 0, 0, 1008, 1792, focused, active, title);
+        display, id, type, layer, 0, 0, 1008, 1792, focused, active);
   }
 
   private static VirtualScreenWindowEvidence.Window app(
-      int id, int layer, boolean focused, boolean active, String title) {
-    return window(
-        DISPLAY, id, VirtualScreenWindowPolicy.TYPE_APPLICATION, layer, focused, active, title);
+      int id, int layer, boolean focused, boolean active) {
+    return window(DISPLAY, id, VirtualScreenWindowPolicy.TYPE_APPLICATION, layer, focused, active);
   }
 
   @Test
@@ -26,15 +25,9 @@ public final class VirtualScreenWindowEvidenceTest {
         VirtualScreenWindowEvidence.of(
                 DISPLAY,
                 List.of(
-                    app(2, 10, true, true, "  Inbox\n\t(3)\u0000  "),
+                    app(2, 10, true, true),
                     window(
-                        DISPLAY,
-                        4,
-                        VirtualScreenWindowPolicy.TYPE_INPUT_METHOD,
-                        20,
-                        false,
-                        false,
-                        "Keyboard")))
+                        DISPLAY, 4, VirtualScreenWindowPolicy.TYPE_INPUT_METHOD, 20, false, false)))
             .withTargetPackage("com.example.mail");
     assertEquals(0, evidence.selectedIndex);
     assertFalse(evidence.ambiguous);
@@ -57,7 +50,7 @@ public final class VirtualScreenWindowEvidenceTest {
     assertEquals("0,0,1008,1792", fields.get("targetWindowBounds"));
     assertEquals(Boolean.TRUE, fields.get("targetWindowFocused"));
     assertEquals(Boolean.TRUE, fields.get("targetWindowActive"));
-    assertEquals("Inbox (3)", fields.get("targetWindowTitle"));
+    assertFalse(fields.containsKey("targetWindowTitle"));
     assertEquals("com.example.mail", fields.get("targetWindowPackage"));
   }
 
@@ -67,16 +60,9 @@ public final class VirtualScreenWindowEvidenceTest {
         VirtualScreenWindowEvidence.of(
             DISPLAY,
             List.of(
-                app(2, 1, true, false, "Left"),
-                app(3, 1, true, false, "Right"),
-                window(
-                    DISPLAY,
-                    4,
-                    VirtualScreenWindowPolicy.TYPE_INPUT_METHOD,
-                    9,
-                    false,
-                    true,
-                    "Keyboard")));
+                app(2, 1, true, false),
+                app(3, 1, true, false),
+                window(DISPLAY, 4, VirtualScreenWindowPolicy.TYPE_INPUT_METHOD, 9, false, true)));
     assertEquals(-1, evidence.selectedIndex);
     assertTrue(evidence.ambiguous);
     assertNull(evidence.target);
@@ -96,16 +82,8 @@ public final class VirtualScreenWindowEvidenceTest {
         VirtualScreenWindowEvidence.of(
             DISPLAY,
             List.of(
-                window(
-                    DISPLAY,
-                    4,
-                    VirtualScreenWindowPolicy.TYPE_INPUT_METHOD,
-                    9,
-                    true,
-                    true,
-                    "Keyboard"),
-                window(
-                    DISPLAY, 5, VirtualScreenWindowPolicy.TYPE_SYSTEM, 1, false, false, "Bars")));
+                window(DISPLAY, 4, VirtualScreenWindowPolicy.TYPE_INPUT_METHOD, 9, true, true),
+                window(DISPLAY, 5, VirtualScreenWindowPolicy.TYPE_SYSTEM, 1, false, false)));
     assertEquals(-1, evidence.selectedIndex);
     assertFalse(evidence.ambiguous);
     assertEquals(0, evidence.applicationWindows);
@@ -115,29 +93,24 @@ public final class VirtualScreenWindowEvidenceTest {
     var otherDisplay =
         VirtualScreenWindowEvidence.of(
             DISPLAY,
-            List.of(
-                window(0, 6, VirtualScreenWindowPolicy.TYPE_APPLICATION, 1, true, true, "Other")));
+            List.of(window(0, 6, VirtualScreenWindowPolicy.TYPE_APPLICATION, 1, true, true)));
     assertEquals(-1, otherDisplay.selectedIndex);
     assertEquals(0, otherDisplay.applicationWindows);
   }
 
   @Test
-  public void titlesAreBoundedAndPackagesAreValidated() {
-    String longTitle = "a".repeat(VirtualScreenWindowEvidence.TITLE_LIMIT + 6);
+  public void diagnosticsOmitTitlesAndValidatePackages() {
     var evidence =
-        VirtualScreenWindowEvidence.of(DISPLAY, List.of(app(2, 1, true, true, longTitle)))
+        VirtualScreenWindowEvidence.of(DISPLAY, List.of(app(2, 1, true, true)))
             .withTargetPackage("bad package!");
-    assertEquals(
-        "a".repeat(VirtualScreenWindowEvidence.TITLE_LIMIT) + "…",
-        evidence.fields().get("targetWindowTitle"));
+    assertFalse(evidence.fields().containsKey("targetWindowTitle"));
     assertFalse(evidence.fields().containsKey("targetWindowPackage"));
     assertEquals(
         "com.example.mail",
-        VirtualScreenWindowEvidence.of(DISPLAY, List.of(app(2, 1, true, true, "邮件")))
+        VirtualScreenWindowEvidence.of(DISPLAY, List.of(app(2, 1, true, true)))
             .withTargetPackage("com.example.mail")
             .fields()
             .get("targetWindowPackage"));
-    assertNull(VirtualScreenWindowEvidence.sanitizeTitle(" \n\t\u0000 "));
     assertNull(VirtualScreenWindowEvidence.sanitizePackage("com.example/app"));
     assertNull(VirtualScreenWindowEvidence.sanitizePackage(""));
     assertEquals("ACCESSIBILITY_OVERLAY", VirtualScreenWindowEvidence.typeName(4));

@@ -3,6 +3,7 @@ package com.deepseekharness.app.ui;
 import static org.junit.Assert.*;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
@@ -12,18 +13,26 @@ import android.widget.FrameLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import com.deepseekharness.app.DshaApp;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.ConfigStore;
+import com.deepseekharness.app.core.DeviceGrants;
+import com.deepseekharness.app.extdev.ExternalDeviceHost;
 import com.deepseekharness.app.util.Constants;
 import com.deepseekharness.app.util.DeviceShellPolicy;
 import com.deepseekharness.app.util.GrantSummary;
 import com.deepseekharness.app.util.UiText;
 import com.google.android.material.materialswitch.MaterialSwitch;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,6 +45,7 @@ import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
 import org.robolectric.shadow.api.Shadow;
 import org.robolectric.shadows.ShadowActivity;
+import org.robolectric.shadows.ShadowDialog;
 import org.robolectric.annotation.LooperMode;
 import org.robolectric.shadows.ShadowLooper;
 
@@ -231,6 +241,129 @@ public final class DeviceGrantsLayoutTest {
         "屏幕入口必须打开独立页面",
         host.get().getSupportFragmentManager().findFragmentById(R.id.fragment_container)
             instanceof ScreenOperationFragment);
+  }
+
+  @Test
+  public void cancellingPrivilegedInputKeepsItsSwitchAndAuthorizationOff() {
+    View page = start(360);
+    DeviceGrants grants = new DeviceGrants(page.getContext());
+    MaterialSwitch toggle = page.findViewById(R.id.device_privileged_execution);
+    assertFalse(grants.privilegedExecutionAllowed());
+    assertFalse(toggle.isChecked());
+
+    toggle.performClick();
+    confirmation().getButton(DialogInterface.BUTTON_NEGATIVE).performClick();
+    ShadowLooper.shadowMainLooper().idle();
+
+    assertFalse(grants.privilegedExecutionAllowed());
+    assertFalse(toggle.isChecked());
+  }
+
+  @Test
+  public void confirmingPrivilegedInputDisplaysTheSavedState() {
+    View page = start(360);
+    DeviceGrants grants = new DeviceGrants(page.getContext());
+    MaterialSwitch toggle = page.findViewById(R.id.device_privileged_execution);
+    toggle.performClick();
+    assertFalse(grants.privilegedExecutionAllowed());
+    assertFalse(toggle.isChecked());
+
+    confirmation().getButton(DialogInterface.BUTTON_POSITIVE).performClick();
+    ShadowLooper.shadowMainLooper().idle();
+
+    assertTrue(grants.privilegedExecutionAllowed());
+    assertTrue(toggle.isChecked());
+  }
+
+  @Test
+  public void dismissingExternalDeviceConfirmationKeepsItsSwitchAndAuthorizationOff() {
+    View page = startChannels(360);
+    ExternalDeviceHost devices = new ExternalDeviceHost(page.getContext());
+    ArrayList<View> matches = new ArrayList<>();
+    page.findViewsWithText(matches, "允许外接设备能力", View.FIND_VIEWS_WITH_CONTENT_DESCRIPTION);
+    assertEquals(1, matches.size());
+    MaterialSwitch toggle = (MaterialSwitch) matches.get(0);
+    assertFalse(devices.enabled());
+    assertFalse(toggle.isChecked());
+
+    toggle.performClick();
+    confirmation().cancel();
+    ShadowLooper.shadowMainLooper().idle();
+
+    assertFalse(devices.enabled());
+    assertFalse(toggle.isChecked());
+  }
+
+  private static AlertDialog confirmation() {
+    AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+    assertNotNull(dialog);
+    assertTrue(dialog.isShowing());
+    return dialog;
+  }
+
+  @Test
+  public void delayedExternalDeviceStatusCannotReplaceNewerStatus() throws Exception {
+    assertDelayedExternalStatusIgnored(false);
+  }
+
+  @Test
+  public void delayedExternalDeviceStatusCannotReachRecreatedView() throws Exception {
+    assertDelayedExternalStatusIgnored(true);
+  }
+
+  private void assertDelayedExternalStatusIgnored(boolean recreate) throws Exception {
+    ArrayDeque<Runnable> queries = new ArrayDeque<>();
+    CountDownLatch firstReading = new CountDownLatch(1);
+    CountDownLatch releaseFirst = new CountDownLatch(1);
+    AtomicBoolean oldResultProduced = new AtomicBoolean();
+    AtomicInteger reads = new AtomicInteger();
+    String oldStatus = "旧设备状态";
+    String newStatus = "新设备状态";
+    DeviceChannelsFragment fragment =
+        new DeviceChannelsFragment(
+            queries::add,
+            context -> {
+              if (reads.getAndIncrement() != 0) return newStatus;
+              firstReading.countDown();
+              try {
+                if (releaseFirst.await(15, TimeUnit.SECONDS)) {
+                  oldResultProduced.set(true);
+                  return oldStatus;
+                }
+              } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+              }
+              return "夹具未收到放行";
+            });
+    View firstPage = startPage(360, fragment);
+    Thread delayed = new Thread(queries.removeLast());
+    queries.clear();
+    delayed.start();
+    View currentPage;
+    try {
+      assertTrue(firstReading.await(5, TimeUnit.SECONDS));
+      if (recreate) {
+        var fragments = host.get().getSupportFragmentManager();
+        fragments.beginTransaction().detach(fragment).commitNow();
+        fragments.beginTransaction().attach(fragment).commitNow();
+      } else {
+        host.pause().resume();
+      }
+      currentPage = fragment.requireView();
+      if (recreate) assertNotSame(firstPage, currentPage);
+      else assertSame(firstPage, currentPage);
+      queries.removeLast().run();
+      ShadowLooper.shadowMainLooper().idle();
+      assertNotNull(findText(currentPage, newStatus));
+    } finally {
+      releaseFirst.countDown();
+      delayed.join(5_000);
+    }
+    assertFalse(delayed.isAlive());
+    assertTrue(oldResultProduced.get());
+    ShadowLooper.shadowMainLooper().idle();
+    assertNull(findText(currentPage, oldStatus));
+    assertNotNull(findText(currentPage, newStatus));
   }
 
   /**

@@ -63,7 +63,7 @@ public final class ExternalTargetConfirmationTest {
 
   private void assertNoRequestBytes(ExternalDeviceHost host) throws Exception {
     var sink = new ByteArrayOutputStream();
-    assertFalse(RootShell.writeExternalRequest(sink, new byte[] {1}, () -> current(host)));
+    assertFalse(RootShell.writeRequestIfCurrent(sink, new byte[] {1}, () -> current(host)));
     assertEquals(0, sink.size());
     IOException refusal =
         assertThrows(IOException.class, () -> host.operate("reboot", "", "system", true));
@@ -77,7 +77,7 @@ public final class ExternalTargetConfirmationTest {
     assertEquals("first", target.serial);
     var sink = new ByteArrayOutputStream();
     byte[] payload = target.serial.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-    assertTrue(RootShell.writeExternalRequest(sink, payload, () -> current(host)));
+    assertTrue(RootShell.writeRequestIfCurrent(sink, payload, () -> current(host)));
     assertArrayEquals(payload, sink.toByteArray());
   }
 

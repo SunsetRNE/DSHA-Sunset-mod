@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.*;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.backup.*;
+import com.deepseekharness.app.runtime.RuntimeTrial;
 import com.deepseekharness.app.util.*;
 import java.io.*;
 import java.util.*;
@@ -506,11 +507,21 @@ public final class RetainedDataActivity extends AppCompatActivity {
                                 "Selected settings were committed and read back by the actual settings service. Other configuration and originals remain; you can reopen Web."));
                     });
               } catch (Exception error) {
+                boolean pendingTrial;
+                try {
+                  pendingTrial = RuntimeTrial.hasPending(getApplicationContext());
+                } catch (IOException | RuntimeException unreadable) {
+                  pendingTrial = true;
+                }
+                String detail =
+                    pendingTrial
+                        ? UiText.text("上次环境维护未完成，请先到安装与修复页恢复中断维护。")
+                        : t(
+                                "设置操作未完成，原件保留。可重新检查后继续。\n",
+                                "Settings operation incomplete; originals retained. Inspect again to continue.\n")
+                            .trim();
                 model.report.postValue(
-                    t(
-                            "设置操作未完成，原件保留。可重新检查后继续。\n",
-                            "Settings operation incomplete; originals retained. Inspect again to continue.\n")
-                        + BackupErrorCode.from(error));
+                    String.join("\n", detail, String.valueOf(BackupErrorCode.from(error))));
               } finally {
                 model.working.set(false);
               }

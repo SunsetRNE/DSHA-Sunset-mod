@@ -16,7 +16,7 @@ Protected assets include conversations, attachments, personal projects, plugin s
 | Ubuntu and plugins | Package, path, actual digest and transaction checks | Same-UID arbitrary code is not an independent sandbox |
 | Loopback bridge | Current token, route/capability checks, no replay after unknown execution | Local TCP is not app-exclusive |
 | Embedded page | Current origin, actual port, page and generation | No approval of arbitrary pages, stale callbacks or cameras |
-| LAN | Explicit enablement, authentication and bounded current-port connections | LAN HTTP is plaintext; no TLS, trusted pairing or guarantee against Android background restrictions |
+| LAN | Explicit enablement, authentication and bounded current-port connections | TLS with a self-signed certificate requires fingerprint verification on first use. Android manages background execution. |
 | User archive | Authentication/digest, scope and bidirectional record checks before preflight | Archive claims do not prove local health or format |
 
 ## Terminals and plugins
@@ -41,7 +41,7 @@ Accessibility receives other applications' window events; pairing scans only han
 
 Native API keys use Keystore ciphertext. Temporarily unavailable credentials must not be treated as unconfigured or cause replacement keys or deletion. The bridge uses X-Token headers. A compatibility shim migrates known local fetch calls; it does not enable CORS or claim every HTTP library is supported. External reads and default backups exclude machine tokens; selected personal projects may intentionally contain .env files and are not silently discarded.
 
-Updates enforce HTTPS, redirect and APK identity checks. API 23 and existing user HTTP/LAN behavior retain necessary cleartext compatibility; this is not a global network firewall. Logs redact registered secrets and common credential patterns, with no guarantee of detecting every third-party secret.
+Updates enforce HTTPS, redirect and APK identity checks. API 23 and existing user HTTP and local loopback behavior retain necessary cleartext compatibility; this is not a global network firewall. Logs redact registered secrets and common credential patterns, with no guarantee of detecting every third-party secret.
 
 ## Backups and restore
 

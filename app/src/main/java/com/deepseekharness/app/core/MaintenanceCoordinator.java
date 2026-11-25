@@ -41,6 +41,11 @@ public final class MaintenanceCoordinator {
     return isEnvironmentTaskBusy() || EnvironmentTaskGate.hasSharedUse();
   }
 
+  /** Check before reserving idle storage work so a required runtime update gets the next turn. */
+  public static boolean shouldDeferIdleCleanup(HarnessController controller) {
+    return EnvironmentAccess.requiresMaintenanceBeforeStart(controller);
+  }
+
   public static String activeEnvironmentDescription() {
     String exclusive = EnvironmentTaskGate.activeKind();
     return exclusive.isEmpty() ? EnvironmentTaskGate.sharedKinds() : exclusive;
@@ -68,9 +73,15 @@ public final class MaintenanceCoordinator {
     return GATE.exclusive(new AndroidPorts(controller), operation::run);
   }
 
+  public static <T> T exclusiveWhenIdle(
+      HarnessController controller, MaintenanceGate.IdleCheck idle, Operation<T> operation)
+      throws Exception {
+    return GATE.exclusiveWhenIdle(new AndroidPorts(controller), idle, operation::run);
+  }
+
   /**
    * 用户已显式确认的维护动作：取屏障前自行完成“完全停止”。普通停止未确认退出时，按既有身份核验
-   * 升级一次强制停止；自动开始、覆盖升级后的闲时清理等自动路径仍走 {@link #exclusive}，不会强杀。
+   * 升级一次强制停止；覆盖升级后的闲时清理使用 {@link #exclusiveWhenIdle}，无需发送停止信号。
    */
   public static <T> T exclusiveUserConfirmed(HarnessController controller, Operation<T> operation)
       throws Exception {
@@ -100,7 +111,7 @@ public final class MaintenanceCoordinator {
       MaintenancePreStop.stop(
           new MaintenancePreStop.Io<HarnessController.ForceStopRequest>() {
             public void requestStop() {
-              controller.stopWeb(message -> {});
+              controller.stopWebDuringMaintenance();
             }
 
             public boolean settled() {
@@ -133,7 +144,7 @@ public final class MaintenanceCoordinator {
           });
       return;
     }
-    controller.stopWeb(message -> {});
+    controller.stopWebDuringMaintenance();
     long deadline = SystemClock.elapsedRealtime() + 45_000;
     do {
       if (Thread.currentThread().isInterrupted())

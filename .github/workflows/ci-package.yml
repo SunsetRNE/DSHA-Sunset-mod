@@ -117,8 +117,8 @@ jobs:
           fi
           python3 tools/check-rust-native-apk.py --apk "${apks[0]}" "${rust_args[@]}" \
             --output app/build/stability-acceptance/rust-apk-unsigned.json
+          python3 tools/proot_source_distribution.py --apk "${apks[0]}" --write-source app/build/stability-acceptance/dsha-proot-talloc-source.zip
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
         with:
           name: UNSIGNED-NOT-FOR-INSTALLATION
           path: |

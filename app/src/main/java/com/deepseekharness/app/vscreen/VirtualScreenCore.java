@@ -224,7 +224,6 @@ public final class VirtualScreenCore {
                   }
                   VirtualScreenDisplaySession current = session;
                   if (current != null) current.input.expire();
-                  PhysicalScreenCore.expire();
                   if (elapsed() - lastRequest > 60_000) shutdown();
                 }
               },

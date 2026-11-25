@@ -2,121 +2,175 @@ package com.deepseekharness.app.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.HarnessController;
-import com.deepseekharness.app.core.PluginRepository;
+import com.deepseekharness.app.plugins.PluginManagementEngine;
 import com.deepseekharness.app.plugins.PluginOperationQueue;
 import com.deepseekharness.app.util.PluginInstallLink;
-import com.deepseekharness.app.util.PluginSource;
+import com.deepseekharness.app.util.SensitiveData;
+import com.deepseekharness.app.util.UiStateText;
+import com.deepseekharness.app.util.UiText;
+import java.util.Objects;
 
 /** 网站唤起的安装页只跟踪自己的操作身份；关闭或重建页面不停止后台任务。 */
 public final class PluginInstallActivity extends AppCompatActivity {
-  private com.deepseekharness.app.plugins.PluginManagementEngine repository;
+  private PluginManagementEngine repository;
   private PluginInstallLink request;
+  private String requestLink;
   private String operationId;
-  private Button install;
+  private Button install, prepare;
   private TextView status, details;
 
   @Override
   protected void onCreate(Bundle saved) {
     super.onCreate(saved);
+    String link =
+        saved != null && saved.containsKey("pluginRequestLink")
+            ? saved.getString("pluginRequestLink")
+            : getIntent().getDataString();
+    showRequest(link, saved == null ? null : saved.getString("pluginOperationId"));
+  }
+
+  @Override
+  protected void onNewIntent(Intent intent) {
+    super.onNewIntent(intent);
+    setIntent(intent);
+    if (!Objects.equals(requestLink, intent.getDataString()))
+      showRequest(intent.getDataString(), null);
+  }
+
+  private void showRequest(String link, String savedId) {
+    // 换来源时重建控件，让原页面尚未派发的点击仍绑定原选择。
     setContentView(R.layout.activity_plugin_install);
     PressFeedback.attachButtons(findViewById(android.R.id.content));
     status = findViewById(R.id.link_install_status);
     details = findViewById(R.id.link_install_details);
     install = findViewById(R.id.link_install_confirm);
-    operationId = saved == null ? null : saved.getString("pluginOperationId");
+    prepare = findViewById(R.id.link_install_prepare);
     findViewById(R.id.link_install_close).setOnClickListener(v -> finish());
     findViewById(R.id.link_install_manage).setOnClickListener(v -> openMain(true));
+    operationId = savedId == null || savedId.trim().isEmpty() ? null : savedId;
+    request = null;
+    requestLink = null;
     try {
-      request = PluginInstallLink.parse(getIntent().getDataString());
+      request = PluginInstallLink.parse(link);
+      requestLink = link;
     } catch (IllegalArgumentException error) {
-      status.setText(com.deepseekharness.app.util.UiText.text(error.getMessage()));
+      status.setText(UiText.text(error.getMessage()));
       install.setEnabled(false);
       return;
     }
     if (!request.builtin.isEmpty()) {
-      status.setText(
-          com.deepseekharness.app.util.UiText.format("请在插件管理中查看 %s 的安装和启用状态", request.builtin));
-      install.setText(com.deepseekharness.app.util.UiText.text("打开插件管理"));
+      status.setText(UiText.format("请在插件管理中查看 %s 的安装和启用状态", request.builtin));
+      install.setText(UiText.text("打开插件管理"));
       install.setOnClickListener(v -> openMain(true));
       return;
     }
-    repository = com.deepseekharness.app.plugins.PluginManagementEngine.get(this);
-    repository.ensureLoaded();
-    repository.state().observe(this, ignored -> renderOperation());
-    install.setOnClickListener(
-        v -> {
-          if (!HarnessController.get(this).isEnvironmentReady()) {
-            getSharedPreferences("dsha-install-link", 0)
-                .edit()
-                .putString("pending", getIntent().getDataString())
-                .apply();
-            openMain(false);
-            finish();
-          } else inspect();
-        });
-    if (!HarnessController.get(this).isEnvironmentReady()) {
-      status.setText(
-          com.deepseekharness.app.util.UiText.choose(
-              "请先完成首次初始化", "Complete DSHA setup first; plugin installation will resume afterward"));
-      install.setText(com.deepseekharness.app.util.UiText.text("初始化 DSHA"));
-    } else if (saved == null) inspect();
-    else renderOperation();
+    PluginInstallLink selected = request;
+    install.setOnClickListener(v -> confirmInstall(selected));
+    if (repository == null) {
+      repository = PluginManagementEngine.get(this);
+      repository.state().observe(this, ignored -> renderOperation());
+    }
+    if (operationId == null
+        && HarnessController.get(this).isEnvironmentReady()
+        && repository.registry().snapshot().source == null) repository.ensureLoaded();
+    renderOperation();
+  }
+
+  @Override
+  protected void onResume() {
+    super.onResume();
+    renderOperation();
   }
 
   @Override
   protected void onSaveInstanceState(Bundle saved) {
     super.onSaveInstanceState(saved);
+    saved.putString("pluginRequestLink", requestLink);
     if (operationId != null) saved.putString("pluginOperationId", operationId);
   }
 
-  private void inspect() {
-    // 来源为空的旧请求不补票；先请求只读观察，后续显式重试才使用新票据。
-    repository.ensureLoaded();
-    PluginOperationQueue.Operation previous = repository.operation(operationId);
-    if (previous != null && previous.pending()) return;
+  private void confirmInstall(PluginInstallLink selected) {
+    if (request != selected || !install.isEnabled() || isFinishing() || isDestroyed()) return;
+    if (!HarnessController.get(this).isEnvironmentReady()
+        || repository.registry().snapshot().source == null) {
+      renderOperation();
+      return;
+    }
+    install.setEnabled(false);
     operationId =
-        repository.inspect(
-            PluginSource.parse(request.url), request.sha256, request.name, request.version);
+        repository.inspect(selected.source, selected.sha256, selected.name, selected.version);
     renderOperation();
   }
 
   private void renderOperation() {
+    PluginInstallLink selected = request;
+    if (selected == null || selected.source == null) return;
     PluginOperationQueue.Operation operation = repository.operation(operationId);
-    PluginRepository.Preview preview = repository.operationPreview(operationId);
-    if (preview != null) details.setText(preview.description());
-    else
-      details.setText(
-          com.deepseekharness.app.util.UiText.format(
-              "下载并解析插件包后自动安装、启用。\n\n%s",
-              com.deepseekharness.app.util.SensitiveData.redact(request.url)));
+    var preview = repository.operationPreview(operationId);
+    var source = selected.source;
+    String origin = SensitiveData.redact(source.url.isEmpty() ? source.description() : source.url);
+    String description = UiText.format("下载并解析插件包后自动安装、启用。\n\n%s", origin);
+    details.setText(preview == null ? description : description + "\n\n" + preview.description());
+    prepare.setVisibility(View.GONE);
+    prepare.setOnClickListener(null);
+    install.setVisibility(View.VISIBLE);
     if (operation != null) {
-      // 状态与按钮标签变化走 150ms 淡入（审计 F-08）。
-      UiMotion.crossFadeText(
-          status, com.deepseekharness.app.util.UiStateText.render(operation.message));
+      UiMotion.crossFadeText(status, UiStateText.render(operation.message));
       boolean installed =
           operation.phase == PluginOperationQueue.Phase.SUCCEEDED
               && operation.transactionId != null
               && !operation.transactionId.isEmpty();
-      install.setEnabled(!operation.pending() && !installed);
-      UiMotion.crossFadeText(
-          install,
-          com.deepseekharness.app.util.UiText.text(
-              installed ? "安装完成" : operation.pending() ? "正在安装" : "解析链接 / 重试"));
+      if (operation.pending() || installed) {
+        install.setEnabled(false);
+        UiMotion.crossFadeText(install, UiText.text(installed ? "安装完成" : "正在安装"));
+        return;
+      }
+    } else if (operationId != null) {
+      UiMotion.crossFadeText(status, UiText.text("应用进程已重建；原任务结果未知，请先到插件管理核对。不会自动重放安装。"));
     } else {
-      if (operationId != null)
-        UiMotion.crossFadeText(
-            status,
-            com.deepseekharness.app.util.UiText.choose(
-                "应用进程已重建；原任务结果未知，请先到插件管理核对。不会自动重放安装。",
-                "The app process was recreated. Verify the previous result in plugin management; installation will not replay automatically."));
-      install.setText(com.deepseekharness.app.util.UiText.text("解析链接 / 重试"));
-      install.setEnabled(true);
+      status.setText("");
     }
+    if (!HarnessController.get(this).isEnvironmentReady()) {
+      status.setText(UiText.text("请先完成首次初始化"));
+      showPreparation(
+          UiText.text("初始化 DSHA"),
+          () -> {
+            if (selected != request) return;
+            getSharedPreferences("dsha-install-link", MODE_PRIVATE)
+                .edit()
+                .putString("pending", requestLink)
+                .apply();
+            openMain(false);
+            finish();
+          });
+      return;
+    }
+    var catalog = repository.registry().snapshot();
+    if (catalog.source == null) {
+      if (operationId == null)
+        status.setText(
+            catalog.error.isEmpty()
+                ? R.string.plugin_catalog_reading
+                : R.string.plugin_catalog_failed);
+      showPreparation(getText(R.string.ui_m0212), repository::refresh);
+      return;
+    }
+    install.setEnabled(true);
+    install.setText(R.string.ui_m0106);
+  }
+
+  private void showPreparation(CharSequence label, Runnable action) {
+    install.setEnabled(false);
+    install.setVisibility(View.GONE);
+    prepare.setText(label);
+    prepare.setVisibility(View.VISIBLE);
+    prepare.setOnClickListener(v -> action.run());
   }
 
   private void openMain(boolean plugins) {

@@ -31,16 +31,19 @@ public final class WebStartProtection {
   public final class Ticket implements AutoCloseable {
     private final String id;
     private final long created, deadline;
+    private final boolean mayWaitForMaintenance;
     private final CountDownLatch promotion = new CountDownLatch(1);
     private long generation;
+    private boolean crossedMaintenanceStop;
     private Object service;
     private BooleanSupplier serviceCurrent;
     private boolean waitingStop, admitted, claimed, closed, deferred;
     private String failure = "";
 
-    private Ticket(long generation) {
+    private Ticket(long generation, boolean mayWaitForMaintenance) {
       id = java.util.UUID.randomUUID().toString();
       this.generation = generation;
+      this.mayWaitForMaintenance = mayWaitForMaintenance;
       created = clock.getAsLong();
       deadline = created + PREPARATION_TIMEOUT_MS;
     }
@@ -52,6 +55,24 @@ public final class WebStartProtection {
     public long generation() {
       synchronized (lifecycle) {
         return generation;
+      }
+    }
+
+    public boolean mayWaitForMaintenance() {
+      return mayWaitForMaintenance;
+    }
+
+    public long maintenanceWaitBudgetMillis() {
+      synchronized (lifecycle) {
+        return mayWaitForMaintenance && canAdmit(this)
+            ? Math.max(0, deadline - clock.getAsLong())
+            : 0;
+      }
+    }
+
+    public boolean crossedMaintenanceStop() {
+      synchronized (lifecycle) {
+        return crossedMaintenanceStop;
       }
     }
 
@@ -94,9 +115,13 @@ public final class WebStartProtection {
   }
 
   public Ticket begin() {
+    return begin(false);
+  }
+
+  public Ticket begin(boolean mayWaitForMaintenance) {
     synchronized (lifecycle) {
       if (active() != null || lifecycle.isStopping()) return null;
-      return pending = new Ticket(lifecycle.generation());
+      return pending = new Ticket(lifecycle.generation(), mayWaitForMaintenance);
     }
   }
 
@@ -219,13 +244,32 @@ public final class WebStartProtection {
   }
 
   public void cancelAll() {
+    cancelForStop(false);
+  }
+
+  /** 独占维护可保留普通可见启动；显式停止始终撤销准备与排队的票据。 */
+  public void cancelForStop(boolean maintenance) {
     synchronized (lifecycle) {
       cancellationRevision++;
-      if (pending != null) reject(pending, "WEB_START_CANCELLED_BY_NEW_INTENT");
+      if (pending != null && (!maintenance || !pending.mayWaitForMaintenance))
+        reject(pending, "WEB_START_CANCELLED_BY_NEW_INTENT");
       if (queued != null) {
         queued.closed = true;
         queued = null;
       }
+    }
+  }
+
+  /** 只让仍有效的原票据跨越本次独占维护所需的停止，不延长有效期。 */
+  public long beginMaintenanceStop() {
+    synchronized (lifecycle) {
+      Ticket ticket = active();
+      long generation = lifecycle.beginStop();
+      if (ticket != null && ticket.mayWaitForMaintenance) {
+        ticket.generation = generation;
+        ticket.crossedMaintenanceStop = true;
+      }
+      return generation;
     }
   }
 

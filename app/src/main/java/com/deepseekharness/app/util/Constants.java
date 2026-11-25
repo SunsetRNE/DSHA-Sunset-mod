@@ -39,7 +39,7 @@ public final class Constants {
    * 当前 APK 内置 dsh 版本（不是远端 latest 标签）。
    * 对应上游 deepseek-ai/deepseek-harness 仓库。
    */
-  public static final String DSH_VERSION = "0.2.2-rc.1";
+  public static final String DSH_VERSION = "0.2.2-rc.5";
 
   public static final String DSH_RUNTIME_ID = "dsh-v" + DSH_VERSION;
 
@@ -112,7 +112,7 @@ public final class Constants {
   /** 局域网访问开关。 */
   public static final String KEY_LAN_MODE = "lan_mode";
 
-  /** 局域网桥凭据（256-bit，等长比对，v2 键名）。 */
+  /** 历史局域网会话偏好，仅用于升级时清除。 */
   public static final String KEY_LAN_TOKEN_V2 = "lan_token_v2";
 
   /** 容器运行时：proroot / proot。 */

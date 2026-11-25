@@ -20,7 +20,9 @@ runs:
       run: python3 tools/ci-handoff.py unpack --dir "$RUNNER_TEMP/dsha-handoff"
     - name: Verify restored runtime descriptor
       shell: bash
-      run: python3 tools/verify-runtime-descriptor-source.py
+      run: |
+        python3 tools/proroot_distribution.py --upstream
+        python3 tools/verify-runtime-descriptor-source.py
     - name: Prepare current verified runtime fixture
       if: inputs.fixture == 'true'
       shell: bash

@@ -163,6 +163,24 @@ public class PasswordFreeBackupExportTest {
   }
 
   @Test
+  public void occupiedStagingSlotsAreLeftIntact() throws Exception {
+    var source = fixture(true, "QUIESCENT", false);
+    for (String name : List.of("reexport-plain.dshbak", "reexport-authenticated.dshdata")) {
+      File operation = temporary.newFolder(), original = new File(operation, name);
+      Files.writeString(original.toPath(), "synthetic original");
+      assertEquals(
+          "REEXPORT_STAGING_EXISTS",
+          assertThrows(
+                  IOException.class,
+                  () ->
+                      PasswordFreeBackupExport.prepare(
+                          fs, source, operation, originalPassword, control))
+              .getMessage());
+      assertEquals("synthetic original", Files.readString(original.toPath()));
+    }
+  }
+
+  @Test
   public void productionEnvelopeWriterRejectsEncryptedPayloadInsteadOfRenamingIt()
       throws Exception {
     var source = fixture(true, "QUIESCENT", false);
@@ -218,5 +236,63 @@ public class PasswordFreeBackupExportTest {
     assertThrows(
         IOException.class,
         () -> BackupArchive.read(new ByteArrayInputStream(output.toByteArray()), null, control));
+  }
+
+  @Test
+  public void oldPlainAndAutomaticCopiesCanMoveToFreshStorageWithOnlyUserPassword()
+      throws Exception {
+    char[] portablePassword = "synthetic new device password".toCharArray();
+    for (boolean automatic : List.of(false, true)) {
+      var original = fixture(automatic, "QUIESCENT", automatic);
+      File job = temporary.newFolder();
+      var prepared =
+          PasswordFreeBackupExport.prepare(
+              fs, original, job, automatic ? originalPassword : null, portablePassword, control);
+      assertEquals("PASSWORD_ENCRYPTED", prepared.manifest.get("sensitivePolicy"));
+      assertFalse(new File(job, "reexport-plain.dshbak").exists());
+      assertFalse(new File(job, "reexport-authenticated.dshdata").exists());
+      original.verify(fs, control);
+      File fresh = temporary.newFolder(), envelope = new File(fresh, "backup.tar.gz");
+      try (OutputStream out = fs.create(envelope)) {
+        PortableBackupEnvelope.writeExport(
+            fs,
+            prepared.artifact,
+            prepared.sha256,
+            out,
+            control,
+            true,
+            "synthetic diagnostic".getBytes(StandardCharsets.UTF_8));
+      }
+      try (InputStream out = fs.read(envelope, fs.stat(envelope))) {
+        assertTrue(PortableBackupEnvelope.passwordProtected(out, control));
+      }
+      File imported = new File(fresh, "payload");
+      assertTrue(PortableBackupEnvelope.unwrapIfPresent(fs, envelope, imported, control));
+      File staged = new File(fresh, "stage");
+      assertThrows(
+          IOException.class,
+          () ->
+              PortableBackupCrypto.decryptIsolated(
+                  fs, imported, staged, originalPassword, control));
+      assertFalse(staged.exists());
+      PortableBackupCrypto.decryptIsolated(fs, imported, staged, portablePassword, control);
+      try (InputStream plain = fs.read(staged, fs.stat(staged))) {
+        var restored = BackupArchive.read(plain, null, control);
+        assertEquals("PASSWORD_ENCRYPTED", restored.get("sensitivePolicy"));
+        assertEquals(prepared.manifest, restored);
+      }
+    }
+  }
+
+  @Test
+  public void secureDestinationRejectsPlainVerifiedInputsBeforeWriting() throws Exception {
+    var plain = fixture(false, "QUIESCENT", false);
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    assertThrows(
+        IOException.class,
+        () ->
+            PortableBackupEnvelope.writeExport(
+                fs, plain.artifact, plain.sha256, out, control, true, null));
+    assertEquals(0, out.size());
   }
 }

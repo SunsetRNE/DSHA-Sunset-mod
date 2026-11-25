@@ -1,6 +1,7 @@
 package com.deepseekharness.app.ui;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -44,7 +45,7 @@ public final class ShellRail extends LinearLayout {
 
   private final Map<Integer, View> items = new LinkedHashMap<>();
   @Nullable private OnItemSelectedListener listener;
-  private int selectedId = R.id.nav_launch;
+  private int selectedId = View.NO_ID;
 
   public ShellRail(Context context) {
     this(context, null);
@@ -69,9 +70,12 @@ public final class ShellRail extends LinearLayout {
 
   /** 同步选中外观；只改绘制状态，不回调监听器，避免与 BottomNavigationView 互相递归。 */
   public void setSelectedItemId(int itemId) {
+    if (selectedId == itemId) return;
+    View previous = items.get(selectedId);
+    if (previous != null) previous.setSelected(false);
     selectedId = itemId;
-    for (Map.Entry<Integer, View> entry : items.entrySet())
-      entry.getValue().setSelected(entry.getKey() == itemId);
+    View next = items.get(itemId);
+    if (next != null) next.setSelected(true);
   }
 
   public int getSelectedItemId() {
@@ -120,7 +124,7 @@ public final class ShellRail extends LinearLayout {
         new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
     footParams.topMargin = dimen(context, R.dimen.shell_rail_item_gap);
     addView(foot, footParams);
-    setSelectedItemId(selectedId);
+    setSelectedItemId(R.id.nav_launch);
   }
 
   private View createItem(Context context, int itemId, int iconRes, String title) {
@@ -153,7 +157,12 @@ public final class ShellRail extends LinearLayout {
     label.setTextColor(context.getColorStateList(R.color.shell_rail_item_tint));
     label.setDuplicateParentStateEnabled(true);
     label.setGravity(Gravity.CENTER);
-    label.setSingleLine(true);
+    if (context.getResources().getConfiguration().fontScale >= 1.3f) {
+      label.setMaxLines(2);
+      label.setEllipsize(TextUtils.TruncateAt.END);
+    } else {
+      label.setSingleLine(true);
+    }
     label.setIncludeFontPadding(false);
     label.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     LayoutParams labelParams =

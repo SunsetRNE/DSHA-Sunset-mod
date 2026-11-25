@@ -30,6 +30,10 @@ public final class MaintenanceGate {
     T run() throws Exception;
   }
 
+  public interface IdleCheck {
+    boolean isIdle() throws Exception;
+  }
+
   public interface Scope extends AutoCloseable {
     @Override
     void close();
@@ -77,29 +81,50 @@ public final class MaintenanceGate {
   }
 
   public <T> T exclusive(Ports ports, Operation<T> operation) throws Exception {
+    return exclusive(ports, null, operation);
+  }
+
+  /** 自动维护只在两个屏障内确认空闲；遇忙直接退出，不停止任何进程。 */
+  public <T> T exclusiveWhenIdle(Ports ports, IdleCheck idle, Operation<T> operation)
+      throws Exception {
+    return exclusive(ports, java.util.Objects.requireNonNull(idle), operation);
+  }
+
+  private <T> T exclusive(Ports ports, IdleCheck idle, Operation<T> operation) throws Exception {
     if (Thread.holdsLock(archiveLock))
       throw new IOException(UiText.text("不能在快照或归档回调内停止 Web；请先结束快照，再开始恢复或维护"));
     if (!ports.ownsExecutionTicket()) {
       Ticket ticket = ports.acquireExecutionTicket("数据维护");
-      if (ticket == null) throw new IOException(UiText.text("有安装、备份、恢复或维护任务正在进行"));
+      if (ticket == null) {
+        if (idle != null) return null;
+        throw new IOException(UiText.text("有安装、备份、恢复或维护任务正在进行"));
+      }
       try (ticket) {
-        return ticket.run(() -> exclusive(ports, operation));
+        return ticket.run(() -> exclusive(ports, idle, operation));
       }
     }
-    if (!exclusive.compareAndSet(false, true))
+    if (!exclusive.compareAndSet(false, true)) {
+      if (idle != null) return null;
       throw new IOException(UiText.text("已有备份、恢复或维护任务，请等待完成"));
+    }
     try {
-      ports.stopTerminals();
-      ports.stopWeb();
+      if (idle == null) {
+        ports.stopTerminals();
+        ports.stopWeb();
+      }
       Scope fence = ports.tryEnterMaintenance();
-      long deadline = ports.elapsedRealtime() + 3000;
-      while (fence == null && ports.elapsedRealtime() < deadline) {
-        ports.pause(50);
-        fence = ports.tryEnterMaintenance();
+      if (fence == null && idle != null) return null;
+      if (fence == null) {
+        long deadline = ports.elapsedRealtime() + 3000;
+        while (fence == null && ports.elapsedRealtime() < deadline) {
+          ports.pause(50);
+          fence = ports.tryEnterMaintenance();
+        }
       }
       if (fence == null)
         throw new IOException(UiText.text("Web 已停止，但终端或后台任务仍在运行。请结束这些任务后重试；原环境未移动，数据未覆盖。"));
       try (Scope held = fence) {
+        if (idle != null && !idle.isIdle()) return null;
         ports.confirmOtherProcesses();
         synchronized (archiveLock) {
           owner.set(true);

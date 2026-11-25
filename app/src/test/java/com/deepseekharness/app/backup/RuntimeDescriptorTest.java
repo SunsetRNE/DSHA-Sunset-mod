@@ -51,6 +51,21 @@ public class RuntimeDescriptorTest {
   }
 
   @Test
+  public void stagingAccountsForVolumeBlocksAtomicReplacementAndTrial() throws Exception {
+    var candidate = value();
+    candidate.put(
+        "stagingSpace",
+        Map.of("logicalBytes", 400_000_000L, "nodes", 25_000L, "largestFile", 100_000_000L));
+    var descriptor = new RuntimeDescriptor(candidate);
+    assertEquals(682_308_864L, descriptor.stagingSpace(4096));
+    assertEquals(989_508_864L, descriptor.stagingSpace(16384));
+    assertThrows(java.io.IOException.class, () -> descriptor.stagingSpace(0));
+    assertThrows(java.io.IOException.class, () -> descriptor.stagingSpace(Long.MAX_VALUE));
+    assertThrows(
+        java.io.IOException.class, () -> new RuntimeDescriptor(value()).stagingSpace(4096));
+  }
+
+  @Test
   public void compatibleIsNotTheSameAsLatest() throws Exception {
     Map<String, Object> changed = value();
     changed.put("inputs", Map.of("runtime", "b".repeat(64)));

@@ -88,8 +88,7 @@ def _file_record(assets, row, package_path, remaining):
     flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0)
     with os.fdopen(os.open(file, flags), 'rb') as stream:
         opened = os.fstat(stream.fileno())
-        if (opened.st_dev, opened.st_ino, opened.st_mode, opened.st_size) != (
-                before.st_dev, before.st_ino, before.st_mode, before.st_size):
+        if _file_identity(opened) != _file_identity(before):
             raise ValueError('SIGNED_BUILTIN_ASSET_CHANGED: ' + row['asset'])
         for chunk in iter(lambda: stream.read(1024 * 1024), b''):
             size += len(chunk)
@@ -98,14 +97,22 @@ def _file_record(assets, row, package_path, remaining):
             sha.update(chunk)
         after = os.fstat(stream.fileno())
     current = file.lstat()
-    identity = lambda node: (node.st_dev, node.st_ino, node.st_mode, node.st_size,
-                             node.st_mtime_ns, node.st_ctime_ns)
-    if identity(before) != identity(after) or identity(before) != identity(current) or size != before.st_size:
+    # Windows Python 3.12 lstat and fstat can expose different meanings of ctime.
+    # Check change times before/after through each API and still bind the open
+    # descriptor to the same path, inode, size and modification time.
+    if (_file_identity(after) != _file_identity(current) or _file_identity(before) != _file_identity(current)
+            or before.st_ctime_ns != current.st_ctime_ns or opened.st_ctime_ns != after.st_ctime_ns
+            or size != before.st_size):
         raise ValueError('SIGNED_BUILTIN_ASSET_CHANGED: ' + row['asset'])
     # RuntimeAssetFiles 经 AndroidBackupFileSystem.atomic 新建时为 0600，只有
     # executable 才明确 chmod 0755；不沿用 Git checkout 的文件位。
     return {'path': package_path, 'sha256': sha.hexdigest(),
             'mode': 0o755 if row['executable'] else 0o600, 'size': size}
+
+
+def _file_identity(node):
+    timestamp = getattr(node, 'st_birthtime_ns', None) if os.name == 'nt' else node.st_ctime_ns
+    return node.st_dev, node.st_ino, node.st_mode, node.st_size, node.st_mtime_ns, timestamp
 
 
 def build_signed_builtin_files(root):

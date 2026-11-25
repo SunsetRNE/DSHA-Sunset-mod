@@ -11,11 +11,17 @@ public final class SocketDispatch implements AutoCloseable {
   private final int maximum;
   private final Set<Ticket> tickets = new HashSet<>();
   private final ThreadPoolExecutor readPool, shortPool, streamPool, pumpPool;
+  private final ThreadPoolExecutor finitePool;
   private boolean closed;
   private int peak;
   private final AtomicLong accepted = new AtomicLong(), rejected = new AtomicLong();
 
   public SocketDispatch(String name, int maximum, int workers, int queued, int streams) {
+    this(name, maximum, workers, queued, streams, 0);
+  }
+
+  public SocketDispatch(
+      String name, int maximum, int workers, int queued, int streams, int finiteWorkers) {
     if (maximum < 1 || workers < 1 || queued < 1 || streams < 1)
       throw new IllegalArgumentException();
     this.maximum = maximum;
@@ -27,6 +33,14 @@ public final class SocketDispatch implements AutoCloseable {
     shortPool = pool(name + "-request", workers, new ArrayBlockingQueue<>(queued));
     streamPool = pool(name + "-stream", streams, new SynchronousQueue<>());
     pumpPool = pool(name + "-pump", streams, new SynchronousQueue<>());
+    finitePool =
+        finiteWorkers > 0
+            ? pool(name + "-finite", finiteWorkers, new ArrayBlockingQueue<>(2 * finiteWorkers))
+            : null;
+    if (finitePool != null) {
+      finitePool.setKeepAliveTime(10, TimeUnit.SECONDS);
+      finitePool.allowCoreThreadTimeOut(true);
+    }
   }
 
   private static ThreadPoolExecutor pool(String name, int size, BlockingQueue<Runnable> queue) {
@@ -115,7 +129,21 @@ public final class SocketDispatch implements AutoCloseable {
     return execute(streamPool, owner, work);
   }
 
+  /** A caller with a bounded fallback records rejection only if neither lane can admit the work. */
+  public boolean tryStream(Ticket owner, Runnable work) {
+    return execute(streamPool, owner, work, false);
+  }
+
+  public boolean finite(Ticket owner, Runnable work) {
+    return finitePool != null && execute(finitePool, owner, work);
+  }
+
   private boolean execute(ThreadPoolExecutor pool, Ticket owner, Runnable work) {
+    return execute(pool, owner, work, true);
+  }
+
+  private boolean execute(
+      ThreadPoolExecutor pool, Ticket owner, Runnable work, boolean countRejection) {
     if (owner.ended()) return false;
     try {
       pool.execute(
@@ -129,7 +157,7 @@ public final class SocketDispatch implements AutoCloseable {
           });
       return true;
     } catch (RejectedExecutionException full) {
-      rejected.incrementAndGet();
+      if (countRejection) rejected.incrementAndGet();
       return false;
     }
   }
@@ -153,25 +181,32 @@ public final class SocketDispatch implements AutoCloseable {
   }
 
   public synchronized Map<String, Long> metrics() {
-    return Map.of(
-        "connections",
-        (long) tickets.size(),
-        "peakConnections",
-        (long) peak,
-        "accepted",
-        accepted.get(),
-        "rejected",
-        rejected.get(),
-        "queued",
-        (long) shortPool.getQueue().size(),
-        "headerThreads",
-        (long) readPool.getPoolSize(),
-        "requestThreads",
-        (long) shortPool.getPoolSize(),
-        "streamThreads",
-        (long) streamPool.getPoolSize(),
-        "pumpThreads",
-        (long) pumpPool.getPoolSize());
+    Map<String, Long> result =
+        Map.of(
+            "connections",
+            (long) tickets.size(),
+            "peakConnections",
+            (long) peak,
+            "accepted",
+            accepted.get(),
+            "rejected",
+            rejected.get(),
+            "queued",
+            (long) shortPool.getQueue().size(),
+            "headerThreads",
+            (long) readPool.getPoolSize(),
+            "requestThreads",
+            (long) shortPool.getPoolSize(),
+            "streamThreads",
+            (long) streamPool.getPoolSize(),
+            "pumpThreads",
+            (long) pumpPool.getPoolSize());
+    if (finitePool == null) return result;
+    Map<String, Long> extended = new HashMap<>(result);
+    extended.put("activeFinite", (long) finitePool.getActiveCount());
+    extended.put("queuedFinite", (long) finitePool.getQueue().size());
+    extended.put("completedFinite", finitePool.getCompletedTaskCount());
+    return Map.copyOf(extended);
   }
 
   @Override
@@ -187,6 +222,7 @@ public final class SocketDispatch implements AutoCloseable {
     shortPool.shutdownNow();
     streamPool.shutdownNow();
     pumpPool.shutdownNow();
+    if (finitePool != null) finitePool.shutdownNow();
   }
 
   /** Retire connections after a network change without stopping the listener. */
@@ -203,7 +239,9 @@ public final class SocketDispatch implements AutoCloseable {
     for (ThreadPoolExecutor pool : List.of(readPool, shortPool, streamPool, pumpPool))
       if (!pool.awaitTermination(Math.max(0, until - System.nanoTime()), TimeUnit.NANOSECONDS))
         return false;
-    return true;
+    return finitePool == null
+        || finitePool.awaitTermination(
+            Math.max(0, until - System.nanoTime()), TimeUnit.NANOSECONDS);
   }
 
   private static void closeQuietly(Closeable value) {

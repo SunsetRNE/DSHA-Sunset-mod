@@ -5,9 +5,9 @@ Old-generation modules are evidence, never a substitute for staging the signed
 new runtime archive through ManagedRuntimeTransaction/RuntimeTrial. Marker
 idempotence cannot prove that the official upstream module was upgraded."""
 import argparse
+from contextlib import contextmanager
 import hashlib
 import importlib.util
-import io
 import json
 import os
 from pathlib import Path
@@ -26,6 +26,11 @@ OLD_MODULE_SHA = {
 }
 OLD_ARCHIVE_SHA = 'a02cc5a42727238491ee36d4b0b46461d035dd6f8fca22580eb19d8456fbefc3'
 OLD_FRONTEND = '@deepseek-ai/dsh-web-frontend/dist/assets/index-BXV-oxvX.js'
+OLD_UNSHIPPED_MODULES = {
+    '@deepseek-ai/dsh-tools/lib/pipeline.js',
+    '@deepseek-ai/dsh-official-bundles/lib/index.js',
+    '@deepseek-ai/dsh-client-ui-file-actions/lib/client.js',
+}
 
 JAVA = r'''
 import com.deepseekharness.app.util.ManagedPatchChain;
@@ -88,27 +93,33 @@ public final class Build193PatchChainFixture {
       // A chain is an overlay preparer, not an upstream generation installer.
       // Compare Java with the independently evaluated old-module chain result;
       // a stale marker-only result requires the separately staged new archive.
-      var repairs=new java.util.concurrent.atomic.AtomicInteger();
-      String old=Files.readString(module.resolve("old-192.js"));
-      String directExpected=Files.exists(module.resolve("old-direct.js"))
-          ?Files.readString(module.resolve("old-direct.js")):expected;
-      String direct=ManagedPatchChain.apply(old,chain,()->{repairs.incrementAndGet();return expected;});
-      require(direct.equals(directExpected),"old192 Java/Python chain semantics differ");
-      require(repairs.get()==(Files.exists(module.resolve("old-direct.js"))?0:1),"old192 canonical boundary differs");
+       Path oldPath=module.resolve("old-192.js"), historicalAbsence=module.resolve("historical-module-unavailable.txt");
+       if(Files.exists(oldPath)) {
+         var repairs=new java.util.concurrent.atomic.AtomicInteger();
+         String old=Files.readString(oldPath);
+         String directExpected=Files.exists(module.resolve("old-direct.js"))
+             ?Files.readString(module.resolve("old-direct.js")):expected;
+         String direct=ManagedPatchChain.apply(old,chain,()->{repairs.incrementAndGet();return expected;});
+         require(direct.equals(directExpected),"build212 Java/Python chain semantics differ");
+         require(repairs.get()==(Files.exists(module.resolve("old-direct.js"))?0:1),"build212 canonical boundary differs");
+         if(Files.exists(module.resolve("predecessor-unavailable.txt")))
+           System.out.println("PASS_PREDECESSOR_NOT_APPLICABLE "+Files.readString(module.resolve("predecessor-unavailable.txt")));
+         else
+           predecessorControls(old,chain,expected);
+       } else {
+         require(Files.isRegularFile(historicalAbsence),"missing historical fixture provenance");
+         System.out.println("HISTORICAL_PATH_ABSENT "+Files.readString(historicalAbsence));
+       }
       String staged=ManagedPatchChain.apply(expected,chain,()->{throw new AssertionError("staged new archive restore");});
       require(staged.equals(expected),"staged complete current chain differs");
       String fromArchive=ManagedPatchChain.apply("incomplete previous managed module",chain,()->expected);
       require(fromArchive.equals(expected),"new managed canonical rebuild differs");
       rejectWithoutCanonical("incomplete old module",chain);
-      if(Files.exists(module.resolve("predecessor-unavailable.txt")))
-        System.out.println("PASS_PREDECESSOR_NOT_APPLICABLE "+Files.readString(module.resolve("predecessor-unavailable.txt")));
-      else
-        predecessorControls(old,chain,expected);
       if(Files.exists(module.resolve("apk.js"))) {
         String exact=Files.readString(module.resolve("apk.js"));require(exact.equals(expected),"exact new APK archive differs");
         require(ManagedPatchChain.apply(exact,chain,()->{throw new AssertionError("exact APK restore");}).equals(expected),"exact APK repeat differs");
       }
-      System.out.println("PASS_BUILD213_CHAIN fresh/repeat/build212-boundary/staged-canonical/failclosed "+Files.readString(module.resolve("name.txt")));
+       System.out.println("PASS_CURRENT_CHAIN fresh/repeat/staged-canonical/failclosed "+Files.readString(module.resolve("name.txt")));
     }
   }
 }
@@ -119,15 +130,34 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def stream_sha(source):
+    digest = hashlib.sha256()
+    for block in iter(lambda: source.read(1_048_576), b''):
+        digest.update(block)
+    return digest.hexdigest()
+
+
+def file_sha(file):
+    with file.open('rb') as source:
+        return stream_sha(source)
+
+
+@contextmanager
 def archive(apk):
-    with zipfile.ZipFile(apk) as package:
-        return tarfile.open(fileobj=io.BytesIO(package.read('assets/dsh-runtime.bin')), mode='r:*')
+    with (zipfile.ZipFile(apk) as package,
+          package.open('assets/dsh-runtime.bin') as source,
+          tarfile.open(fileobj=source, mode='r|*') as runtime):
+        yield runtime
 
 
-def module_bytes(archive_file, module):
-    matches = [entry for entry in archive_file.getmembers() if entry.isfile() and entry.name.endswith('/node_modules/' + module)]
-    assert len(matches) == 1, 'APK_MODULE_UNIQUENESS: ' + module
-    return archive_file.extractfile(matches[0]).read()
+def module_payloads(archive_file, wanted):
+    matches = {}
+    for entry in archive_file:
+        module = entry.name.rsplit('/node_modules/', 1)[-1]
+        if entry.isfile() and module in wanted:
+            assert module not in matches, 'APK_MODULE_UNIQUENESS: ' + module
+            matches[module] = archive_file.extractfile(entry).read()
+    return matches
 
 
 def write_chain(folder, chain):
@@ -152,8 +182,8 @@ def write_chain(folder, chain):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--jdk', type=Path)
-    parser.add_argument('--old-apk', type=Path, default=os.environ.get('DSHA_PREVIOUS_RUNTIME_APK'), help='read-only exact retained published192 Standard APK (required unless --old-archive)')
-    parser.add_argument('--old-archive', type=Path, default=os.environ.get('DSHA_PREVIOUS_RUNTIME_ARCHIVE'), help='read-only hash-pinned published192 runtime archive, mutually exclusive with --old-apk')
+    parser.add_argument('--old-apk', type=Path, default=os.environ.get('DSHA_PREVIOUS_RUNTIME_APK'), help='read-only exact published build212 Standard APK (required unless --old-archive)')
+    parser.add_argument('--old-archive', type=Path, default=os.environ.get('DSHA_PREVIOUS_RUNTIME_ARCHIVE'), help='read-only hash-pinned build212 runtime archive, mutually exclusive with --old-apk')
     parser.add_argument('--apk', type=Path, help='read-only exact new APK for final archive validation')
     args = parser.parse_args()
     if __debug__ is False:
@@ -161,13 +191,13 @@ def main():
     if bool(args.old_apk) == bool(args.old_archive):
         parser.error('provide exactly one of --old-apk or --old-archive; historical input cannot be synthesized from current upstream sources')
     if args.old_archive:
-        assert sha(args.old_archive.read_bytes()) == OLD_ARCHIVE_SHA, 'OLD_212_ARCHIVE_IDENTITY'
+        assert file_sha(args.old_archive) == OLD_ARCHIVE_SHA, 'OLD_212_ARCHIVE_IDENTITY'
     if args.old_apk:
-        assert sha(args.old_apk.read_bytes()) == OLD_APK_SHA, 'OLD_212_APK_IDENTITY'
+        assert file_sha(args.old_apk) == OLD_APK_SHA, 'OLD_212_APK_IDENTITY'
     assets = ROOT / 'app/src/main/assets'
     manifest = json.loads((ROOT / 'tools/dsh-runtime/package.json').read_text(encoding='utf8'))
     version = manifest['dependencies']['@deepseek-ai/dsh']
-    assert version == '0.2.2-rc.1', 'S1_REQUIRES_REVIEWED_0_2_2_RC1'
+    assert version == '0.2.2-rc.5', 'PATCH_CHAIN_REQUIRES_REVIEWED_0_2_2_RC5'
     lock = json.loads((ROOT / 'tools/dsh-runtime/package-lock.json').read_text(encoding='utf8'))
     chains, _ = runtime_stable_patches.load_chains(assets, version)
     registered = {name for rows in chains.values() for name, _, _ in rows}
@@ -180,35 +210,51 @@ def main():
     assert raw_package['name'] == '@deepseek-ai/dsh' and raw_package['version'] == version, 'RAW_RUNTIME_GENERATION'
     assert sha((Path(selected) / 'package-lock.json').read_bytes()) == sha((ROOT / 'tools/dsh-runtime/package-lock.json').read_bytes()), 'RAW_RUNTIME_LOCK_IDENTITY'
     if args.old_apk:
-        with zipfile.ZipFile(args.old_apk) as package:
-            assert sha(package.read('assets/dsh-runtime.bin')) == OLD_ARCHIVE_SHA, 'OLD_212_ARCHIVE_IDENTITY'
+        with zipfile.ZipFile(args.old_apk) as package, package.open('assets/dsh-runtime.bin') as source:
+            assert stream_sha(source) == OLD_ARCHIVE_SHA, 'OLD_212_ARCHIVE_IDENTITY'
+    old_names = {module: OLD_FRONTEND if module.startswith('@deepseek-ai/dsh-web-frontend/dist/assets/index-')
+                 else module for module in chains}
+    old_wanted = set(old_names.values())
+    with (archive(args.old_apk) if args.old_apk else tarfile.open(args.old_archive, 'r|*')) as historic:
+        old_payloads = module_payloads(historic, old_wanted)
+    assert old_wanted - old_payloads.keys() == OLD_UNSHIPPED_MODULES, 'PINNED_212_MODULE_SET'
+    new_payloads = {}
+    if args.apk:
+        with archive(args.apk) as packaged:
+            new_payloads = module_payloads(packaged, set(chains))
+        assert set(chains) == new_payloads.keys(), 'APK_ALL_CURRENT_PATCH_TARGETS_REQUIRED'
     owned = Path(tempfile.mkdtemp(prefix='build193-java-chain-', dir=ROOT / 'app/build'))
-    old = archive(args.old_apk) if args.old_apk else tarfile.open(args.old_archive, 'r:*') if args.old_archive else None
-    new = archive(args.apk) if args.apk else None
     builder_spec = importlib.util.spec_from_file_location('build193_archive_builder', ROOT / 'tools/build-dsh-runtime.py')
     builder = importlib.util.module_from_spec(builder_spec)
     builder_spec.loader.exec_module(builder)
     names, records = [], []
-    try:
-        for module, chain in chains.items():
-            directory = owned / str(len(names))
-            names.append(directory.name)
-            directory.mkdir()
-            canonical = (raw / module).read_bytes()
-            for name, _, _ in chain:
-                recipe = json.loads((assets / name).read_text(encoding='utf8'))
-                if 'sourceSha256' in recipe:
-                    assert sha(canonical) == recipe['sourceSha256'], 'UNKNOWN_OFFICIAL_SOURCE: ' + name
-                if 'packageIntegrity' in recipe:
-                    package_name = 'node_modules/' + '/'.join(module.split('/')[:2])
-                    assert recipe['packageIntegrity'] == lock['packages'][package_name]['integrity'], 'RECIPE_PACKAGE_INTEGRITY: ' + name
-            prepared = builder.patched_content(Path(module), canonical)
-            expected = runtime_stable_patches.apply(prepared, chain)
-            old_module = OLD_FRONTEND if module.startswith('@deepseek-ai/dsh-web-frontend/dist/assets/index-') else module
-            old_bytes = module_bytes(old, old_module)
+    for module, chain in chains.items():
+        directory = owned / str(len(names))
+        names.append(directory.name)
+        directory.mkdir()
+        canonical = (raw / module).read_bytes()
+        for name, _, _ in chain:
+            recipe = json.loads((assets / name).read_text(encoding='utf8'))
+            if 'sourceSha256' in recipe:
+                assert sha(canonical) == recipe['sourceSha256'], 'UNKNOWN_OFFICIAL_SOURCE: ' + name
+            if 'packageIntegrity' in recipe:
+                package_parts = module.split('/')[:2 if module.startswith('@') else 1]
+                package_name = 'node_modules/' + '/'.join(package_parts)
+                assert recipe['packageIntegrity'] == lock['packages'][package_name]['integrity'], 'RECIPE_PACKAGE_INTEGRITY: ' + name
+        prepared = builder.patched_content(Path(module), canonical)
+        expected = runtime_stable_patches.apply(prepared, chain)
+        old_module = old_names[module]
+        old_bytes = old_payloads.get(old_module)
+        predecessor_problem = None
+        direct_digest = None
+        if old_bytes is None:
+            direct_status = 'historical-path-absent'
+            (directory / 'historical-module-unavailable.txt').write_text(old_module, encoding='utf8')
+        else:
+            (directory / 'old-192.js').write_bytes(old_bytes)
             if module in OLD_MODULE_SHA:
                 assert sha(old_bytes) == OLD_MODULE_SHA[module], 'PINNED_212_MODULE_IDENTITY'
-            direct_digest, direct_status = None, 'canonical-rebuild-on-anchor-mismatch'
+            direct_status = 'canonical-rebuild-on-anchor-mismatch'
             try:
                 direct = runtime_stable_patches.apply(old_bytes, chain)
             except ValueError as failure:
@@ -223,7 +269,6 @@ def main():
             # recipe; when the pinned old input already contains the replacement
             # form (e.g. the rc3 language receipt), the control is not applicable.
             old_text = old_bytes.decode('utf8')
-            predecessor_problem = None
             for name, patches, _ in chain:
                 for before, after in getattr(patches, 'previous', ()):
                     if old_text.count(after) != 1:
@@ -231,19 +276,20 @@ def main():
                         break
                 if predecessor_problem:
                     break
-            for filename, data in [('canonical.js', prepared), ('old-192.js', old_bytes), ('expected.js', expected), ('name.txt', module.encode())]:
-                (directory / filename).write_bytes(data)
-            write_chain(directory / 'chain', chain)
             if predecessor_problem:
                 (directory / 'predecessor-unavailable.txt').write_bytes(predecessor_problem.encode())
-            if new:
-                (directory / 'apk.js').write_bytes(module_bytes(new, module))
-            records.append(dict(module=module, sourceSha256=sha(canonical), old192Module=old_module, old192Sha256=sha(old_bytes), currentSha256=sha(expected), oldDirectStatus=direct_status, oldDirectSha256=direct_digest, generationUpgrade='stage-signed-new-runtime-with-ManagedRuntimeTransaction-and-RuntimeTrial', recipes=[name for name, _, _ in chain], previousPatchCounts={name: len(getattr(patches, 'previous', ())) for name, patches, _ in chain}, predecessorControl='not-applicable' if predecessor_problem else 'executed'))
-    finally:
-        if old:
-            old.close()
-        if new:
-            new.close()
+        for filename, data in [('canonical.js', prepared), ('expected.js', expected), ('name.txt', module.encode())]:
+            (directory / filename).write_bytes(data)
+        write_chain(directory / 'chain', chain)
+        if args.apk:
+            (directory / 'apk.js').write_bytes(new_payloads[module])
+        records.append(dict(module=module, sourceSha256=sha(canonical), old192Module=old_module,
+                            old192Sha256=sha(old_bytes) if old_bytes is not None else None, currentSha256=sha(expected),
+                            oldDirectStatus=direct_status, oldDirectSha256=direct_digest,
+                            generationUpgrade='stage-signed-new-runtime-with-ManagedRuntimeTransaction-and-RuntimeTrial',
+                            recipes=[name for name, _, _ in chain],
+                            previousPatchCounts={name: len(getattr(patches, 'previous', ())) for name, patches, _ in chain},
+                            predecessorControl='not-applicable' if predecessor_problem or old_bytes is None else 'executed'))
     assert len(names) == len(chains) and len(names) >= 30, 'ALL_CURRENT_ACTIVE_MODULES_REQUIRED'
     (owned / 'modules.txt').write_bytes('\n'.join(names).encode())
     (owned / 'Build193PatchChainFixture.java').write_bytes(JAVA.encode())
@@ -259,24 +305,28 @@ def main():
     compiled = subprocess.run(command, capture_output=True, timeout=60)
     (owned / 'compile.log').write_bytes(compiled.stdout + compiled.stderr)
     assert compiled.returncode == 0, 'JAVA_COMPILE_FAILED: ' + str(owned)
-    ran = subprocess.run([java, '-cp', str(classes), 'Build193PatchChainFixture', str(owned)], capture_output=True, timeout=60)
-    (owned / 'java.log').write_bytes(ran.stdout + ran.stderr)
+    java_log = owned / 'java.log'
+    with java_log.open('wb') as stream:
+        ran = subprocess.run([java, '-cp', str(classes), 'Build193PatchChainFixture', str(owned)],
+                             stdout=stream, stderr=subprocess.STDOUT, timeout=60)
     result = dict(status='PASS' if ran.returncode == 0 else 'FAIL', exitCode=ran.returncode, modules=records,
                   old192ApkSha256=OLD_APK_SHA if args.old_apk else None,
                   old192ArchiveSha256=OLD_ARCHIVE_SHA if args.old_archive else None,
                   historicalInput='actual build212 APK' if args.old_apk else 'actual build212 archive',
                   currentDshVersion=version, activeModuleCount=len(names),
-                  predecessorPartialVariants=sum(sum(record['previousPatchCounts'].values()) for record in records),
+                  historicalAbsentTargets=sorted(OLD_UNSHIPPED_MODULES),
+                  predecessorPartialVariants=sum(sum(record['previousPatchCounts'].values()) for record in records
+                                                 if record['predecessorControl'] == 'executed'),
                   predecessorNegativeControls=['each incomplete predecessor requires canonical repair', 'duplicate predecessor rejected', 'omitted predecessor metadata rejected'],
                   exactNewApkValidation=args.apk is not None,
                   generationBoundary='old package generation receives no in-place current overlay; signed new archive installation/trial is required',
-                  apkSha256=sha(args.apk.read_bytes()) if args.apk else None,
+                  apkSha256=file_sha(args.apk) if args.apk else None,
                   productionAlgorithmSha256={name: sha((production / name).read_bytes()) for name in ['ManagedPatchChain.java', 'ExactTextPatch.java']},
                   deviceValidation=False, output=str(owned))
     (owned / 'result.json').write_bytes((json.dumps(result, indent=2) + '\n').encode())
     print(json.dumps(result))
     if ran.returncode:
-        print((ran.stdout + ran.stderr).decode('utf8', errors='replace'))
+        print(java_log.read_text(encoding='utf8', errors='replace'))
         raise SystemExit(ran.returncode)
 
 

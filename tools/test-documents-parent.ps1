@@ -12,6 +12,10 @@ $sources=@(
     'tools/fixtures/documents-parent/DocumentParentFixture.java',
     'tools/fixtures/documents-parent/com/deepseekharness/app/util/UiText.java',
     'app/src/main/java/com/deepseekharness/app/util/DocumentPaths.java',
+    'app/src/main/java/com/deepseekharness/app/util/FileKind.java',
+    'app/src/main/java/com/deepseekharness/app/util/GuestPaths.java',
+    'app/src/main/java/com/deepseekharness/app/util/LinuxOpenFlags.java',
+    'app/src/main/java/com/deepseekharness/app/backup/BackupControl.java',
     'app/src/main/java/com/deepseekharness/app/backup/BackupLimits.java',
     'app/src/main/java/com/deepseekharness/app/backup/BackupFileSystem.java',
     'app/src/main/java/com/deepseekharness/app/backup/AndroidBackupFileSystem.java'

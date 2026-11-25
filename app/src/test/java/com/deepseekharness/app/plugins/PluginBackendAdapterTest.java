@@ -7,6 +7,7 @@ import com.deepseekharness.app.backup.BackupFileSystem;
 import com.deepseekharness.app.backup.JvmBackupFileSystem;
 import com.deepseekharness.app.backup.UserDataLayout;
 import com.deepseekharness.app.plugins.PluginChangeDetector.Kind;
+import com.deepseekharness.app.plugins.PluginChangeDetector.Scope;
 import com.deepseekharness.app.plugins.PluginChangeDetector.WatchPath;
 import java.io.File;
 import java.io.IOException;
@@ -275,18 +276,21 @@ public final class PluginBackendAdapterTest {
   }
 
   @Test
-  public void unsafeWatchRootsAndParentLinksNeverFollowExternalTrees() throws Exception {
+  public void unsafeWatchOnlyPathsAreDeferredButSourceMarkerParentsAreRejected() throws Exception {
     File files = files(), external = temporary.newFolder();
     Path link = new File(files, UserDataLayout.LEGACY + "/plugin-src").toPath();
     PluginHostFiles.symlink(link, external.toPath());
-    IOException failure =
-        assertThrows(
-            IOException.class, () -> adapter(files, new ReadOnlyFiles(), () -> 0).resolveSource());
-    assertEquals("PLUGIN_SOURCE_UNSAFE_PATH", failure.getMessage());
+    var valid = adapter(files, new ReadOnlyFiles(), () -> 0);
+    var source = valid.resolveSource();
+    assertEquals(source.identity, valid.resolveSourceIdentity());
+    assertScope(source, link.toFile(), Scope.PACKAGES);
     File other = files();
     PluginHostFiles.symlink(new File(other, "linux/ubuntu/usr").toPath(), external.toPath());
-    assertThrows(
-        IOException.class, () -> adapter(other, new ReadOnlyFiles(), () -> 0).resolveSource());
+    IOException failure =
+        assertThrows(
+            IOException.class,
+            () -> adapter(other, new ReadOnlyFiles(), () -> 0).resolveSourceIdentity());
+    assertEquals("PLUGIN_SOURCE_UNSAFE_PATH", failure.getMessage());
     assertEquals(0, external.list().length);
   }
 
@@ -342,16 +346,24 @@ public final class PluginBackendAdapterTest {
     PluginBackendAdapter.ResolvedSource resolved =
         adapter(files, new ReadOnlyFiles(), () -> 0).resolveSource();
     File data = resolved.identity.dataRoot, root = resolved.identity.rootfs;
-    for (String relative :
-        new String[] {
-          "plugin-src", "node_modules", "profiles", "plugin-previews", "plugin-install-operations"
-        }) assertWatch(resolved.observedPaths, new File(data, relative), Kind.CONTENT, true);
+    assertScope(resolved, new File(data, "plugin-src"), Scope.PACKAGES);
+    assertScope(resolved, new File(data, "node_modules"), Scope.PACKAGES);
+    assertScope(resolved, new File(data, "profiles"), Scope.PROFILES);
+    assertScope(resolved, new File(data, "plugin-previews"), Scope.PREVIEWS);
+    assertScope(resolved, new File(data, "plugin-history"), Scope.HISTORY);
+    assertScope(resolved, new File(data, "plugin-install-operations"), Scope.JOURNALS);
+    assertScope(resolved, new File(root, "root/node_modules"), Scope.PACKAGES);
+    assertScope(resolved, new File(root, "usr/local/lib/node_modules"), Scope.PACKAGES);
+    assertScope(
+        resolved,
+        new File(root, "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules"),
+        Scope.PACKAGES);
+    assertWatch(
+        resolved.observedPaths, new File(data, "profiles/web/package.json"), Kind.CONTENT, false);
     assertWatch(
         resolved.observedPaths, new File(data, "plugin-activations.json"), Kind.CONTENT, false);
     assertWatch(
         resolved.observedPaths, new File(data, "plugin-safe-mode.json"), Kind.CONTENT, false);
-    assertWatch(
-        resolved.observedPaths, new File(root, "usr/local/lib/node_modules"), Kind.CONTENT, true);
     assertWatch(
         resolved.observedPaths,
         new File(root, "root/.dsha-web-activity.json"),
@@ -372,6 +384,16 @@ public final class PluginBackendAdapterTest {
                   .getAbsolutePath()
                   .startsWith(watch.trustedRoot.getAbsolutePath() + File.separator));
     }
+  }
+
+  private static void assertScope(
+      PluginBackendAdapter.ResolvedSource result, File path, Scope scope) {
+    assertTrue(
+        path.toString(),
+        result.observedPaths.stream()
+            .anyMatch(
+                watch ->
+                    watch.path.equals(path) && watch.kind == Kind.CONTENT && watch.scope == scope));
   }
 
   @Test

@@ -28,6 +28,13 @@ public final class TransactionMarkers {
     fs.syncDirectory(directory);
   }
 
+  /** A missing one-shot marker becomes visible only after its complete bytes have been synced. */
+  public static void writeAtomic(BackupFileSystem fs, File directory, String name, String error)
+      throws IOException {
+    if (!read(fs, directory, name, error))
+      fs.atomic(directory, name, expected(directory, name).getBytes(StandardCharsets.UTF_8));
+  }
+
   private static String expected(File directory, String name) {
     return directory.getName() + "\n" + name + "\n";
   }

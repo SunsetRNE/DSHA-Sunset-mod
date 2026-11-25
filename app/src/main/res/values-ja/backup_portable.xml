@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="portable_password">バックアップのパスワード</string>
+    <string name="portable_password_confirm">パスワードを再入力</string>
+    <string name="portable_password_help">パスワードは別の場所に保管してください。新しい端末での復元に必要です。DSHA では再発行できません。</string>
+    <string name="portable_password_length">12～1024 文字で入力してください。</string>
+    <string name="portable_password_mismatch">パスワードが一致しません。</string>
+    <string name="portable_export_summary">tar.gz をパスワードで保護し、新しい端末で復元できます。</string>
+    <string name="portable_included_secrets">選択したデータにはチャット、添付ファイル、文書内の認証情報が含まれる場合があります。</string>
+    <string name="portable_import_summary">バックアップを選択してください。暗号化されている場合はパスワードが必要です。検証後に復元範囲を確認します。</string>
+    <string name="portable_password_restore_help">このバックアップの作成時に設定したパスワードを入力してください。</string>
+    <string name="portable_rescue_diagnostics">暗号化した救出用エクスポートにはバックアップデータのみを含めます。平文の場合は利用可能な診断概要も含めます。</string>
+    <string name="portable_keep_password">このコピーには元のパスワードを使用します。新しい端末で同じパスワードを入力して復元できます。</string>
+    <string name="portable_plain_opt_in">互換性のため平文で書き出す。ファイルを入手した人はチャットや添付ファイルの秘密情報を含む全内容を読めます。</string>
+    <string name="portable_export_label">移行用バックアップを書き出す</string>
+    <string name="portable_automatic_help">アンインストールすると自動コピーと端末の鍵が削除されます。端末変更や削除の前に自分のパスワードで書き出し、アプリの外に保存してください。</string>
+    <string name="portable_retry_password">パスワードを再入力</string>
+</resources>

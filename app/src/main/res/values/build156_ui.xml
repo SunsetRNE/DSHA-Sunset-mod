@@ -1,5 +1,4 @@
 <resources>
-    <string name="ui_lan_unencrypted">局域网流量未加密，仅限可信网络与可信设备</string>
     <string name="ui_brand_dsh" translatable="false">DSH</string>
     <string name="ui_brand_github" translatable="false">GitHub</string>
     <string name="ui_brand_shizuku" translatable="false">Shizuku</string>

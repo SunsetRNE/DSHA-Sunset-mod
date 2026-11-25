@@ -20,6 +20,14 @@ def load_manifest(path=MANIFEST):
         logical(source);logical(target)
         if source not in data['sourceInputs'] or target not in data['generatedFiles']:
             raise ValueError('ASSET_DEPLOYMENT_TRANSFORM:'+source)
+    recompressed = data.get('recompressedArchives', [])
+    if not isinstance(recompressed, list) or any(not isinstance(name, str) for name in recompressed) \
+            or len(recompressed) != len(set(recompressed)):
+        raise ValueError('ASSET_DEPLOYMENT_RECOMPRESSED')
+    for source in recompressed:
+        target = data.get('sourceTransforms', {}).get(source)
+        if target is None or target + '.sha256' not in data['generatedFiles']:
+            raise ValueError('ASSET_DEPLOYMENT_RECOMPRESSED:' + source)
     for row in data['dynamicReaders']:
         logical(row['source'])
         for name in row.get('assets',[]):logical(name)

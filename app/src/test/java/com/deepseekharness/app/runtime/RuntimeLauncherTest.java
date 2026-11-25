@@ -97,6 +97,24 @@ public class RuntimeLauncherTest {
   }
 
   @Test
+  public void fixedGuestArgvKeepsBindsAndEnvironmentWithoutShellExpansion() throws Exception {
+    File root = temporary.newFolder();
+    var launcher = new RuntimeLauncher(null, root, root, root, root, ports);
+    var spec =
+        LaunchSpec.runtime(fake()).pipedInput(true).bind("/private/input", "/run/input").build();
+    var args = List.of("python3", "-B", "-S", "-u", "/root/.dsh/materialize-cas-links.py");
+    ProcessBuilder builder = launcher.builder(args, spec);
+    List<String> expected =
+        new ArrayList<>(
+            List.of("fixture-runtime", root.getPath(), "-b", "/private/input:/run/input"));
+    expected.addAll(args);
+    assertEquals(expected, builder.command());
+    assertEquals("1", builder.environment().get("FIXTURE_RUNTIME"));
+    assertEquals("/root", builder.environment().get("HOME"));
+    assertTrue(builder.redirectErrorStream());
+  }
+
+  @Test
   public void callerCannotSupplyAnApkPackageProofWhenThereIsNoApkOwner() throws Exception {
     File root = temporary.newFolder();
     var launcher = new RuntimeLauncher(null, root, root, root, root, ports);

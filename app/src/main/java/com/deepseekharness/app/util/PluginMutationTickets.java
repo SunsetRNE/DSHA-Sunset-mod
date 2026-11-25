@@ -15,13 +15,25 @@ public final class PluginMutationTickets<S> {
   public static final class Web {
     public final WebState state;
     public final long generation;
+    public final long eventRevision;
     private final String instance, authDigest;
 
     private Web(WebState state, long generation, String instance, String authDigest) {
+      this(state, generation, instance, authDigest, -1);
+    }
+
+    private Web(
+        WebState state, long generation, String instance, String authDigest, long eventRevision) {
       this.state = state;
       this.generation = generation;
       this.instance = instance;
       this.authDigest = authDigest;
+      this.eventRevision = eventRevision;
+    }
+
+    /** The event revision travels with the observation but is separate from Web identity. */
+    public Web withEventRevision(long revision) {
+      return new Web(state, generation, instance, authDigest, revision);
     }
 
     public static Web ready(long generation, String instance, String authUrl) {
@@ -73,7 +85,7 @@ public final class PluginMutationTickets<S> {
   public static final class Ticket<S> {
     public final S source;
     private final PluginMutationTickets<S> owner;
-    private final long sourceEpoch, webEpoch, eventSeq;
+    private final long sourceEpoch, webEpoch, eventSeq, eventRevision;
     private final Web web;
     private int state; // 0 待领取，1 当前执行，2 已消耗。
 
@@ -83,6 +95,7 @@ public final class PluginMutationTickets<S> {
         long sourceEpoch,
         long webEpoch,
         long eventSeq,
+        long eventRevision,
         Web web,
         int state) {
       this.owner = owner;
@@ -90,6 +103,7 @@ public final class PluginMutationTickets<S> {
       this.sourceEpoch = sourceEpoch;
       this.webEpoch = webEpoch;
       this.eventSeq = eventSeq;
+      this.eventRevision = eventRevision;
       this.web = web;
       this.state = state;
     }
@@ -119,6 +133,7 @@ public final class PluginMutationTickets<S> {
 
   private S source;
   private long sourceEpoch, webEpoch, eventSeq;
+  private long observedWebRevision = -1;
   private Web web = Web.unavailable(-1);
   private Stop<S> stop;
 
@@ -135,6 +150,12 @@ public final class PluginMutationTickets<S> {
 
   public synchronized void observeWeb(Web value) {
     Objects.requireNonNull(value);
+    if (isOlderWebObservation(value)) return;
+    if (value.eventRevision > observedWebRevision) {
+      if (observedWebRevision >= 0)
+        recordWebEvents(value.eventRevision - observedWebRevision, value);
+      observedWebRevision = value.eventRevision;
+    }
     if (web.equals(value)) return;
     if (stop != null
         && !(webEpoch == stop.before.webEpoch
@@ -144,16 +165,27 @@ public final class PluginMutationTickets<S> {
     webEpoch++;
   }
 
-  /** 通知没有旧身份 payload；即使 getter 又回到 A，也不让旧票复活。 */
+  public synchronized boolean isOlderWebObservation(Web value) {
+    return value.eventRevision < observedWebRevision;
+  }
+
+  /**
+   * Observations with a revision consume the actual event once even if a UI callback arrives late.
+   */
   public synchronized void observeWebEvent(Web value) {
-    eventSeq++;
+    if (isOlderWebObservation(value)) return;
+    if (value.eventRevision < 0) recordWebEvents(1, value);
+    observeWeb(value);
+  }
+
+  private void recordWebEvents(long count, Web value) {
+    eventSeq += count;
     if (stop != null) {
       if (stop.eventObserved
           || eventSeq != stop.before.eventSeq + 1
           || !stop.afterWeb.equals(value)) stop.invalid = true;
       stop.eventObserved = true;
     }
-    observeWeb(value);
   }
 
   public synchronized boolean stopping() {
@@ -162,7 +194,7 @@ public final class PluginMutationTickets<S> {
 
   public synchronized Ticket<S> issue() {
     if (stop != null || source == null || web.state == WebState.UNAVAILABLE) return null;
-    return new Ticket<>(this, source, sourceEpoch, webEpoch, eventSeq, web, 0);
+    return new Ticket<>(this, source, sourceEpoch, webEpoch, eventSeq, observedWebRevision, web, 0);
   }
 
   private boolean current(Ticket<S> ticket) {
@@ -221,10 +253,14 @@ public final class PluginMutationTickets<S> {
         || token.owner != this
         || token != stop
         || token.closed
-        || token.invalid
         || revision != token.cancellationRevision + 1
         || !token.afterWeb.equals(afterWeb)
-        || !Objects.equals(token.afterSource, afterSource)) return false;
+        || !Objects.equals(token.afterSource, afterSource)
+        || isOlderWebObservation(afterWeb)
+        || token.before.eventRevision >= 0
+            && afterWeb.eventRevision != token.before.eventRevision + 1) return false;
+    observeWeb(afterWeb);
+    if (token.invalid) return false;
     boolean sourceBefore =
         sourceEpoch == token.before.sourceEpoch && Objects.equals(source, token.before.source);
     boolean sourceAfter =
@@ -245,7 +281,7 @@ public final class PluginMutationTickets<S> {
     observeWeb(afterWeb);
     token.closed = true;
     stop = null;
-    return new Ticket<>(this, source, sourceEpoch, webEpoch, eventSeq, web, 1);
+    return new Ticket<>(this, source, sourceEpoch, webEpoch, eventSeq, observedWebRevision, web, 1);
   }
 
   public synchronized void abortStop(Stop<S> token) {

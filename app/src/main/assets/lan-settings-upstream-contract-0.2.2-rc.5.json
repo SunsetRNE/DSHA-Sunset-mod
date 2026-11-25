@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-settings/lib/client.js",
+  "sourceSha256": "ebf76f56c79225a3bf484345305ee042f89ed13edd73cc76f8b16766628a17e6",
+  "requiredAnchors": [
+    "this.pendingRevision??this.getSnapshot().revision;const response=await this.ctx.remote.settings.mutate(this.spec.namespace,ownedOps,revision);",
+    "const response=await this.ctx.remote.settings.describe();",
+    "const inject=[`remote`,`remote.settings`];",
+    "ui-settings: describe mirror invalidations"
+  ],
+  "forbiddenAnchors": [
+    "isLoopback",
+    "DSHA patch: LAN 代理场景强制 host 持久化"
+  ],
+  "reason": "The exact 0.2.2-rc.5 client bundle still mirrors Host settings and sends revision-fenced settings.mutate requests for local and LAN clients."
+}

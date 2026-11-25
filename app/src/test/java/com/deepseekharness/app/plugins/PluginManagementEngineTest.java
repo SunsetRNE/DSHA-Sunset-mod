@@ -13,6 +13,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.PriorityQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 /** 注入主队列、单后台调度器和只读来源；不使用真实 Android、磁盘或 guest。 */
@@ -26,7 +29,7 @@ public final class PluginManagementEngineTest {
     assertEquals(0, w.backend.probes);
     assertEquals(0, w.backend.queries);
     w.pump();
-    assertEquals(1, w.backend.probes);
+    assertEquals(0, w.backend.probes);
     assertEquals(1, w.backend.queries);
   }
 
@@ -49,13 +52,13 @@ public final class PluginManagementEngineTest {
   }
 
   @Test
-  public void foregroundUsesOneReadyProbeBeforeFirstPrefetch() {
+  public void firstVisibleReadBindsOnlyTheSourceResolvedByTheQuery() {
     World w = new World();
     w.engine.foreground(true);
     assertTrue(w.backend.observing);
     assertEquals(0, w.backend.probes);
     w.pump();
-    assertEquals(1, w.backend.probes);
+    assertEquals(0, w.backend.probes);
     assertEquals(1, w.backend.queries);
     assertEquals(List.of("A"), w.backend.bindings);
   }
@@ -63,14 +66,27 @@ public final class PluginManagementEngineTest {
   @Test
   public void automaticPrefetchDefersWhileUserActionSuspendsItButPageDemandStillReads() {
     World w = new World();
-    w.backend.autoQueries = false;
+    w.backend.suspendedUntil = 120_000;
     w.engine.foreground(true);
     w.pump();
-    assertEquals(1, w.backend.probes);
+    assertEquals(0, w.backend.probes);
     assertEquals(0, w.backend.queries);
     w.engine.ensureLoaded();
     w.advance(1_000);
     assertEquals(1, w.backend.queries);
+  }
+
+  @Test
+  public void confirmedStartupReleasesDelayedVisibleReadWithoutWaitingForSuspensionLimit() {
+    World w = new World();
+    w.backend.suspendedUntil = 120_000;
+    w.engine.foreground(true);
+    w.advance(3_000);
+    assertEquals(0, w.backend.queries);
+    w.backend.suspendedUntil = 0;
+    w.engine.reconcile();
+    w.pump();
+    assertEquals(List.of(3_000L), w.backend.queryTimes);
   }
 
   @Test
@@ -79,37 +95,38 @@ public final class PluginManagementEngineTest {
     w.backend.source = null;
     w.engine.foreground(true);
     w.pump();
-    assertEquals(1, w.backend.probes);
+    assertEquals(0, w.backend.probes);
+    assertEquals(1, w.backend.queries);
+    w.finish(false);
     assertFalse(w.backend.cache.known);
     assertTrue(w.backend.cache.stale);
     assertFalse(w.backend.cache.error.isEmpty());
     for (int i = 0; i < 10; i++) w.engine.ensureLoaded();
     w.advance(59_999);
-    assertEquals(1, w.backend.probes);
-    assertEquals(0, w.backend.queries);
+    assertEquals(0, w.backend.probes);
+    assertEquals(1, w.backend.queries);
     w.backend.source = "A";
     w.advance(60_000);
-    assertEquals(1, w.backend.queries);
+    assertEquals(2, w.backend.queries);
   }
 
   @Test
-  public void probeFailureKeepsKnownSnapshotAndExplicitRefreshCanRetry() {
+  public void failedQueryKeepsKnownSnapshotAndExplicitRefreshCanRetry() {
     World w = new World();
     w.known("A");
-    w.backend.failure = new IOException("unavailable");
     w.engine.refresh();
     w.pump();
+    w.finish(false);
     assertTrue(w.backend.cache.known);
     assertTrue(w.backend.cache.stale);
-    assertEquals(0, w.backend.queries);
+    assertEquals(1, w.backend.queries);
     w.engine.ensureLoaded();
     w.advance(1000);
-    assertEquals(1, w.backend.probes);
-    w.backend.failure = null;
+    assertEquals(1, w.backend.queries);
     w.engine.refresh();
     w.pump();
-    assertEquals(2, w.backend.probes);
-    assertEquals(1, w.backend.queries);
+    assertEquals(0, w.backend.probes);
+    assertEquals(2, w.backend.queries);
   }
 
   @Test
@@ -168,8 +185,9 @@ public final class PluginManagementEngineTest {
     w.pump();
     w.finish(false);
     for (int i = 0; i < 20; i++) {
+      w.engine.watched(false);
+      w.engine.watched(true);
       w.engine.ensureLoaded();
-      w.engine.reconcile();
       w.pump();
     }
     w.advance(59_999);
@@ -239,6 +257,7 @@ public final class PluginManagementEngineTest {
     w.engine.foreground(true);
     w.pump();
     assertEquals(1, w.backend.queries);
+    assertEquals(1, w.backend.probes);
   }
 
   @Test
@@ -259,77 +278,153 @@ public final class PluginManagementEngineTest {
   }
 
   @Test
-  public void runtimeEvidenceExpiryProjectsOnceWithoutFullQueryOrSelfRearming() {
+  public void runtimeSignalBurstProjectsOnceWithoutStartingDirectoryQuery() {
     World w = new World();
     w.known("A");
     w.engine.foreground(true);
-    w.advance(200);
-    assertEquals(1, w.backend.projections);
-    w.advance(10_000);
-    assertEquals(1, w.backend.projections);
-    w.advance(10_001);
-    assertEquals(2, w.backend.projections);
-    w.advance(50_000);
-    assertEquals(2, w.backend.projections);
-    assertEquals(0, w.backend.queries);
-    assertEquals(1, w.liveJobs()); // 只有原有低频来源核对。
-  }
-
-  @Test
-  public void newRuntimeEventRetiresEvenAlreadyQueuedExpiry() {
-    World w = new World();
-    w.known("A");
-    w.engine.foreground(true);
-    w.advance(200);
-    w.now = 10_001;
-    assertTrue(w.workerStep()); // 旧到期任务已投主队列，cancel 无法撤回。
-    w.engine.runtimeDirty();
     w.pump();
+    for (int i = 0; i < 100; i++) w.engine.runtimeDirty();
+    w.advance(199);
+    assertEquals(0, w.backend.projections);
+    w.advance(200);
     assertEquals(1, w.backend.projections);
-    w.advance(10_201);
-    assertEquals(2, w.backend.projections);
-    w.advance(20_001);
-    assertEquals(2, w.backend.projections);
-    w.advance(20_002);
-    assertEquals(3, w.backend.projections);
     w.advance(50_000);
-    assertEquals(3, w.backend.projections);
+    assertEquals(1, w.backend.projections);
+    assertEquals(0, w.backend.queries);
+    assertEquals(1, w.liveJobs());
+  }
+
+  @Test
+  public void observerRebindOnlyChecksSourceIdentity() {
+    World w = new World();
+    w.engine.foreground(true);
+    w.pump();
+    w.engine.observationReconciled();
+    w.finish(true);
+    w.advance(10_000);
+    assertEquals(1, w.backend.probes);
+    assertEquals(1, w.backend.queries);
+    assertEquals(0, w.backend.projections);
+  }
+
+  @Test
+  public void emptyInitialObservationPlanDoesNotRetryUnavailableCatalog() {
+    World w = new World();
+    w.backend.source = null;
+    w.engine.foreground(true);
+    w.pump();
+    w.engine.observationReconciled();
+    w.finish(false);
+    w.advance(59_999);
+    assertEquals(1, w.backend.queries);
+    assertEquals(0, w.backend.probes);
+  }
+
+  @Test
+  public void visibleTtlRepairsInventoryAndObservationAfterMissedFileEvent() {
+    World w = new World();
+    w.engine.foreground(true);
+    w.pump();
+    w.finish(true);
+    w.backend.actualContentRevision++;
+    w.engine.watched(false);
+    w.engine.watched(true);
+    w.advance(59_999);
+    assertEquals(1, w.backend.queries);
+    assertEquals(0, w.backend.verifiedContentRevision);
+    assertEquals(0, w.backend.observationChecks);
+    w.advance(60_000);
+    assertEquals(2, w.backend.queries);
+    w.finish(true);
+    assertEquals(1, w.backend.verifiedContentRevision);
+    assertEquals(1, w.backend.observationChecks);
+    w.advance(65_000);
+    assertEquals(2, w.backend.queries);
+  }
+
+  @Test
+  public void forcedRefreshRepairsObservationAfterMissedFileEventBeforeTtl() {
+    World w = new World();
+    w.engine.foreground(true);
+    w.pump();
+    w.finish(true);
+    w.backend.actualContentRevision++;
+    w.engine.refresh();
+    w.advance(750);
+    assertEquals(2, w.backend.queries);
+    assertEquals(0, w.backend.verifiedContentRevision);
+    w.finish(true);
+    assertEquals(1, w.backend.verifiedContentRevision);
+    assertEquals(1, w.backend.observationChecks);
+  }
+
+  @Test
+  public void realForegroundGapRevalidatesEvenWhenSourceIdentityUnchanged() {
+    World w = new World();
+    w.engine.foreground(true);
+    w.pump();
+    w.finish(true);
+    w.engine.foreground(false);
+    // Application lifecycle invalidates on the last Activity actually stopping.
+    w.dirty();
+    w.backend.actualContentRevision++;
+    w.advance(1_000);
+    assertEquals(1, w.backend.queries);
+    assertTrue(w.backend.cache.known);
+    w.engine.foreground(true);
+    w.pump();
+    assertEquals(2, w.backend.queries);
+    w.finish(true);
+    assertEquals(1, w.backend.verifiedContentRevision);
+    assertEquals(0, w.backend.probes);
+  }
+
+  @Test
+  public void lateRuntimeTimerCannotApplyAcrossVisibilityChange() {
+    World w = new World();
+    w.known("A");
+    w.engine.foreground(true);
+    w.pump();
+    w.now = 200;
+    assertTrue(w.workerStep()); // 旧定时器已投主线程，cancel 无法撤回。
+    w.engine.watched(false);
+    w.engine.watched(true);
+    w.pump();
+    assertEquals(0, w.backend.projections);
+    w.advance(400);
+    assertEquals(1, w.backend.projections);
     assertEquals(0, w.backend.queries);
   }
 
   @Test
-  public void backgroundRetiresQueuedRuntimeExpiryAndCloseDropsAllJobs() {
+  public void backgroundRetiresQueuedRuntimeWorkAndCloseDropsAllJobs() {
     World w = new World();
     w.known("A");
     w.engine.foreground(true);
-    w.advance(200);
-    w.now = 10_001;
+    w.pump();
+    w.now = 200;
     assertTrue(w.workerStep());
     w.engine.foreground(false);
     w.pump();
     w.advance(50_000);
-    assertEquals(1, w.backend.projections);
+    assertEquals(0, w.backend.projections);
     assertEquals(0, w.liveJobs());
     w.engine.foreground(true);
     w.pump();
     w.engine.close();
     w.advance(100_000);
-    assertEquals(1, w.backend.projections);
+    assertEquals(0, w.backend.projections);
     assertEquals(0, w.liveJobs());
   }
 
   @Test
-  public void successfulInitialQueryArmsOneRuntimeEvidenceExpiry() {
+  public void successfulQueryDoesNotScheduleDuplicateRuntimeProjection() {
     World w = new World();
     w.engine.foreground(true);
     w.pump();
     w.finish(true);
-    w.advance(200);
-    assertEquals(1, w.backend.projections);
-    w.advance(10_001);
-    assertEquals(2, w.backend.projections);
     w.advance(50_000);
-    assertEquals(2, w.backend.projections);
+    assertEquals(0, w.backend.projections);
     assertEquals(1, w.backend.queries);
   }
 
@@ -372,15 +467,15 @@ public final class PluginManagementEngineTest {
     w.backend.source = "B";
     for (int i = 0; i < 100; i++) w.engine.reconcile();
     w.advance(1000);
-    assertEquals(1, w.backend.probes);
+    assertEquals(0, w.backend.probes);
     assertEquals(1, w.backend.queries);
     w.finish(true);
     assertEquals("B", w.backend.cache.source);
-    assertEquals(2, w.backend.probes);
+    assertEquals(1, w.backend.probes);
     assertEquals(2, w.backend.queries);
     w.finish(true);
     w.advance(10_000);
-    assertEquals(2, w.backend.probes);
+    assertEquals(1, w.backend.probes);
     assertEquals(2, w.backend.queries);
   }
 
@@ -392,11 +487,11 @@ public final class PluginManagementEngineTest {
     for (int i = 0; i < 100; i++) w.engine.reconcile();
     w.finish(true);
     w.advance(1000);
-    assertEquals(2, w.backend.probes);
+    assertEquals(1, w.backend.probes);
     assertEquals(1, w.backend.queries);
     assertEquals(1, w.backend.projections);
     w.advance(10_000);
-    assertEquals(2, w.backend.probes);
+    assertEquals(1, w.backend.probes);
     assertEquals(1, w.backend.queries);
   }
 
@@ -451,27 +546,23 @@ public final class PluginManagementEngineTest {
   }
 
   @Test
-  public void readyDuringScanProbeSurvivesTemporaryFailureAndMinimumScanInterval() {
+  public void readyAfterMissingSourceQueryHonorsMinimumScanInterval() {
     World w = new World();
-    w.known("A");
+    w.backend.source = null;
     w.engine.foreground(true);
     w.pump();
-    w.backend.source = null;
-    w.engine.refresh();
-    assertTrue(w.workerStep()); // beginScan 定时器进入主队列。
-    w.mainStep();
-    assertTrue(w.workerStep()); // null 探测结果等待主线程。
     w.backend.source = "A";
     for (int i = 0; i < 100; i++) w.engine.reconcile();
-    w.pump();
-    assertEquals(0, w.backend.queries);
-    w.advance(749);
-    assertEquals(0, w.backend.queries);
-    w.advance(750);
+    w.finish(false);
     assertEquals(1, w.backend.queries);
+    w.advance(749);
+    assertEquals(1, w.backend.queries);
+    w.advance(750);
+    assertEquals(2, w.backend.queries);
     w.finish(true);
     w.advance(10_000);
-    assertEquals(1, w.backend.queries);
+    assertEquals(2, w.backend.queries);
+    assertEquals(0, w.backend.probes);
   }
 
   @Test
@@ -479,13 +570,14 @@ public final class PluginManagementEngineTest {
     World w = new World();
     w.backend.source = null;
     w.engine.foreground(true);
-    assertTrue(w.workerStep());
-    for (int i = 0; i < 100; i++) w.engine.reconcile();
     w.pump();
-    assertEquals(2, w.backend.probes);
+    for (int i = 0; i < 100; i++) w.engine.reconcile();
+    w.finish(false);
+    w.advance(750);
+    w.finish(false);
     w.advance(59_999);
-    assertEquals(2, w.backend.probes);
-    assertEquals(0, w.backend.queries);
+    assertEquals(0, w.backend.probes);
+    assertEquals(2, w.backend.queries);
   }
 
   @Test
@@ -499,7 +591,7 @@ public final class PluginManagementEngineTest {
     w.pump();
     assertEquals("B", w.backend.cache.source);
     assertFalse(w.backend.bindings.contains("A"));
-    assertEquals(1, w.backend.queries);
+    assertEquals(0, w.backend.queries);
     assertTrue(w.backend.bindings.contains("B"));
   }
 
@@ -570,10 +662,10 @@ public final class PluginManagementEngineTest {
   }
 
   @Test
-  public void pageLeftDuringProbeKeepsOneDeferredQueryForReturn() {
+  public void pageLeftBeforeReadyTimerKeepsOneDeferredQueryForReturn() {
     World w = new World();
     w.engine.foreground(true);
-    assertTrue(w.workerStep()); // probe 已执行，结果等待主线程。
+    assertTrue(w.workerStep()); // 旧通知已投主线程。
     w.engine.watched(false);
     w.pump();
     assertEquals(0, w.backend.queries);
@@ -582,30 +674,31 @@ public final class PluginManagementEngineTest {
     w.engine.watched(true);
     w.advance(301_000);
     assertEquals(1, w.backend.queries);
+    assertEquals(0, w.backend.probes);
   }
 
   @Test
-  public void pageRequestBeforeIdleForegroundCannotLeaveProbeScanStuck() {
+  public void pageRequestBeforeIdleForegroundCannotDuplicateQuery() {
     World w = new World();
     w.engine.ensureLoaded();
-    assertTrue(w.workerStep()); // 到期计时器进入主队列。
-    w.mainStep(); // beginScan 排队 probe。
-    assertTrue(w.workerStep()); // probe 结果等待主线程。
+    assertTrue(w.workerStep()); // 定时器已进入主队列。
     w.engine.foreground(true);
     w.pump();
-    w.advance(750);
     assertEquals(1, w.backend.queries);
     w.finish(true);
     w.engine.ensureLoaded();
     w.pump();
     assertEquals(1, w.backend.queries);
+    assertEquals(0, w.backend.probes);
   }
 
   @Test
-  public void pauseDuringProbeDiscardsPrefetchAndNextResumeRecovers() {
+  public void pauseDuringProbeDiscardsObsoleteSource() {
     World w = new World();
+    w.known("A");
     w.engine.foreground(true);
     assertTrue(w.workerStep());
+    w.backend.source = "B";
     w.engine.foreground(false);
     w.pump();
     assertEquals(0, w.backend.queries);
@@ -613,6 +706,8 @@ public final class PluginManagementEngineTest {
     w.engine.foreground(true);
     w.pump();
     assertEquals(1, w.backend.queries);
+    assertEquals("B", w.backend.cache.source);
+    assertFalse(w.backend.bindings.contains("A"));
   }
 
   @Test
@@ -634,14 +729,45 @@ public final class PluginManagementEngineTest {
   }
 
   @Test
-  public void explicitRefreshDuringQuerySurvivesItsFinishedBoundary() {
+  public void repeatedRefreshPromotesInFlightAutomaticQueryWithoutReplaying() {
     World w = new World();
-    w.engine.ensureLoaded();
+    w.engine.foreground(true);
     w.pump();
-    w.engine.refresh();
+    for (int i = 0; i < 25; i++) w.engine.refresh();
+    w.engine.foreground(false);
     w.finish(true);
     w.advance(750);
-    assertEquals(2, w.backend.queries);
+    assertEquals(1, w.backend.queries);
+    assertEquals(0, w.backend.cancelledQueries);
+    assertFalse(w.backend.automatic);
+  }
+
+  @Test
+  public void slowSourceProbeCannotBlockRefreshOrRebindAnObsoleteRoot() throws Exception {
+    World w = new World();
+    w.known("A");
+    w.backend.probeEntered = new CountDownLatch(1);
+    w.backend.probeRelease = new CountDownLatch(1);
+    w.engine.foreground(true);
+    FutureTask<Boolean> probing = new FutureTask<>(w::workerStep);
+    Thread probeThread = new Thread(probing, "plugin-source-probe-test");
+    probeThread.start();
+    try {
+      assertTrue(w.backend.probeEntered.await(5, TimeUnit.SECONDS));
+      w.backend.source = "B";
+      w.engine.refresh();
+      w.pump();
+      assertEquals(1, w.backend.queries);
+      assertEquals("B", w.backend.cache.source);
+      assertFalse(probing.isDone());
+      w.finish(true);
+    } finally {
+      w.backend.probeRelease.countDown();
+      assertTrue(probing.get(5, TimeUnit.SECONDS));
+    }
+    w.pump();
+    assertEquals(List.of("B"), w.backend.bindings);
+    assertEquals(1, w.backend.queries);
   }
 
   @Test
@@ -694,29 +820,41 @@ public final class PluginManagementEngineTest {
   }
 
   @Test
-  public void pageRequestTakesOverInFlightAutomaticPrefetch() {
+  public void inAppNavigationPreservesInFlightReadAndReusesTheCompletedList() {
     World w = new World();
     w.engine.foreground(true);
     w.pump();
-    w.engine.ensureLoaded();
-    w.engine.foreground(false);
-    assertEquals(0, w.backend.cancelledQueries);
+    for (int i = 0; i < 100; i++) {
+      w.engine.watched(false);
+      w.engine.watched(true);
+    }
+    w.pump();
+    assertEquals(1, w.backend.queries);
     w.finish(true);
+    for (int i = 0; i < 100; i++) {
+      w.engine.watched(false);
+      w.engine.watched(true);
+    }
     w.advance(10_000);
     assertEquals(1, w.backend.queries);
+    assertEquals(0, w.backend.probes);
+    assertEquals(0, w.backend.cancelledQueries);
   }
 
   @Test
-  public void explicitPageProbeCanFinishAfterBackgroundTransition() {
+  public void refreshAfterAutomaticCancellationRetainsOneManualRequest() {
     World w = new World();
     w.engine.foreground(true);
-    w.engine.ensureLoaded();
-    assertTrue(w.workerStep());
-    w.engine.foreground(false);
     w.pump();
+    w.engine.foreground(false);
+    for (int i = 0; i < 100; i++) w.engine.refresh();
+    w.finish(false);
+    assertEquals(2, w.backend.queries);
+    assertFalse(w.backend.automatic);
+    w.finish(true);
     w.advance(750);
-    assertEquals(0, w.backend.cancelledQueries);
-    assertEquals(1, w.backend.queries);
+    assertEquals(1, w.backend.cancelledQueries);
+    assertEquals(2, w.backend.queries);
   }
 
   @Test
@@ -751,6 +889,7 @@ public final class PluginManagementEngineTest {
   @Test
   public void backgroundDoesNotCancelWhenOnlySourceProbeIsInFlight() {
     World w = new World();
+    w.known("A");
     w.engine.foreground(true);
     assertTrue(w.workerStep());
     w.engine.foreground(false);
@@ -812,8 +951,9 @@ public final class PluginManagementEngineTest {
 
   private static final class World
       implements PluginManagementEngine.Clock, PluginManagementEngine.Scheduler {
-    long now, wallOffset = 1_000_000, serial;
-    boolean background, stopped;
+    long now, wallOffset = 1_000_000, serial, invalidation;
+    boolean stopped;
+    final ThreadLocal<Boolean> background = ThreadLocal.withInitial(() -> false);
     final PriorityQueue<Job> jobs =
         new PriorityQueue<>(
             Comparator.comparingLong((Job job) -> job.at).thenComparingLong(job -> job.order));
@@ -862,7 +1002,7 @@ public final class PluginManagementEngineTest {
     }
 
     void mainStep() {
-      assertFalse(background);
+      assertFalse(background.get());
       if (!main.isEmpty()) main.removeFirst().run();
     }
 
@@ -870,11 +1010,11 @@ public final class PluginManagementEngineTest {
       while (!jobs.isEmpty() && jobs.peek().cancelled) jobs.remove();
       if (jobs.isEmpty() || jobs.peek().at > now) return false;
       Job job = jobs.remove();
-      background = true;
+      background.set(true);
       try {
         job.action.run();
       } finally {
-        background = false;
+        background.remove();
       }
       return true;
     }
@@ -908,6 +1048,7 @@ public final class PluginManagementEngineTest {
     }
 
     void dirty() {
+      invalidation++;
       Cache value = backend.cache;
       backend.cache =
           new Cache(
@@ -921,8 +1062,16 @@ public final class PluginManagementEngineTest {
     }
 
     void finish(boolean success) {
-      if (success) known((String) backend.cache.source);
-      else backend.unavailable(new IOException("query failed"));
+      assertTrue("必须有一个活动列表请求", backend.outstanding);
+      if (success && backend.capturedInvalidation == invalidation) {
+        known((String) backend.cache.source);
+        backend.verifiedContentRevision = backend.capturedContentRevision;
+      } else if (!success) backend.unavailable(new IOException("query failed"));
+      backend.outstanding = false;
+      if (backend.manualQueued) {
+        backend.manualQueued = false;
+        backend.query(false);
+      }
       engine.queryFinished();
       pump();
     }
@@ -936,9 +1085,13 @@ public final class PluginManagementEngineTest {
     final World world;
     Cache cache = new Cache(0, null, false, true, 0, "");
     String source = "A";
+    CountDownLatch probeEntered, probeRelease;
     Exception failure;
     int probes, queries, projections, cancelledQueries, coverageUpdates;
-    boolean observing, autoQueries = true;
+    int observationChecks, actualContentRevision, verifiedContentRevision, capturedContentRevision;
+    long suspendedUntil, capturedInvalidation;
+    boolean observing, outstanding, automatic, cancelled, manualQueued;
+    String boundSource;
     final List<String> bindings = new ArrayList<>();
     final List<Long> queryTimes = new ArrayList<>();
 
@@ -953,10 +1106,15 @@ public final class PluginManagementEngineTest {
 
     @Override
     public String probe() throws Exception {
-      assertTrue("probe 不能阻塞主线程", world.background);
+      assertTrue("probe 不能阻塞主线程", world.background.get());
       probes++;
       if (failure != null) throw failure;
-      return source;
+      String resolved = source;
+      if (probeEntered != null) {
+        probeEntered.countDown();
+        assertTrue(probeRelease.await(5, TimeUnit.SECONDS));
+      }
+      return resolved;
     }
 
     @Override
@@ -966,33 +1124,64 @@ public final class PluginManagementEngineTest {
 
     @Override
     public void bind(String source) {
-      assertFalse("来源只能在主队列采纳", world.background);
-      bindings.add(source);
+      assertFalse("来源只能在主队列采纳", world.background.get());
+      if (!Objects.equals(boundSource, source)) {
+        boundSource = source;
+        bindings.add(source);
+      }
       if (!Objects.equals(source, cache.source))
         cache = new Cache(cache.version + 1, source, false, true, 0, "");
     }
 
     @Override
-    public boolean autoQueryAllowed() {
-      return autoQueries;
+    public long automaticRetryDelayMillis() {
+      return Math.max(0, suspendedUntil - world.now);
+    }
+
+    @Override
+    public boolean queryOutstanding() {
+      return outstanding;
     }
 
     @Override
     public void query(boolean automatic) {
-      assertFalse(world.background);
+      assertFalse(world.background.get());
+      if (outstanding) {
+        if (!automatic) {
+          if (cancelled || capturedInvalidation != world.invalidation) manualQueued = true;
+          else this.automatic = false;
+        }
+        return;
+      }
+      this.automatic = automatic;
+      outstanding = true;
+      cancelled = false;
+      capturedInvalidation = world.invalidation;
+      capturedContentRevision = actualContentRevision;
       queries++;
       queryTimes.add(world.now);
+      String resolved = source;
+      if (resolved != null)
+        world.main.addLast(
+            () -> {
+              if (!outstanding || cancelled) return;
+              if (!Objects.equals(resolved, cache.source))
+                cache = new Cache(cache.version + 1, resolved, false, true, 0, "");
+              world.engine.sourceResolved(resolved);
+            });
     }
 
     @Override
     public void cancelQuery() {
-      assertFalse(world.background);
+      assertFalse(world.background.get());
+      assertTrue(outstanding && automatic);
+      cancelled = true;
       cancelledQueries++;
     }
 
     @Override
     public void projection() {
-      assertTrue(world.background);
+      assertTrue(world.background.get());
       projections++;
       cache =
           new Cache(
@@ -1006,19 +1195,26 @@ public final class PluginManagementEngineTest {
 
     @Override
     public void watchCoverage() {
-      assertFalse(world.background);
+      assertFalse(world.background.get());
       coverageUpdates++;
     }
 
     @Override
+    public void reconcileObservation() {
+      assertFalse(world.background.get());
+      assertTrue(observing);
+      observationChecks++;
+    }
+
+    @Override
     public void observing(boolean value) {
-      assertFalse(world.background);
+      assertFalse(world.background.get());
       observing = value;
     }
 
     @Override
     public void unavailable(Exception error) {
-      assertFalse(world.background);
+      assertFalse(world.background.get());
       cache =
           new Cache(
               cache.version + 1,

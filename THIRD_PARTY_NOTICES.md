@@ -4,8 +4,8 @@
 
 ## DSH 与 npm 依赖
 
-- 当前 `@deepseek-ai/dsh` 为 **0.2.2-rc.1**。完整版本、来源与 integrity 见 `tools/dsh-runtime/package-lock.json`；各包原许可文件保留在运行归档中。
-- Office 入口 `@deepseek-ai/libreoffice-kit` **0.1.5**、WASM **0.1.5**：保留上游 NOTICE、licenses、sources 与预构建说明。DSHA 的字体路径适配见 `assets/office-fonts-patch.json`。
+- 当前 `@deepseek-ai/dsh` 为 **0.2.2-rc.5**。完整版本、来源与 integrity 见 `tools/dsh-runtime/package-lock.json`；各包原许可文件保留在运行归档中。
+- Office 入口 `@deepseek-ai/libreoffice-kit` **0.2.3**、WASM **0.2.3**：保留上游 NOTICE、licenses、sources 与预构建说明。DSHA 的字体路径适配见 `assets/office-fonts-patch.json`。
 - pnpm **10.34.5**（MIT）和 certifi **2026.7.22**（MPL-2.0）：版本和原包摘要由 `tools/runtime-tools.lock.json` 固定。CA 未关闭 TLS 核验。
 - 许可目录和实际依赖需结合归档成员检查；锁文件内其他平台可选依赖不等于已进入 arm64 APK。
 - core-js **3.50.0**（MIT），原包来源 `https://registry.npmjs.org/core-js/-/core-js-3.50.0.tgz`，全文为 `assets/web-integration/core-js.LICENSE`。
@@ -19,7 +19,7 @@
 - 上游 client 摘要 `8a17dd03b5de35f1aea52c93d6e3352fcd43c781de380639f60a93bf6040a26a`；本地差异由 `tools/apply-mobile-client-patches.mjs` 与 `tools/mobile-server/` 管理。不是未修改的上游产物。
 - 许可全文：`app/src/main/assets/builtin-plugins/dsh-web-mobile/LICENSE`。当前产物摘要：
 
-- `client.js`：`3ddfe212c83e79f3c4eca75c670af291ee7ac9c8cc0a6d6d48e43d334e946cf8`
+- `client.js`：`7d772c38df481799c0ced3422af3991188d8770d189ce164d4d8f3c912289b2e`
 - `index.js`：`dcddbce73ec1052b7c02e961bac1389d227f72f1ef49f62a2f16f692e8f930ab`
 - `compress.js`：`a7f4f7f89cc99490978ed4cbfd16ab86f71e1f7fbf2241c00c2811e7cde9aeab`
 - `delete-session.js`：`cb119ff9703716fe1111ee5a2f211d14886ab1d2310601c5787efc8d91219d51`
@@ -33,11 +33,12 @@
 ## proot / proroot
 
 - proot（Termux 分支）为 GPL-2.0。包内保留 COPYING；标准 proot 二进制原件的精确修订仍未核实，不声明可逐字节重现。完整声明位于 `assets/licenses/proot-COPYING.txt`。
-- proroot v1.2.8 为上游专有许可。DSHA 分发上游原始二进制，不声称可重编、审计源码或任意修改后再分发；许可证与来源见随包声明。不能用容器 root 身份推断 Android root 权限。
+- proroot v1.2.8，版权归 coderred。上游许可要求署名并随附完整许可，允许五个未经改动的二进制随完整应用包分发。DSHA 在“关于”的第三方许可中提供 `assets/licenses/proroot-v1.2.8-LICENSE.txt`，并按 `tools/proroot-compat/abi.lock.json` 校验 APK 内的五个成员。源码归档省略这五个文件。从源码归档构建时，将上游 `arm64-v8a/` 的五个原件放入 `app/src/main/jniLibs/arm64-v8a/`，运行 `python tools/test-proroot-compat.py` 核对。[上游固定版本与许可](https://github.com/coderredlab/proroot/tree/14b72a764490d0280eee3915ecfa3e8a132b392e)
 - Windows 重编、Linux 重编与手机执行是不同证据；不能从一种宿主成功推导全部平台通过。
 
 ## Android 与备份依赖
 
+- Ubuntu rootfs 的流式解压使用 XZ for Java 1.12（0BSD）。许可全文随 `assets/licenses/xz-LICENSE.txt` 保存，来源为[上游 1.12 的 COPYING](https://github.com/tukaani-project/xz-java/blob/107a519fac1e6789101ad9c234afe3dc407be7f5/COPYING)。
 - Shizuku API/provider：Standard 13.1.5（MIT），公开来源 RikkaApps/Shizuku-API；许可全文随 `assets/licenses/Shizuku-MIT.txt` 保存，原始 Git blob 及 SHA 记录在 build154 审计。
 - Termux terminal-view / terminal-emulator 0.118.0 的 Apache-2.0 例外及全文随 `assets/licenses/Termux-terminal-Apache-2.0.txt` 保存；不将其声明扩展到整个上游工程。
 - terminal-emulator Java 源码固定于 Termux v0.118.0 提交 `6e2689f55295fa444be8ac8592c527c2c5ef3253` 并内置；DSHA 对 `TerminalSession.java`、`TerminalEmulator.java`、`TerminalSessionClient.java` 的修改及自有队列说明见 `app/src/main/java/com/termux/terminal/NOTICE.dsha.md`。terminal-view 保持 0.118.0 上游依赖，JNI 使用项目内已有构建。
@@ -56,6 +57,7 @@
 - `dev.rikka.shizuku:api:13.1.5`
 - `dev.rikka.shizuku:provider:13.1.5`
 - `org.bouncycastle:bcprov-jdk15to18:1.85.2`
+- `org.tukaani:xz:1.12`
 - `org.yaml:snakeyaml:2.4`
 
 ## Rust vendor 依赖（首期旁路纯函数）
@@ -87,19 +89,19 @@ Rust 旁路 crate `rust/crates/dsha-core` 只做 ADR-0004 决定四的三类封�
 
 | 资产 | 许可声明 | 来源 / 可核验范围 |
 |---|---|---|
-| `app/src/main/jniLibs/arm64-v8a/libandroidshmem.so` | unknown origin/license for this original binary | Retained original; no current exact-source reproduction receipt |
+| `app/src/main/jniLibs/arm64-v8a/libandroidshmem.so` | BSD-3-Clause | Termux libandroid-shmem 0.7 aarch64 package member, exact SHA-256; tools/termux-shmem.lock.json and assets/licenses/libandroid-shmem-0.7-copyright.txt |
 | `app/src/main/jniLibs/arm64-v8a/libdsha-proroot-compat.so` | MIT | tools/proroot-compat/stack-sysconf.c; independent GNU AArch64 sysconf and fcntl-errno proxy, locked NDK build; original proroot binaries unchanged |
 | `app/src/main/jniLibs/arm64-v8a/libdsha-proroot-linker.so` | MIT | tools/proroot-compat/linker-entry.c; freestanding GNU AArch64 direct-preload adapter; original proroot binaries unchanged |
 | `app/src/main/jniLibs/arm64-v8a/libdsha-session.so` | MIT | tools/native-session/session-launcher.c; locked API 23 build |
-| `app/src/main/jniLibs/arm64-v8a/libproot.so` | GPL-2.0 | Termux proot; original Standard binary exact revision remains unverified |
-| `app/src/main/jniLibs/arm64-v8a/libprootloader.so` | GPL-2.0 | Termux proot; original Standard binary exact revision remains unverified |
-| `app/src/main/jniLibs/arm64-v8a/libprootloader32.so` | GPL-2.0 | Termux proot; original Standard binary exact revision remains unverified |
+| `app/src/main/jniLibs/arm64-v8a/libproot.so` | GPL (see upstream COPYING and individual files) | Termux PRoot v5.1.107.91 / 61681c64 with DSHA named-fd fix. Sources and recipe in tools/proot-source and dsha-proot-talloc-source.zip |
+| `app/src/main/jniLibs/arm64-v8a/libprootloader.so` | GPL-2.0-or-later | ARM64 loader built from the same PRoot source with tools/proot-source/build.py |
+| `app/src/main/jniLibs/arm64-v8a/libprootloader32.so` | GPL-2.0-or-later | ARM EABI loader built from the same PRoot source with tools/proot-source/build.py |
 | `app/src/main/jniLibs/arm64-v8a/libproroot-bridge.so` | upstream proprietary | proroot v1.2.8 original binary |
 | `app/src/main/jniLibs/arm64-v8a/libproroot-linker.so` | upstream proprietary | proroot v1.2.8 original binary |
 | `app/src/main/jniLibs/arm64-v8a/libproroot-runtime.so` | upstream proprietary | proroot v1.2.8 original binary |
 | `app/src/main/jniLibs/arm64-v8a/libproroot-stub-loader.so` | upstream proprietary | proroot v1.2.8 original binary |
 | `app/src/main/jniLibs/arm64-v8a/libproroot.so` | upstream proprietary | proroot v1.2.8 original binary; source reproducibility not asserted |
-| `app/src/main/jniLibs/arm64-v8a/libtalloc.so` | LGPL family; exact binary revision unverified | Samba talloc; original Standard binary exact revision unverified |
+| `app/src/main/jniLibs/arm64-v8a/libtalloc.so` | LGPL-3.0-or-later | Samba talloc 2.4.3, built from talloc.c with DSHA Bionic replace.h. See dsha-proot-talloc-source.zip and assets/licenses/talloc-2.4.3-LICENSE.txt |
 | `app/src/main/jniLibs/arm64-v8a/libtermux.so` | Apache-2.0 exception | tools/termux-jni, v0.118.0 source plus local handshake changes |
 
 ## 受管命令行工具
@@ -112,12 +114,12 @@ Rust 旁路 crate `rust/crates/dsha-core` 只做 ADR-0004 决定四的三类封�
 
 | 锁内路径 | 版本 | 上游声明 | 原包来源 |
 |---|---|---|---|
-| `node_modules/@deepseek-ai/libreoffice-kit` | 0.1.5 | MPL-2.0 | https://registry.npmjs.org/@deepseek-ai/libreoffice-kit/-/libreoffice-kit-0.1.5.tgz |
-| `node_modules/@deepseek-ai/libreoffice-kit-darwin-arm64` | 0.1.5 | MPL-2.0 | https://registry.npmjs.org/@deepseek-ai/libreoffice-kit-darwin-arm64/-/libreoffice-kit-darwin-arm64-0.1.5.tgz |
-| `node_modules/@deepseek-ai/libreoffice-kit-darwin-x64` | 0.1.5 | MPL-2.0 | https://registry.npmjs.org/@deepseek-ai/libreoffice-kit-darwin-x64/-/libreoffice-kit-darwin-x64-0.1.5.tgz |
-| `node_modules/@deepseek-ai/libreoffice-kit-wasm` | 0.1.5 | MPL-2.0 | https://registry.npmjs.org/@deepseek-ai/libreoffice-kit-wasm/-/libreoffice-kit-wasm-0.1.5.tgz |
-| `node_modules/@deepseek-ai/libreoffice-kit-win32-arm64` | 0.1.5 | MPL-2.0 | https://registry.npmjs.org/@deepseek-ai/libreoffice-kit-win32-arm64/-/libreoffice-kit-win32-arm64-0.1.5.tgz |
-| `node_modules/@deepseek-ai/libreoffice-kit-win32-x64` | 0.1.5 | MPL-2.0 | https://registry.npmjs.org/@deepseek-ai/libreoffice-kit-win32-x64/-/libreoffice-kit-win32-x64-0.1.5.tgz |
+| `node_modules/@deepseek-ai/libreoffice-kit` | 0.2.3 | MPL-2.0 | https://registry.npmjs.org/@deepseek-ai/libreoffice-kit/-/libreoffice-kit-0.2.3.tgz |
+| `node_modules/@deepseek-ai/libreoffice-kit-darwin-arm64` | 0.2.3 | MPL-2.0 | https://registry.npmjs.org/@deepseek-ai/libreoffice-kit-darwin-arm64/-/libreoffice-kit-darwin-arm64-0.2.3.tgz |
+| `node_modules/@deepseek-ai/libreoffice-kit-darwin-x64` | 0.2.3 | MPL-2.0 | https://registry.npmjs.org/@deepseek-ai/libreoffice-kit-darwin-x64/-/libreoffice-kit-darwin-x64-0.2.3.tgz |
+| `node_modules/@deepseek-ai/libreoffice-kit-wasm` | 0.2.3 | MPL-2.0 | https://registry.npmjs.org/@deepseek-ai/libreoffice-kit-wasm/-/libreoffice-kit-wasm-0.2.3.tgz |
+| `node_modules/@deepseek-ai/libreoffice-kit-win32-arm64` | 0.2.3 | MPL-2.0 | https://registry.npmjs.org/@deepseek-ai/libreoffice-kit-win32-arm64/-/libreoffice-kit-win32-arm64-0.2.3.tgz |
+| `node_modules/@deepseek-ai/libreoffice-kit-win32-x64` | 0.2.3 | MPL-2.0 | https://registry.npmjs.org/@deepseek-ai/libreoffice-kit-win32-x64/-/libreoffice-kit-win32-x64-0.2.3.tgz |
 | `node_modules/@img/sharp-libvips-darwin-arm64` | 1.3.4 | LGPL-3.0-or-later | https://registry.npmjs.org/@img/sharp-libvips-darwin-arm64/-/sharp-libvips-darwin-arm64-1.3.4.tgz |
 | `node_modules/@img/sharp-libvips-darwin-x64` | 1.3.4 | LGPL-3.0-or-later | https://registry.npmjs.org/@img/sharp-libvips-darwin-x64/-/sharp-libvips-darwin-x64-1.3.4.tgz |
 | `node_modules/@img/sharp-libvips-linux-arm` | 1.3.4 | LGPL-3.0-or-later | https://registry.npmjs.org/@img/sharp-libvips-linux-arm/-/sharp-libvips-linux-arm-1.3.4.tgz |

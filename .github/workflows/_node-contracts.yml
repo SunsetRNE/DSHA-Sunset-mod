@@ -22,6 +22,8 @@ jobs:
           ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
       - uses: ./.github/actions/setup-toolchain
+      - name: Restore vendor originals from the pinned publisher
+        run: python3 tools/proroot_distribution.py --upstream
       - name: Verify checked-in contracts
         run: |
           python3 tools/prepare-runtime-tools.py --check

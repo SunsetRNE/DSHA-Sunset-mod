@@ -81,6 +81,9 @@ public final class SkillsFragment extends Fragment {
 
   private static final String STATE_SELECTED = "skills.selected";
   private static final int SOURCE_PREVIEW_LINES = 8;
+  private static final int SOURCE_PREVIEW_CHARS = 768;
+  private static final int SOURCE_PAGE_LINES = 96;
+  private static final int SOURCE_PAGE_CHARS = 4096;
 
   enum Filter {
     ALL,
@@ -148,6 +151,8 @@ public final class SkillsFragment extends Fragment {
   private TextView status, progressText;
   private Button importButton, refreshButton, cancelButton, undoButton;
   private final Button[] segments = new Button[3];
+  private final List<View> catalogueActions = new ArrayList<>();
+  private final List<View> sheetActions = new ArrayList<>();
   private EditText search;
   private ShellActivityTrack progressTrack;
   @Nullable private String selected;
@@ -328,6 +333,8 @@ public final class SkillsFragment extends Fragment {
     split.setOrientation(LinearLayout.HORIZONTAL);
     listColumn = ui.column();
     detailColumn = ui.column();
+    detailColumn.setVisibility(View.GONE);
+    segmentRow.setVisibility(View.GONE);
     split.addView(listColumn, new LinearLayout.LayoutParams(0, -2, 1f));
     LinearLayout.LayoutParams detailParams = new LinearLayout.LayoutParams(0, -2, 1f);
     detailParams.setMarginStart(ui.dp(14));
@@ -344,7 +351,10 @@ public final class SkillsFragment extends Fragment {
           Tier next = tierFor(Math.round((r - l) / density));
           if (next != tier) {
             tier = next;
-            v.post(() -> render(model.catalogue.getValue()));
+            v.post(
+                () -> {
+                  if (getView() == v) render(model.catalogue.getValue());
+                });
           }
         });
 
@@ -365,6 +375,8 @@ public final class SkillsFragment extends Fragment {
   public void onDestroyView() {
     if (sheet != null) sheet.dismiss();
     sheet = null;
+    catalogueActions.clear();
+    sheetActions.clear();
     super.onDestroyView();
   }
 
@@ -427,12 +439,17 @@ public final class SkillsFragment extends Fragment {
     undoButton.setEnabled(!active);
     progressRow.setVisibility(active ? View.VISIBLE : View.GONE);
     progressTrack.setState(active ? ShellActivityTrack.RUNNING : ShellActivityTrack.IDLE);
-    // 开关与行内操作随忙碌状态一起禁用。
-    render(model.catalogue.getValue());
+    for (View action : catalogueActions) action.setEnabled(!active);
+    for (View action : sheetActions) action.setEnabled(!active);
   }
 
   private boolean busy() {
     return Boolean.TRUE.equals(model.busy.getValue());
+  }
+
+  private void trackAction(View action, boolean inSheet) {
+    action.setEnabled(!busy());
+    (inSheet ? sheetActions : catalogueActions).add(action);
   }
 
   // ---- 列表 ----
@@ -441,6 +458,7 @@ public final class SkillsFragment extends Fragment {
   void render(@Nullable SkillImports.Catalogue catalogue) {
     if (listColumn == null || getContext() == null) return;
     Context ctx = requireContext();
+    catalogueActions.clear();
     listColumn.removeAllViews();
     detailColumn.removeAllViews();
     boolean wide = tier == Tier.WIDE;
@@ -598,7 +616,7 @@ public final class SkillsFragment extends Fragment {
     sub.setLineSpacing(ui.dp(3), 1f);
     empty.addView(sub);
     Button add = plainButton(ctx, t("导入技能", "Import SKILL.md"), true);
-    add.setEnabled(!busy());
+    trackAction(add, false);
     add.setOnClickListener(v -> RecentsPrivacyGuard.launch(picker, new String[] {"*/*"}));
     LinearLayout.LayoutParams addParams = new LinearLayout.LayoutParams(-2, -2);
     addParams.topMargin = ui.dp(16);
@@ -691,7 +709,7 @@ public final class SkillsFragment extends Fragment {
     MaterialSwitch toggle = new MaterialSwitch(ctx);
     toggle.setTag("skill.switch:" + entry.document.name);
     toggle.setChecked(entry.enabled);
-    toggle.setEnabled(!busy());
+    trackAction(toggle, false);
     toggle.setContentDescription(tf("启用 %s", "Enable %s", entry.document.name));
     toggle.setOnCheckedChangeListener((button, checked) -> toggle(entry, checked));
     LinearLayout.LayoutParams switchParams = new LinearLayout.LayoutParams(-2, -2);
@@ -839,7 +857,7 @@ public final class SkillsFragment extends Fragment {
     Button empty = textButton(ctx, t("清空最近删除", "Empty recently deleted"));
     empty.setTag("skills.trash.empty");
     empty.setTextColor(ctx.getColor(R.color.shell_bad));
-    empty.setEnabled(!busy());
+    trackAction(empty, false);
     empty.setOnClickListener(v -> confirmEmptyTrash(items.size()));
     LinearLayout.LayoutParams emptyParams = new LinearLayout.LayoutParams(-2, -2);
     emptyParams.gravity = Gravity.END;
@@ -884,7 +902,7 @@ public final class SkillsFragment extends Fragment {
     actions.setGravity(Gravity.CENTER_VERTICAL);
     Button restore = textButton(ctx, t("恢复", "Restore"));
     restore.setTag("skill.restore:" + item.meta.name);
-    restore.setEnabled(!busy());
+    trackAction(restore, false);
     restore.setContentDescription(tf("恢复 %s", "Restore %s", item.meta.name));
     restore.setOnClickListener(v -> restore(item));
     restore.setPadding(0, 0, ui.dp(12), 0);
@@ -892,7 +910,7 @@ public final class SkillsFragment extends Fragment {
     Button purge = textButton(ctx, t("彻底删除", "Delete permanently"));
     purge.setTag("skill.purge:" + item.meta.name);
     purge.setTextColor(ctx.getColor(R.color.shell_bad));
-    purge.setEnabled(!busy());
+    trackAction(purge, false);
     purge.setContentDescription(tf("彻底删除 %s", "Permanently delete %s", item.meta.name));
     purge.setOnClickListener(v -> confirmPurge(item));
     actions.addView(purge);
@@ -949,7 +967,7 @@ public final class SkillsFragment extends Fragment {
     state.addView(stateCopy, new LinearLayout.LayoutParams(0, -2, 1f));
     MaterialSwitch toggle = new MaterialSwitch(ctx);
     toggle.setChecked(entry.enabled);
-    toggle.setEnabled(!busy());
+    trackAction(toggle, dismiss != null);
     toggle.setContentDescription(tf("启用 %s", "Enable %s", entry.document.name));
     toggle.setOnCheckedChangeListener(
         (button, checked) -> {
@@ -981,45 +999,14 @@ public final class SkillsFragment extends Fragment {
     fact(ctx, facts, t("位置", "Location"), entry.guestPath(), true);
     body.addView(facts, new LinearLayout.LayoutParams(-1, -2));
 
-    // SKILL.md 原文：默认折叠到前几行。
-    LinearLayout sourceHead = new LinearLayout(ctx);
-    sourceHead.setGravity(Gravity.CENTER_VERTICAL);
-    sourceHead.addView(
-        detailLabel(
-            entry.relative.endsWith(SkillLifecycle.DISABLED_SUFFIX)
-                ? SkillLifecycle.DISABLED_DOCUMENT
-                : SkillLifecycle.DOCUMENT),
-        new LinearLayout.LayoutParams(0, -2, 1f));
-    String[] lines = entry.document.text.split("\n", -1);
-    boolean long_ = lines.length > SOURCE_PREVIEW_LINES;
-    TextView source = ui.text(entry.document.text, 12, R.color.shell_text);
-    source.setTypeface(android.graphics.Typeface.MONOSPACE);
-    source.setTextIsSelectable(true);
-    source.setLineSpacing(ui.dp(3), 1f);
-    source.setBackgroundResource(R.drawable.bg_shell_status);
-    source.setPadding(ui.dp(12), ui.dp(10), ui.dp(12), ui.dp(10));
-    source.setTextDirection(View.TEXT_DIRECTION_LTR);
-    if (long_) {
-      source.setMaxLines(SOURCE_PREVIEW_LINES);
-      source.setEllipsize(android.text.TextUtils.TruncateAt.END);
-      Button more = textButton(ctx, t("展开全文", "Show all"));
-      more.setOnClickListener(
-          v -> {
-            boolean collapsed = source.getMaxLines() == SOURCE_PREVIEW_LINES;
-            source.setMaxLines(collapsed ? Integer.MAX_VALUE : SOURCE_PREVIEW_LINES);
-            more.setText(collapsed ? t("收起", "Collapse") : t("展开全文", "Show all"));
-          });
-      sourceHead.addView(more);
-    }
-    body.addView(sourceHead, new LinearLayout.LayoutParams(-1, -2));
-    body.addView(source, new LinearLayout.LayoutParams(-1, -2));
+    source(ctx, body, entry);
 
     // 操作：删除（危险，最轻）· 复制命令 · 启用 / 禁用（主）。
     LinearLayout actions = new LinearLayout(ctx);
     actions.setGravity(Gravity.CENTER_VERTICAL);
     Button delete = dangerButton(ctx, t("删除", "Delete"));
     delete.setTag("skills.delete");
-    delete.setEnabled(!busy());
+    trackAction(delete, dismiss != null);
     delete.setPadding(ui.dp(16), 0, ui.dp(16), 0);
     delete.setOnClickListener(
         v -> {
@@ -1047,7 +1034,7 @@ public final class SkillsFragment extends Fragment {
     Button flip =
         plainButton(ctx, entry.enabled ? t("禁用", "Turn off") : t("启用", "Turn on"), !entry.enabled);
     flip.setTag("skills.flip");
-    flip.setEnabled(!busy());
+    trackAction(flip, dismiss != null);
     flip.setPadding(ui.dp(10), 0, ui.dp(10), 0);
     flip.setOnClickListener(
         v -> {
@@ -1060,6 +1047,105 @@ public final class SkillsFragment extends Fragment {
     LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(-1, -2);
     actionParams.topMargin = ui.dp(16);
     body.addView(actions, actionParams);
+  }
+
+  private void source(Context ctx, LinearLayout body, SkillImports.Entry entry) {
+    LinearLayout header = new LinearLayout(ctx);
+    header.setGravity(Gravity.CENTER_VERTICAL);
+    header.addView(
+        detailLabel(
+            entry.relative.endsWith(SkillLifecycle.DISABLED_SUFFIX)
+                ? SkillLifecycle.DISABLED_DOCUMENT
+                : SkillLifecycle.DOCUMENT),
+        new LinearLayout.LayoutParams(0, -2, 1f));
+    String text = entry.document.text;
+    int previewEnd = sourceEnd(text, 0, SOURCE_PREVIEW_CHARS, SOURCE_PREVIEW_LINES);
+    String preview = text.substring(0, previewEnd);
+    TextView content = ui.text(preview, 12, R.color.shell_text);
+    content.setTypeface(android.graphics.Typeface.MONOSPACE);
+    content.setTextIsSelectable(true);
+    content.setLineSpacing(ui.dp(3), 1f);
+    content.setBackgroundResource(R.drawable.bg_shell_status);
+    content.setPadding(ui.dp(12), ui.dp(10), ui.dp(12), ui.dp(10));
+    content.setTextDirection(View.TEXT_DIRECTION_LTR);
+    body.addView(header, new LinearLayout.LayoutParams(-1, -2));
+    body.addView(content, new LinearLayout.LayoutParams(-1, -2));
+    if (previewEnd == text.length()) return;
+
+    content.setMaxLines(SOURCE_PREVIEW_LINES);
+    content.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    Button more = textButton(ctx, t("展开全文", "Show all"));
+    more.setTag("skills.source.expand");
+    header.addView(more);
+    LinearLayout navigation = new LinearLayout(ctx);
+    navigation.setGravity(Gravity.CENTER_VERTICAL);
+    navigation.setVisibility(View.GONE);
+    Button previous = textButton(ctx, t("上一页", "Previous page"));
+    previous.setTag("skills.source.previous");
+    Button next = textButton(ctx, t("下一页", "Next page"));
+    next.setTag("skills.source.next");
+    TextView page = ui.text("", 12, R.color.shell_text_secondary);
+    page.setGravity(Gravity.CENTER);
+    navigation.addView(previous, new LinearLayout.LayoutParams(-2, -2));
+    navigation.addView(page, new LinearLayout.LayoutParams(0, -2, 1f));
+    navigation.addView(next, new LinearLayout.LayoutParams(-2, -2));
+    body.addView(navigation, new LinearLayout.LayoutParams(-1, -2));
+
+    // Every native text layout receives at most one page, even for a single very long line.
+    class Pages {
+      final List<Integer> starts = new ArrayList<>(List.of(0));
+      int index, end;
+      boolean expanded;
+
+      void show() {
+        int start = starts.get(index);
+        end = sourceEnd(text, start, SOURCE_PAGE_CHARS, SOURCE_PAGE_LINES);
+        content.setText(text.substring(start, end));
+        page.setText(tf("第 %d 页", "Page %d", index + 1));
+        previous.setEnabled(index > 0);
+        next.setEnabled(end < text.length());
+        navigation.setVisibility(index > 0 || next.isEnabled() ? View.VISIBLE : View.GONE);
+      }
+    }
+    Pages pages = new Pages();
+    more.setOnClickListener(
+        v -> {
+          pages.expanded = !pages.expanded;
+          more.setText(pages.expanded ? t("收起", "Collapse") : t("展开全文", "Show all"));
+          if (pages.expanded) {
+            content.setMaxLines(Integer.MAX_VALUE);
+            content.setEllipsize(null);
+            pages.index = 0;
+            pages.show();
+          } else {
+            content.setMaxLines(SOURCE_PREVIEW_LINES);
+            content.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            content.setText(preview);
+            navigation.setVisibility(View.GONE);
+          }
+        });
+    previous.setOnClickListener(
+        v -> {
+          if (!pages.expanded || pages.index == 0) return;
+          pages.index--;
+          pages.show();
+        });
+    next.setOnClickListener(
+        v -> {
+          if (!pages.expanded || pages.end >= text.length()) return;
+          if (++pages.index == pages.starts.size()) pages.starts.add(pages.end);
+          pages.show();
+        });
+  }
+
+  private static int sourceEnd(String text, int start, int chars, int lines) {
+    int end = Math.min(text.length(), start + chars);
+    for (int index = start; index < end; index++)
+      if (text.charAt(index) == '\n' && --lines == 0) return index + 1;
+    if (end < text.length()
+        && Character.isHighSurrogate(text.charAt(end - 1))
+        && Character.isLowSurrogate(text.charAt(end))) return end - 1;
+    return end;
   }
 
   private TextView detailLabel(String label) {
@@ -1096,6 +1182,7 @@ public final class SkillsFragment extends Fragment {
   private void showSheet(SkillImports.Entry entry) {
     Context ctx = requireContext();
     if (sheet != null) sheet.dismiss();
+    sheetActions.clear();
     CardPage page = new CardPage(ctx, "", "", true);
     androidx.appcompat.app.AlertDialog[] holder = new androidx.appcompat.app.AlertDialog[1];
     detail(
@@ -1110,7 +1197,10 @@ public final class SkillsFragment extends Fragment {
     page.footer.setVisibility(View.GONE);
     dialog.setOnDismissListener(
         d -> {
-          if (sheet == dialog) sheet = null;
+          if (sheet == dialog) {
+            sheet = null;
+            sheetActions.clear();
+          }
         });
     sheet = dialog;
     CardSheet.show(dialog, ctx);
@@ -1135,7 +1225,7 @@ public final class SkillsFragment extends Fragment {
               if (root != null)
                 root.post(
                     () -> {
-                      if (isAdded() && getView() == root) showDeleteDialog(entry, shown);
+                      if (isAdded() && getView() == root && !busy()) showDeleteDialog(entry, shown);
                     });
             },
             "dsha-skills-preview")

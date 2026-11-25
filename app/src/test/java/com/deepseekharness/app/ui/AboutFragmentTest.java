@@ -284,6 +284,21 @@ public final class AboutFragmentTest {
   }
 
   @Test
+  public void issueTrackerSelectionOpensTheProjectIssuesPage() {
+    AboutFragment fragment = showAbout();
+    clickableAncestor(findByText(fragment.requireView(), "交流与反馈")).performClick();
+    var menu = (androidx.appcompat.app.AlertDialog) ShadowDialog.getLatestDialog();
+    var list = menu.getListView();
+    assertEquals("打开问题反馈", list.getItemAtPosition(1));
+    list.performItemClick(null, 1, list.getItemIdAtPosition(1));
+    ShadowLooper.shadowMainLooper().idle();
+    Intent intent = Shadow.<ShadowActivity>extract(host.get()).getNextStartedActivity();
+    assertNotNull(intent);
+    assertEquals(Intent.ACTION_VIEW, intent.getAction());
+    assertEquals("https://github.com/DSH-APP/DSHA/issues", intent.getDataString());
+  }
+
+  @Test
   public void noticesRowOpensTheRepositoryDocumentInABrowser() {
     AboutFragment fragment = showAbout();
     View row = clickableAncestor(findByText(fragment.requireView(), "许可声明全文（在线）"));

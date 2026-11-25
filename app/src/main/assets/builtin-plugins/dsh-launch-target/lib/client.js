@@ -26,7 +26,8 @@ window.__ModuleLoader__.load({ id: 'dsh-launch-target', factory: (require) => {
     nav: '启动目标',
     title: '桌面图标启动后进入',
     hint: '只影响下一次从桌面图标启动。选择 Web 后，点击图标先显示加载页，就绪即进入 Web；在 Web 里返回到底会回到桌面。环境需要维护或启动失败时仍进入主界面。',
-    pluginNote: '要回到主界面，在这里选「主界面」即可，不需要禁用插件。禁用 dsh-launch-target 只会移除这个面板，已选的启动目标保持不变。',
+    pluginNote: '禁用 dsh-launch-target 后，已选的启动目标保持不变。',
+    returnHome: '返回 DSHA 主页',
     main: '主界面',
     web: 'Web 界面',
     loading: '正在读取…',
@@ -48,9 +49,21 @@ window.__ModuleLoader__.load({ id: 'dsh-launch-target', factory: (require) => {
     saved: 'Saved. Takes effect the next time you open DSHA from the app icon.',
     unsupported: 'This app version does not support this setting. Update DSHA.',
     denied: 'Your session has expired. Refresh the page and try again.',
-    pluginNote: 'To go back to the main screen, choose Main screen here. You do not need to disable the plugin. Disabling dsh-launch-target only removes this panel and keeps the selected launch target.',
+    pluginNote: 'Disabling dsh-launch-target keeps the selected launch target.',
+    returnHome: 'Return to DSHA home',
     failed: 'Could not read or save the setting; the previous value was kept. Try again later, or change it in the app under Settings → Runtime.',
     retry: 'Retry'
+  };
+  const dictionaries = {
+    zh, en,
+    'zh-Hant': { returnHome: '返回 DSHA 首頁' },
+    ru: { returnHome: 'Вернуться на главный экран DSHA' },
+    ja: { returnHome: 'DSHA のホームに戻る' },
+    ko: { returnHome: 'DSHA 홈으로 돌아가기' },
+    ar: { returnHome: 'العودة إلى الصفحة الرئيسية لتطبيق DSHA' },
+    pt: { returnHome: 'Voltar à tela inicial do DSHA' },
+    la: { returnHome: 'Ad paginam principalem DSHA redi' },
+    fr: { returnHome: 'Revenir à l’accueil de DSHA' }
   };
 
   const NARROW = '.dshaLt_row{flex-direction:column;align-items:stretch}'
@@ -68,6 +81,8 @@ window.__ModuleLoader__.load({ id: 'dsh-launch-target', factory: (require) => {
     '.dshaLt_status[data-tone=error]{color:var(--dsw-alias-danger,var(--dsw-alias-label-secondary))}',
     '.dshaLt_retry{appearance:none;border:0;background:none;padding:0 0 0 6px;color:var(--dsw-alias-link);font:inherit;cursor:pointer}',
     '.dshaLt_retry:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,currentColor);outline-offset:2px;border-radius:4px}',
+    '.dshaLt_returnHome{appearance:none;justify-self:start;box-sizing:border-box;max-inline-size:100%;min-block-size:44px;padding:.45em .85em;border:1px solid var(--dsw-alias-border-primary,currentColor);border-radius:8px;background:transparent;color:var(--dsw-alias-link,currentColor);font:inherit;font-size:var(--dsh-content-font-size-secondary,1rem);line-height:1.4;white-space:normal;overflow-wrap:anywhere;cursor:pointer}',
+    '.dshaLt_returnHome:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,currentColor);outline-offset:2px}',
     // 窄屏（手机竖屏、分屏）上下排列，选择器占满整行。
     // 竖排时主轴变成高度：标签与选择器都必须改回按内容取高，否则标签的 180px 横向基准
     // 会变成 180px 高的空白；分段控件原语是 inline-grid，需要显式撑满整行。
@@ -104,9 +119,19 @@ window.__ModuleLoader__.load({ id: 'dsh-launch-target', factory: (require) => {
     return t('failed');
   }
 
+  function canReturnHome() {
+    return window.__dshaNativePresentation?.canReturnHome?.() === true;
+  }
+
+  function subscribeReturnHome(update) {
+    window.addEventListener('dsha-return-home-ready', update);
+    return () => window.removeEventListener('dsha-return-home-ready', update);
+  }
+
   function LaunchTargetCard(props) {
     const t = props.t;
     const id = React.useId();
+    const returnHomeAvailable = React.useSyncExternalStore(subscribeReturnHome, canReturnHome);
     const [state, setState] = React.useState({ target: undefined, phase: 'loading', error: undefined });
     const request = React.useRef(0);
     const load = React.useCallback(() => {
@@ -172,7 +197,14 @@ window.__ModuleLoader__.load({ id: 'dsh-launch-target', factory: (require) => {
               ? jsx.jsx('button', { type: 'button', className: 'dshaLt_retry', onClick: load, children: t('retry') })
               : null
           ]
-        })
+        }),
+        returnHomeAvailable ? jsx.jsx('button', {
+          type: 'button',
+          className: 'dshaLt_returnHome',
+          'data-dsha-return-home': '',
+          onClick: event => window.__dshaNativePresentation?.returnHome?.(event.nativeEvent),
+          children: t('returnHome')
+        }) : null
       ]
     });
   }
@@ -193,7 +225,7 @@ window.__ModuleLoader__.load({ id: 'dsh-launch-target', factory: (require) => {
   const inject = ['slots', 'locale'];
   function apply(ctx) {
     const t = ctx.locale.bind(NS);
-    ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-launch-target: dictionaries');
+    ctx.effect(() => ctx.locale.register(NS, dictionaries), 'dsh-launch-target: dictionaries');
     ctx.effect(() => ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
       name: 'plugins.bundle.config',
       key: KEY,

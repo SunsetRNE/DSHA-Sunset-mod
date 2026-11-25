@@ -2,6 +2,8 @@
 
 “重置配置”入口另外使用 `NativeConfigurationReset`，将 settings.yaml 与当前私有工作目录的 .env 作为两根事务保存和切换。记录在 `host-backup-operations/<UUID>/config-reset.json`，中断由统一宿主恢复入口处理；不影响下述六文件检查点的固定范围。凭据先检查解密，失败时不生成空配置覆盖原件。外部目录、配置软链接或跨文件系统目标不强行重置。
 
+build374 重置配置时，把已有的 `settings.yaml` 留在本次事务的 `previous/settings`，让当前运行时按默认设置启动。原先没有这个文件时，重置也不创建它。工作目录的 `.env` 仍按已核验的原生配置生成。这样下次普通启动不会把重置生成的空文件当成待导入的旧设置。
+
 `StartupRepairs` 的 list、prepare、healthy、before、new、restore、recover、discard、discard-retained 已由 Android 宿主文件系统执行；轮换、隔离与删除规则见[配置快照](config-snapshots.md#轮换隔离与删除)。插件管理的安装/删除继续使用独立的既有管理器；它失败不会阻止原生配置记录显示。
 
 只处理六个固定文件：`profiles/web/package.json`、`profiles/web/cordis.patch.yml`、`profiles/web/pnpm-workspace.yaml`、`profiles/web/pnpm-lock.yaml`、`settings.yaml`、`cordis.patch.yml`。不遍历会话、附件、工作区或 KeyVault。符号链接与不可读路径明确报错，不作为空数据处理。

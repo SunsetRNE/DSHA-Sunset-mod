@@ -14,6 +14,7 @@ public final class PluginInstallLink {
   }
 
   public final String url, sha256, name, version, builtin;
+  public final PluginSource source;
 
   private PluginInstallLink(Map<String, String> params) {
     url = params.getOrDefault("url", "");
@@ -21,6 +22,7 @@ public final class PluginInstallLink {
     name = params.getOrDefault("name", "");
     version = params.getOrDefault("version", "");
     builtin = params.getOrDefault("builtin", "");
+    source = builtin.isEmpty() ? PluginSource.parse(url) : null;
   }
 
   public static PluginInstallLink parse(String value) {
@@ -55,7 +57,6 @@ public final class PluginInstallLink {
       if (!link.builtin.isEmpty()) {
         if (!validName(link.builtin) || !link.url.isEmpty()) throw new IllegalArgumentException();
       } else {
-        PluginSource.parse(link.url);
         if (!link.sha256.isEmpty() && !link.sha256.matches("[a-fA-F0-9]{64}"))
           throw new IllegalArgumentException();
         if (!link.name.isEmpty() && !validName(link.name)) throw new IllegalArgumentException();

@@ -2,7 +2,11 @@ package com.deepseekharness.app.ui;
 
 import static org.junit.Assert.*;
 
+import android.app.Application;
+import android.content.res.Configuration;
 import android.os.Bundle;
+import android.view.ContextThemeWrapper;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -31,6 +35,8 @@ import java.io.File;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.Executor;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -41,7 +47,9 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.annotation.LooperMode;
+import org.robolectric.annotation.TextLayoutMode;
 import org.robolectric.shadows.ShadowDialog;
 
 /** Standard 的真实 XML、Fragment、RecyclerView 和 DiffUtil 回归；只隔离数据与执行入口。 */
@@ -83,13 +91,16 @@ public final class PluginFragmentRenderingTest {
 
   public static final class Fixture extends ViewModel {
     final MutableLiveData<PluginRepository.State> states = new MutableLiveData<>();
+    PluginManagementEngine updateEngine;
+    boolean safeMode;
+    int watchStarts, watchStops, refreshes, itemsAtWatchStart;
   }
 
   /** 与调试 Page 使用相同四个边界，生产布局、render、Adapter 和页面状态均不覆写。 */
   public static final class FixtureFragment extends PluginFragment {
     @Override
     PluginManagementEngine managementEngine() {
-      return null;
+      return new ViewModelProvider(requireActivity()).get(Fixture.class).updateEngine;
     }
 
     @Override
@@ -99,11 +110,22 @@ public final class PluginFragmentRenderingTest {
 
     @Override
     boolean safeModeActive() {
-      return false;
+      return new ViewModelProvider(requireActivity()).get(Fixture.class).safeMode;
     }
 
     @Override
-    void syncInstalledState() {}
+    Runnable watchInstalledState() {
+      var fixture = new ViewModelProvider(requireActivity()).get(Fixture.class);
+      fixture.watchStarts++;
+      fixture.itemsAtWatchStart =
+          ((RecyclerView) find(R.id.pluginList)).getAdapter().getItemCount();
+      return () -> fixture.watchStops++;
+    }
+
+    @Override
+    void refreshInstalledState() {
+      new ViewModelProvider(requireActivity()).get(Fixture.class).refreshes++;
+    }
   }
 
   public static final class OtherFragment extends Fragment {
@@ -145,18 +167,20 @@ public final class PluginFragmentRenderingTest {
     PluginRegistry registry = new PluginRegistry();
     mount(state(registry.snapshot(), List.of(), false, "", -1));
     assertEmptyText("The plugin list is unconfirmed. Refresh to check.");
-    assertEquals("Plugin list unconfirmed", text(page.find(R.id.pluginCount)));
+    assertEquals(View.GONE, page.find(R.id.pluginCount).getVisibility());
+    assertEquals("Plugin list unconfirmed", text(page.find(R.id.pluginCatalogPhase)));
     assertEquals(2, adapter().getItemCount());
 
     PluginRegistry.Query query = registry.beginQuery(SOURCE);
     publish(state(registry.snapshot(), List.of(), false, "", -1));
     assertEmptyText("Reading plugins…");
-    assertEquals("Checking plugins…", text(page.find(R.id.pluginCount)));
+    assertEquals(View.GONE, page.find(R.id.pluginCount).getVisibility());
+    assertEquals("Reading plugin list…", text(page.find(R.id.pluginCatalogPhase)));
 
     assertTrue(registry.failQuery(query, "fixture read failure"));
     publish(state(registry.snapshot(), List.of(), false, "fixture read failure", -1));
     assertEmptyText("Could not read plugins. Check the status and refresh to retry.");
-    assertEquals("Plugin list unconfirmed", text(page.find(R.id.pluginCount)));
+    assertEquals("Could not verify plugin list", text(page.find(R.id.pluginCatalogPhase)));
     assertEquals("fixture read failure", text(page.find(R.id.statusText)));
 
     assertTrue(registry.completeQuery(registry.beginQuery(SOURCE), List.of(), List.of(), false));
@@ -168,6 +192,391 @@ public final class PluginFragmentRenderingTest {
     assertEquals(2, adapter().getItemCount());
     assertEquals(0, adapter().getItemViewType(0));
     assertEquals(2, adapter().getItemViewType(1));
+  }
+
+  @Test
+  public void checkUpdatesHeaderQueuesAllPluginsThroughTheRealEngine() throws Exception {
+    List<Runnable> worker = new ArrayList<>();
+    PluginRepository repository = updateCheckRepository(worker);
+    try (var engine = new PluginManagementEngine(repository.getApplication(), repository)) {
+      fixture().updateEngine = engine;
+      mount(state(catalog(List.of(item("alpha"))), List.of(), false, "", -1));
+
+      View button = page.find(R.id.btnPluginUpdates);
+      assertEquals(View.VISIBLE, button.getVisibility());
+      assertTrue(button.performClick());
+
+      var operations = repository.state().getValue().operations;
+      assertEquals(1, worker.size());
+      assertEquals(1, operations.size());
+      assertEquals(PluginOperationQueue.Type.CHECK_UPDATES, operations.get(0).type);
+      assertEquals("scope:web:CHECK_UPDATES", operations.get(0).targetKey);
+      assertEquals(PluginOperationQueue.Phase.QUEUED, operations.get(0).phase);
+      assertTrue(page.isResumed());
+    }
+  }
+
+  @Test
+  public void fullUpdateResultRemainsVisibleAfterAutomaticCatalogRefresh() throws Exception {
+    PluginRepository repository = updateCheckRepository(new ArrayList<>());
+    try (var engine = new PluginManagementEngine(repository.getApplication(), repository)) {
+      fixture().updateEngine = engine;
+      var catalog = catalog(List.of(item("alpha")));
+      mount(state(catalog, List.of(), false, "", -1));
+
+      assertTrue(page.find(R.id.btnPluginUpdates).performClick());
+      var request = engine.state().getValue().operations.get(0);
+      String result = "Checked 1 third-party plugin, 1 update available";
+      var completed = updateCheckResult(request, PluginOperationQueue.Phase.SUCCEEDED, result);
+      publish(updateCheckState(catalog, List.of(completed), result));
+      assertTrue(text(updateCheckReceipt()).contains(result));
+
+      publish(
+          updateCheckState(
+              catalog, List.of(completed), "Automatic plugin catalog refresh completed"));
+      assertTrue(text(page.find(R.id.statusText)).contains("catalog refresh completed"));
+      assertTrue(
+          "a directory result must not replace the manual update check",
+          text(updateCheckReceipt()).contains(result));
+      assertEquals("All · " + result, text(updateCheckReceipt()));
+      assertTrue(updateCheckReceipt().performClick());
+      AlertDialog details = (AlertDialog) ShadowDialog.getLatestDialog();
+      assertEquals("All\n\n" + result, text(details.findViewById(android.R.id.message)));
+      details.dismiss();
+    }
+  }
+
+  @Test
+  public void updateResultSurvivesLayoutCoalescingAndViewRecreation() throws Exception {
+    PluginRepository repository = updateCheckRepository(new ArrayList<>());
+    try (var engine = new PluginManagementEngine(repository.getApplication(), repository)) {
+      fixture().updateEngine = engine;
+      var catalog = catalog(List.of(item("alpha")));
+      mount(state(catalog, List.of(), false, "", -1));
+      assertTrue(page.find(R.id.btnPluginUpdates).performClick());
+      var request = engine.state().getValue().operations.get(0);
+      String result = "Checked 1 third-party plugin, 0 updates available";
+      var completed = updateCheckResult(request, PluginOperationQueue.Phase.SUCCEEDED, result);
+      var terminal = updateCheckState(catalog, List.of(completed), result);
+      var catalogOnly = updateCheckState(catalog, List.of(), "Catalog refresh completed");
+      runDuringLayout(
+          useLayoutCallback(),
+          () -> {
+            fixture().states.setValue(terminal);
+            fixture().states.setValue(catalogOnly);
+          });
+      layout();
+      assertEquals("All · " + result, text(updateCheckReceipt()));
+
+      var previous = page;
+      host.recreate();
+      page = (FixtureFragment) host.get().getSupportFragmentManager().findFragmentByTag(PAGE_TAG);
+      assertNotSame(previous, page);
+      layout();
+      assertEquals("All · " + result, text(updateCheckReceipt()));
+    }
+  }
+
+  @Test
+  public void laterChecksClearTheEarlierResultAndUseTheirOwnTerminalPhase() throws Exception {
+    PluginRepository repository = updateCheckRepository(new ArrayList<>());
+    try (var engine = new PluginManagementEngine(repository.getApplication(), repository)) {
+      fixture().updateEngine = engine;
+      var alpha =
+          new PluginRepository.Item(
+              new JSONObject().put("name", "alpha").put("available", true).put("updatable", true));
+      var catalog = catalog(List.of(alpha));
+      mount(state(catalog, List.of(), false, "", -1));
+
+      assertTrue(page.find(R.id.btnPluginUpdates).performClick());
+      var first = engine.state().getValue().operations.get(0);
+      var firstResult =
+          updateCheckResult(first, PluginOperationQueue.Phase.SUCCEEDED, "One update available");
+      publish(updateCheckState(catalog, List.of(firstResult), firstResult.message));
+      assertEquals("All · One update available", text(updateCheckReceipt()));
+
+      layout();
+      assertTrue(rowAt(1).findViewById(R.id.pluginActions).performClick());
+      chooseDrawerEntry(UiText.text("检查插件更新"));
+      var single =
+          engine.state().getValue().operations.stream()
+              .filter(operation -> operation.targetKey.equals(alpha.stableKey))
+              .findFirst()
+              .orElseThrow();
+      assertNotEquals(first.operationId, single.operationId);
+      assertEquals(View.GONE, updateCheckReceipt().getVisibility());
+      publish(updateCheckState(catalog, List.of(firstResult, single), "Catalog refresh completed"));
+      assertEquals(View.GONE, updateCheckReceipt().getVisibility());
+
+      var failure =
+          updateCheckResult(single, PluginOperationQueue.Phase.FAILED, "Network request failed");
+      publish(
+          updateCheckState(catalog, List.of(firstResult, failure), "Catalog refresh completed"));
+      assertEquals("alpha · Failed · Network request failed", text(updateCheckReceipt()));
+
+      assertTrue(page.find(R.id.btnPluginUpdates).performClick());
+      var last =
+          engine.state().getValue().operations.stream()
+              .filter(
+                  operation ->
+                      !operation.operationId.equals(first.operationId)
+                          && !operation.operationId.equals(single.operationId))
+              .findFirst()
+              .orElseThrow();
+      assertEquals(View.GONE, updateCheckReceipt().getVisibility());
+      var cancelled =
+          updateCheckResult(
+              last, PluginOperationQueue.Phase.CANCELLED, "PLUGIN_OPERATION_CANCELLED");
+      publish(
+          updateCheckState(
+              catalog, List.of(firstResult, failure, cancelled), "Catalog refresh completed"));
+      assertEquals("All · Cancelled", text(updateCheckReceipt()));
+    }
+  }
+
+  @Test
+  public void rejectedCheckImmediatelyReplacesTheEarlierSuccess() throws Exception {
+    PluginRepository repository = updateCheckRepository(new ArrayList<>());
+    try (var engine = new PluginManagementEngine(repository.getApplication(), repository)) {
+      fixture().updateEngine = engine;
+      var catalog = catalog(List.of(item("alpha")));
+      mount(state(catalog, List.of(), false, "", -1));
+      assertTrue(page.find(R.id.btnPluginUpdates).performClick());
+      var first = engine.state().getValue().operations.get(0);
+      var firstResult =
+          updateCheckResult(first, PluginOperationQueue.Phase.SUCCEEDED, "One update available");
+      publish(updateCheckState(catalog, List.of(firstResult), firstResult.message));
+      assertEquals("All · One update available", text(updateCheckReceipt()));
+
+      for (int index = 0; index < PluginOperationQueue.DEFAULT_WAITING_CAPACITY; index++) {
+        engine.checkAllUpdates();
+      }
+      assertTrue(page.find(R.id.btnPluginUpdates).performClick());
+      assertTrue(text(updateCheckReceipt()).startsWith("All · Rejected · "));
+      assertTrue(text(updateCheckReceipt()).endsWith(UiText.text("插件任务队列已满，请等待已有任务完成")));
+      assertFalse(text(updateCheckReceipt()).contains(firstResult.message));
+    }
+  }
+
+  private static PluginRepository updateCheckRepository(List<Runnable> work) throws Exception {
+    Application app = RuntimeEnvironment.getApplication();
+    app.getApplicationInfo().nativeLibraryDir = app.getCacheDir().getAbsolutePath();
+    var constructor =
+        PluginRepository.class.getDeclaredConstructor(Application.class, Executor.class);
+    constructor.setAccessible(true);
+    return constructor.newInstance(app, (Executor) work::add);
+  }
+
+  @Test
+  public void safeModeRestoreConfirmationQueuesRealOperationWithoutCallback() throws Exception {
+    PluginRepository repository = updateCheckRepository(new ArrayList<>());
+    try (var engine = new PluginManagementEngine(repository.getApplication(), repository)) {
+      fixture().updateEngine = engine;
+      fixture().safeMode = true;
+      mount(state(catalog(List.of(item("alpha"))), List.of(), false, "", -1));
+      String enabled = engine.safeMode(true, () -> {});
+      assertEquals(Boolean.TRUE, engine.operation(enabled).desired);
+      View restore = page.find(R.id.btnPluginRestore);
+      assertEquals(View.VISIBLE, restore.getVisibility());
+      assertTrue(restore.performClick());
+      AlertDialog confirmation = (AlertDialog) ShadowDialog.getLatestDialog();
+      assertTrue(confirmation.isShowing());
+      assertTrue(confirmation.getButton(AlertDialog.BUTTON_POSITIVE).performClick());
+      org.robolectric.shadows.ShadowLooper.shadowMainLooper().idle();
+      var restoreRequest =
+          engine.state().getValue().operations.stream()
+              .filter(
+                  operation ->
+                      operation.type == PluginOperationQueue.Type.SAFE_MODE
+                          && Boolean.FALSE.equals(operation.desired))
+              .findFirst()
+              .orElseThrow();
+      assertTrue(restoreRequest.pending());
+      assertNotEquals(enabled, restoreRequest.operationId);
+      assertFalse(confirmation.isShowing());
+    }
+  }
+
+  @Test
+  public void manuallyEnteredLinkQueuesNormalNativePluginInstall() throws Exception {
+    PluginRepository repository = updateCheckRepository(new ArrayList<>());
+    try (var engine = new PluginManagementEngine(repository.getApplication(), repository)) {
+      fixture().updateEngine = engine;
+      mount(state(catalog(List.of()), List.of(), false, "", -1));
+      assertTrue(page.find(R.id.btnMarket).performClick());
+      layout();
+      ((EditText) page.find(R.id.appbar_github_input)).setText("@scope/fixture@1.2.3");
+      View install = page.find(R.id.btnPluginInstall);
+      assertTrue(install.isEnabled());
+      assertTrue(install.performClick());
+      var operations = engine.state().getValue().operations;
+      assertEquals(1, operations.size());
+      assertEquals(PluginOperationQueue.Type.INSTALL, operations.get(0).type);
+      assertTrue(operations.get(0).pending());
+    }
+  }
+
+  private static PluginOperationQueue.Operation updateCheckResult(
+      PluginOperationQueue.Operation request, PluginOperationQueue.Phase phase, String message) {
+    return new PluginOperationQueue.Operation(
+        request.operationId,
+        request.type,
+        request.targetKey,
+        request.desired,
+        request.expectedVersion,
+        request.source,
+        phase,
+        message,
+        -1,
+        null,
+        null,
+        request.outcome);
+  }
+
+  private static PluginRepository.State updateCheckState(
+      PluginRegistry.Snapshot catalog,
+      List<PluginOperationQueue.Operation> operations,
+      String message)
+      throws Exception {
+    var constructor =
+        PluginRepository.State.class.getDeclaredConstructor(
+            PluginRegistry.Snapshot.class,
+            List.class,
+            boolean.class,
+            String.class,
+            boolean.class,
+            int.class,
+            int.class,
+            com.deepseekharness.app.util.PluginManagementView.class,
+            List.class,
+            boolean.class);
+    constructor.setAccessible(true);
+    return constructor.newInstance(
+        catalog,
+        operations,
+        false,
+        message,
+        false,
+        -1,
+        PluginRepository.State.RESULT_SUCCESS,
+        null,
+        List.of(),
+        false);
+  }
+
+  private View updateCheckReceipt() {
+    int id;
+    try {
+      id = R.id.class.getField("pluginUpdateCheckResult").getInt(null);
+    } catch (ReflectiveOperationException baseline) {
+      return page.find(R.id.statusText);
+    }
+    View receipt = page.find(id);
+    return receipt == null ? page.find(R.id.statusText) : receipt;
+  }
+
+  @Test
+  public void cachedRowsAppearBeforeWatchAndRemainInteractiveDuringRecheck() throws Exception {
+    var items = List.of(item("alpha"), item("beta"));
+    var registry = new PluginRegistry();
+    assertTrue(registry.completeQuery(registry.beginQuery(SOURCE), items, List.of(), false));
+    mount(state(registry.snapshot(), List.of(), false, "", -1));
+    assertEquals(4, fixture().itemsAtWatchStart);
+    assertEquals(1, fixture().watchStarts);
+    assertEquals("Plugin list verified", text(page.find(R.id.pluginCatalogPhase)));
+    assertTrue(page.find(R.id.btnMarket).performClick());
+    assertTrue(page.find(R.id.btnInstalled).performClick());
+    layout();
+    assertEquals(1, fixture().watchStarts);
+    assertEquals(0, fixture().watchStops);
+    Notifications observer = observe();
+    assertTrue(page.find(R.id.btnRefresh).performClick());
+    assertEquals(1, fixture().refreshes);
+
+    var query = registry.beginQuery(SOURCE);
+    publish(configurationState(registry.snapshot(), List.of(), true));
+    observer.assertNone();
+    assertEquals(
+        "Checking plugins… · Showing the previous plugin list",
+        text(page.find(R.id.pluginCatalogPhase)));
+    assertEquals(View.VISIBLE, page.find(R.id.pluginCount).getVisibility());
+    assertTrue(page.find(R.id.btnRefresh).isEnabled());
+    assertEquals(View.INVISIBLE, page.find(R.id.pluginBusy).getVisibility());
+    assertTrue(rowAt(1).findViewById(R.id.pluginSwitch).isEnabled());
+    ((android.widget.EditText) page.find(R.id.pluginSearch)).setText("beta");
+    layout();
+    assertEquals(List.of("beta"), renderedNames());
+    observer.clear();
+
+    assertTrue(registry.failQuery(query, "fixture read failure"));
+    publish(state(registry.snapshot(), List.of(), false, "fixture read failure", -1));
+    observer.assertNone();
+    assertEquals(
+        "Could not verify plugin list · Showing the previous plugin list",
+        text(page.find(R.id.pluginCatalogPhase)));
+    assertEquals(List.of("beta"), renderedNames());
+    assertTrue(registry.completeQuery(registry.beginQuery(SOURCE), items, List.of(), false));
+    publish(state(registry.snapshot(), List.of(), false, "", -1));
+    observer.assertNone();
+    assertEquals("Plugin list verified", text(page.find(R.id.pluginCatalogPhase)));
+
+    host.get()
+        .getSupportFragmentManager()
+        .beginTransaction()
+        .replace(R.id.fragment_container, new OtherFragment())
+        .commitNow();
+    assertEquals(1, fixture().watchStops);
+  }
+
+  @Test
+  public void configurationPreviewHasNoMutationControlsAndYieldsToVerifiedRows() throws Exception {
+    var registry = new PluginRegistry();
+    var configured =
+        new PluginRepository.Item(
+            new JSONObject()
+                .put("name", "alpha")
+                .put("available", true)
+                .put("enabled", true)
+                .put("deletable", true));
+    mount(configurationState(registry.snapshot(), List.of(configured), true));
+    assertEquals(
+        "Plugin check queued · From configuration · verification pending",
+        text(page.find(R.id.pluginCatalogPhase)));
+    assertEquals(View.GONE, page.find(R.id.pluginCount).getVisibility());
+    assertFalse(page.find(R.id.btnPluginUpdates).isEnabled());
+    assertEquals(List.of("alpha"), renderedNames());
+    View preview = rowAt(1);
+    assertNull(preview.findViewById(R.id.pluginSwitch));
+    assertNull(preview.findViewById(R.id.pluginDelete));
+    assertNull(preview.findViewById(R.id.pluginActions));
+
+    var query = registry.beginQuery(SOURCE);
+    publish(configurationState(registry.snapshot(), List.of(configured), true));
+    assertEquals(
+        "Reading plugin list… · From configuration · verification pending",
+        text(page.find(R.id.pluginCatalogPhase)));
+    assertEquals(List.of("alpha"), renderedNames());
+    assertTrue(registry.completeQuery(query, List.of(configured, item("beta")), List.of(), false));
+    publish(state(registry.snapshot(), List.of(), false, "", -1));
+    assertEquals("Plugin list verified", text(page.find(R.id.pluginCatalogPhase)));
+    assertEquals(View.VISIBLE, page.find(R.id.pluginCount).getVisibility());
+    assertTrue(page.find(R.id.btnPluginUpdates).isEnabled());
+    assertEquals(List.of("alpha", "beta"), renderedNames());
+    assertTrue(rowAt(1).findViewById(R.id.pluginSwitch).isEnabled());
+
+    registry.updateSource(
+        new PluginSourceIdentity(
+            new File("/changed-data"),
+            "changed-key",
+            0,
+            SOURCE.rootfs,
+            "root-key",
+            0,
+            "marker",
+            2));
+    publish(state(registry.snapshot(), List.of(), false, "", -1));
+    assertEquals(2, adapter().getItemCount());
+    assertEquals("Plugin list unconfirmed", text(page.find(R.id.pluginCatalogPhase)));
   }
 
   @Test
@@ -203,7 +612,7 @@ public final class PluginFragmentRenderingTest {
   }
 
   @Test
-  public void runtimeEvidenceRefreshKeepsRowsAndDistinguishesHistoryFromCurrent() throws Exception {
+  public void runtimeEvidenceRefreshKeepsRowsAndHidesUnobservedCurrentState() throws Exception {
     var alpha = item("alpha").withRuntime("loaded", 1);
     mount(state(catalog(List.of(alpha, item("beta"))), List.of(), false, "", -1));
     assertEquals("Loaded", text(rowAt(1).findViewById(R.id.pluginRuntime)));
@@ -214,11 +623,9 @@ public final class PluginFragmentRenderingTest {
             false,
             "",
             -1));
-    assertEquals("Unverified", text(rowAt(1).findViewById(R.id.pluginRuntime)));
-    String staleDetail =
-        String.valueOf(rowAt(1).findViewById(R.id.pluginRuntime).getContentDescription());
-    assertTrue(staleDetail.contains("awaiting verification; last state: loaded"));
-    for (String runtime : List.of("pending", "failed", "loaded")) {
+    assertNoRuntimeBadge(rowAt(1));
+    for (String runtime :
+        List.of("pending", "failed", "loaded", "loading", "unloading", "stopped")) {
       publish(
           state(
               catalog(List.of(alpha.withRuntime(runtime, 1), item("beta"))),
@@ -226,9 +633,19 @@ public final class PluginFragmentRenderingTest {
               false,
               "",
               -1));
-      assertEquals(
-          runtime.equals("pending") ? "Waiting" : runtime.equals("failed") ? "Failed" : "Loaded",
-          text(rowAt(1).findViewById(R.id.pluginRuntime)));
+      String label =
+          switch (runtime) {
+            case "pending" -> "Waiting";
+            case "failed" -> "Failed";
+            case "loading" -> "Loading";
+            case "unloading" -> "Unloading";
+            case "stopped" -> "Not loaded";
+            default -> "Loaded";
+          };
+      TextView badge = rowAt(1).findViewById(R.id.pluginRuntime);
+      assertEquals(View.VISIBLE, badge.getVisibility());
+      assertEquals(label, text(badge));
+      assertEquals("Current Web: " + label, badge.getContentDescription());
       assertEquals(List.of("alpha", "beta"), renderedNames());
     }
     var historical =
@@ -240,11 +657,7 @@ public final class PluginFragmentRenderingTest {
                 .put("version", "1.0")
                 .put("loadState", "loaded"));
     publish(state(catalog(List.of(historical)), List.of(), false, "", -1));
-    assertEquals("Unverified", text(rowAt(1).findViewById(R.id.pluginRuntime)));
-    String history =
-        String.valueOf(rowAt(1).findViewById(R.id.pluginRuntime).getContentDescription());
-    assertTrue(history.contains("Current Web: load unconfirmed"));
-    assertTrue(history.contains("Last activation record: loaded"));
+    assertNoRuntimeBadge(rowAt(1));
   }
 
   @Test
@@ -330,14 +743,7 @@ public final class PluginFragmentRenderingTest {
         "Enabled",
         R.color.shell_good,
         badgeFill(R.color.shell_good));
-    String unconfirmedRuntime = text(unconfirmedRow.findViewById(R.id.pluginRuntime));
-    assertEquals("Unverified", unconfirmedRuntime);
-    assertBadge(
-        unconfirmedRow,
-        R.id.pluginRuntime,
-        unconfirmedRuntime,
-        R.color.shell_warn,
-        badgeFill(R.color.shell_warn));
+    assertNoRuntimeBadge(unconfirmedRow);
   }
 
   @Test
@@ -403,6 +809,203 @@ public final class PluginFragmentRenderingTest {
     assertEquals(idleHeight, strip.getHeight());
     observer.assertNone();
     assertEquals(List.of("alpha", "beta"), renderedNames());
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @TextLayoutMode(TextLayoutMode.Mode.REALISTIC)
+  public void loadingPanelUsesLogicalStartAndCentersTheEmptyMessageAcrossScreenSettings() {
+    for (Locale locale : List.of(Locale.forLanguageTag("ar-SA"), Locale.US)) {
+      for (int density : new int[] {160, 320}) {
+        for (float scale : new float[] {1f, 2f}) {
+          Configuration config = new Configuration();
+          config.setLocale(locale);
+          config.densityDpi = density;
+          config.fontScale = scale;
+          var themed =
+              new ContextThemeWrapper(
+                  host.get().createConfigurationContext(config), R.style.Theme_DeepseekHarness);
+          boolean rtl = config.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+          var inflater = LayoutInflater.from(themed);
+          View header = inflater.inflate(R.layout.plugin_list_header, null);
+          header.setLayoutDirection(config.getLayoutDirection());
+          View strip = header.findViewById(R.id.pluginStatusStrip);
+          TextView phase = header.findViewById(R.id.pluginCatalogPhase);
+          phase.setVisibility(View.VISIBLE);
+          phase.setText(themed.getString(R.string.plugin_catalog_reading));
+          View spinner = header.findViewById(R.id.pluginStatusSpinner);
+          spinner.setVisibility(View.VISIBLE);
+          TextView status = header.findViewById(R.id.statusText);
+          status.setText("DSH: Checking plugin entries from the previous list");
+          TextView refresh = header.findViewById(R.id.btnRefresh);
+          header.findViewById(R.id.installedControls).setVisibility(View.VISIBLE);
+          header.findViewById(R.id.pluginMarketCard).setVisibility(View.GONE);
+          View footer = inflater.inflate(R.layout.plugin_list_footer, null);
+          footer.setLayoutDirection(config.getLayoutDirection());
+          TextView empty = footer.findViewById(R.id.pluginEmpty);
+          empty.setVisibility(View.VISIBLE);
+          empty.setText(themed.getString(R.string.plugin_catalog_reading));
+          int width = 320 * density / 160;
+          for (View view : List.of(header, footer)) {
+            view.measure(
+                View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            view.layout(0, 0, width, view.getMeasuredHeight());
+          }
+          android.graphics.Rect phaseBounds = new android.graphics.Rect();
+          android.graphics.Rect statusBounds = new android.graphics.Rect();
+          phase.getDrawingRect(phaseBounds);
+          status.getDrawingRect(statusBounds);
+          var stripGroup = (android.view.ViewGroup) strip;
+          stripGroup.offsetDescendantRectToMyCoords(phase, phaseBounds);
+          stripGroup.offsetDescendantRectToMyCoords(status, statusBounds);
+          assertEquals(
+              "phase and diagnostic start",
+              rtl ? phaseBounds.right : phaseBounds.left,
+              rtl ? statusBounds.right : statusBounds.left,
+              1);
+          var statusLayout = status.getLayout();
+          float alignedEdge = rtl ? statusLayout.getLineRight(0) : statusLayout.getLineLeft(0);
+          var emptyLayout = empty.getLayout();
+          float textCenter = (emptyLayout.getLineLeft(0) + emptyLayout.getLineRight(0)) / 2;
+          System.out.printf(
+              Locale.ROOT,
+              "loadingUI %s density=%d scale=%.1f headingTextPx=%.1f phaseStart=%d statusStart=%d"
+                  + " diagnostic=%.1f/%d emptyCenter=%.1f/%d headingLines=%d%n",
+              locale.toLanguageTag(),
+              density,
+              scale,
+              phase.getTextSize(),
+              rtl ? phaseBounds.right : phaseBounds.left,
+              rtl ? statusBounds.right : statusBounds.left,
+              alignedEdge,
+              statusLayout.getWidth(),
+              textCenter,
+              emptyLayout.getWidth(),
+              phase.getLineCount());
+          assertEquals(
+              "mixed direction diagnostic", rtl ? statusLayout.getWidth() : 0, alignedEdge, 1);
+          assertEquals(
+              "empty message horizontal center", emptyLayout.getWidth() / 2f, textCenter, 1);
+          assertEquals(
+              "empty message vertical center",
+              empty.getTotalPaddingTop(),
+              empty.getTotalPaddingBottom(),
+              1);
+          assertEquals(View.TEXT_ALIGNMENT_CENTER, refresh.getTextAlignment());
+          assertTrue(phase.getIncludeFontPadding());
+          assertTrue(empty.getIncludeFontPadding());
+          assertTrue(
+              "large font scale is applied",
+              scale == 1f || phase.getTextSize() > 13f * density / 160);
+        }
+      }
+    }
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @TextLayoutMode(TextLayoutMode.Mode.REALISTIC)
+  public void catalogStatusShowsWordsOnBothLinesAndRetainsTheCompleteMessage() throws Exception {
+    PluginRepository repository = updateCheckRepository(new ArrayList<>());
+    try (var engine = new PluginManagementEngine(repository.getApplication(), repository)) {
+      fixture().updateEngine = engine;
+      var catalog = catalog(List.of(item("alpha")));
+      var management =
+          new com.deepseekharness.app.util.PluginManagementView(
+              "unavailable",
+              "MANAGEMENT_SERVICE_ABSENT",
+              "SERVICE_PRESENCE",
+              "unavailable",
+              "PATCH_PROVENANCE_UNVERIFIED",
+              "STARTUP_METADATA",
+              false,
+              List.of(),
+              10);
+      var constructor =
+          PluginRepository.State.class.getDeclaredConstructor(
+              PluginRegistry.Snapshot.class,
+              List.class,
+              boolean.class,
+              String.class,
+              boolean.class,
+              int.class,
+              int.class,
+              com.deepseekharness.app.util.PluginManagementView.class);
+      constructor.setAccessible(true);
+      String checking = "正在检测 Web、终端和本地安装的插件…";
+      for (Locale locale : List.of(Locale.SIMPLIFIED_CHINESE, Locale.forLanguageTag("ar-SA"))) {
+        boolean rtl = "ar".equals(locale.getLanguage());
+        UiText.setLanguage(rtl ? "ar" : "zh");
+        PluginRepository.State state =
+            constructor.newInstance(
+                catalog,
+                List.of(),
+                true,
+                checking,
+                true,
+                -1,
+                PluginRepository.State.RESULT_NONE,
+                management);
+        if (page == null) mount(state);
+        else publish(state);
+        TextView liveStatus = page.find(R.id.statusText);
+        String fullMessage = PluginFragment.stateMessage(state);
+        assertTrue(fullMessage.contains("\n\n"));
+        for (float scale : new float[] {1f, 1.5f, 2f}) {
+          Configuration config = new Configuration();
+          config.setLocale(locale);
+          config.densityDpi = rtl ? 320 : 160;
+          config.fontScale = scale;
+          var themed =
+              new ContextThemeWrapper(
+                  host.get().createConfigurationContext(config), R.style.Theme_DeepseekHarness);
+          View header = LayoutInflater.from(themed).inflate(R.layout.plugin_list_header, null);
+          header.setLayoutDirection(config.getLayoutDirection());
+          TextView status = header.findViewById(R.id.statusText);
+          status.setText(liveStatus.getText());
+          for (int id :
+              new int[] {R.id.pluginCount, R.id.btnCancelPluginTask, R.id.btnPluginUpdates}) {
+            TextView copy = header.findViewById(id);
+            TextView live = page.find(id);
+            copy.setVisibility(live.getVisibility());
+            copy.setText(live.getText());
+          }
+          int width = (scale == 2f ? 320 : 446) * config.densityDpi / 160;
+          header.measure(
+              View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+              View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+          header.layout(0, 0, width, header.getMeasuredHeight());
+          android.text.Layout lines = status.getLayout();
+          assertEquals(2, lines.getLineCount());
+          for (int line = 0; line < lines.getLineCount(); line++) {
+            int start = lines.getLineStart(line);
+            int end =
+                lines.getEllipsisCount(line) == 0
+                    ? lines.getLineEnd(line)
+                    : start + lines.getEllipsisStart(line);
+            String visible = status.getText().subSequence(start, end).toString().strip();
+            System.out.printf(
+                Locale.ROOT,
+                "statusLayout %s scale=%.1f widthPx=%d line=%d ellipsis=%d visible=%s%n",
+                locale.toLanguageTag(),
+                scale,
+                width,
+                line + 1,
+                lines.getEllipsisCount(line),
+                visible);
+            assertTrue(
+                "Status line must contain text: " + visible,
+                visible.codePoints().anyMatch(Character::isLetterOrDigit));
+          }
+        }
+        assertEquals(fullMessage, liveStatus.getContentDescription());
+        assertTrue(liveStatus.performClick());
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertEquals(fullMessage, text(dialog.findViewById(android.R.id.message)));
+        dialog.dismiss();
+      }
+    }
   }
 
   @Test
@@ -497,12 +1100,30 @@ public final class PluginFragmentRenderingTest {
                                 .put("parentId", "parent")
                                 .put("group", false)
                                 .put("patchDisabled", false)
-                                .put("patchReason", "ANCESTOR_DISABLED"))));
+                                .put("patchReason", "ANCESTOR_DISABLED")
+                                .put("runtimePhase", "active")
+                                .put("runtimeReason", "CONTENT_UNVERIFIED"))
+                        .put(
+                            new JSONObject()
+                                .put("entryId", "known-entry")
+                                .put("moduleHash", "b".repeat(64))
+                                .put("parentId", "")
+                                .put("group", false)
+                                .put("patchReason", "PROFILE_UNSET")
+                                .put("runtimePhase", "active")
+                                .put("runtimeReason", ""))
+                        .put(
+                            new JSONObject()
+                                .put("entryId", "unknown-entry")
+                                .put("moduleHash", "c".repeat(64))
+                                .put("parentId", "")
+                                .put("group", false)
+                                .put("patchReason", "ANCESTOR_UNKNOWN"))));
     String description = PluginFragment.entryConfigurationText(configured);
-    assertTrue(description.contains("current profile"));
-    assertTrue(description.contains("child"));
-    assertTrue(description.contains("Enabled"));
-    assertTrue(description.contains("Parent disabled"));
+    assertEquals(
+        "Entries (current profile)\nchild · Enabled · Parent disabled\n"
+            + "known-entry · No override · Loaded\nunknown-entry",
+        description);
     assertTrue(configured.enabled);
     var unavailable =
         new PluginRepository.Item(
@@ -510,7 +1131,7 @@ public final class PluginFragmentRenderingTest {
                 .put("name", "entry-bundle")
                 .put("entryReadError", "ENTRY_READER_UNAVAILABLE")
                 .put("entries", new org.json.JSONArray()));
-    assertTrue(PluginFragment.entryConfigurationText(unavailable).contains("Unverified"));
+    assertTrue(PluginFragment.entryConfigurationText(unavailable).contains("Unreadable"));
   }
 
   @Test
@@ -535,6 +1156,12 @@ public final class PluginFragmentRenderingTest {
       assertTrue(text.startsWith("Compatibility:"));
       if ("exempted".equals(value)) assertTrue(text.contains("read-only"));
     }
+    assertEquals("", PluginFragment.compatibilityText(item("unknown-compatibility")));
+    assertEquals(
+        "",
+        PluginFragment.compatibilityText(
+            new PluginRepository.Item(
+                new JSONObject().put("name", "sample").put("compatibilityState", "exempted"))));
   }
 
   @Test
@@ -621,7 +1248,8 @@ public final class PluginFragmentRenderingTest {
           ((android.widget.CompoundButton) rowAt(1).findViewById(R.id.pluginSwitch)).isChecked());
       assertEquals("Loaded", text(rowAt(1).findViewById(R.id.pluginRuntime)));
     }
-    assertEquals("Unverified", PluginFragment.operationBadgeText("future-result"));
+    assertEquals("", PluginFragment.operationBadgeText("future-result"));
+    assertEquals("Result unconfirmed", PluginFragment.operationBadgeText("UNCONFIRMED"));
     assertEquals("Timed out", PluginFragment.operationBadgeText("TIMEOUT"));
   }
 
@@ -710,6 +1338,168 @@ public final class PluginFragmentRenderingTest {
     assertEquals(List.of("beta", "alpha"), renderedNames());
     assertEquals(betaId, adapter().getItemId(1));
     assertEquals(alphaId, adapter().getItemId(2));
+  }
+
+  @Test
+  public void layoutCallbackDefersWholeProjectionAndKeepsLatestReceiptAndAnchor() throws Exception {
+    List<PluginRepository.Item> items = recoveryItems().subList(0, 12);
+    mount(state(catalog(items), List.of(), false, "original footer and header state", -1));
+    LayoutCallback manager = useLayoutCallback();
+    manager.scrollToPositionWithOffset(5, -13);
+    layout();
+    long anchorId = adapter().getItemId(5);
+    var observer = observe();
+    var states = fixture().states;
+    var progressItems = new ArrayList<>(items);
+    var target = items.get(0);
+    progressItems.set(0, target.withRuntime("loaded", 1));
+    var intermediate = state(catalog(progressItems), List.of(), true, "intermediate progress", 40);
+    var queue = new PluginOperationQueue.Queue<String>();
+    var operation =
+        queue.enqueue(
+            PluginOperationQueue.Type.SET_ENABLED, target.stableKey, false, "1.0", SOURCE, "");
+    assertSame(operation, queue.poll());
+    assertTrue(
+        queue.complete(
+            operation.operationId, PluginOperationQueue.Phase.FAILED, "fixture receipt"));
+    var finalItems = new ArrayList<>(items);
+    finalItems.add(item("000-first"));
+    var result = state(catalog(finalItems), queue.snapshot(), false, "latest receipt", -1);
+    TextView status = page.find(R.id.statusText);
+    TextView empty = page.find(R.id.pluginEmpty);
+    EditText search = page.find(R.id.pluginSearch);
+    CheckBox filter = page.find(R.id.chkHideBuiltin);
+
+    runDuringLayout(
+        manager,
+        () -> {
+          // 旧实现走与真机崩溃一致的非结构变化 notifyItemRangeChanged。
+          states.setValue(intermediate);
+          search.setText("not present");
+          states.setValue(result);
+          filter.setChecked(true);
+          search.setText("keep");
+          observer.assertNone();
+          assertEquals(14, adapter().getItemCount());
+          assertEquals("original footer and header state", text(status));
+          assertEquals(View.GONE, empty.getVisibility());
+        });
+    observer.assertNone();
+    layout();
+
+    assertEquals(15, adapter().getItemCount());
+    assertEquals(anchorId, adapter().getItemId(6));
+    assertEquals(6, manager.findFirstVisibleItemPosition());
+    assertEquals(
+        -13, manager.getDecoratedTop(manager.findViewByPosition(6)) - list().getPaddingTop());
+    assertEquals("latest receipt", text(status));
+    assertEquals(View.GONE, empty.getVisibility());
+    assertEquals(0, observer.fullChanges);
+    assertEquals(2, observer.events.size());
+    assertTrue(observer.events.stream().anyMatch(e -> e.kind.equals("insert") && e.position == 1));
+    int targetPosition = observer.events.get(0).kind.equals("insert") ? 2 : 1;
+    assertTrue(
+        observer.events.stream()
+            .anyMatch(
+                e ->
+                    e.kind.equals("change")
+                        && e.position == targetPosition
+                        && Integer.valueOf(PluginListPresenter.OPERATION).equals(e.payload)));
+    assertEquals("Failed", text(rowAt(2).findViewById(R.id.pluginStatus)));
+    System.out.printf(
+        "layout snapshot events=%s,%s anchorOffset=-13 itemCount=15 receipt=Failed%n",
+        observer.events.get(0).kind, observer.events.get(1).kind);
+
+    observer.clear();
+    runDuringLayout(
+        manager,
+        () -> {
+          search.setText("not present");
+          observer.assertNone();
+          assertEquals(View.GONE, empty.getVisibility());
+        });
+    layout();
+    observer.assertSingle("remove", 1, 13);
+    assertEquals(View.VISIBLE, empty.getVisibility());
+  }
+
+  @Test
+  public void detachedViewDefersUpdatesUntilAttachAndDestroyedViewCannotReplay() throws Exception {
+    var old = state(catalog(List.of(item("alpha"))), List.of(), false, "old view", -1);
+    var obsolete = state(catalog(List.of(item("beta"))), List.of(), false, "obsolete callback", -1);
+    var newest = state(catalog(List.of(item("latest"))), List.of(), false, "latest view", -1);
+    mount(old);
+    LayoutCallback manager = useLayoutCallback();
+    var states = fixture().states;
+    var observer = observe();
+    RecyclerView originalList = list();
+    TextView originalStatus = page.find(R.id.statusText);
+    RecyclerView.Adapter<?> originalAdapter = adapter();
+    var parent = (android.view.ViewGroup) originalList.getParent();
+    int index = parent.indexOfChild(originalList);
+    assertTrue(originalList.isAttachedToWindow());
+
+    runDuringLayout(manager, () -> states.setValue(obsolete));
+    parent.removeView(originalList);
+    states.setValue(newest);
+    org.robolectric.shadows.ShadowLooper.shadowMainLooper().idle();
+    observer.assertNone();
+    assertEquals("old view", text(originalStatus));
+    parent.addView(originalList, index);
+    layout();
+    assertEquals("latest view", text(originalStatus));
+    assertEquals(List.of("latest"), renderedNames());
+
+    observer.clear();
+    runDuringLayout(manager, () -> states.setValue(obsolete));
+    host.get().getSupportFragmentManager().beginTransaction().detach(page).commitNow();
+    assertNull(originalList.getAdapter());
+    states.setValue(newest);
+    org.robolectric.shadows.ShadowLooper.shadowMainLooper().idle();
+    observer.assertNone();
+    assertEquals("latest view", text(originalStatus));
+    originalAdapter.unregisterAdapterDataObserver(observer);
+    host.get().getSupportFragmentManager().beginTransaction().attach(page).commitNow();
+    layout();
+    assertNotSame(originalList, list());
+    assertEquals("latest view", text(page.find(R.id.statusText)));
+    assertEquals(List.of("latest"), renderedNames());
+    System.out.println("detached and destroyed view notifications=0, reattached item=latest");
+  }
+
+  private LayoutCallback useLayoutCallback() {
+    LayoutCallback manager = new LayoutCallback(host.get());
+    list().setLayoutManager(manager);
+    layout();
+    return manager;
+  }
+
+  private void runDuringLayout(LayoutCallback manager, Runnable callback) {
+    RecyclerView list = list();
+    manager.callback =
+        () -> {
+          assertTrue("the real RecyclerView must lock layout", list.isComputingLayout());
+          callback.run();
+        };
+    list.requestLayout();
+    measureAndLayout(list);
+    assertNull("the LayoutManager callback must run", manager.callback);
+  }
+
+  private static final class LayoutCallback extends LinearLayoutManager {
+    Runnable callback;
+
+    LayoutCallback(android.content.Context context) {
+      super(context);
+    }
+
+    @Override
+    public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State state) {
+      super.onLayoutChildren(recycler, state);
+      Runnable run = callback;
+      callback = null;
+      if (run != null) run.run();
+    }
   }
 
   @Test
@@ -882,6 +1672,35 @@ public final class PluginFragmentRenderingTest {
     return constructor.newInstance(catalog, operations, busy, message, busy, percent);
   }
 
+  private static PluginRepository.State configurationState(
+      PluginRegistry.Snapshot catalog, List<PluginRepository.Item> configured, boolean refreshing)
+      throws Exception {
+    Constructor<PluginRepository.State> constructor =
+        PluginRepository.State.class.getDeclaredConstructor(
+            PluginRegistry.Snapshot.class,
+            List.class,
+            boolean.class,
+            String.class,
+            boolean.class,
+            int.class,
+            int.class,
+            com.deepseekharness.app.util.PluginManagementView.class,
+            List.class,
+            boolean.class);
+    constructor.setAccessible(true);
+    return constructor.newInstance(
+        catalog,
+        List.of(),
+        refreshing,
+        "",
+        false,
+        -1,
+        PluginRepository.State.RESULT_NONE,
+        null,
+        configured,
+        refreshing);
+  }
+
   private Fixture fixture() {
     return new ViewModelProvider(host.get()).get(Fixture.class);
   }
@@ -967,23 +1786,23 @@ public final class PluginFragmentRenderingTest {
 
   private void chooseSort(PluginSort.Mode mode) {
     assertTrue(page.find(R.id.btnSort).performClick());
-    org.robolectric.shadows.ShadowLooper.shadowMainLooper().idle();
-    AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
-    assertNotNull(dialog);
-    assertTrue(dialog.isShowing());
-    // G1：排序入口改为底部抽屉，按文案点对应行（不再是单选 ListView）。
     int[] labels = {
       R.string.plugin_sort_az,
       R.string.plugin_sort_za,
       R.string.plugin_sort_enabled,
       R.string.plugin_sort_updates
     };
-    View title =
-        findText(
-            dialog.getWindow().getDecorView(),
-            page.requireContext().getString(labels[mode.ordinal()]));
-    assertNotNull("排序抽屉必须包含选项：" + mode, title);
-    // 文案在行内层叠容器里；点为整行（可点祖先）才是抽屉的选择动作。
+    chooseDrawerEntry(page.requireContext().getString(labels[mode.ordinal()]));
+  }
+
+  private void chooseDrawerEntry(String label) {
+    org.robolectric.shadows.ShadowLooper.shadowMainLooper().idle();
+    AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+    assertNotNull(dialog);
+    assertTrue(dialog.isShowing());
+    View title = findText(dialog.getWindow().getDecorView(), label);
+    assertNotNull(label, title);
+    // The clickable row contains the title and optional description.
     View row = title;
     while (row != null && !row.isClickable()) row = (View) row.getParent();
     assertNotNull(row);
@@ -1013,6 +1832,13 @@ public final class PluginFragmentRenderingTest {
     return text(row.findViewById(R.id.pluginStatus))
         + "\n"
         + text(row.findViewById(R.id.pluginRuntime));
+  }
+
+  private static void assertNoRuntimeBadge(View row) {
+    TextView badge = row.findViewById(R.id.pluginRuntime);
+    assertEquals(View.GONE, badge.getVisibility());
+    assertEquals("", text(badge));
+    assertNull(badge.getContentDescription());
   }
 
   /** 与生产一致的胶囊底色：同一语义色 18% 填充（中性用 raised）。 */

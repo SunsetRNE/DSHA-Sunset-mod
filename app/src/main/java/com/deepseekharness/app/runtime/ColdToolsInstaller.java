@@ -1,5 +1,6 @@
 package com.deepseekharness.app.runtime;
 
+import com.deepseekharness.app.util.BundledRootfsAsset;
 import com.deepseekharness.app.util.Compat;
 import com.deepseekharness.app.util.SensitiveData;
 import java.io.File;
@@ -105,12 +106,6 @@ final class ColdToolsInstaller {
       ProotBootstrap boot, java.util.function.BiConsumer<Long, Long> progress) throws IOException {
     var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
     boot.requireColdCandidate();
-    var archiveDigest = com.deepseekharness.app.backup.BackupArchive.sha();
-    try (InputStream input =
-        new java.security.DigestInputStream(
-            boot.ctx.getAssets().open("ubuntu-tools.bin"), archiveDigest)) {
-      TarGzipExtractor.extractAuto(input, boot.rootfsDir, 0);
-    }
     var manifest =
         com.deepseekharness.app.backup.BackupJson.read(
             boot.readAssetString("ubuntu-tools.manifest.json")
@@ -122,9 +117,10 @@ final class ColdToolsInstaller {
         com.deepseekharness.app.backup.BackupJson.string(manifest, "packageLockSha256");
     if (!archiveHash.matches("[a-f0-9]{64}") || !lockHash.matches("[a-f0-9]{64}"))
       throw new IOException("COLD_CONFIGURED_MANIFEST");
-    if (!archiveHash.equals(
-        com.deepseekharness.app.backup.BackupArchive.hex(archiveDigest.digest())))
-      throw new IOException("COLD_CONFIGURED_ARCHIVE_CHANGED");
+    try (InputStream input = boot.ctx.getAssets().open("ubuntu-tools.bin");
+        InputStream decoded = BundledRootfsAsset.decode(input, archiveHash)) {
+      TarGzipExtractor.extractAuto(decoded, boot.rootfsDir, 0);
+    }
     File marker = new File(boot.rootfsDir, "root/.dsha-ubuntu-tools-version");
     if (!new String(fs.small(marker, 128), java.nio.charset.StandardCharsets.US_ASCII)
         .trim()

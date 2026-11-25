@@ -4,13 +4,18 @@ import static org.junit.Assert.*;
 
 import android.graphics.Rect;
 import android.os.Looper;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckedTextView;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import androidx.appcompat.app.AlertDialog;
 import com.deepseekharness.app.DshaApp;
 import com.deepseekharness.app.R;
+import com.deepseekharness.app.ui.DshaDialogBuilder;
+import com.deepseekharness.app.util.VirtualScreenDisplayPreset;
 import java.util.ArrayList;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -437,5 +442,175 @@ public final class VirtualScreenActivityLayoutTest {
     assertTrue(sub.getText().toString(), sub.getText().toString().contains("720×1600 @320"));
     assertTrue(sub.getText().toString(), sub.getText().toString().contains("360×800 dp"));
     assertEquals("compat-720", VirtualScreenDisplaySettings.preset(activity).id);
+  }
+
+  @Test
+  public void displaySizeDialogShowsBothChoicesAndAcceptsExactlyTheTappedPreset() throws Exception {
+    var manager = ((App) RuntimeEnvironment.getApplication()).virtualScreenManager();
+    var initialState = manager.lifecycleState();
+    var initialGeneration = manager.generation();
+    var original = VirtualScreenDisplaySettings.preset(activity);
+    String defaultId = VirtualScreenDisplayPreset.DEFAULT_ID;
+    String compatId = VirtualScreenDisplayPreset.COMPAT_720_ID;
+
+    AlertDialog dialog = openDisplaySizeDialog(360);
+    assertDisplayChoices(dialog, original.id.equals(defaultId) ? 0 : 1);
+    int originalPosition = dialog.getListView().getCheckedItemPosition();
+    int alternatePosition = 1 - originalPosition;
+    assertTrue(
+        dialog
+            .getListView()
+            .performItemClick(
+                dialog.getListView().getChildAt(alternatePosition),
+                alternatePosition,
+                dialog.getListView().getItemIdAtPosition(alternatePosition)));
+    drain();
+    assertFalse(dialog.isShowing());
+    assertEquals(
+        alternatePosition == 0 ? defaultId : compatId,
+        VirtualScreenDisplaySettings.preset(activity).id);
+
+    dialog = openDisplaySizeDialog(360);
+    assertDisplayChoices(dialog, alternatePosition);
+    assertTrue(
+        dialog
+            .getListView()
+            .performItemClick(
+                dialog.getListView().getChildAt(originalPosition),
+                originalPosition,
+                dialog.getListView().getItemIdAtPosition(originalPosition)));
+    drain();
+    assertEquals(original.id, VirtualScreenDisplaySettings.preset(activity).id);
+    dialog = openDisplaySizeDialog(360);
+    assertDisplayChoices(dialog, originalPosition);
+    assertTrue(dialog.getButton(AlertDialog.BUTTON_NEGATIVE).performClick());
+    drain();
+    assertFalse(dialog.isShowing());
+    assertEquals(original.id, VirtualScreenDisplaySettings.preset(activity).id);
+    assertEquals(initialState, manager.lifecycleState());
+    assertEquals(initialGeneration, manager.generation());
+  }
+
+  @Test
+  @Config(qualifiers = "w320dp-h600dp-mdpi")
+  public void narrowLargeTextKeepsBothChoicesSelectableAndExplanationInTheList() {
+    RuntimeEnvironment.setFontScale(2f);
+    try {
+      AlertDialog dialog = openDisplaySizeDialog(292);
+      int originalPosition =
+          VirtualScreenDisplayPreset.DEFAULT_ID.equals(
+                  VirtualScreenDisplaySettings.preset(activity).id)
+              ? 0
+              : 1;
+      assertDisplayChoices(dialog, originalPosition);
+      var list = dialog.getListView();
+      list.setSelectionFromTop(1, 0);
+      measureDialog(dialog, 292);
+      TextView explanation = dialog.findViewById(android.R.id.message);
+      assertNotNull(explanation);
+      assertTrue(explanation.getText().toString().contains("之后创建或旋转"));
+      assertTrue(explanation.isShown());
+      assertTrue(explanation.getHeight() > 0);
+      assertFalse(list.getAdapter().isEnabled(2));
+      assertTrue(list.getHeight() > 0);
+      assertTrue("Measured list width " + list.getWidth(), list.getWidth() <= 320);
+
+      dialog.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK));
+      dialog.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK));
+      drain();
+      assertFalse(dialog.isShowing());
+      assertEquals(
+          originalPosition == 0
+              ? VirtualScreenDisplayPreset.DEFAULT_ID
+              : VirtualScreenDisplayPreset.COMPAT_720_ID,
+          VirtualScreenDisplaySettings.preset(activity).id);
+    } finally {
+      RuntimeEnvironment.setFontScale(1f);
+    }
+  }
+
+  @Test
+  public void standaloneDialogMessageAndStandaloneSingleChoiceKeepTheirOriginalPanels() {
+    AlertDialog messageOnly =
+        new DshaDialogBuilder(activity)
+            .setMessage(android.R.string.ok)
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
+    drain();
+    assertNull(messageOnly.getListView());
+    assertEquals(
+        activity.getText(android.R.string.ok),
+        ((TextView) messageOnly.findViewById(android.R.id.message)).getText());
+    messageOnly.dismiss();
+
+    var clicks = new ArrayList<Integer>();
+    AlertDialog choicesOnly =
+        new DshaDialogBuilder(activity)
+            .setSingleChoiceItems(
+                new CharSequence[] {"A", "B"}, 1, (dialog, which) -> clicks.add(which))
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
+    drain();
+    measureDialog(choicesOnly, 360);
+    var list = choicesOnly.getListView();
+    assertEquals(2, list.getCount());
+    assertEquals(1, list.getCheckedItemPosition());
+    assertTrue(list.performItemClick(list.getChildAt(0), 0, list.getItemIdAtPosition(0)));
+    assertEquals(java.util.List.of(0), clicks);
+    choicesOnly.dismiss();
+
+    AlertDialog emptyMessageAndChoices =
+        new DshaDialogBuilder(activity)
+            .setSingleChoiceItems(new CharSequence[] {"A", "B"}, 1, null)
+            .setMessage("")
+            .show();
+    drain();
+    measureDialog(emptyMessageAndChoices, 360);
+    list = emptyMessageAndChoices.getListView();
+    assertNotNull("An empty message must not hide the options", list.getParent());
+    assertEquals(2, list.getCount());
+    assertEquals(1, list.getCheckedItemPosition());
+    emptyMessageAndChoices.dismiss();
+  }
+
+  private AlertDialog openDisplaySizeDialog(int width) {
+    assertTrue(activity.findViewById(R.id.vscreen_display_spec_row).performClick());
+    drain();
+    AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+    assertNotNull(dialog);
+    assertTrue(dialog.isShowing());
+    measureDialog(dialog, width);
+    return dialog;
+  }
+
+  private void measureDialog(AlertDialog dialog, int width) {
+    View decor = dialog.getWindow().getDecorView();
+    forceLayout(decor);
+    decor.measure(
+        View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+        View.MeasureSpec.makeMeasureSpec(550, View.MeasureSpec.AT_MOST));
+    decor.layout(0, 0, width, decor.getMeasuredHeight());
+    drain();
+  }
+
+  private static void assertDisplayChoices(AlertDialog dialog, int selected) {
+    var list = dialog.getListView();
+    assertNotNull(list);
+    assertNotNull("The live dialog must attach its options to the window", list.getParent());
+    assertTrue(list.isShown());
+    assertEquals(3, list.getCount());
+    assertTrue(list.getAdapter().isEnabled(0));
+    assertTrue(list.getAdapter().isEnabled(1));
+    assertFalse(list.getAdapter().isEnabled(2));
+    assertEquals(selected, list.getCheckedItemPosition());
+    assertTrue(list.getChildCount() >= 2);
+    var standard = (CheckedTextView) list.getChildAt(0);
+    var compat = (CheckedTextView) list.getChildAt(1);
+    assertTrue(standard.isShown());
+    assertTrue(compat.isShown());
+    assertTrue(standard.getText().toString().contains("1008×1792 @320"));
+    assertTrue(compat.getText().toString().contains("720×1600 @320"));
+    assertEquals(selected == 0, standard.isChecked());
+    assertEquals(selected == 1, compat.isChecked());
   }
 }

@@ -19,8 +19,8 @@ python3 tools/format-java.py --check --files app/src/main/java/com/deepseekharne
 does not traverse the whole source tree. The entire selection must pass ownership,
 path, syntax and token checks before any write. `--files` and either `--check` or
 `--write` are required. There is no automatic whole-repository write. Paths outside
-the project, links, generated files, history, third-party source trees and the
-decompiled `ShellService.java` original are refused. Import sorting, unused import
+the project, links, generated files, history, third-party source trees and any files listed
+in the formatter lock as protected are refused. Import sorting, unused import
 removal, string reflow and Javadoc reflow are disabled. The actual JDK lexer checks
 that every non-comment token, including literal spelling, remains identical;
 unsupported literal changes fail instead of being waived.

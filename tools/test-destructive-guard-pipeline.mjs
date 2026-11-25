@@ -47,9 +47,14 @@ async function runtime(modules){
 const full=await runtime(tree('full',RECIPES));
 // 两个执行器都必须解析到本 fixture 的补丁 pipeline，而不是原始树。
 for(const Executor of [full.native.NativeToolExecutor,full.ptc.PtcExecutor]){
- const pipeline=new Executor({tools:{executable(){}},systemPrompt:{getSectionOrder(){return 1;}}}).pipeline;
- const methods=['createExecution','prepare','dispatchToolBody'].map(name=>Object.getPrototypeOf(pipeline)[name].toString()).join('\n');
- for(const hook of ['captureExecution(this.tools','prepareOperation(this.tools','verifyGlobalConsent(exec)','verifyDispatch(this.tools'])assert(methods.includes(hook),hook);
+ const ctx=new full.Context();
+ ctx.provide('tools',{executable(){}});
+ ctx.provide('systemPrompt',{getSectionOrder(){return 1;}});
+ try{
+  const pipeline=new Executor(ctx).pipeline;
+  const methods=['createExecution','prepare','dispatchToolBody'].map(name=>Object.getPrototypeOf(pipeline)[name].toString()).join('\n');
+  for(const hook of ['captureExecution(this.tools','prepareOperation(this.tools','verifyGlobalConsent(exec)','verifyDispatch(this.tools'])assert(methods.includes(hook),hook);
+ }finally{await ctx.fiber.dispose();}
 }
 const original=fs.readFileSync(path.join(root,'tools/test-destructive-guard.mjs'),'utf8');
 const literal=original.slice(original.indexOf('const KNOWN_BYPASS = [')+'const KNOWN_BYPASS = '.length,original.indexOf('\n];',original.indexOf('const KNOWN_BYPASS = ['))+3);
@@ -113,9 +118,9 @@ for(const key of ['arguments','name','toolSet']){
  const result=await call(ctx,{ctx,session:session('/root/work')},key==='name'?'read':'bash',{command:'rm /approved'});assert(result.isError,key);assert.equal(bodies,0,key);assert.equal(asks,key==='name'?0:1,key);await ctx.fiber.dispose();
 }
 // 真实 0.2.2 文件系统 provider 与 write/edit/editor 工具体，只写私有临时目录。
-async function fsContext(rt,{cwd=directory,executor='native',ptcRuntime}={}){
+async function fsContext(rt,{cwd=directory,executor='native',ptcRuntime,applyPatch=false}={}){
  const ctx=await context(rt,{cwd,executor,ptcRuntime});new rt.LocalFileSystem(ctx,{cwd,diffBasisMaxBytes:1048576});
- rt.fsTools.apply(ctx,rt.fsTools.Config({readImage:false}));rt.editor.apply(ctx,{maxOutputChars:16000,description:'temporary editor'});
+ rt.fsTools.apply(ctx,rt.fsTools.Config({readImage:false,applyPatch}));rt.editor.apply(ctx,{maxOutputChars:16000,description:'temporary editor'});
  return ctx;
 }
 for(const outcome of ['allowed-once','rejected','cancelled','unavailable']){
@@ -158,10 +163,22 @@ for(const [label,omitted] of [['no-pipeline-hooks','guard-tools-pipeline-patch.j
  const result=await call(ctx,{ctx,session:session(directory)},'write',{file_path:file,content:'replacement'});
  assert(result.isError,label);assert.equal(fs.readFileSync(file,'utf8'),'original',label);await ctx.fiber.dispose();cases++;
 }
-// apply_patch：上游默认关闭（用户决定不加 DSHA 拒绝补丁）。默认配置下不得注册。
+// apply_patch stays disabled by default and requires the same approval when enabled.
 {
  assert.equal(full.fsTools.Config({}).applyPatch,false);
  const ctx=await fsContext(full);assert.equal(ctx.tools.get('apply_patch'),undefined);assert(ctx.tools.get('write'));await ctx.fiber.dispose();cases++;
+}
+for (const outcome of ['allowed-once', 'rejected']) {
+ const ctx=await fsContext(full,{applyPatch:true});
+ let asks=0;
+ ctx.on('approval/request',async request=>{assert.equal(request.toolName,'apply_patch');asks++;return outcome;});
+ const target='patch-'+outcome+'.txt';
+ const input='*** Begin Patch\n*** Add File: '+target+'\n+fixture text\n*** End Patch\n';
+ const result=await call(ctx,{ctx,session:session(directory)},'apply_patch',{input});
+ assert.equal(result.isError===true,outcome!=='allowed-once',JSON.stringify(result));
+ assert.equal(fs.existsSync(path.join(directory,target)),outcome==='allowed-once');
+ assert.equal(asks,1);
+ await ctx.fiber.dispose();cases++;
 }
 Module._load=originalLoad;
 fs.rmSync(directory,{recursive:true,force:true});

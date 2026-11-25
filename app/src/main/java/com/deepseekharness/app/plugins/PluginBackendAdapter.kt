@@ -6,7 +6,9 @@ import com.deepseekharness.app.backup.AndroidBackupFileSystem
 import com.deepseekharness.app.backup.BackupFileSystem
 import com.deepseekharness.app.backup.UserDataLayout
 import com.deepseekharness.app.core.MaintenanceCoordinator
+import com.deepseekharness.app.plugins.PluginChangeDetector.GuestLayout
 import com.deepseekharness.app.plugins.PluginChangeDetector.Kind
+import com.deepseekharness.app.plugins.PluginChangeDetector.Scope
 import com.deepseekharness.app.plugins.PluginChangeDetector.WatchPath
 import com.deepseekharness.app.util.BuiltinPlugins
 import com.deepseekharness.app.util.ColdInstallPackages
@@ -115,7 +117,12 @@ private constructor(
 
     /** 只读取根身份和小型运行时标记正文；其摘要不是包内容校验证明。 两次正文/根/选择记录/Web 代次核对之间发生换代时拒绝结果，不自动重试。 */
     @Throws(IOException::class)
-    fun resolveSource(): ResolvedSource {
+    fun resolveSourceIdentity(): PluginSourceIdentity = resolve(false).identity
+
+    @Throws(IOException::class) fun resolveSource(): ResolvedSource = resolve(true)
+
+    @Throws(IOException::class)
+    private fun resolve(withWatches: Boolean): ResolvedSource {
         requireBackground()
         // 只规范化 framework dataDir 的平台别名；可写 files 自身必须经过 NOFOLLOW 与 inode 绑定。
         val host = bindHost()
@@ -125,16 +132,14 @@ private constructor(
         if (blocked.isNotEmpty()) throw IOException(blocked)
         val relativeRoot = relative(filesDir, rootfs)
         val root = File(files, relativeRoot)
-        checkedPath(files, root)
-        val rootNode = requireDirectory(root)
+        val rootNode = requireDirectory(checkedPath(files, root))
         val generation = webGeneration.getAsLong()
         val markers = markerPaths(files, root)
         val markerDigest = markerDigest(files, markers)
         val layout = UserDataLayout(fs, files)
         val data = layout.current()
-        checkedPath(files, data)
-        val dataNode = requireDirectory(data)
-        val watches = observedPaths(files, root, data, markers)
+        val dataNode = requireDirectory(checkedPath(files, data))
+        val watches = if (withWatches) observedPaths(files, root, data, markers) else emptyList()
         if (
             markerDigest != markerDigest(files, markers) ||
                 data != layout.current() ||
@@ -228,16 +233,19 @@ private constructor(
         addWatch(result, files, root, Kind.SOURCE_IDENTITY, false)
         addWatch(result, files, data, Kind.SOURCE_IDENTITY, false)
         for (marker in markers) addWatch(result, files, marker, Kind.SOURCE_IDENTITY, false)
-        for (directory in
+        val layout = GuestLayout(root, data, fs)
+        for (directory in arrayOf("plugin-src", "node_modules")) {
+            result.add(WatchPath(data, File(data, directory), Kind.CONTENT, Scope.PACKAGES, layout))
+        }
+        for ((directory, scope) in
             arrayOf(
-                "plugin-src",
-                "node_modules",
-                "profiles",
-                "plugin-previews",
-                "plugin-history",
-                "plugin-dependency-locks",
-                "plugin-install-operations",
-            )) addWatch(result, data, File(data, directory), Kind.CONTENT, true)
+                "profiles" to Scope.PROFILES,
+                "plugin-previews" to Scope.PREVIEWS,
+                "plugin-history" to Scope.HISTORY,
+                "plugin-install-operations" to Scope.JOURNALS,
+            )) {
+            result.add(WatchPath(data, File(data, directory), Kind.CONTENT, scope, layout))
+        }
         for (file in
             arrayOf(
                 "plugin-sources.json",
@@ -245,6 +253,15 @@ private constructor(
                 "plugin-activations.json",
                 "plugin-safe-mode.json",
             )) addWatch(result, data, File(data, file), Kind.CONTENT, false)
+        for (file in
+            arrayOf(
+                "package.json",
+                "package.json.lock",
+                "cordis.patch.yml",
+                "compatibility.json",
+            )) {
+            result.add(WatchPath(data, File(data, "profiles/web/" + file), Kind.CONTENT, false))
+        }
         addWatch(
             result,
             files,
@@ -252,13 +269,36 @@ private constructor(
             Kind.CONTENT,
             false,
         )
-        addWatch(result, root, File(root, "root/node_modules"), Kind.CONTENT, true)
-        addWatch(result, root, File(root, "usr/local/lib/node_modules"), Kind.CONTENT, true)
+        result.add(WatchPath(root, File(root, "root"), Kind.CONTENT, Scope.HOME_PACKAGES, layout))
+        for (directory in
+            arrayOf(
+                "root/node_modules",
+                "usr/local/lib/node_modules",
+                "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules",
+            )) {
+            result.add(WatchPath(root, File(root, directory), Kind.CONTENT, Scope.PACKAGES, layout))
+        }
+        result.add(
+            WatchPath(
+                root,
+                File(root, "usr/local/lib/node_modules/@deepseek-ai/dsh/package.json"),
+                Kind.CONTENT,
+                false,
+            )
+        )
         addWatch(result, root, File(root, "root/dsha-builtin.txt"), Kind.CONTENT, false)
         for (name in BuiltinPlugins.SIGNED_BUILTINS) {
             val guest = BuiltinPlugins.entityDir(name)
             if (!guest.startsWith("/root/")) throw IOException("PLUGIN_BUILTIN_PATH")
-            addWatch(result, root, File(root, guest.substring(1)), Kind.CONTENT, true)
+            result.add(
+                WatchPath(
+                    root,
+                    File(root, guest.substring(1)),
+                    Kind.CONTENT,
+                    Scope.SIGNED_BUILTIN,
+                    layout,
+                )
+            )
         }
         addWatch(
             result,
@@ -303,8 +343,11 @@ private constructor(
     }
 
     @Throws(IOException::class)
-    private fun requireDirectory(path: File): BackupFileSystem.Node {
-        val node = fs.stat(path)
+    private fun requireDirectory(path: File): BackupFileSystem.Node =
+        requireDirectory(fs.stat(path))
+
+    @Throws(IOException::class)
+    private fun requireDirectory(node: BackupFileSystem.Node): BackupFileSystem.Node {
         if (!node.type.equals("DIRECTORY") || node.key == null || node.key.isEmpty())
             throw IOException("PLUGIN_SOURCE_ROOT_UNAVAILABLE")
         return node
@@ -325,7 +368,7 @@ private constructor(
         if (path == base) return ""
         if (!path.startsWith(base + File.separator)) throw IOException("PLUGIN_SOURCE_OUTSIDE_ROOT")
         val relative = path.substring(base.length + 1).replace(File.separatorChar, '/')
-        for (part in Pattern.compile("/").split(relative, -1)) if (
+        for (part in PATH_SEPARATOR.split(relative, -1)) if (
             part.isEmpty() || part == "." || part == ".."
         )
             throw IOException("PLUGIN_SOURCE_UNSAFE_PATH")
@@ -333,6 +376,7 @@ private constructor(
     }
 
     companion object {
+        private val PATH_SEPARATOR = Pattern.compile("/")
         private const val MARKER_LIMIT = 2 * 1024 * 1024
         private val BASE_MARKERS =
             arrayOf(

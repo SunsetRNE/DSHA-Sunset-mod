@@ -11,6 +11,7 @@ public class StartupPipelineTest {
       implements StartupPipeline.Runtime, StartupPipeline.Diagnostics, StartupPipeline.Actions {
     final List<String> calls = new ArrayList<>();
     final List<String> messages = new ArrayList<>();
+    final List<String> stages = new ArrayList<>();
     boolean current = true;
     String failure = "";
     String staleAt = "";
@@ -121,7 +122,9 @@ public class StartupPipelineTest {
       return current;
     }
 
-    public void stage(String value) {}
+    public void stage(String value) {
+      stages.add(value);
+    }
 
     public void status(String value) {}
 
@@ -257,6 +260,78 @@ public class StartupPipelineTest {
       assertTrue(
           "unknown/不完整迁移结果必须可见",
           blocked.messages.stream().anyMatch(line -> line.contains("RC1_MIGRATION")));
+    }
+  }
+
+  @Test
+  public void onlyCurrentStructuredMissingLegacyReceiptGetsMigrationReview() throws Exception {
+    String receipt =
+        "DSHA_RC1_MIGRATION={\"resultVersion\":3,\"startupId\":\"fixture\","
+            + "\"phase\":\"prepare\",\"status\":\"pending\","
+            + "\"verificationScope\":\"historical\",\"contentCopyStatus\":\"verified\","
+            + "\"executionState\":\"NOT_SENT\",\"reason\":\"LEGACY_COMPLETION_RECEIPT_MISSING\"}";
+    String review = "LEGACY_COMPLETION_RECEIPT_MISSING";
+    for (boolean safe : List.of(false, true)) {
+      Fixture f = new Fixture();
+      f.migrationReceipt = receipt;
+      IOException failure =
+          assertThrows(IOException.class, () -> new StartupPipeline(f, f).prepare(13, safe, f));
+      System.out.printf("migration receipt safe=%s result=%s%n", safe, failure.getMessage());
+      assertEquals(review, failure.getMessage());
+      assertTrue(f.messages.contains("13:" + receipt));
+      assertTrue(f.stages.contains(com.deepseekharness.app.util.UiText.text("检查旧版数据迁移")));
+      assertFalse(f.calls.contains("cas-copy"));
+      assertFalse(f.calls.contains("register"));
+      assertFalse(f.calls.contains("checkpoint"));
+    }
+    int controls = 0;
+    for (String other :
+        List.of(
+            receipt.replace("fixture", "older-startup"),
+            receipt.replace("\"resultVersion\":3", "\"resultVersion\":2"),
+            receipt.replace("prepare", "finalize"),
+            receipt.replace("pending", "unknown"),
+            receipt.replace("historical", "current"),
+            receipt.replace("verified", "unknown"),
+            receipt.replace("NOT_SENT", "UNKNOWN"),
+            receipt.replace(review, "RC5_RECHECK_UNRECOGNIZED"),
+            receipt.replace(
+                "LEGACY_COMPLETION_RECEIPT_MISSING", "SETTINGS_PENDING_READBACK_OR_REVIEW"),
+            receipt.replace("\"executionState\":\"NOT_SENT\",", ""),
+            receipt + "\n" + receipt,
+            receipt.replace("DSHA_RC1_MIGRATION=", "guest output: "))) {
+      Fixture f = new Fixture();
+      f.migrationReceipt = other;
+      IOException failure =
+          assertThrows(IOException.class, () -> new StartupPipeline(f, f).prepare(13, false, f));
+      assertNotEquals("control " + ++controls, review, failure.getMessage());
+      assertFalse(f.calls.contains("checkpoint"));
+      assertFalse(f.calls.contains("register"));
+    }
+    Fixture superseded = new Fixture();
+    superseded.migrationReceipt = receipt;
+    superseded.staleAt = "migration";
+    assertNull(new StartupPipeline(superseded, superseded).prepare(13, false, superseded));
+    assertFalse(superseded.calls.contains("register"));
+    System.out.printf("migration rejected controls=%d superseded-launches=0%n", controls);
+    for (String rc5 :
+        List.of(
+            "RC5_RECHECK_LEGACY_INPUTS",
+            "RC5_RECHECK_LEGACY_RECORD",
+            "RC5_RECHECK_WRITE_EVIDENCE",
+            "RC5_RECHECK_SNAPSHOT_UNVERIFIED",
+            "RC5_RECHECK_PREPARE_UNVERIFIED",
+            "RC5_RECHECK_INPUT_CHANGED",
+            "RC5_RECHECK_UNAVAILABLE")) {
+      Fixture f = new Fixture();
+      f.migrationReceipt = receipt.replace(review, rc5);
+      if (rc5.equals("RC5_RECHECK_INPUT_CHANGED"))
+        f.migrationReceipt = f.migrationReceipt.replace("verified", "unknown");
+      IOException failure =
+          assertThrows(IOException.class, () -> new StartupPipeline(f, f).prepare(13, false, f));
+      assertEquals(rc5, failure.getMessage());
+      assertFalse(f.calls.contains("register"));
+      System.out.printf("migration RC5 review result=%s%n", failure.getMessage());
     }
   }
 

@@ -54,10 +54,12 @@ class CasMaterializeTest(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True); path.symlink_to(target)
         return path, target
 
-    def cli(self, action='materialize-cas-links', *, legacy=False):
+    def cli(self, action='materialize-cas-links', *, legacy=False, timeout=30):
         command = [str(ASSETS / 'materialize-cas-links.py')] if action == 'materialize-cas-links' and not legacy \
             else [str(ASSETS / 'plugin-manager.py'), action]
-        result = subprocess.run([sys.executable, *command], env=os.environ, capture_output=True, text=True, timeout=30)
+        flags = ['-B', '-S', '-u'] if action == 'materialize-cas-links' and not legacy else []
+        result = subprocess.run([sys.executable, *flags, *command], env=os.environ,
+                                capture_output=True, text=True, timeout=timeout)
         lines = [line[len('PLUGIN_RESULT: '):] for line in result.stdout.splitlines() if line.startswith('PLUGIN_RESULT: ')]
         self.assertEqual(len(lines), 1, result.stdout + result.stderr)
         self.assertTrue(result.stdout.splitlines()[-1].startswith('PLUGIN_RESULT: '), result.stdout)
@@ -199,7 +201,8 @@ print('FORBIDDEN_IMPORTS: ' + ','.join(sorted(set(sys.modules) & {'urllib.reques
     def test_large_profile_uses_bounded_native_readable_plans(self):
         for index in range(512):
             (self.package / ('part-' + str(index))).symlink_to(self.target)
-        result, value = self.cli()
+        # The 513-file case synchronizes two complete batches on slow filesystems.
+        result, value = self.cli(timeout=120)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(value['migratedFiles'], 513)
         history = self.home / 'plugin-install-operations/completed'

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-host-plugin-inventory/lib/index.js",
   "sourceSha256": "4dbacd5d35857b9682a8a4cc46500a7f2594fbb642c0df66d693e0eeeef75a92",
   "patches": [

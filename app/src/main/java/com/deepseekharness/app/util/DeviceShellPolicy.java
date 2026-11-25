@@ -15,9 +15,8 @@ public final class DeviceShellPolicy {
   /**
    * root 命令的三态拦截档位。
    *
-   * <p>严格档（默认）只放行可完整识别的单条 argv；放宽档允许任意 shell 命令，但保留不可逆操作的
-   * 黑名单；完全放宽档不再按命令内容判断，只保留短信读取这类原生授权闸门。档位只影响 root
-   * 通道，Shizuku、ADB 与普通设备命令继续使用严格档。
+   * <p>严格档（默认）只放行可完整识别的单条 argv；放宽档允许任意 shell 命令，但保留不可逆操作的 规则。受管短信查询始终需要原生授权；放宽档与完全放宽档的原始脚本具有 root
+   * 的数据访问能力。档位只影响 root 通道，Shizuku、ADB 与普通设备命令继续使用严格档。
    */
   public enum Mode {
     STRICT("strict"),
@@ -100,14 +99,18 @@ public final class DeviceShellPolicy {
 
   private static final Set<String> READ =
       set(
-          "id whoami pwd uname getprop getenforce ps pidof ls cat head tail wc grep stat readlink realpath df du free uptime printenv echo printf md5sum sha1sum sha256sum sha512sum true false");
+          "id whoami pwd uname getprop getenforce ps pidof ls cat head tail wc grep stat readlink"
+              + " realpath df free uptime printenv echo printf md5sum sha1sum sha256sum sha512sum"
+              + " true false");
   private static final Set<String> BLOCK =
       set(
-          "dd mkfs mke2fs mkfs.ext4 mkfs.f2fs fdisk sfdisk cfdisk parted sgdisk blockdev losetup wipefs setenforce chcon restorecon setprop mount umount unmount fastboot flash flash_image format erase wipe recovery reboot shutdown poweroff halt bootctl boot_control lpmake lpflash update_engine_client avbctl dmctl fsck tune2fs");
+          "dd mkfs mke2fs mkfs.ext4 mkfs.f2fs fdisk sfdisk cfdisk parted sgdisk blockdev losetup"
+              + " wipefs setenforce chcon restorecon setprop mount umount unmount fastboot flash"
+              + " flash_image format erase wipe recovery reboot shutdown poweroff halt bootctl"
+              + " boot_control lpmake lpflash update_engine_client avbctl dmctl fsck tune2fs");
   private static final Set<String> FILE = set("mkdir touch cp mv rm rmdir rename");
   private static final Set<String> CONTENT_READ =
-      set(
-          "cat head tail wc grep stat readlink realpath du ls find md5sum sha1sum sha256sum sha512sum");
+      set("cat head tail wc grep stat readlink realpath ls md5sum sha1sum sha256sum sha512sum");
   private static final String[] PROTECTED = {"/dcim", "/pictures", "/android/data", "/android/obb"};
   private static final String SMS_PROVIDER = "com.android.providers.telephony";
   private static final String[] SMS_READ_ROOTS = {
@@ -157,14 +160,13 @@ public final class DeviceShellPolicy {
   }
 
   /**
-   * 按用户选择的档位判定。严格档完全沿用历史白名单；放宽/完全放宽档只对 root 通道开放，且短信读取
-   * 的原生授权闸门在三个档位都保留。调用方必须先核对 root shell 开关与真实 root 通道。
+   * 按用户选择的档位判定。严格档使用白名单；放宽/完全放宽档只对 root 通道开放。 受管短信查询在三个档位都需要原生授权。调用方必须先核对 root shell 开关与真实 root 通道。
    */
   public static Plan inspect(String command, Mode mode) {
     Mode effective = mode == null ? Mode.STRICT : mode;
     Plan strict = inspect(command);
     // 短信读取是独立敏感能力：严格档识别出的单条 content query 始终走原生授权，
-    // 不能被“放宽”成任意 shell，否则复合脚本可绕过短信授权。
+    // 对原始脚本的文本检查只能识别部分命令，无法限制 root 的文件访问权限。
     if (strict.kind == Kind.SENSITIVE_READ) return strict;
     if (effective == Mode.STRICT) return strict;
     if (command == null || command.trim().isEmpty()) return deny(UiText.text("命令为空"));
@@ -179,7 +181,7 @@ public final class DeviceShellPolicy {
     return shellPlan(command, effective);
   }
 
-  /** 原始命令里出现短信 provider 痕迹时，不再按普通 shell 放行，堵住复合脚本绕过授权。 */
+  /** 识别显式写出短信 provider 的原始命令。 */
   private static boolean smsSurface(String command) {
     String flat = command.toLowerCase(Locale.ROOT);
     return flat.contains("content://sms")
@@ -326,7 +328,11 @@ public final class DeviceShellPolicy {
     if (BLOCK.contains(name) || name.startsWith("mkfs.") || name.startsWith("fsck."))
       return deny(
           com.deepseekharness.app.util.UiText.format("禁止设备分区、SELinux、系统属性、挂载或刷机操作：%s", name));
+    // These utilities traverse descendants inside another process, beyond the checked operands.
+    if (name.equals("find") || name.equals("du")) return deny("STRICT_RECURSIVE_READ_UNAVAILABLE");
     if (READ.contains(name)) {
+      if (name.equals("ls") && !nonRecursiveListing(args))
+        return deny("STRICT_LS_OPTIONS_UNVERIFIED");
       if (name.equals("grep")) {
         try {
           GrepReadPaths.collect(args);
@@ -398,7 +404,6 @@ public final class DeviceShellPolicy {
         return plan(Kind.READ, args, Collections.emptyList());
       return deny(com.deepseekharness.app.util.UiText.text("未识别的 dumpsys 参数；禁止用诊断命令改设备状态"));
     }
-    if (name.equals("find")) return inspectFind(args);
     if (name.equals("logcat")) return inspectLogcat(args);
     if (name.equals("am") && args.size() == 2 && args.get(1).equals("get-current-user"))
       return plan(Kind.READ, args, Collections.emptyList());
@@ -604,38 +609,28 @@ public final class DeviceShellPolicy {
         continue;
       }
       if (!afterSeparator && arg.startsWith("-")) {
+        if (plan.command().equals("ls")) {
+          if (arg.equals("-")) paths.add(arg);
+          continue;
+        }
         if (arg.startsWith("--") && arg.contains("=")) arg = arg.substring(arg.indexOf('=') + 1);
         else if (arg.length() > 2 && arg.charAt(0) == '-' && arg.charAt(2) == '/')
           arg = arg.substring(2);
         else continue;
       }
-      if (arg.startsWith("/") || arg.contains("/") || !arg.startsWith("-")) paths.add(arg);
+      if (afterSeparator || arg.startsWith("/") || arg.contains("/") || !arg.startsWith("-"))
+        paths.add(arg);
     }
-    if (paths.isEmpty() && plan.command().equals("du")) paths.add(".");
-    if (paths.isEmpty() && plan.command().equals("ls") && rootReadMayDescend(plan)) paths.add(".");
+    if (paths.isEmpty() && plan.command().equals("ls")) paths.add(".");
     return Collections.unmodifiableList(paths);
   }
 
-  /** Recursive reads/copies of an ancestor could enumerate or expose the SMS provider tree. */
+  /** Only a managed FILE copy may descend; strict READ never dispatches a tree walker. */
   public static boolean rootReadMayDescend(Plan plan) {
-    if (plan == null) return false;
-    String command = plan.command();
-    if (plan.kind == Kind.FILE && command.equals("cp")) {
-      for (String arg : plan.argv) {
-        if (arg.equals("--")) break;
-        if (arg.startsWith("-") && (arg.indexOf('R') >= 0 || arg.indexOf('r') >= 0)) return true;
-      }
-      return false;
-    }
-    if (plan.kind != Kind.READ) return false;
-    if (command.equals("find") || command.equals("du")) return true;
-    if (command.equals("ls") || command.equals("grep")) {
-      for (String arg : plan.argv) {
-        if (arg.equals("-R") || arg.equals("-r") || arg.equals("--recursive")) return true;
-        if (arg.startsWith("-")
-            && !arg.startsWith("--")
-            && (arg.indexOf('R') >= 0 || arg.indexOf('r') >= 0)) return true;
-      }
+    if (plan == null || plan.kind != Kind.FILE || !plan.command().equals("cp")) return false;
+    for (String arg : plan.argv) {
+      if (arg.equals("--")) break;
+      if (arg.startsWith("-") && (arg.indexOf('R') >= 0 || arg.indexOf('r') >= 0)) return true;
     }
     return false;
   }
@@ -719,17 +714,16 @@ public final class DeviceShellPolicy {
     return plan(Kind.FILE, args, paths);
   }
 
-  private static Plan inspectFind(List<String> args) {
-    if (args.size() < 2 || !absolutePath(args.get(1)))
-      return deny(com.deepseekharness.app.util.UiText.text("find 需要明确的读取目录"));
-    for (int i = 2; i < args.size(); i++) {
-      String arg = args.get(i);
-      if (set("-print -print0 -ls -empty").contains(arg)) continue;
-      if (set("-name -iname -path -type -maxdepth -mindepth -size -mtime -mmin").contains(arg)
-          && ++i < args.size()) continue;
-      return deny(com.deepseekharness.app.util.UiText.text("find 只允许读取条件，禁止 exec/delete 等动作"));
+  private static boolean nonRecursiveListing(List<String> args) {
+    for (String arg : args.subList(1, args.size())) {
+      if (arg.equals("--")) break;
+      if (!arg.startsWith("-") || arg.equals("-")) continue;
+      // Only standalone display options are accepted; an operand-taking option could consume "--".
+      if (!arg.matches(
+          "-[1aAbBcCdDfFghHiklmnpqrstSuUxXZ]+|--(color(=(auto|always|never))?|full-time|group-directories-first|help|version)"))
+        return false;
     }
-    return plan(Kind.READ, args, Collections.emptyList());
+    return true;
   }
 
   private static Plan inspectLogcat(List<String> args) {

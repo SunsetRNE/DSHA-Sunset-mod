@@ -39,6 +39,7 @@ import com.deepseekharness.app.util.UiText;
  * 所有开关都落到 ConfigStore / SharedPreferences，并真正影响启动与预览。
  */
 public class ConfigFragment extends Fragment {
+  private static final String DRAFT_BASELINE = "config.draftBaseline";
   // Settings 没有在所有 compileSdk stub 中暴露该常量，使用公开的 action 字符串保持 API 26+ 兼容。
   private static final String ACTION_PICTURE_IN_PICTURE_SETTINGS =
       "android.settings.PICTURE_IN_PICTURE_SETTINGS";
@@ -49,7 +50,9 @@ public class ConfigFragment extends Fragment {
   private CompoundButton entryWeb;
   private boolean renderingEntryTarget;
   private View root;
+  private TextView technicalSummary;
   private ConfigDraft savedDraft;
+  private com.deepseekharness.app.util.LanNetworkState selectedLan;
   private final DisclosureCard.Memory disclosure = new DisclosureCard.Memory();
   private final DisclosureCard.Model pageDisclosure = new DisclosureCard.Model();
   private final DisclosureCard.Model entryDisclosure = new DisclosureCard.Model();
@@ -84,7 +87,7 @@ public class ConfigFragment extends Fragment {
     v.findViewById(R.id.config_restore_port_drafts)
         .setOnClickListener(x -> BrowserOriginRestore.show(requireContext()));
     CompoundButton checkUpdate = v.findViewById(R.id.config_check_update);
-    // APK 自动检查入口已退休；旧偏好仍按原键读写，导入/保存不迁移或抹掉历史值。
+    // APK 自动检查入口已退休；展示旧偏好，普通保存保留当前的历史值。
     checkUpdate.setVisibility(View.GONE);
     checkUpdate.setEnabled(false);
     CompoundButton desktop = v.findViewById(R.id.config_desktop_mode);
@@ -226,6 +229,8 @@ public class ConfigFragment extends Fragment {
       b.setOnCheckedChangeListener(draftChanged);
     lan.setOnCheckedChangeListener(
         (button, checked) -> {
+          selectedLan =
+              checked ? com.deepseekharness.app.bridge.LocalNetworkAccess.currentLan(ctx) : null;
           renderLanPassword(new ConfigStore(requireContext()).hasLanPassword(), false);
           renderDraft();
         });
@@ -239,12 +244,16 @@ public class ConfigFragment extends Fragment {
     validateInputs.run();
     save.setOnClickListener(
         x -> {
+          ConfigDraft draft = currentDraft();
+          if (draft == null) return;
+          final boolean fixedPortEdited =
+              !draft.automaticPort && !draft.port.equals(savedDraft.port);
           final int chosenPort;
           try {
             chosenPort =
-                automaticPort.isChecked()
-                    ? c.getPortInt()
-                    : com.deepseekharness.app.util.ConfigInput.port(port.getText().toString());
+                fixedPortEdited
+                    ? com.deepseekharness.app.util.ConfigInput.port(draft.port)
+                    : c.getPortInt();
           } catch (IllegalArgumentException e) {
             port.setError(e.getMessage());
             port.requestFocus();
@@ -264,20 +273,26 @@ public class ConfigFragment extends Fragment {
           try {
             saving.run(
                 () -> {
-                  c.setWebPort(automaticPort.isChecked() ? "auto" : "fixed", chosenPort);
-                  c.setCheckUpdate(checkUpdate.isChecked());
-                  c.setDesktopMode(desktop.isChecked());
-                  if (false) c.setGeckoCore(gecko.isChecked());
-                  c.setProroot(proroot.isChecked());
-                  c.setProrootStaticLoader(staticLoader.isChecked());
-                  c.setProotSeccompDisabled(noSeccomp.isChecked());
-                  c.setDnsMode(
-                      dns.getCheckedRadioButtonId() == R.id.dns_ipv4
-                          ? "ipv4"
-                          : dns.getCheckedRadioButtonId() == R.id.dns_native ? "native" : "auto");
-                  c.setLanMode(lan.isChecked());
-                  boolean overlayEnabled = overlay.isChecked();
-                  setPref(ctx, "overlay_stream", overlayEnabled);
+                  // A second settings page can save while this draft is open.
+                  // Compare against the values shown when editing began.
+                  if (fixedPortEdited || draft.automaticPort != savedDraft.automaticPort)
+                    c.setWebPort(draft.automaticPort ? "auto" : "fixed", chosenPort);
+                  if (draft.desktop != savedDraft.desktop) c.setDesktopMode(draft.desktop);
+                  if (draft.proroot != savedDraft.proroot) c.setProroot(draft.proroot);
+                  if (draft.staticLoader != savedDraft.staticLoader)
+                    c.setProrootStaticLoader(draft.staticLoader);
+                  if (draft.seccompDisabled != savedDraft.seccompDisabled)
+                    c.setProotSeccompDisabled(draft.seccompDisabled);
+                  if (!draft.dnsMode.equals(savedDraft.dnsMode)) c.setDnsMode(draft.dnsMode);
+                  boolean lanEdited = draft.lan != savedDraft.lan;
+                  if (lanEdited && draft.lan && !c.isLanMode()) {
+                    com.deepseekharness.app.LanProxyService.trustNetwork(ctx, selectedLan);
+                  }
+                  if (lanEdited) c.setLanMode(draft.lan);
+                  boolean lanEnabled = c.isLanMode();
+                  if (draft.overlay != savedDraft.overlay)
+                    setPref(ctx, "overlay_stream", draft.overlay);
+                  boolean overlayEnabled = pref(ctx, "overlay_stream", false);
                   // The settings switch is also the lifecycle switch for the
                   // WindowManager overlay.  Previously only the preference changed;
                   // an already visible bar stayed alive after disabling and a newly
@@ -286,24 +301,25 @@ public class ConfigFragment extends Fragment {
                   if (!overlayEnabled) OverlayController.teardown(ctx.getApplicationContext());
                   else if (OverlayController.permitted(ctx))
                     OverlayController.applyStyleNow(ctx.getApplicationContext());
-                  boolean lanApplied = applyLanMode(ctx, lan.isChecked());
-                  int lanMessage =
-                      lanSettingsMessage(lan.isChecked(), c.hasLanPassword(), lanApplied);
+                  boolean lanApplied = applyLanMode(ctx, lanEnabled);
+                  int lanMessage = lanSettingsMessage(lanEnabled, c.hasLanPassword(), lanApplied);
                   if (lanMessage != 0) Toast.makeText(ctx, lanMessage, Toast.LENGTH_LONG).show();
-                  if (lan.isChecked() && getActivity() instanceof MainActivity)
+                  if (lanEnabled && getActivity() instanceof MainActivity)
                     ((MainActivity) getActivity()).requestLocalNetwork();
                   Toast.makeText(
                           ctx,
                           com.deepseekharness.app.util.UiText.text(
-                              "已保存；网页显示选项重新进入对话生效，端口与运行时需重启 Web"),
+                              "已保存。新建工作台网页视图时应用桌面布局设置，返回工作台会继续显示原页面。更改端口或运行时需要重启 Web 服务。"),
                           Toast.LENGTH_LONG)
                       .show();
-                  if (overlay.isChecked() && !OverlayController.permitted(ctx))
-                    openOverlayPermission();
+                  if (overlayEnabled && !OverlayController.permitted(ctx)) openOverlayPermission();
                   return null;
                 });
             savedDraft = storedDraft(c);
-            renderDraft();
+            selectedLan = null;
+            restoreDraft(savedDraft);
+            renderTechnicalSummary(c);
+            renderLanPassword(c.hasLanPassword(), false);
           } catch (Exception e) {
             toast(
                 com.deepseekharness.app.util.UiText.format(
@@ -320,8 +336,12 @@ public class ConfigFragment extends Fragment {
         (view, l, t, r, b, ol, ot, orr, ob) -> {
           if (r - l != orr - ol) view.post(this::applyColumns);
         });
-    // 页尾技术说明（B3）：运行方式 / 端口 / DNS 与配置存放位置；展开后才创建明细。
-    ConfigStore techConfig = new ConfigStore(requireContext());
+    renderTechnicalSummary(c);
+    return v;
+  }
+
+  /** The footer describes the stored settings, including edits just saved on this page. */
+  private void renderTechnicalSummary(ConfigStore techConfig) {
     String runtimeMode = techConfig.isProroot() ? "proroot" : "proot";
     String portMode =
         techConfig.getRequestedWebPort() > 0
@@ -339,13 +359,28 @@ public class ConfigFragment extends Fragment {
         com.deepseekharness.app.util.UiText.format(
             "运行方式：%s · 端口：%s\nDNS：%s\n配置保存在应用私有目录，本机 API Key 默认不参与导出。",
             runtimeMode, portMode, dnsMode);
-    TechNote.attach((LinearLayout) v.findViewById(R.id.config_column_end), tech, disclosure, null);
-    return v;
+    if (technicalSummary == null)
+      technicalSummary =
+          TechNote.attach(root.findViewById(R.id.config_column_end), tech, disclosure, null);
+    else TechNote.bind(technicalSummary, tech, disclosure, null);
+  }
+
+  @Override
+  public void onSaveInstanceState(@NonNull Bundle outState) {
+    super.onSaveInstanceState(outState);
+    if (savedDraft != null) outState.putSerializable(DRAFT_BASELINE, savedDraft);
   }
 
   @Override
   public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
     super.onViewStateRestored(savedInstanceState);
+    // Android can restore a checked draft on a different network or after process death.
+    // Only a fresh tap can select a network. Saving this draft can still enable the preference.
+    if (savedInstanceState != null) selectedLan = null;
+    // Android restores the old form values, including values the user never edited.
+    if (savedInstanceState != null
+        && savedInstanceState.getSerializable(DRAFT_BASELINE) instanceof ConfigDraft baseline)
+      savedDraft = baseline;
     // 系统恢复的开关/输入可能晚于 onCreateView，重新渲染一次派生文案与未保存数。
     renderPort();
     renderRuntimeDescription();
@@ -450,14 +485,9 @@ public class ConfigFragment extends Fragment {
             hasPassword ? UiText.choose("改密码", "Change") : UiText.choose("设密码", "Set password"));
     TextView hint = root.findViewById(R.id.config_lan_hint);
     hint.setVisibility(enabled ? View.VISIBLE : View.GONE);
-    String unencrypted = getString(R.string.ui_lan_unencrypted);
     hint.setText(
-        hasPassword
-            ? unencrypted
-            : UiText.format(
-                "%s %s",
-                UiText.choose("未设密码时监听不会启动。", "Without a password the listener won't start."),
-                unencrypted));
+        getString(R.string.lan_enable_password_notice)
+            + (selectedLan == null ? "" : "\n" + selectedLan.description()));
     redescribe(R.id.config_lan_text, R.id.config_lan_mode);
   }
 
@@ -707,6 +737,7 @@ public class ConfigFragment extends Fragment {
 
   @Override
   public void onDestroyView() {
+    technicalSummary = null;
     entryWeb = null;
     pictureSettings = null;
     pictureStatus = null;

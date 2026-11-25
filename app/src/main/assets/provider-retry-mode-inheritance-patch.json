@@ -1,0 +1,27 @@
+{
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-settings-models/lib/client.js",
+  "sourceSha256": "74b45c32a08a6aa367be684bf89212e0a3b7a2c3de1cc95ccbfe82045533ae31",
+  "patches": [
+    {
+      "before": "const[draft,setDraft]=(0,react.useState)(()=>{const loaded=draftAt(schema,namespace,settingsPath);const policy=loaded[`retryPolicy`];if(!isRecord(policy)||policy[`mode`]!==void 0)return loaded;const path=[...settingsPath,`retryPolicy`];const node=schema.nodeAtPath(schema.rehydrate(namespace.schema),path);if(node===void 0)return loaded;const{mode}=retryPolicyDefaults(schema,node,schema.getPath(namespace.base,path));return{...loaded,retryPolicy:{...policy,mode}}});",
+      "after": "/* DSHA_PROVIDER_RETRY_INHERIT_MODE_V1: The persisted draft represents the user layer only. */\nconst[draft,setDraft]=(0,react.useState)(()=>draftAt(schema,namespace,settingsPath));"
+    },
+    {
+      "before": "const whole=()=>{const message=schema.validate(node,policy);return message===void 0?void 0:{message}};if(!isRecord$1(policy))return whole();const branch=defaults.branch(policy[`mode`]);if(branch===void 0)return whole();",
+      "after": "const whole = value => {\n  const message = schema.validate(node, value);\n  return message === void 0 ? void 0 : { message };\n};\nif (!isRecord$1(policy)) return whole(policy);\nconst storedMode = policy[`mode`];\nconst activeMode = storedMode === void 0 ? defaults.mode : storedMode;\nconst validationPolicy = storedMode === void 0 ? { ...policy, mode: activeMode } : policy;\nconst branch = defaults.branch(activeMode);\nif (branch === void 0) return whole(validationPolicy);"
+    },
+    {
+      "before": "return{message:t(`retryDelayOrder`),path:lowerPath};return whole()}",
+      "after": "return{message:t(`retryDelayOrder`),path:lowerPath};return whole(validationPolicy)}"
+    },
+    {
+      "before": "const branch=defaults.branch(current[`mode`]);const mode=branch===void 0?void 0:String(current[`mode`]);",
+      "after": "const storedMode = current[`mode`];\nconst activeMode = storedMode === void 0 && isRecord$1(props.policy) ? defaults.mode : storedMode;\nconst branch = defaults.branch(activeMode);\nconst mode = branch === void 0 || storedMode === void 0 ? void 0 : String(storedMode);"
+    },
+    {
+      "before": "const hint=mode===void 0?void 0:MODE_HINTS.get(mode);",
+      "after": "const hint = branch === void 0 ? void 0 : MODE_HINTS.get(activeMode);"
+    }
+  ]
+}

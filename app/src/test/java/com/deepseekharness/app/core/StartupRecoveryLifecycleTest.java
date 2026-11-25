@@ -13,6 +13,8 @@ import com.deepseekharness.app.ui.LaunchFragment;
 import com.deepseekharness.app.ui.MainActivity;
 import com.deepseekharness.app.ui.StartupRecoveryActivity;
 import com.deepseekharness.app.util.EnvironmentTaskGate;
+import com.deepseekharness.app.util.StartupRecoveryState.Failure;
+import com.deepseekharness.app.util.StartupRecoveryState.Kind;
 import java.lang.reflect.Method;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -90,12 +92,22 @@ public final class StartupRecoveryLifecycleTest {
     protected boolean isStopping() {
       return false;
     }
+
+    @Implementation
+    protected boolean isWebRunning() {
+      return false;
+    }
   }
 
   @Implements(value = StartupRepairs.class, isInAndroidSdk = false)
   public static final class Repairs {
     static int lists, plugins;
     static boolean unreadable;
+
+    @Implementation
+    protected static boolean pending(Context context) {
+      return false;
+    }
 
     @Implementation
     protected static JSONObject list(HarnessController controller) throws Exception {
@@ -244,6 +256,37 @@ public final class StartupRecoveryLifecycleTest {
     org.robolectric.shadows.ShadowLooper main =
         org.robolectric.shadow.api.Shadow.extract(Looper.getMainLooper());
     main.idle();
+  }
+
+  @Test
+  public void storedHostCodeHasTheSameGenerationBoundaryAsTheFailureReason() throws Exception {
+    WebRecovery recovery = new WebRecovery(Controller.config);
+    String code = "RC5_RECHECK_LEGACY_INPUTS";
+    Controller.diagnostics.begin(1, false);
+    Controller.diagnostics.completed(1, "stopped", "");
+    history.submit(() -> {}).get(5, java.util.concurrent.TimeUnit.SECONDS);
+    model.attempts = Controller.diagnostics.history();
+    assertEquals("stopped", model.attempts.get(0).status);
+    field(activity, "controller", Controller.value);
+    Method kind = StartupRecoveryActivity.class.getDeclaredMethod("kind", Failure[].class);
+    kind.setAccessible(true);
+    Failure[] failure = new Failure[1];
+
+    recovery.begin(1, true);
+    assertTrue(recovery.fail(1, "Review the retained copies", code));
+    assertEquals(code, Controller.config.getWebFailureCode());
+    assertEquals("Review the retained copies", Controller.config.getWebFailureReason());
+    assertEquals(Kind.MIGRATION_REVIEW, kind.invoke(activity, (Object) failure));
+    assertEquals(code, failure[0].code);
+    recovery.begin(2, true);
+    assertEquals("", Controller.config.getWebFailureCode());
+    assertFalse(recovery.fail(1, "Late event", code));
+    assertTrue(recovery.fail(2, code, ""));
+    assertEquals("", Controller.config.getWebFailureCode());
+    assertEquals(code, Controller.config.getWebFailureReason());
+    assertEquals(Kind.STOPPED, kind.invoke(activity, (Object) failure));
+    System.out.println(
+        "migration config stale-history fallback=1 stale-generation writes=0 text-only codes=0");
   }
 
   @After

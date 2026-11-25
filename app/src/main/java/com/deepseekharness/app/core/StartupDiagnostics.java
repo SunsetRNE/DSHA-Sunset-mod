@@ -21,7 +21,7 @@ public final class StartupDiagnostics {
   private final java.util.concurrent.ScheduledExecutorService historyIo;
   private final com.deepseekharness.app.util.ExecutorQuiescence historyGate =
       new com.deepseekharness.app.util.ExecutorQuiescence();
-  private String recordId = "", result = "starting", failure = "";
+  private String recordId = "", result = "starting", failure = "", failureCode = "";
   private long started, lastSaved;
   private volatile String historyError = "";
   public java.util.function.LongConsumer onHealthy = generation -> {};
@@ -71,6 +71,7 @@ public final class StartupDiagnostics {
     started = System.currentTimeMillis();
     result = "starting";
     failure = "";
+    failureCode = "";
     persistHistory(true);
   }
 
@@ -85,7 +86,7 @@ public final class StartupDiagnostics {
   public synchronized void stage(long generation, String stage) {
     if (!trace.isCurrent(generation)) return;
     trace.stage(generation, now(), stage);
-    events.record(snapshot().browserReady ? "RUNTIME_STAGE" : "STARTUP_STAGE", stage);
+    events.record(trace.isBrowserReady() ? "RUNTIME_STAGE" : "STARTUP_STAGE", stage);
     persistHistory(false);
   }
 
@@ -121,7 +122,7 @@ public final class StartupDiagnostics {
           if ("stage".equals(type)) stage(generation, message);
           else if ("issue".equals(type)) {
             issue(generation, name, message);
-            if (!snapshot().browserReady)
+            if (!trace.isBrowserReady())
               explicitStartupFailure |= !Boolean.FALSE.equals(event.get("fatal"));
           } else if (!message.isEmpty()) trace.owned(generation, now(), message);
           continue;
@@ -146,7 +147,7 @@ public final class StartupDiagnostics {
   }
 
   public synchronized boolean hasExplicitStartupFailure(long generation) {
-    return trace.isCurrent(generation) && explicitStartupFailure && !snapshot().browserReady;
+    return trace.isCurrent(generation) && explicitStartupFailure && !trace.isBrowserReady();
   }
 
   public synchronized void browser(long generation, String detail) {
@@ -154,7 +155,7 @@ public final class StartupDiagnostics {
     // 控制台 ERROR 不是启动故障证据；浏览器干预和运行错误仍完整保留在时间线。
     String category =
         com.deepseekharness.app.util.BrowserDiagnostic.category(
-            detail, snapshot().browserReady, false);
+            detail, trace.isBrowserReady(), false);
     trace.add(generation, now(), category + ": " + detail);
     events.record(category, SensitiveData.redact(detail));
     persistHistory(false);
@@ -164,7 +165,7 @@ public final class StartupDiagnostics {
     if (!trace.isCurrent(generation)) return false;
     String type = event.optString("type"), detail = event.optString("message");
     String id = event.optString("id");
-    boolean alreadyReady = snapshot().browserReady;
+    boolean alreadyReady = trace.isBrowserReady();
     // WebPreview 关闭后会销毁页面；再次进入时同一批已成功插件会重新发 loading/active/ready。
     // 首次 ready 后这些成功事件不再增加诊断日志或触发磁盘历史写入，真实错误仍继续记录。
     if ("ready".equals(type)) {
@@ -182,7 +183,7 @@ public final class StartupDiagnostics {
     String name = id.isEmpty() ? "" : owner("\"" + id + "\"");
     String message =
         (id.isEmpty() ? "" : id + com.deepseekharness.app.util.UiText.text("：")) + detail;
-    if (snapshot().browserReady || !fatal) {
+    if (trace.isBrowserReady() || !fatal) {
       browser(generation, message);
       return false;
     }
@@ -195,15 +196,16 @@ public final class StartupDiagnostics {
     trace.issue(generation, now(), name, detail);
     if (issueBudget.record(generation, name, detail))
       events.record(
-          snapshot().browserReady ? "RUNTIME_ERROR" : "STARTUP_ERROR",
+          trace.isBrowserReady() ? "RUNTIME_ERROR" : "STARTUP_ERROR",
           name + ": " + SensitiveData.redact(detail));
   }
 
   public synchronized void browserReady(long generation) {
     if (!trace.isCurrent(generation)) return;
-    boolean capture = !trace.snapshot(now()).browserReady;
+    boolean capture = !trace.isBrowserReady();
     trace.browserReady(generation, now());
     result = "ready";
+    failureCode = "";
     persistHistory(true);
     if (capture && !snapshot().safe && snapshot().issues.isEmpty())
       historyGate.execute(historyIo, () -> onHealthy.accept(generation));
@@ -217,17 +219,22 @@ public final class StartupDiagnostics {
 
   /** Called only after the current run's official authentication URL has been accepted. */
   public synchronized void backendReady(long generation) {
-    if (!trace.isCurrent(generation) || snapshot().backendReady) return;
+    if (!trace.isCurrent(generation) || trace.isBackendReady()) return;
     trace.backendReady(generation, now());
     persistHistory(true);
   }
 
   public synchronized void completed(long generation, String status, String reason) {
+    completed(generation, status, reason, "");
+  }
+
+  synchronized void completed(long generation, String status, String reason, String hostCode) {
     if (!trace.isCurrent(generation)) return;
     if ("failed".equals(result) && "stopped".equals(status)) return;
     trace.completed(generation, now());
     result = status;
     failure = reason == null ? "" : reason;
+    failureCode = hostCode;
     persistHistory(true);
   }
 
@@ -257,14 +264,14 @@ public final class StartupDiagnostics {
     long now = now();
     if (!force && now - lastSaved < 1000) return;
     lastSaved = now;
-    String id = recordId, status = result, reason = failure;
+    String id = recordId, status = result, reason = failure, code = failureCode;
     long date = started;
     StartupTrace.Snapshot zh = trace.snapshot(now, "zh"), en = trace.snapshot(now, "en");
     historyGate.execute(
         historyIo,
         () -> {
           try {
-            history.save(id, date, status, reason, zh, en);
+            history.save(id, date, status, reason, code, zh, en);
             historyError = "";
           } catch (Exception error) {
             historyError = SensitiveData.redact(String.valueOf(error.getMessage()));
@@ -286,6 +293,7 @@ public final class StartupDiagnostics {
     recordId = "";
     result = "starting";
     failure = "";
+    failureCode = "";
     started = 0;
     lastSaved = 0;
     historyError = "";

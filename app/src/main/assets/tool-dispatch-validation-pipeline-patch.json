@@ -1,8 +1,8 @@
 {
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-tools/lib/pipeline.js",
-  "packageVersion": "0.2.2-rc.1",
-  "canonicalSourceSha256": "f6c850cefce30831c4c5f160e831856b105935331bacd1ae0823129001614bc6",
+  "packageVersion": "0.2.2-rc.5",
+  "canonicalSourceSha256": "679072e59502fc211ac2336f5b3146a96c98636b30846ec70433db42d82a7abb",
   "patches": [
     {
       "before": "\tconst settlement = new BatchSettlement(input);\n\ttry {\n\t\tconst planned = toolCalls.map((block) => ({",

@@ -68,11 +68,21 @@ def verify(root=ROOT, deferred_archives=None):
     launchers = launcher_paths(root, spec)
     if set(descriptor.get('launcherInputs', {})) != set(launchers):
         raise ValueError('DESCRIPTOR_LAUNCHER_MEMBER_SET')
+    from proroot_distribution import NATIVE_DIR, vendor_pins
+    expected_vendor = ({NATIVE_DIR + '/' + name: sha for name, sha in vendor_pins(root).items()}
+                       if 'app/src/main/jniLibs' in spec['launcherTrees'] else {})
+    deferred_vendor = []
     for name, path in launchers.items():
+        if name in expected_vendor:
+            if descriptor['launcherInputs'][name] != expected_vendor[name]:
+                raise ValueError('DESCRIPTOR_VENDOR_PIN: ' + name)
+            if not path.exists() and not path.is_symlink():
+                deferred_vendor.append(name)
+                continue
         if digest(path) != descriptor['launcherInputs'][name]:
             raise ValueError('DESCRIPTOR_LAUNCHER_BYTES: ' + name)
-    return {'checkedAssets': checked, 'checkedLaunchers': len(launchers),
-            'deferredArchives': sorted(deferred)}
+    return {'checkedAssets': checked, 'checkedLaunchers': len(launchers) - len(deferred_vendor),
+            'deferredVendorInputs': sorted(deferred_vendor), 'deferredArchives': sorted(deferred)}
 
 
 if __name__ == '__main__':

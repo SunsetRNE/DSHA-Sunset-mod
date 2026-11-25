@@ -29,6 +29,28 @@ public final class UserDataLayout {
     return new File(files, home == Home.STABLE ? STABLE : LEGACY);
   }
 
+  /** Both possible homes and both choice records are demonstrably absent under the trusted files root. */
+  public boolean pristineMissingHome() throws IOException {
+    Map<File, BackupFileSystem.Node> observed = new LinkedHashMap<>();
+    BackupFileSystem.Node owner = fs.stat(files);
+    if (!owner.type.equals("DIRECTORY")) throw new IOException("DATA_LOCATION_UNREADABLE");
+    observed.put(files, owner);
+    for (String path : List.of(RECORD, RECORD + ".previous", LEGACY, STABLE)) {
+      File current = files;
+      for (String part : path.split("/")) {
+        current = fs.child(current, part);
+        BackupFileSystem.Node entry = fs.stat(current);
+        observed.put(current, entry);
+        if (entry.type.equals("MISSING")) break;
+        if (!entry.type.equals("DIRECTORY") || current.equals(new File(files, path))) return false;
+      }
+    }
+    for (var entry : observed.entrySet())
+      if (!entry.getValue().same(fs.stat(entry.getKey())))
+        throw new IOException("DATA_LOCATION_CHANGED");
+    return true;
+  }
+
   public Home selected() throws IOException {
     File record = new File(files, RECORD);
     if (fs.stat(record).type.equals("MISSING")) record = new File(files, RECORD + ".previous");

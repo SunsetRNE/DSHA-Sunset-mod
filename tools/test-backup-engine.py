@@ -640,10 +640,12 @@ class BackupTest(unittest.TestCase):
         self.put("global/@deepseek-ai/example/package.json", '{"name":"@deepseek-ai/example"}')
         self.put(".dsh/profiles/web/package.json", json.dumps({"dependencies": {"@deepseek-ai/example": "1.0.0"}, "dsh": {"profile": {"bundles": ["@deepseek-ai/example"]}}}))
         self.put(".dsh/profiles/web/node_modules/@deepseek-ai/example.disabled", "disabled")
-        engine.make_backup(self.root, self.archive, "plugins")
         with patch.object(engine, "GLOBAL_NM", (self.root / "global",)):
+            engine.make_backup(self.root, self.archive, "plugins")
             engine.restore_archive(self.root, self.archive, "plugins")
-        self.assertTrue((self.root / ".dsh/profiles/web/node_modules/@deepseek-ai/example/package.json").is_file())
+        restored = self.root / ".dsh/profiles/web/node_modules/@deepseek-ai/example"
+        self.assertTrue(restored.is_symlink())
+        self.assertTrue((restored / "package.json").is_file())
         self.assertEqual("disabled", (self.root / ".dsh/profiles/web/node_modules/@deepseek-ai/example.disabled").read_text())
 
     @unittest.skipIf(os.name == "nt", "真实符号链接在 Linux 容器执行")

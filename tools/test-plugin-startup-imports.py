@@ -20,6 +20,49 @@ print('IMPORT_PROBE: '+json.dumps({'code':code,'modules':sorted(sys.modules)}))
 
 
 class StartupImportsTest(unittest.TestCase):
+    def test_register_publishes_clear_proof_only_when_legacy_work_is_absent(self):
+        with tempfile.TemporaryDirectory(prefix='dsha-startup-review-') as directory:
+            root = Path(directory)
+            home = root / 'root/.dsh'
+            profile = home / 'profiles/web'
+            modules = profile / 'node_modules'
+            modules.mkdir(parents=True)
+            registry = json.loads((ASSETS / 'builtin-plugins.json').read_text(encoding='utf8'))
+            for plugin in registry['plugins']:
+                package = root / plugin['guestDirectory'].lstrip('/') / 'package.json'
+                package.parent.mkdir(parents=True)
+                package.write_text('{}', encoding='utf8')
+                (modules / (plugin['name'] + '.disabled')).touch()
+            (profile / 'package.json').write_text(json.dumps({
+                'dependencies': {'imported': 'link:/root/.dsh/plugin-src/imported'},
+                'dsh': {'profile': {'bundles': []}}}), encoding='utf8')
+
+            def register(*args):
+                process = subprocess.run(
+                    [sys.executable, '-B', str(ASSETS / 'register-builtin-plugins.py'), *args],
+                    env=dict(os.environ, DSHA_TEST_ROOT=str(root), DSH_HOME='/root/.dsh',
+                             PYTHONIOENCODING='utf-8'),
+                    capture_output=True, text=True, timeout=30, encoding='utf8')
+                self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+                self.assertIn('BUILTIN_REGISTER_OK', process.stdout)
+                return process.stdout.splitlines()[-1]
+
+            flag = '--startup-legacy-review-proof'
+            proof = 'STARTUP_LEGACY_REVIEW_CLEAR_V1'
+            self.assertNotEqual(register(), proof)
+            marker = modules / 'imported.disabled'
+            marker.touch()
+            self.assertEqual(register(flag), proof)
+            self.assertEqual(marker.read_bytes(), b'')
+            marker.write_bytes(b'DSHA_REVIEW_REQUIRED\n')
+            self.assertNotEqual(register(flag), proof)
+            self.assertEqual(marker.read_bytes(), b'DSHA_REVIEW_REQUIRED\n')
+            marker.unlink()
+            operation = home / 'plugin-install-operations' / 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+            operation.mkdir(parents=True)
+            (operation / 'plan.json').write_text('{}', encoding='utf8')
+            self.assertNotEqual(register(flag), proof)
+
     def invoke(self, command, *, cancelled=False):
         with tempfile.TemporaryDirectory(prefix='dsha-startup-imports-') as directory:
             root = Path(directory)

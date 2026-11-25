@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """插件安装预览、更新发现、单版本回退与安全启动；由 plugin-manager 注入既有安装器。"""
 import base64
-import concurrent.futures
 import functools
 import hashlib
 import importlib.util
@@ -15,6 +14,48 @@ import subprocess
 import time
 import urllib.parse
 import uuid
+
+
+_LEGACY_REVIEW_MARKER = b'DSHA_REVIEW_REQUIRED\n'
+
+
+def legacy_review_candidates(builtin, references):
+    """Use the same marker test for the startup proof and the mutating review path."""
+    reserved = set(builtin.OFFICIAL_BUNDLES) | set(builtin.builtin_names())
+    for name, reference in references.items():
+        if not builtin.valid_name(name) or name in reserved:
+            continue
+        marker = builtin.marker_path(name)
+        try:
+            before = os.lstat(marker)
+        except FileNotFoundError:
+            continue
+        if not stat.S_ISREG(before.st_mode) or before.st_size != len(_LEGACY_REVIEW_MARKER):
+            continue
+        flags = os.O_RDONLY | getattr(os, 'O_BINARY', 0) | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0)
+        with os.fdopen(os.open(marker, flags), 'rb') as stream:
+            if not os.path.samestat(before, os.fstat(stream.fileno())):
+                raise OSError('LEGACY_REVIEW_MARKER_CHANGED')
+            content = stream.read(len(_LEGACY_REVIEW_MARKER) + 1)
+        after = os.lstat(marker)
+        if not os.path.samestat(before, after) or (before.st_ctime_ns, before.st_mtime_ns, before.st_size) != (after.st_ctime_ns, after.st_mtime_ns, after.st_size):
+            raise OSError('LEGACY_REVIEW_MARKER_CHANGED')
+        if content == _LEGACY_REVIEW_MARKER:
+            yield name, reference
+
+
+def prove_no_legacy_reviews(builtin):
+    """Called after registration with the data and profile writer locks held."""
+    doc = builtin.read_manifest()
+    if not isinstance(doc, dict):
+        return False
+    references = doc.get('dependencies', {})
+    if not isinstance(references, dict) or next(legacy_review_candidates(builtin, references), None) is not None:
+        return False
+    spec = importlib.util.spec_from_file_location('review_transactions', os.path.join(os.path.dirname(__file__), 'plugin-transactions.py'))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return not module.Transactions(vars(builtin)).pending()
 
 
 @functools.lru_cache(maxsize=256)
@@ -91,15 +132,7 @@ class Lifecycle:
             doc = self.builtin.read_manifest() or {}
             references = doc.get('dependencies') or {}
             activated, skipped, blocked = [], [], []
-            for name, reference in references.items():
-                if not self.builtin.valid_name(name) or name in self.builtin.OFFICIAL_BUNDLES or name in self.builtin.builtin_names():
-                    continue
-                marker = self.builtin.marker_path(name)
-                if os.path.islink(marker) or not os.path.isfile(marker) or os.path.getsize(marker) != len(b'DSHA_REVIEW_REQUIRED\n'):
-                    continue
-                with open(marker, 'rb') as stream:
-                    if stream.read() != b'DSHA_REVIEW_REQUIRED\n':
-                        continue
+            for name, reference in legacy_review_candidates(self.builtin, references):
                 relative = os.path.join(self.g['PLUGIN_SRC'], name)
                 directory = self.local(relative)
                 if reference != 'link:' + relative.replace('\\', '/') or os.path.islink(directory) or not os.path.isdir(directory):
@@ -179,8 +212,19 @@ class Lifecycle:
     def policy_error(self, code, message, stage='preflight', **detail):
         return self.g['PluginPolicyError'](code, message, stage=stage, **detail)
 
-    def compatibility_reports(self, packages):
-        """一次只读进程检查整批；固定脚本不继承预加载，不导入 app-boot/插件入口。"""
+    def read_compatibility_node(self, encoded):
+        environment = {key: value for key, value in os.environ.items() if key not in ('NODE_OPTIONS', 'NODE_PATH')}
+        try:
+            process = subprocess.run(['node', os.path.join(os.path.dirname(__file__), 'plugin-semver.cjs')],
+                                     input=encoded, text=True, capture_output=True, timeout=15, env=environment)
+            if process.returncode == 0 and len(process.stdout) <= 8 * 1024 * 1024:
+                return json.loads(process.stdout)
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            pass
+        return None
+
+    def compatibility_reports(self, packages, read_reports=None):
+        """检查整批兼容性；列表可在同一只读子进程中同时解析条目。"""
         if not isinstance(packages, list) or len(packages) > 512:
             raise self.policy_error('PLUGIN_COMPATIBILITY_CHECK_FAILED', self.COMPATIBILITY_MESSAGES['check-failed'])
         warnings = []
@@ -205,21 +249,21 @@ class Lifecycle:
                    'exemptionWarnings': warnings,
                    'anchors': [self.local('/usr/local/lib/node_modules/@deepseek-ai/dsh/package.json'),
                                self.local('/root/dsh-src/package.json')]}
-        environment = {key: value for key, value in os.environ.items() if key not in ('NODE_OPTIONS', 'NODE_PATH')}
-        reports = None
+        self.g['check_cancel']()
+        encoded = json.dumps(request, ensure_ascii=True)
+        if len(encoded) > 8 * 1024 * 1024:
+            encoded = None
+        if read_reports is not None:
+            # Snapshot faults in the caller must propagate, not become compatibility failures.
+            reports = read_reports(encoded)
+        else:
+            reports = self.read_compatibility_node(encoded) if encoded is not None else None
         try:
             self.g['check_cancel']()
-            encoded = json.dumps(request, ensure_ascii=True)
-            if len(encoded) > 8 * 1024 * 1024: raise ValueError('COMPATIBILITY_INPUT_LIMIT')
-            process = subprocess.run(['node', os.path.join(os.path.dirname(__file__), 'plugin-semver.cjs')],
-                                     input=encoded, text=True, capture_output=True, timeout=15, env=environment)
-            if process.returncode == 0 and len(process.stdout) <= 8 * 1024 * 1024:
-                reports = json.loads(process.stdout)
-            self.g['check_cancel']()
-            if exemption_evidence is not None:
+            if reports is not None and exemption_evidence is not None:
                 _, after_exemptions = exemption_snapshot()
                 if after_exemptions != exemption_evidence: reports = None
-        except (OSError, ValueError, subprocess.TimeoutExpired):
+        except (OSError, ValueError):
             reports = None
         if not isinstance(reports, list) or len(reports) != len(packages):
             reports = [{'compatibility': 'check-failed', 'compatibilityCode': 'PLUGIN_COMPATIBILITY_CHECK_FAILED',
@@ -891,6 +935,7 @@ class Lifecycle:
         return 0
 
     def check_updates(self, name='', emit=True):
+        import concurrent.futures
         doc = self.builtin.read_manifest() or {}
         candidates = [name] if name else list(doc.get('dependencies', {}))
         states = self.read(self.path('plugin-updates.json'), {})

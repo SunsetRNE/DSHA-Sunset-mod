@@ -803,7 +803,76 @@ class DiscoveryTest(unittest.TestCase):
         visible = [item for item in items.values() if not item['internal']]
         self.assertEqual({'dsh-device-shell-guide','dsh-task-notifier','dsh-status-overlay','dsh-web-mobile',
                           'dsh-computer-use-android','@deepseek-ai/dsh-experimental-auto-review','dsh-tool-vscreen',
-                          'dsh-launch-target','dsh-fs-read-hint','dsh-fs-search-scope'}, {item['name'] for item in visible})
+                          'dsh-launch-target','dsh-fs-search-scope'}, {item['name'] for item in visible})
+
+    def test_retired_read_hint_prunes_the_legacy_web_dependency_and_marker(self):
+        name = 'dsh-fs-read-hint'
+        doc = json.loads(self.manifest.read_text())
+        doc['dependencies'][name] = 'link:/root/dsha-fs-read-hint'
+        doc['dsh']['profile']['bundles'].append(name)
+        self.manifest.write_text(json.dumps(doc), encoding='utf8')
+        marker = self.put('root/.dsh/profiles/web/node_modules/' + name + '.disabled', '')
+        with self.builtin.operation_lock():
+            self.assertTrue(self.builtin.retire_read_hint_selection(self.builtin.read_manifest()))
+            first = self.manifest.read_bytes()
+            self.assertFalse(self.builtin.retire_read_hint_selection(self.builtin.read_manifest()))
+        self.assertFalse(marker.exists())
+        self.assertEqual(first, self.manifest.read_bytes())
+        self.assertNotIn(name, self.items())
+
+    def test_retired_read_hint_preserves_custom_same_name_package_and_marker(self):
+        name = 'dsh-fs-read-hint'
+        directory = self.plugin('root/.dsh/profiles/web/node_modules', name)
+        package = (directory / 'package.json').read_bytes()
+        marker = self.put('root/.dsh/profiles/web/node_modules/' + name + '.disabled', '')
+        doc = json.loads(self.manifest.read_text())
+        doc['dependencies'][name] = 'link:/root/dsha-fs-read-hint'
+        doc['dsh']['profile']['bundles'].append(name)
+        self.manifest.write_text(json.dumps(doc), encoding='utf8')
+        with self.builtin.operation_lock():
+            self.assertTrue(self.builtin.retire_read_hint_selection(self.builtin.read_manifest()))
+            self.assertFalse(self.builtin.retire_read_hint_selection(self.builtin.read_manifest()))
+        amended = json.loads(self.manifest.read_text())
+        self.assertNotIn(name, amended['dependencies'])
+        self.assertIn(name, amended['dsh']['profile']['bundles'])
+        self.assertEqual(package, (directory / 'package.json').read_bytes())
+        self.assertEqual(b'', marker.read_bytes())
+        item = self.items()[name]
+        self.assertTrue(item['installed'])
+        self.assertFalse(item['internal'])
+
+    def test_retired_read_hint_preserves_custom_legacy_directory(self):
+        name = 'dsh-fs-read-hint'
+        directory = self.plugin('root', 'dsha-fs-read-hint')
+        doc = json.loads(self.manifest.read_text())
+        doc['dependencies'][name] = 'link:/root/dsha-fs-read-hint'
+        doc['dsh']['profile']['bundles'].append(name)
+        self.manifest.write_text(json.dumps(doc), encoding='utf8')
+        before = self.manifest.read_bytes()
+        with self.builtin.operation_lock():
+            self.assertFalse(self.builtin.retire_read_hint_selection(self.builtin.read_manifest()))
+        self.assertEqual(before, self.manifest.read_bytes())
+        self.assertTrue(directory.is_dir())
+
+    @unittest.skipIf(os.name == 'nt', 'requires POSIX dangling relative and absolute symlinks')
+    def test_retired_read_hint_removes_generated_dangling_aliases(self):
+        name = 'dsh-fs-read-hint'
+        alias = self.manifest.parent / 'node_modules' / name
+        marker = alias.with_name(name + '.disabled')
+        alias.parent.mkdir()
+        for target in ('/root/dsha-fs-read-hint', '../../../../dsha-fs-read-hint'):
+            with self.subTest(target=target):
+                alias.symlink_to(target)
+                marker.write_bytes(b'DSHA_WEB_BUILTIN_DISABLED_V1\n')
+                doc = json.loads(self.manifest.read_text())
+                doc['dependencies'][name] = 'link:/root/dsha-fs-read-hint'
+                doc['dsh']['profile']['bundles'].append(name)
+                self.manifest.write_text(json.dumps(doc), encoding='utf8')
+                with self.builtin.operation_lock():
+                    self.assertTrue(self.builtin.retire_read_hint_selection(self.builtin.read_manifest()))
+                self.assertFalse(os.path.lexists(alias))
+                self.assertFalse(marker.exists())
+                self.assertNotIn(name, self.items())
 
     def test_auto_review_web_off_survives_register_and_removes_both_aliases(self):
         aliases = self.builtin.AUTO_REVIEW_ALIASES

@@ -1,6 +1,8 @@
 # 容器内运行的脚本必须保持 LF：CRLF 会让 proot 容器里的 bash/python 报错（上游 issue #45）
 * text=auto eol=lf
 *.so binary
+# proroot v1.2.8 permits redistribution only in a complete application package.
+/app/src/main/jniLibs/arm64-v8a/libproroot*.so export-ignore
 *.bin binary
 *.jar binary
 *.aar binary
@@ -9,6 +11,7 @@
 *.zip binary
 *.apk binary
 *.png binary
+*.webp binary
 *.jpg binary
 *.webp binary
 *.pdf binary

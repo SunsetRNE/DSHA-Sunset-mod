@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 /** Shared mechanics only; each trial retains its own data, validation and close contract. */
 final class TrialSupport {
@@ -35,6 +36,18 @@ final class TrialSupport {
     fs.syncDirectory(target.getParentFile());
   }
 
+  static void closeOwnedPayload(BackupFileSystem fs, File operation) throws IOException {
+    String id = operation.getName();
+    File closed = fs.child(operation, "closed");
+    if (fs.stat(closed).type.equals("MISSING")) {
+      write(fs, operation, "closed", id.getBytes(StandardCharsets.US_ASCII));
+    } else if (!id.equals(new String(fs.small(closed, 128), StandardCharsets.US_ASCII))) {
+      throw new IOException("TRIAL_MARKER");
+    }
+    if (!fs.stat(fs.child(operation, "payload")).type.equals("MISSING"))
+      fs.removeOwned(operation, "payload");
+  }
+
   static String identityPrefix() {
     return "set -e; printf '%s\\n' $$ > .dsha-web.pid; "
         + "IFS= read -r DSHA_STAT < /proc/$$/stat; "
@@ -62,13 +75,23 @@ final class TrialSupport {
       Cleanup cleanup,
       Throwable primary)
       throws IOException {
+    return finish(launcher, work, cleanup, primary, "TRIAL_PROCESS_UNCONFIRMED");
+  }
+
+  static boolean finish(
+      Process launcher,
+      com.deepseekharness.app.util.RuntimeWorkPort.Work work,
+      Cleanup cleanup,
+      Throwable primary,
+      String unconfirmedCode)
+      throws IOException {
     IOException stopping = null;
     if (launcher != null)
       try {
         cleanup.stop();
-        if (!cleanup.confirmed(launcher)) throw new IOException("TRIAL_PROCESS_UNCONFIRMED");
+        if (!cleanup.confirmed(launcher)) throw new IOException(unconfirmedCode);
       } catch (IOException | RuntimeException error) {
-        stopping = new IOException("TRIAL_PROCESS_UNCONFIRMED", error);
+        stopping = new IOException(unconfirmedCode, error);
       }
     if (stopping != null) {
       try {
@@ -84,7 +107,7 @@ final class TrialSupport {
                   }
                 },
                 cleanup::closeRecord,
-                "TRIAL_PROCESS_UNCONFIRMED"));
+                unconfirmedCode));
       } catch (RuntimeException retaining) {
         stopping.addSuppressed(retaining);
       }

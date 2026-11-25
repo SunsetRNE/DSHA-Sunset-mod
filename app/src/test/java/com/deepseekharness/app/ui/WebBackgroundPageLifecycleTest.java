@@ -7,8 +7,10 @@ import android.view.View;
 import android.webkit.WebView;
 import android.widget.*;
 import com.deepseekharness.app.DshaApp;
+import com.deepseekharness.app.HarnessService;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.*;
+import com.deepseekharness.app.util.PowerPolicy;
 import com.deepseekharness.app.util.PreviewPageSession;
 import com.deepseekharness.app.util.UiText;
 import java.lang.reflect.*;
@@ -167,14 +169,16 @@ public final class WebBackgroundPageLifecycleTest {
       FrameLayout errors = new FrameLayout(this);
       errors.setVisibility(View.GONE);
       views.put(R.id.web_error_panel, errors);
-      content.addView(errors);
+      container.addView(errors);
       for (int id :
           new int[] {
             R.id.web_retry, R.id.web_error_browser, R.id.web_error_logs, R.id.web_error_recovery
           }) views.put(id, new Button(this));
       views.put(R.id.web_error_title, new TextView(this));
       views.put(R.id.web_error_detail, new TextView(this));
-      views.put(R.id.web_progress, new ProgressBar(this));
+      ProgressBar progress = new ProgressBar(this);
+      views.put(R.id.web_progress, progress);
+      content.addView(progress);
       getWindow().setContentView(content);
     }
   }
@@ -479,13 +483,7 @@ public final class WebBackgroundPageLifecycleTest {
   @Test
   public void actualServicePowerRefreshKeepsUnknownProtectedAndOnlyConfirmedExitReportsStopped()
       throws Exception {
-    var service = Robolectric.buildService(com.deepseekharness.app.HarnessService.class).get();
-    Field controller = service.getClass().getDeclaredField("c");
-    controller.setAccessible(true);
-    controller.set(service, Controller.value);
-    Field keep = service.getClass().getDeclaredField("keepAliveRunning");
-    keep.setAccessible(true);
-    keep.set(service, true);
+    var service = powerService(new Thread());
     Field message = service.getClass().getDeclaredField("notificationState");
     message.setAccessible(true);
     Method refresh = service.getClass().getDeclaredMethod("refreshLocks");
@@ -508,6 +506,118 @@ public final class WebBackgroundPageLifecycleTest {
     refresh.invoke(service);
     assertEquals("Web stopped", message.get(service).toString());
     assertNull(cpu.get(service));
+  }
+
+  private HarnessService powerService(Thread owner) throws Exception {
+    var service = Robolectric.buildService(HarnessService.class).get();
+    set(service, "c", Controller.value);
+    set(service, "keepAliveThread", owner);
+    set(service, "foregroundPromoted", true);
+    DshaApp.from(service).harnessService().attach(service);
+    return service;
+  }
+
+  @Test
+  public void screenOffEcoServiceReleasesAfterContinuousLargeIdleFramesAndResumesForBusy()
+      throws Exception {
+    Thread owner = new Thread();
+    var service = powerService(owner);
+    var config = Controller.value.config();
+    config.setLanMode(false);
+    config.setEcoMode(true);
+    org.robolectric.shadows.ShadowPowerManager screen =
+        Shadow.extract(service.getSystemService(android.os.PowerManager.class));
+    screen.setIsInteractive(false);
+    org.robolectric.shadows.ShadowLooper looper = Shadow.extract(Looper.getMainLooper());
+    Class<?> type = HarnessService.class;
+    Method sample =
+        type.getDeclaredMethod("postPowerSample", Thread.class, PowerPolicy.IdleFrame.class);
+    Method stop = type.getDeclaredMethod("stopKeepAlive");
+    Field cpu = type.getDeclaredField("wakeLock"), wifi = type.getDeclaredField("wifiLock");
+    for (AccessibleObject member : List.of(sample, stop, cpu, wifi)) member.setAccessible(true);
+    long last = 0;
+    for (long elapsed : new long[] {0, 15000, 30000, 45000, 59999, 60000}) {
+      org.robolectric.shadows.ShadowSystemClock.advanceBy(
+          java.time.Duration.ofMillis(elapsed - last));
+      last = elapsed;
+      String json =
+          "{\"generation\":\"7\",\"instance\":\""
+              + ORIGINAL.instanceId()
+              + "\",\"at\":"
+              + System.currentTimeMillis()
+              + ",\"idle\":true,\"plugins\":[{\"name\":\""
+              + "a".repeat(4096)
+              + "\"}]}";
+      sample.invoke(
+          service,
+          owner,
+          PowerPolicy.readIdleFrame(json.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+      looper.idle();
+      var held = (android.os.PowerManager.WakeLock) cpu.get(service);
+      assertEquals("elapsed=" + elapsed, elapsed < 60000, held != null && held.isHeld());
+      assertNull(wifi.get(service));
+    }
+    sample.invoke(service, owner, null);
+    looper.idle();
+    assertTrue(((android.os.PowerManager.WakeLock) cpu.get(service)).isHeld());
+    assertTrue(((android.net.wifi.WifiManager.WifiLock) wifi.get(service)).isHeld());
+    stop.invoke(service);
+  }
+
+  @Test
+  public void queuedWatchdogSampleCannotReacquireLocksOrNotifyAfterStopOrReplacement()
+      throws Exception {
+    Thread oldRun = new Thread();
+    var service = powerService(oldRun);
+    Class<?> type = HarnessService.class;
+    Method sample =
+        type.getDeclaredMethod(
+            "postPowerSample",
+            Thread.class,
+            com.deepseekharness.app.util.PowerPolicy.IdleFrame.class);
+    Method stop = type.getDeclaredMethod("stopKeepAlive");
+    Method refresh = type.getDeclaredMethod("refreshLocks");
+    Field cpu = type.getDeclaredField("wakeLock"), wifi = type.getDeclaredField("wifiLock");
+    for (AccessibleObject member : List.of(sample, stop, refresh, cpu, wifi))
+      member.setAccessible(true);
+    refresh.invoke(service);
+    var heldCpu = (android.os.PowerManager.WakeLock) cpu.get(service);
+    var heldWifi = (android.net.wifi.WifiManager.WifiLock) wifi.get(service);
+    assertTrue(heldCpu.isHeld());
+    assertTrue(heldWifi.isHeld());
+    var notifications = service.getSystemService(android.app.NotificationManager.class);
+    org.robolectric.shadows.ShadowNotificationManager posted = Shadow.extract(notifications);
+    org.robolectric.shadows.ShadowLooper looper = Shadow.extract(Looper.getMainLooper());
+    int notification = com.deepseekharness.app.util.NotificationIds.HARNESS;
+    sample.invoke(service, oldRun, null);
+    stop.invoke(service);
+    notifications.cancel(notification);
+    assertFalse(heldCpu.isHeld());
+    assertFalse(heldWifi.isHeld());
+    looper.idle();
+    assertNull(cpu.get(service));
+    assertNull(wifi.get(service));
+    assertNull(posted.getNotification(notification));
+
+    Thread replacementRun = new Thread();
+    set(service, "keepAliveThread", replacementRun);
+    sample.invoke(service, oldRun, null);
+    looper.idle();
+    assertNull(cpu.get(service));
+    assertNull(wifi.get(service));
+    assertNull(posted.getNotification(notification));
+
+    sample.invoke(service, replacementRun, null);
+    var replacementService = powerService(new Thread());
+    looper.idle();
+    assertNull(cpu.get(service));
+    assertNull(wifi.get(service));
+    assertNull(posted.getNotification(notification));
+    refresh.invoke(replacementService);
+    assertTrue(((android.os.PowerManager.WakeLock) cpu.get(replacementService)).isHeld());
+    assertTrue(((android.net.wifi.WifiManager.WifiLock) wifi.get(replacementService)).isHeld());
+    assertNotNull(posted.getNotification(notification));
+    stop.invoke(replacementService);
   }
 
   private WebPreviewActivity.Retained createWithKeeperPage() {
@@ -547,7 +657,9 @@ public final class WebBackgroundPageLifecycleTest {
     secondController.start().resume();
     assertEquals("adopting the kept page must not navigate", 1, page.navigations);
     assertEquals(0, page.destroyed);
-    assertNotNull(page.getParent());
+    FrameLayout layer = second.findViewById(R.id.web_container);
+    assertSame(page, layer.getChildAt(0));
+    assertSame(second.findViewById(R.id.web_error_panel), layer.getChildAt(1));
     assertSame(second, stored.owner.get());
   }
 

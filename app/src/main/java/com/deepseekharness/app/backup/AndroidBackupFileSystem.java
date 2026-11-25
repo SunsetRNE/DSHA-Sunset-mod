@@ -2,17 +2,16 @@ package com.deepseekharness.app.backup;
 
 import android.system.*;
 import android.os.ParcelFileDescriptor;
+import com.deepseekharness.app.util.LinuxOpenFlags;
 import java.io.*;
 import java.util.*;
+import java.util.function.Consumer;
 
 /** 不使用 root/ADB，不把 EACCES 当成不存在；描述符打开后再次检查类型、设备和 inode。 */
 public class AndroidBackupFileSystem implements BackupFileSystem {
   private static final int O_PATH = 0x200000; // Linux UAPI；仅持有目录，不要求列出 /data 等父目录。
   // NDK r26 asm-generic/fcntl.h: 02000000；内核早已支持，Android Java 字段到 API 27 才公开。
   private static final int O_CLOEXEC = 0x80000;
-  // NDK 26.3 aarch64-linux-android/asm/fcntl.h: 040000. Production is arm64 only;
-  // asm-generic/x86 uses 00200000 instead. Public OsConstants has no O_DIRECTORY.
-  private static final int O_DIRECTORY = 040000;
 
   private static FileDescriptor anchored(File file, int flags, int mode)
       throws IOException, ErrnoException {
@@ -60,7 +59,11 @@ public class AndroidBackupFileSystem implements BackupFileSystem {
   /** Android 的 FileInput/OutputStream(FileDescriptor) 不拥有传入的描述符。明确转交给自动关闭流。 */
   static ParcelFileDescriptor owned(File file, int flags, int mode)
       throws IOException, ErrnoException {
-    FileDescriptor raw = anchored(file, flags, mode);
+    return duplicateOwned(anchored(file, flags, mode));
+  }
+
+  private static ParcelFileDescriptor duplicateOwned(FileDescriptor raw)
+      throws IOException, ErrnoException {
     try {
       return ParcelFileDescriptor.dup(raw);
     } finally {
@@ -81,7 +84,9 @@ public class AndroidBackupFileSystem implements BackupFileSystem {
         stat.st_size,
         stat.st_mtime,
         stat.st_dev,
-        stat.st_mode & 0777);
+        stat.st_mode & 0777,
+        stat.st_blocks >= 0 && stat.st_blocks <= Long.MAX_VALUE / 512 ? stat.st_blocks * 512 : -1,
+        stat.st_nlink);
   }
 
   @Override
@@ -130,16 +135,14 @@ public class AndroidBackupFileSystem implements BackupFileSystem {
           anchored(
               file,
               OsConstants.O_RDONLY
-                  | O_DIRECTORY
+                  | LinuxOpenFlags.directoryFlag(OsConstants.O_NOFOLLOW)
                   | OsConstants.O_NONBLOCK
                   | O_CLOEXEC
                   | OsConstants.O_NOFOLLOW,
               0);
       try (ParcelFileDescriptor handle = ParcelFileDescriptor.dup(fd)) {
         if (!before.same(node(Os.fstat(fd)))) throw new IOException("SOURCE_CHANGED");
-        String[] names = new File("/proc/self/fd/" + handle.getFd()).list();
-        if (names == null) throw new IOException("DIRECTORY_UNREADABLE");
-        if (names.length > BackupLimits.ENTRIES) throw new IOException("ENTRY_LIMIT");
+        String[] names = directoryNames("/proc/self/fd/" + handle.getFd());
         if (!before.same(node(Os.fstat(fd))) || !before.same(stat(file)))
           throw new IOException("SOURCE_CHANGED");
         List<String> result = Arrays.asList(names);
@@ -151,6 +154,13 @@ public class AndroidBackupFileSystem implements BackupFileSystem {
     } catch (ErrnoException error) {
       throw failure(error);
     }
+  }
+
+  private static String[] directoryNames(String path) throws IOException {
+    String[] names = new File(path).list();
+    if (names == null) throw new IOException("DIRECTORY_UNREADABLE");
+    if (names.length > BackupLimits.ENTRIES) throw new IOException("ENTRY_LIMIT");
+    return names;
   }
 
   @Override
@@ -340,6 +350,135 @@ public class AndroidBackupFileSystem implements BackupFileSystem {
   }
 
   @Override
+  public void deleteChecked(File file, Node expected) throws IOException {
+    try {
+      atParent(
+          file,
+          path -> {
+            if (!expected.same(node(Os.lstat(path)))) throw new IOException("SOURCE_CHANGED");
+            Os.remove(path);
+            return null;
+          });
+    } catch (ErrnoException error) {
+      throw failure(error);
+    }
+  }
+
+  /** 仅遍历维护租约核准的缓存和已退役载荷；每层固定一个父目录描述符。 */
+  final void removeStorageTree(
+      File file,
+      long device,
+      Consumer<Node> visited,
+      Consumer<Node> removed,
+      BackupControl control,
+      int depth)
+      throws IOException {
+    if (control != null) control.check();
+    if (depth > BackupLimits.DEPTH) throw new IOException("STORAGE_DEPTH");
+    File target = file.getAbsoluteFile();
+    File parent = target.getParentFile();
+    if (parent == null) throw new IOException("REFUSE_ROOT_DELETE");
+    Node expected = stat(target);
+    if (expected.type.equals("MISSING")) return;
+    try (ParcelFileDescriptor held =
+        owned(parent, O_PATH | O_CLOEXEC | OsConstants.O_NOFOLLOW, 0)) {
+      StructStat actual = Os.fstat(held.getFileDescriptor());
+      if (!OsConstants.S_ISDIR(actual.st_mode)) throw new IOException("PARENT_LINK");
+      if (actual.st_dev != device) throw new IOException("STORAGE_VOLUME_BOUNDARY");
+      new StorageRemoval(device, visited, removed, control)
+          .remove(target, expected, new RemovalDirectory(held, parent, node(actual)), depth);
+    } catch (ErrnoException error) {
+      throw failure(error);
+    }
+  }
+
+  private final class RemovalDirectory {
+    final File file;
+    final String fdPath;
+    final Node identity;
+
+    RemovalDirectory(ParcelFileDescriptor handle, File file, Node identity) {
+      this.file = file;
+      this.fdPath = "/proc/self/fd/" + handle.getFd();
+      this.identity = identity;
+    }
+
+    void verifyLocation() throws IOException, ErrnoException {
+      // An FD can outlive its old pathname. Stop if a held directory was moved or covered.
+      Node named = stat(file);
+      if (!named.type.equals("DIRECTORY")
+          || !identity.key.equals(named.key)
+          || identity.device != named.device
+          || !file.getPath().equals(Os.readlink(fdPath))) throw new IOException("SOURCE_CHANGED");
+    }
+  }
+
+  private final class StorageRemoval {
+    final long device;
+    final Consumer<Node> visited, removed;
+    final BackupControl control;
+
+    StorageRemoval(
+        long device, Consumer<Node> visited, Consumer<Node> removed, BackupControl control) {
+      this.device = device;
+      this.visited = visited;
+      this.removed = removed;
+      this.control = control;
+    }
+
+    void remove(File file, Node expected, RemovalDirectory parent, int depth)
+        throws IOException, ErrnoException {
+      if (control != null) control.check();
+      if (depth > BackupLimits.DEPTH) throw new IOException("STORAGE_DEPTH");
+      if (expected.type.equals("MISSING")) return;
+      if (expected.device != device) throw new IOException("STORAGE_VOLUME_BOUNDARY");
+      String path = parent.fdPath + "/" + file.getName();
+      parent.verifyLocation();
+      if (!expected.same(node(Os.lstat(path)))) throw new IOException("SOURCE_CHANGED");
+      visited.accept(expected);
+      if (control != null) control.check();
+      if (expected.type.equals("DIRECTORY")) expected = empty(file, path, expected, depth);
+      parent.verifyLocation();
+      if (!expected.same(node(Os.lstat(path)))) throw new IOException("SOURCE_CHANGED");
+      if (control != null) control.check();
+      Os.remove(path);
+      removed.accept(expected);
+    }
+
+    Node empty(File file, String path, Node expected, int depth)
+        throws IOException, ErrnoException {
+      try (ParcelFileDescriptor held =
+          duplicateOwned(Os.open(path, O_PATH | O_CLOEXEC | OsConstants.O_NOFOLLOW, 0))) {
+        var directory = new RemovalDirectory(held, file, expected);
+        FileDescriptor fd = held.getFileDescriptor();
+        StructStat opened = Os.fstat(fd);
+        if (!expected.same(node(opened))) throw new IOException("SOURCE_CHANGED");
+        if (opened.st_uid != android.os.Process.myUid())
+          throw new IOException("RETIRED_DIRECTORY_NOT_OWNED");
+        directory.verifyLocation();
+        if ((opened.st_mode & 0700) != 0700)
+          Os.chmod(directory.fdPath, (opened.st_mode & 0777) | 0700);
+        Node before = node(Os.fstat(fd));
+        String[] names = directoryNames(directory.fdPath);
+        if (!before.same(node(Os.fstat(fd))) || !before.same(stat(file)))
+          throw new IOException("SOURCE_CHANGED");
+        Arrays.sort(names);
+        for (String name : names) {
+          if (control != null) control.check();
+          if (name.isEmpty() || name.equals(".") || name.equals("..") || name.indexOf('/') >= 0)
+            throw new IOException("INVALID_CHILD");
+          File child = new File(file, name);
+          remove(child, stat(child), directory, depth + 1);
+        }
+        directory.verifyLocation();
+        Node current = node(Os.fstat(fd));
+        if (!current.same(stat(file))) throw new IOException("SOURCE_CHANGED");
+        return current;
+      }
+    }
+  }
+
+  @Override
   public void prepareOwnedRemoval(File file) throws IOException {
     try {
       FileDescriptor fd = anchored(file, O_PATH | O_CLOEXEC | OsConstants.O_NOFOLLOW, 0);
@@ -401,7 +540,7 @@ public class AndroidBackupFileSystem implements BackupFileSystem {
           anchored(
               file,
               OsConstants.O_RDONLY
-                  | O_DIRECTORY
+                  | LinuxOpenFlags.directoryFlag(OsConstants.O_NOFOLLOW)
                   | OsConstants.O_NONBLOCK
                   | O_CLOEXEC
                   | OsConstants.O_NOFOLLOW,

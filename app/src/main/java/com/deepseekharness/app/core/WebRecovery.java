@@ -26,9 +26,9 @@ final class WebRecovery {
     if (generation == expected) stage = value;
   }
 
-  boolean fail(long expected, String reason) {
+  boolean fail(long expected, String reason, String failureCode) {
     if (!budget.fail(expected)) return false;
-    config.recordWebRecovery(budget.failures(), stage, SensitiveData.redact(reason));
+    config.recordWebRecovery(budget.failures(), stage, SensitiveData.redact(reason), failureCode);
     return true;
   }
 

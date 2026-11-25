@@ -1,8 +1,8 @@
 {
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-llm-deepseek/lib/index.js",
-  "packageVersion": "0.2.2-rc.1",
-  "canonicalSourceSha256": "955dc7bc7ca6c857ff4a7e373b87c143b96a4c43fc80325b67dc0982600dcc75",
+  "packageVersion": "0.2.2-rc.5",
+  "canonicalSourceSha256": "aa4de6cf5136d17534ee7c2c0cc43d9b17b2f1e0c9dc250c2b44a7f694d26258",
   "patches": [
     {
       "before": "\tconst model = connection.models.find((entry) => entry.id === options.model);\n\tconst inHistory =",

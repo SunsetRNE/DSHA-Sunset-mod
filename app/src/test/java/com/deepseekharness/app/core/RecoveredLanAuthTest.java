@@ -222,13 +222,29 @@ public final class RecoveredLanAuthTest {
     ProxyFixture(long generation) throws Exception {
       LanProxyService.clearDshAuth(0);
       assertTrue(LanProxyService.setDshAuthCookie(COOKIE, generation));
-      token = LanProxyService.getLanToken(null);
       Class<?> runType = Class.forName(LanProxyService.class.getName() + "$ProxyRun");
       var constructor =
-          runType.getDeclaredConstructor(long.class, long.class, int.class, String.class);
+          runType.getDeclaredConstructor(
+              long.class,
+              long.class,
+              int.class,
+              String.class,
+              android.content.Context.class,
+              com.deepseekharness.app.util.LanNetworkState.class);
       constructor.setAccessible(true);
       String verifier = com.deepseekharness.app.util.LanPassword.create("fixture-password");
-      run = constructor.newInstance(1L, generation, listener.getLocalPort(), verifier);
+      run =
+          constructor.newInstance(
+              1L,
+              generation,
+              listener.getLocalPort(),
+              verifier,
+              null,
+              new com.deepseekharness.app.util.LanNetworkState(1, "fixture", "192.168.1.2", 24));
+      var sessionField = run.getClass().getDeclaredField("sessions");
+      sessionField.setAccessible(true);
+      sessionField.set(run, new LanTokenState(() -> 0L));
+      token = sessions().issue();
       var server = runType.getDeclaredField("server");
       server.setAccessible(true);
       server.set(run, listener);
@@ -259,6 +275,7 @@ public final class RecoveredLanAuthTest {
               runType,
               snapshot.getClass(),
               String.class,
+              String.class,
               OutputStream.class);
       writeRequest.setAccessible(true);
     }
@@ -270,13 +287,18 @@ public final class RecoveredLanAuthTest {
     String write(ByteArrayOutputStream output) throws Exception {
       return (String)
           writeRequest.invoke(
-              null, run, snapshot, "GET / HTTP/1.1\r\nHost: fixture.invalid\r\n\r\n", output);
+              null,
+              run,
+              snapshot,
+              token,
+              "GET / HTTP/1.1\r\nHost: fixture.invalid\r\n\r\n",
+              output);
     }
 
-    String currentToken() throws Exception {
-      var field = LanProxyService.class.getDeclaredField("LAN_TOKEN");
+    LanTokenState sessions() throws ReflectiveOperationException {
+      var field = run.getClass().getDeclaredField("sessions");
       field.setAccessible(true);
-      return ((LanTokenState) field.get(null)).current();
+      return (LanTokenState) field.get(run);
     }
 
     public void close() throws Exception {
@@ -552,7 +574,7 @@ public final class RecoveredLanAuthTest {
         assertTrue(LanProxyService.hasDshAuth(run.generation));
         assertTrue(proxy.current());
         assertTrue(LanProxyService.isBound());
-        assertEquals(proxy.token, proxy.currentToken());
+        assertTrue(proxy.sessions().accepts(proxy.token));
         var before = new ByteArrayOutputStream();
         assertTrue(proxy.write(before).contains("Cookie: " + COOKIE));
         assertTrue(before.size() > 0);
@@ -561,7 +583,7 @@ public final class RecoveredLanAuthTest {
         assertFalse(run.recoveredLive);
         assertFalse(LanProxyService.hasDshAuth(run.generation));
         assertFalse("the real worker AuthState snapshot must become stale", proxy.current());
-        assertEquals("", proxy.currentToken());
+        assertFalse(proxy.sessions().accepts(proxy.token));
         assertTrue(proxy.listener.isClosed());
         assertEquals(-1, proxy.client.getInputStream().read());
         assertEquals(-1, proxy.companionPeer.getInputStream().read());

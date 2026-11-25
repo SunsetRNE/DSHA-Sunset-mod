@@ -61,7 +61,7 @@
     <string name="ui134_recent_startups" formatted="false">"直近 5 回の起動"</string>
     <string name="ui134_recent_startups_sub" formatted="false">"段階、実際のエラー、終了コード"</string>
     <string name="ui134_results" formatted="false">"確認結果"</string>
-    <string name="ui134_root_hint" formatted="false">"root 化済みの端末では、ADB のペアリングなしで su を直接使用できます。初回実行時に root マネージャーで DSHA を許可してください。以下でコマンド遮断レベルを選択できます。SMS 読み取りなどのネイティブチェックは 3 つのレベルすべてで有効です。"</string>
+    <string name="ui134_root_hint" formatted="false">"初回は root 管理アプリで DSHA を許可してください。厳格モードではディレクトリの再帰読み取りを禁止します。管理対象の SMS 照会には個別の許可が必要です。どちらの緩和モードでも root スクリプトは非公開データを直接読み取れます。"</string>
     <string name="ui134_screen_setup" formatted="false">"画面操作を設定 · 2 つの手順"</string>
     <string name="ui134_shizuku_hint" formatted="false">"Shizuku の管理アプリでサービスを起動してから、ここで DSHA を許可してください。通常は端末を再起動するたびにサービスの再起動が必要です。"</string>
     <string name="ui134_start_records" formatted="false">"起動記録"</string>
@@ -130,7 +130,7 @@
     <string name="ui2_meet" formatted="false">"DSHA を知る"</string>
     <string name="ui2_network_runtime" formatted="false">"実行環境とネットワーク"</string>
     <string name="ui2_offline_badge" formatted="false">"オフライン設定  ·  root 不要  ·  %1$s"</string>
-    <string name="ui2_online_notice" formatted="false">"オンラインモデルを使うと、メッセージと選択した添付ファイルが設定済みのモデルサービスに送信されます。"</string>
+    <string name="ui2_online_notice" formatted="false">"選択したオンラインモデルには、メッセージ、添付ファイル、画面上のテキストやスクリーンショットなどのツール結果が送信される場合があります。"</string>
     <string name="ui2_overlay" formatted="false">"フローティングステータス"</string>
     <string name="ui2_overlay_sub" formatted="false">"表示内容、不透明度、表示時間"</string>
     <string name="ui2_plugin_link" formatted="false">"リポジトリまたはダウンロード URL"</string>
@@ -187,7 +187,6 @@
     <string name="ui_adb_code_label" formatted="false">"ペアリングコード（6 桁）"</string>
     <string name="ui_adb_host_label" formatted="false">"端末のアドレス（空欄で自動検出）"</string>
     <string name="ui_adb_port_label" formatted="false">"ペアリングポート（空欄で自動検出）"</string>
-    <string name="ui_lan_unencrypted" formatted="false">"ローカルネットワークの通信は暗号化されません。信頼できるネットワークと端末のみで使用してください"</string>
     <string name="ui_language_title" formatted="false">"言語"</string>
     <string name="ui_m0001" formatted="false">"更新をダウンロード"</string>
     <string name="ui_m0002" formatted="false">"設定を保存"</string>

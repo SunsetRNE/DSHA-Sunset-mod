@@ -23,9 +23,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
+import com.deepseekharness.app.DshaDocumentsProvider.WorkspaceListing;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.backup.BackupControl;
-import com.deepseekharness.app.backup.DocumentStreams;
 import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.core.RuntimeTasks;
 import com.deepseekharness.app.data.WorkspaceFileExports;
@@ -37,6 +37,8 @@ import java.io.InterruptedIOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Read-only work-file browser; selected files can be saved with SAF or shared without root. */
@@ -120,10 +122,37 @@ public final class WorkspaceFilesActivity extends AppCompatActivity {
     int offset;
     WorkspaceFileExports.Source pending;
     boolean choosingDestination;
+    final ExecutorService lists =
+        Executors.newSingleThreadExecutor(work -> new Thread(work, "dsha-work-files-list"));
+    private WorkspaceListing listing;
+
+    WorkspaceListing open(Context app, String id, boolean reuse, BackupControl control)
+        throws IOException {
+      if (reuse && listing != null && listing.current(id)) return listing;
+      closeListing();
+      listing =
+          WorkspaceListing.open(
+              app.getContentResolver(), WorkspaceFileExports.authority(app), id, COLUMNS, control);
+      return listing;
+    }
+
+    void closeListing() {
+      WorkspaceListing previous = listing;
+      listing = null;
+      if (previous == null) return;
+      try {
+        previous.close();
+      } catch (RuntimeException failure) {
+        android.util.Log.w("DshaDocs", "DOCUMENT_LIST_CACHE_CLEANUP");
+      }
+    }
 
     @Override
     protected void onCleared() {
-      if (control != null) control.cancel();
+      BackupControl current = control;
+      if (current != null) current.cancel();
+      lists.execute(this::closeListing);
+      lists.shutdown();
     }
   }
 
@@ -214,7 +243,7 @@ public final class WorkspaceFilesActivity extends AppCompatActivity {
         new LinearLayout.LayoutParams(0, -2, 1));
     body.addView(workbench);
     LinearLayout navigation = new LinearLayout(this);
-    workspace = button(UiText.choose("工作目录", "Workspace"), () -> load(workspaceId, 0, true));
+    workspace = button(UiText.choose("工作目录", "Workspace"), () -> load(workspaceId, 0, true, false));
     root = button("DSHA", () -> load("root"));
     up = button(UiText.choose("上一级", "Up"), this::parent);
     refresh = button(UiText.choose("刷新", "Refresh"), () -> load(model.directory));
@@ -246,11 +275,11 @@ public final class WorkspaceFilesActivity extends AppCompatActivity {
     previousPage =
         button(
             UiText.choose("上一页", "Previous page"),
-            () -> load(model.directory, Math.max(0, model.offset - PAGE_SIZE)));
+            () -> load(model.directory, Math.max(0, model.offset - PAGE_SIZE), false, true));
     nextPage =
         button(
             UiText.choose("下一页", "Next page"),
-            () -> load(model.directory, model.offset + PAGE_SIZE));
+            () -> load(model.directory, model.offset + PAGE_SIZE, false, true));
     pagination.addView(previousPage, new LinearLayout.LayoutParams(0, -2, 1));
     pagination.addView(nextPage, new LinearLayout.LayoutParams(0, -2, 1));
     body.addView(pagination);
@@ -269,7 +298,7 @@ public final class WorkspaceFilesActivity extends AppCompatActivity {
         });
     model.notice.observe(this, notice -> render());
     if (model.page.getValue() == null && !model.working.get())
-      load(model.directory, 0, saved == null && workspaceId.equals(model.directory));
+      load(model.directory, 0, saved == null && workspaceId.equals(model.directory), false);
     else render();
   }
 
@@ -297,6 +326,12 @@ public final class WorkspaceFilesActivity extends AppCompatActivity {
   }
 
   @Override
+  protected void onStop() {
+    if (model != null && !isChangingConfigurations()) model.lists.execute(model::closeListing);
+    super.onStop();
+  }
+
+  @Override
   protected void onSaveInstanceState(Bundle state) {
     if (model != null) state.putString(SAVED_DIRECTORY, model.directory);
     super.onSaveInstanceState(state);
@@ -311,14 +346,10 @@ public final class WorkspaceFilesActivity extends AppCompatActivity {
   }
 
   private void load(String id) {
-    load(id, 0);
+    load(id, 0, false, false);
   }
 
-  private void load(String id, int offset) {
-    load(id, offset, false);
-  }
-
-  private void load(String id, int offset, boolean allowWorkspaceFallback) {
+  private void load(String id, int offset, boolean allowWorkspaceFallback, boolean reuse) {
     if (model.choosingDestination || !model.working.compareAndSet(false, true)) return;
     final String directory;
     try {
@@ -328,85 +359,80 @@ public final class WorkspaceFilesActivity extends AppCompatActivity {
       model.notice.setValue(new Notice(Phase.ERROR, invalid.getMessage()));
       return;
     }
-    model.directory = directory;
-    model.offset = offset;
-    model.page.setValue(new Page(directory, List.of(), offset, false));
     model.notice.setValue(new Notice(Phase.LOADING, ""));
     Model active = model;
     Context app = getApplicationContext();
     BackupControl control = new BackupControl(null);
     active.control = control;
-    new Thread(
-            () -> {
-              List<Entry> entries = new ArrayList<>();
-              Notice outcome;
-              try (RuntimeTasks ignored = RuntimeTasks.begin("作品文件浏览")) {
-                String openedDirectory = directory;
-                Cursor listing;
-                try {
-                  listing =
-                      DocumentStreams.query(
-                          app.getContentResolver(),
-                          DocumentsContract.buildChildDocumentsUri(
-                              WorkspaceFileExports.authority(app), directory),
-                          COLUMNS,
-                          control);
-                } catch (IOException error) {
-                  // Only the initial/configured-workspace action may try this one existing
-                  // directory. A cancelled query or manual navigation keeps its own result.
-                  if (!allowWorkspaceFallback
-                      || offset != 0
-                      || control.isCancelled()
-                      || error instanceof InterruptedIOException
-                      || PERSONAL_DIRECTORY.equals(directory)) throw error;
-                  listing =
-                      DocumentStreams.query(
-                          app.getContentResolver(),
-                          DocumentsContract.buildChildDocumentsUri(
-                              WorkspaceFileExports.authority(app), PERSONAL_DIRECTORY),
-                          COLUMNS,
-                          control);
-                  openedDirectory = PERSONAL_DIRECTORY;
-                }
-                try (Cursor cursor = listing) {
-                  control.check();
-                  cursor.moveToPosition(offset - 1);
-                  int visited = 0;
-                  while (visited < PAGE_SIZE && cursor.moveToNext()) {
-                    control.check();
-                    visited++;
-                    // The provider can also describe special nodes. Only directories and
-                    // regular-file rows with a known byte length belong in this export browser.
-                    if (DocumentsContract.Document.MIME_TYPE_DIR.equals(cursor.getString(2))
-                        || !cursor.isNull(3)) entries.add(new Entry(cursor));
-                  }
-                  boolean more = cursor.moveToNext();
-                  entries.sort(
-                      Comparator.comparing((Entry entry) -> !entry.directory)
-                          .thenComparing(entry -> entry.name, String.CASE_INSENSITIVE_ORDER));
-                  control.check();
-                  active.directory = openedDirectory;
-                  active.page.postValue(
-                      new Page(openedDirectory, List.copyOf(entries), offset, more));
-                  outcome =
-                      new Notice(
-                          !directory.equals(openedDirectory)
-                              ? Phase.PERSONAL_FILES
-                              : entries.isEmpty() ? Phase.EMPTY : Phase.IDLE,
-                          "");
-                }
-              } catch (Exception error) {
-                outcome =
-                    new Notice(
-                        control.isCancelled() ? Phase.CANCELLED : Phase.ERROR, detail(error));
-              } finally {
-                active.control = null;
-                active.working.set(false);
+    active.lists.execute(
+        () -> {
+          List<Entry> entries = new ArrayList<>();
+          Notice outcome;
+          Page page = null;
+          try (RuntimeTasks ignored = RuntimeTasks.begin("作品文件浏览")) {
+            String openedDirectory = directory;
+            WorkspaceListing listing;
+            try {
+              listing = active.open(app, directory, reuse, control);
+            } catch (IOException error) {
+              // Only the initial/configured-workspace action may try this one existing
+              // directory. A cancelled query or manual navigation keeps its own result.
+              if (!allowWorkspaceFallback
+                  || offset != 0
+                  || control.isCancelled()
+                  || error instanceof InterruptedIOException
+                  || PERSONAL_DIRECTORY.equals(directory)) throw error;
+              listing = active.open(app, PERSONAL_DIRECTORY, false, control);
+              openedDirectory = PERSONAL_DIRECTORY;
+            }
+            try (AutoCloseable cancellation = listing.cancelWith(control)) {
+              control.check();
+              Cursor cursor = listing.cursor;
+              cursor.moveToPosition(offset - 1);
+              int visited = 0;
+              while (visited < PAGE_SIZE && cursor.moveToNext()) {
+                control.check();
+                visited++;
+                // The provider can also describe special nodes. Only directories and
+                // regular-file rows with a known byte length belong in this export browser.
+                if (DocumentsContract.Document.MIME_TYPE_DIR.equals(cursor.getString(2))
+                    || !cursor.isNull(3)) entries.add(new Entry(cursor));
               }
-              active.notice.postValue(outcome);
-            },
-            "dsha-work-files-list")
-        .start();
+              boolean more = cursor.moveToNext();
+              entries.sort(
+                  Comparator.comparing((Entry entry) -> !entry.directory)
+                      .thenComparing(entry -> entry.name, String.CASE_INSENSITIVE_ORDER));
+              control.check();
+              page = new Page(openedDirectory, List.copyOf(entries), offset, more);
+              if (offset == 0 && !more) active.closeListing();
+              outcome =
+                  new Notice(
+                      !directory.equals(openedDirectory)
+                          ? Phase.PERSONAL_FILES
+                          : entries.isEmpty() ? Phase.EMPTY : Phase.IDLE,
+                      "");
+            }
+          } catch (Exception error) {
+            active.closeListing();
+            outcome =
+                new Notice(control.isCancelled() ? Phase.CANCELLED : Phase.ERROR, detail(error));
+          }
+          Page loaded = page;
+          Notice result = outcome;
+          app.getMainExecutor()
+              .execute(
+                  () -> {
+                    active.control = null;
+                    active.working.set(false);
+                    if (loaded != null && !control.isCancelled()) {
+                      active.directory = loaded.id;
+                      active.offset = loaded.offset;
+                      active.page.setValue(loaded);
+                    }
+                    active.notice.setValue(
+                        control.isCancelled() ? new Notice(Phase.CANCELLED, "") : result);
+                  });
+        });
   }
 
   private void actions(Entry entry) {
@@ -465,7 +491,12 @@ public final class WorkspaceFilesActivity extends AppCompatActivity {
               } catch (Exception error) {
                 outcome =
                     new Notice(
-                        control.isCancelled() ? Phase.CANCELLED : Phase.ERROR, detail(error));
+                        control.isCancelled()
+                                && !com.deepseekharness.app.transfer.SelectedDocumentSave.retained(
+                                    error.getMessage())
+                            ? Phase.CANCELLED
+                            : Phase.ERROR,
+                        detail(error));
               } finally {
                 active.control = null;
                 active.working.set(false);
@@ -569,6 +600,8 @@ public final class WorkspaceFilesActivity extends AppCompatActivity {
   }
 
   private static String errorText(String detail) {
+    String recovery = com.deepseekharness.app.transfer.SelectedDocumentSave.recoveryMessage(detail);
+    if (recovery != null) return recovery;
     switch (detail) {
       case "WORKSPACE_SOURCE_CHANGED":
       case "SOURCE_CHANGED":

@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.PersistableBundle
+import android.util.Log
 import com.deepseekharness.app.core.HarnessController
 import com.deepseekharness.app.core.RuntimeTasks
 import com.deepseekharness.app.util.AutomaticBackupPolicy
@@ -61,28 +62,32 @@ class AutomaticBackups private constructor() {
 
         @JvmStatic
         fun schedule(context: Context) {
-            val scheduler = context.getSystemService(JobScheduler::class.java) ?: return
-            if (factoryResetPending(context)) {
-                scheduler.cancel(JOB)
-                scheduler.cancel(NOW)
-                return
-            }
-            val settings = prefs(context)
-            if (!settings.contains("anchor"))
-                settings.edit().putLong("anchor", System.currentTimeMillis()).commit()
-            if (!enabled(context)) {
-                scheduler.cancel(JOB)
-                scheduler.cancel(NOW)
-                return
-            }
-            if (scheduler.allPendingJobs.none { it.id == JOB }) {
-                scheduler.schedule(
+            try {
+                val scheduler = context.getSystemService(JobScheduler::class.java) ?: return
+                if (factoryResetPending(context)) {
+                    scheduler.cancel(JOB)
+                    scheduler.cancel(NOW)
+                    return
+                }
+                val settings = prefs(context)
+                if (!settings.contains("anchor"))
+                    settings.edit().putLong("anchor", System.currentTimeMillis()).commit()
+                if (!enabled(context)) {
+                    scheduler.cancel(JOB)
+                    scheduler.cancel(NOW)
+                    return
+                }
+                if (scheduler.getPendingJob(JOB) != null) return
+                scheduleJob(
+                    scheduler,
                     JobInfo.Builder(JOB, ComponentName(context, AutomaticBackupService::class.java))
                         .setPersisted(true)
                         .setPeriodic(15 * 60_000L)
                         .setRequiredNetworkType(JobInfo.NETWORK_TYPE_NONE)
-                        .build()
+                        .build(),
                 )
+            } catch (unavailable: RuntimeException) {
+                scheduleFailure(JOB, unavailable.javaClass.simpleName)
             }
         }
 
@@ -114,16 +119,39 @@ class AutomaticBackups private constructor() {
 
         @JvmStatic
         fun request(context: Context, manual: Boolean) {
-            if (!enabled(context)) return
-            val scheduler = context.getSystemService(JobScheduler::class.java) ?: return
-            val extras = PersistableBundle()
-            extras.putBoolean("manual", manual)
-            scheduler.schedule(
-                JobInfo.Builder(NOW, ComponentName(context, AutomaticBackupService::class.java))
-                    .setExtras(extras)
-                    .setMinimumLatency(1500)
-                    .build()
-            )
+            requestJob(context, manual)
+        }
+
+        /** 用户主动申请时，前台提示以系统实际受理结果为准。 */
+        @JvmStatic fun requestNow(context: Context): Boolean = requestJob(context, true)
+
+        private fun requestJob(context: Context, manual: Boolean): Boolean {
+            if (!enabled(context)) return false
+            try {
+                val scheduler = context.getSystemService(JobScheduler::class.java) ?: return false
+                val extras = PersistableBundle()
+                extras.putBoolean("manual", manual)
+                return scheduleJob(
+                    scheduler,
+                    JobInfo.Builder(NOW, ComponentName(context, AutomaticBackupService::class.java))
+                        .setExtras(extras)
+                        .setMinimumLatency(1500)
+                        .build(),
+                )
+            } catch (unavailable: RuntimeException) {
+                scheduleFailure(NOW, unavailable.javaClass.simpleName)
+                return false
+            }
+        }
+
+        private fun scheduleJob(scheduler: JobScheduler, job: JobInfo): Boolean {
+            if (scheduler.schedule(job) == JobScheduler.RESULT_SUCCESS) return true
+            scheduleFailure(job.id, "RESULT_FAILURE")
+            return false
+        }
+
+        private fun scheduleFailure(id: Int, reason: String) {
+            Log.w("DshaBackup", "AUTOMATIC_BACKUP_SCHEDULER job=$id reason=$reason")
         }
 
         @JvmStatic
@@ -137,7 +165,7 @@ class AutomaticBackups private constructor() {
                 c.getWebAuthUrl().isEmpty() &&
                 !RuntimeTasks.isBusy() &&
                 !HostMaintenancePending.blocked(context.filesDir) &&
-                c.isWebStoppedForMaintenance()
+                c.observeWebStopped()
         }
 
         @JvmStatic
@@ -149,7 +177,7 @@ class AutomaticBackups private constructor() {
                 !c.isStopping() &&
                 c.getWebAuthUrl().isEmpty() &&
                 !RuntimeTasks.hasOtherTasks() &&
-                c.isWebStoppedForMaintenance()
+                c.observeWebStopped()
         }
 
         /** 先阻止新生产者，再取消并等现有作业退出，保留原格式化屏障及失败回退顺序。 */

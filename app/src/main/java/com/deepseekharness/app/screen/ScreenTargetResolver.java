@@ -3,10 +3,10 @@ package com.deepseekharness.app.screen;
 import android.accessibilityservice.AccessibilityService;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
-import com.deepseekharness.app.util.ScreenTarget;
-import com.deepseekharness.app.util.VirtualScreenWindowEvidence;
 import com.deepseekharness.app.util.MainScreenWindowPolicy;
+import com.deepseekharness.app.util.ScreenTarget;
 import com.deepseekharness.app.util.ScreenWindowRegion;
+import com.deepseekharness.app.util.VirtualScreenWindowEvidence;
 import java.util.ArrayList;
 
 /** 只在指定显示选择唯一窗口；根不可读时不换用背景应用。 */
@@ -104,7 +104,6 @@ public final class ScreenTargetResolver {
       for (AccessibilityWindowInfo window : windows) {
         android.graphics.Rect bounds = new android.graphics.Rect();
         window.getBoundsInScreen(bounds);
-        CharSequence title = window.getTitle();
         evidenceWindows.add(
             new VirtualScreenWindowEvidence.Window(
                 windowDisplay(window),
@@ -116,8 +115,7 @@ public final class ScreenTargetResolver {
                 bounds.right,
                 bounds.bottom,
                 window.isFocused(),
-                window.isActive(),
-                title == null ? null : title.toString()));
+                window.isActive()));
       }
       var evidence = VirtualScreenWindowEvidence.of(display, evidenceWindows);
       if (evidence.selectedIndex < 0)

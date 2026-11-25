@@ -39,6 +39,12 @@ final class GuestPluginScripts {
         throws IOException, InterruptedException {
       return run(command, timeoutMs);
     }
+
+    default BoundedProcessRunner.Result runQuery(
+        String command, long timeoutMs, Consumer<String> timing)
+        throws IOException, InterruptedException {
+      return run(command, timeoutMs);
+    }
   }
 
   interface Preparation {
@@ -62,16 +68,34 @@ final class GuestPluginScripts {
       return Rc1MigrationCache.Reuse.absent();
     }
 
+    default String importedNativeResetProof() throws IOException {
+      return "";
+    }
+
     /** 缓存命中也必须把本次 history-only 交接落盘并读回；默认实现拒绝放行。 */
     default void bindMigrationHistory(Rc1MigrationCache.Reuse reuse, String startupId)
         throws IOException {
       throw new IOException("MIGRATION_HISTORY_HANDOFF_UNAVAILABLE");
     }
 
+    default Rc1MigrationCache.Reuse prepareMigration(String startupId) throws IOException {
+      var reuse = reusableMigration();
+      if (reuse != null && reuse.status == Rc1MigrationCache.Reuse.Status.REUSABLE_HISTORY) {
+        try {
+          bindMigrationHistory(reuse, startupId);
+        } catch (IOException | RuntimeException unverified) {
+          return Rc1MigrationCache.Reuse.handoffUnverified(reuse.generation);
+        }
+      }
+      return reuse;
+    }
+
     /** Query-only readiness; must not write, install, repair, migrate or register anything. */
     default boolean queryReady() {
       return false;
     }
+
+    default void recordQueryTiming(String line) {}
 
     default boolean cancelled(String taskId) {
       return false;
@@ -176,20 +200,54 @@ final class GuestPluginScripts {
             return reuse;
           }
 
-          public void bindMigrationHistory(Rc1MigrationCache.Reuse reuse, String startupId)
-              throws IOException {
+          public String importedNativeResetProof() throws IOException {
             var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
             var host =
                 com.deepseekharness.app.util.ColdInstallPackages.bindPrivateFiles(
                     fs, new File(context.getApplicationInfo().dataDir), context.getFilesDir());
-            File current =
-                new com.deepseekharness.app.backup.UserDataLayout(fs, host.files).current();
-            Rc1MigrationCache.bindHistory(fs, host.files, current, reuse, startupId);
+            if (!root.getCanonicalFile()
+                .equals(new File(host.files, "linux/ubuntu").getCanonicalFile())) return "";
+            File script = fs.child(root, "root/.dsh/" + RC1_MIGRATION_SCRIPT);
+            final int maxScript = 128 * 1024;
+            // A compatible rollback leaves the selected runtime's own script
+            // installed. Its CLI need not accept flags introduced by this APK.
+            try (var asset = context.getAssets().open(RC1_MIGRATION_SCRIPT)) {
+              if (!sameInstalledMigrationScript(fs.small(script, maxScript), asset)) return "";
+            }
+            String proof =
+                com.deepseekharness.app.backup.NativeResetHistory.importedEmptyProof(
+                    fs, host.files);
             host.verify(fs);
+            return proof;
+          }
+
+          public Rc1MigrationCache.Reuse prepareMigration(String startupId) throws IOException {
+            var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
+            var host =
+                com.deepseekharness.app.util.ColdInstallPackages.bindPrivateFiles(
+                    fs, new File(context.getApplicationInfo().dataDir), context.getFilesDir());
+            var layout = new com.deepseekharness.app.backup.UserDataLayout(fs, host.files);
+            File current = layout.current();
+            var reuse = Rc1MigrationCache.prepare(fs, host.files, current, startupId);
+            try {
+              host.verify(fs);
+              if (reuse.generation != null && !current.equals(layout.current()))
+                return Rc1MigrationCache.Reuse.handoffUnverified(reuse.generation);
+            } catch (IOException | RuntimeException unverified) {
+              if (reuse.generation != null)
+                return Rc1MigrationCache.Reuse.handoffUnverified(reuse.generation);
+              throw unverified;
+            }
+            return reuse;
           }
 
           public boolean queryReady() {
             return RuntimeTools.queryReady(context, root);
+          }
+
+          public void recordQueryTiming(String line) {
+            RuntimeHostPorts.fromOwner(context.getApplicationContext())
+                .record("PLUGIN_QUERY_TIMING", line);
           }
 
           public boolean cancelled(String taskId) {
@@ -237,6 +295,7 @@ final class GuestPluginScripts {
     private final GuestScriptQueue.Lease lease;
     private final Thread owner = Thread.currentThread();
     private boolean registerAttempted, registered, migrated, closed;
+    private boolean legacyReviewClear;
 
     private Startup(GuestScriptQueue.Lease lease) {
       this.lease = lease;
@@ -255,7 +314,10 @@ final class GuestPluginScripts {
         throw new IOException("STARTUP_PLUGIN_REGISTER_ALREADY_ATTEMPTED");
       // Mark before dispatch: UNKNOWN or failed commands never gain an implicit retry here.
       registerAttempted = true;
-      BoundedProcessRunner.Result result = runRegister("", true);
+      BoundedProcessRunner.Result result = runRegister("--startup-legacy-review-proof", true);
+      // The opt-in register command prints the proof as its final line while
+      // holding both writer locks. Accept it only after a confirmed zero exit.
+      legacyReviewClear = result.output.endsWith("\nSTARTUP_LEGACY_REVIEW_CLEAR_V1\n");
       registered = true;
       return result;
     }
@@ -264,11 +326,19 @@ final class GuestPluginScripts {
       requireOwner();
       if (!registered || migrated) throw new IOException("STARTUP_PLUGIN_MIGRATION_ORDER");
       migrated = true;
+      if (legacyReviewClear)
+        return BoundedProcessRunner.localCompletion(
+            "PLUGIN_RESULT: {\"status\":\"ok\",\"message\":\"已启用 0 个旧版待审阅插件\","
+                + "\"activated\":[],\"skipped\":[]}\n");
       return runner.run(
           "DSHA_PLUGIN_DOWNLOAD_SOURCE=auto python3 /root/.dsh/"
               + PLUGIN_MANAGER_SCRIPT
               + " migrate-review-markers 2>&1",
           MANAGER_TIMEOUT_MS);
+    }
+
+    boolean legacyUsesGuest() {
+      return !legacyReviewClear;
     }
 
     public void close() {
@@ -330,21 +400,20 @@ final class GuestPluginScripts {
     }
     Rc1MigrationCache.Reuse reuse;
     try {
-      reuse = preparation.reusableMigration();
+      reuse =
+          "prepare".equals(command)
+              ? preparation.prepareMigration(startupId)
+              : preparation.reusableMigration();
       if (reuse == null) reuse = Rc1MigrationCache.Reuse.unavailable("MIGRATION_REUSE_NULL");
     } catch (IOException | RuntimeException unavailable) {
       // 证据未知时仍交给真实 guest 校验；不把异常折叠成“无迁移”。
       reuse = Rc1MigrationCache.Reuse.unavailable("MIGRATION_REUSE_UNAVAILABLE");
     }
     if ("prepare".equals(command)) {
+      if (reuse.status == Rc1MigrationCache.Reuse.Status.HANDOFF_UNVERIFIED)
+        return BoundedProcessRunner.localCompletion(
+            Rc1MigrationCache.unknown("prepare", startupId, reuse.reason, reuse.generation));
       if (reuse.status == Rc1MigrationCache.Reuse.Status.REUSABLE_HISTORY) {
-        try {
-          preparation.bindMigrationHistory(reuse, startupId);
-        } catch (IOException | RuntimeException unavailable) {
-          return BoundedProcessRunner.localCompletion(
-              Rc1MigrationCache.unknown(
-                  "prepare", startupId, "MIGRATION_HISTORY_HANDOFF_UNVERIFIED", reuse.generation));
-        }
         String output = Rc1MigrationCache.output(reuse, false, startupId);
         synchronized (preparedReuse) {
           preparedReuse.put(startupId, new Ticket(reuse));
@@ -373,8 +442,14 @@ final class GuestPluginScripts {
     }
     try {
       preparation.assets();
+      String resetProof = "";
+      try {
+        resetProof = preparation.importedNativeResetProof();
+      } catch (IOException | RuntimeException unavailable) {
+        // Missing or inconsistent identity keeps the normal migration protection in charge.
+      }
       BoundedProcessRunner.Result result =
-          runner.run(migrationCommand(command, startupId), 600_000);
+          runner.run(migrationCommand(command, startupId, resetProof), 600_000);
       if ("finalize".equals(command)) {
         // 失败/超时/截断也保留原始 Result：重复调用必须重复原失败，不能伪装成本地成功。
         recordFinalized(startupId, result == null ? unknownFinalize(startupId, reuse) : result);
@@ -414,6 +489,23 @@ final class GuestPluginScripts {
   }
 
   static String migrationCommand(String command, String startupId) {
+    return migrationCommand(command, startupId, "");
+  }
+
+  static boolean sameInstalledMigrationScript(byte[] installed, java.io.InputStream signedAsset)
+      throws IOException {
+    byte[] buffer = new byte[8192];
+    int offset = 0;
+    while (offset < installed.length) {
+      int count = signedAsset.read(buffer, 0, Math.min(buffer.length, installed.length - offset));
+      if (count <= 0) return false;
+      for (int i = 0; i < count; i++) if (buffer[i] != installed[offset + i]) return false;
+      offset += count;
+    }
+    return signedAsset.read() == -1;
+  }
+
+  private static String migrationCommand(String command, String startupId, String resetProof) {
     if (!"prepare".equals(command)
         && !"finalize".equals(command)
         && !"verify-existing".equals(command))
@@ -424,6 +516,9 @@ final class GuestPluginScripts {
         + command
         + " --root /root --state-root /run/dsha-rc1-state --startup-id "
         + ShellQuote.arg(startupId)
+        + (resetProof == null || resetProof.isEmpty()
+            ? ""
+            : " --native-reset-proof " + ShellQuote.arg(resetProof))
         + " --approved-root /sdcard/Documents/dshdata --approved-root /storage/emulated/0/Documents/dshdata 2>&1";
   }
 
@@ -459,16 +554,40 @@ final class GuestPluginScripts {
     try (var scope = budget == null ? null : budget.enter()) {
       // 查询只做就绪校验；完整准备仅属于启动、变更和迁移路径。
       if (query) {
-        try (GuestScriptQueue.Lease ignored = SCRIPT_QUEUE.enter(budget, false)) {
-          preparePluginsForQuery(budget);
-          return runManager(args, taskId, source, totalMillis, budget, true);
-        }
+        return readOnlyManager(args, taskId, source, totalMillis, budget);
       }
       try (GuestScriptQueue.Lease ignored = SCRIPT_QUEUE.enter(budget, true)) {
         preparePlugins(budget);
-        return runManager(args, taskId, source, totalMillis, budget, false);
+        return runManager(args, taskId, source, totalMillis, budget, null);
       }
     }
+  }
+
+  private BoundedProcessRunner.Result readOnlyManager(
+      String args,
+      String taskId,
+      PluginDownloadSource source,
+      long totalMillis,
+      GuestScriptBudget budget)
+      throws IOException, InterruptedException {
+    List<String> phases = new ArrayList<>();
+    long started = System.nanoTime();
+    try (GuestScriptQueue.Lease ignored = SCRIPT_QUEUE.enter(budget, false)) {
+      phases.add("queueMs=" + elapsedMillis(started));
+      preparePluginsForQuery(budget, phases);
+      return runManager(args, taskId, source, totalMillis, budget, phases::add);
+    } finally {
+      phases.add("totalMs=" + elapsedMillis(started));
+      try {
+        preparation.recordQueryTiming(String.join(" ", phases));
+      } catch (RuntimeException ignored) {
+        // Diagnostics never change the guest or exit outcome.
+      }
+    }
+  }
+
+  private static long elapsedMillis(long started) {
+    return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
   }
 
   private BoundedProcessRunner.Result runManager(
@@ -477,21 +596,23 @@ final class GuestPluginScripts {
       PluginDownloadSource source,
       long totalMillis,
       GuestScriptBudget budget,
-      boolean query)
+      Consumer<String> timing)
       throws IOException, InterruptedException {
     String task =
         taskId != null && taskId.matches("[a-f0-9]{32}") ? "DSHA_PLUGIN_TASK=" + taskId + " " : "";
+    boolean query = timing != null;
+    String command =
+        task
+            + (query ? "DSHA_PLUGIN_QUERY=1 DSHA_PLUGIN_QUERY_TIMING=1 " : "")
+            + "DSHA_PLUGIN_DOWNLOAD_SOURCE="
+            + source.value
+            + (query ? " python3 -B /root/.dsh/" : " python3 /root/.dsh/")
+            + PLUGIN_MANAGER_SCRIPT
+            + (args == null || args.isEmpty() ? "" : " " + args)
+            + " 2>&1";
+    long timeout = budget == null ? totalMillis : budget.remainingMillis();
     BoundedProcessRunner.Result result =
-        runner.run(
-            task
-                + (query ? "DSHA_PLUGIN_QUERY=1 " : "")
-                + "DSHA_PLUGIN_DOWNLOAD_SOURCE="
-                + source.value
-                + " python3 /root/.dsh/"
-                + PLUGIN_MANAGER_SCRIPT
-                + (args == null || args.isEmpty() ? "" : " " + args)
-                + " 2>&1",
-            budget == null ? totalMillis : budget.remainingMillis());
+        query ? runner.runQuery(command, timeout, timing) : runner.run(command, timeout);
     if (budget != null) budget.remainingMillis();
     return result;
   }
@@ -514,13 +635,19 @@ final class GuestPluginScripts {
     }
   }
 
-  private void preparePluginsForQuery(GuestScriptBudget budget)
+  private void preparePluginsForQuery(GuestScriptBudget budget, List<String> phases)
       throws IOException, InterruptedException {
     if (budget != null) budget.remainingMillis();
-    if (!preparation.environmentReady())
+    long started = System.nanoTime();
+    boolean environmentReady = preparation.environmentReady();
+    phases.add("envMs=" + elapsedMillis(started));
+    if (!environmentReady)
       throw new GuestPreparationFailure(GuestPreparationFailure.Code.ENV_NOT_READY);
     if (budget != null) budget.remainingMillis();
-    if (!preparation.queryReady())
+    started = System.nanoTime();
+    boolean queryReady = preparation.queryReady();
+    phases.add("inputsMs=" + elapsedMillis(started));
+    if (!queryReady)
       throw new GuestPreparationFailure(GuestPreparationFailure.Code.PREPARATION_REQUIRED);
   }
 

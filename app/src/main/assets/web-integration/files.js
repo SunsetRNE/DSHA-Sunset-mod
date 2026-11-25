@@ -3,25 +3,33 @@
   if (window !== window.top || !window.DshaFiles || window.__dshaFilesInstalled) return;
   window.__dshaFilesInstalled = true;
   const pending = new Map();
+  const settingsPending = new Map();
   const api = window.DSHA || (window.DSHA = {});
-  let binding = null, active = true;
+  const settingsAction = 'open-settings-document';
+  let binding = null, active = true, settingsDocument = false;
   // Native replaces this identity for each committed top-level document. It is a
   // replay fence, not isolation between trusted scripts in the same page.
-  window.__dshaFilesBind = value => {
+  window.__dshaFilesBind = (value, supportsSettingsDocument) => {
     if (!value || typeof value.nonce !== 'string' || !Number.isSafeInteger(value.generation)
         || typeof value.instance !== 'string') return;
+    const supported = supportsSettingsDocument === true;
+    if (binding && (binding.nonce !== value.nonce || binding.generation !== value.generation
+        || binding.instance !== value.instance || settingsDocument !== supported)) cancelSettingsDocument();
     binding = {nonce: value.nonce, generation: value.generation, instance: value.instance};
+    settingsDocument = supported;
   };
   function send(action, fields = {}, url = null) {
     if (!active || !binding) return Promise.reject(new Error('Native file bridge is not ready'));
-    if (pending.size >= 16) return Promise.reject(new Error('Too many file requests'));
+    const isSettings = action === settingsAction;
+    const requests = isSettings ? settingsPending : pending;
+    if (requests.size >= (isSettings ? 1 : 16)) return Promise.reject(new Error('Too many file requests'));
     const id = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
     return new Promise((resolve, reject) => {
       const task = {resolve, reject, url, action};
-      pending.set(id, task);
+      requests.set(id, task);
       // Blob completion can include a user-controlled SAF/share picker. Artifact
       // requests only acknowledge queue admission; a timeout never cancels a task.
-      if (!url) task.timer = setTimeout(() => {
+      if (!url && !isSettings) task.timer = setTimeout(() => {
         if (!pending.delete(id)) return;
         reject(new Error('Native file response unavailable; check Downloads before retrying'));
       }, 30000);
@@ -30,13 +38,22 @@
     });
   }
   function finish(id) {
-    const task = pending.get(id);
+    const requests = settingsPending.has(id) ? settingsPending : pending;
+    const task = requests.get(id);
     if (!task) return null;
-    pending.delete(id);
+    requests.delete(id);
     clearTimeout(task.timer);
     if (task.url) URL.revokeObjectURL(task.url);
     return task;
   }
+  function cancelSettingsDocument() {
+    for (const [id, task] of settingsPending) {
+      finish(id);
+      task.reject(new Error('Configuration preview cancelled'));
+    }
+  }
+  // Native can detach or replace the Activity owner without unloading this WebView document.
+  window.__dshaCancelSettingsDocument = cancelSettingsDocument;
   function request(action, file) {
     if (!(file instanceof Blob)) return Promise.reject(new TypeError('Expected a File or Blob'));
     const limit = action === 'share' ? 32 * 1024 * 1024 : 5000000000;
@@ -101,6 +118,20 @@
       return Promise.reject(new TypeError('Invalid download task id'));
     return send('downloads-status', {taskId: taskId || ''});
   };
+  // Match the exact bundled SettingsDocumentAction, not other settings.action contributors.
+  // A trusted click includes touch, keyboard and accessibility activation of this same button.
+  document.addEventListener('click', event => {
+    if (!active || !binding || !settingsDocument || !event.isTrusted || event.defaultPrevented) return;
+    const button = event.target?.closest?.('button');
+    if (!button || button.disabled || !button.matches(
+      '[data-shortcut-modal="settings"] [data-slot="settings.action"] .me01iq_action > button')) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (settingsPending.size) return;
+    send(settingsAction).catch(() => {
+      // The native dialog reports missing files and the app reports an actual read failure.
+    });
+  }, true);
   // 原始 download 属性只在 DOM 中可得，不能等 DownloadListener 收到 UUID Blob URL 后再猜。
   document.addEventListener('click', event => {
     const link = event.target?.closest?.('a[download]');
@@ -116,6 +147,7 @@
   }, true);
   window.addEventListener('pagehide', () => {
     active = false;
+    cancelSettingsDocument();
     for (const id of [...pending.keys()]) {
       const task = finish(id);
       task.reject(new Error(task.url

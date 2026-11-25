@@ -103,16 +103,31 @@ internal class TransferPublisher private constructor() {
                 }
                 throw failure
             }
-            TransferFiles.read(source).use { input ->
-                DocumentStreams.output(context.contentResolver, pending, control).use { output ->
+            if (media) {
+                TransferFiles.read(source).use { input ->
+                    DocumentStreams.output(context.contentResolver, pending, control).use { output
+                        ->
+                        require(
+                            artifact,
+                            FileIntegrity.copy(input, output, artifact.bytes, control::check),
+                        )
+                    }
+                }
+                DocumentStreams.input(context.contentResolver, pending, control).use { input ->
                     require(
                         artifact,
-                        FileIntegrity.copy(input, output, artifact.bytes, control::check),
+                        FileIntegrity.copy(input, null, artifact.bytes, control::check),
                     )
                 }
-            }
-            DocumentStreams.input(context.contentResolver, pending, control).use { input ->
-                require(artifact, FileIntegrity.copy(input, null, artifact.bytes, control::check))
+            } else {
+                SelectedDocumentSave.write(
+                    context,
+                    pending,
+                    { TransferFiles.read(source) },
+                    artifact.bytes,
+                    artifact.sha256,
+                    control,
+                )
             }
             var actualName: String? = artifact.name
             DocumentStreams.query(

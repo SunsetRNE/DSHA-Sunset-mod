@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@id/pluginName"
+    style="@style/ShellRowTitle"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    android:background="@drawable/bg_shell_card"
+    android:breakStrategy="simple"
+    android:paddingStart="@dimen/shell_card_pad"
+    android:paddingTop="14dp"
+    android:paddingEnd="@dimen/shell_card_pad"
+    android:paddingBottom="14dp" />

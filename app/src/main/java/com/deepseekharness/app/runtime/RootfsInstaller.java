@@ -46,7 +46,9 @@ final class RootfsInstaller {
       File py = new File(stage, "usr/bin/python3.12");
       File enc = new File(stage, "usr/lib/python3.12/encodings/__init__.py");
       if (!py.isFile() || py.length() == 0 || !enc.isFile()) {
-        try (InputStream input = openPythonAsset(ctx)) {
+        try (InputStream input =
+            RuntimeAssetFiles.openArchive(
+                ctx, "glibc-python.bin", "glibc-python.tar.gz", "glibc-python.tar")) {
           TarGzipExtractor.extractAuto(input, stage, 0);
         }
       }
@@ -186,19 +188,6 @@ final class RootfsInstaller {
               value.optString("version"));
     } catch (IOException | org.json.JSONException invalid) {
       return false;
-    }
-  }
-
-  private static InputStream openPythonAsset(Context ctx) throws IOException {
-    try {
-      return ctx.getAssets().open("glibc-python.bin");
-    } catch (IOException ignored) {
-      // 兼容旧资产构建入口，新的标准版只打包 bin。
-      try {
-        return ctx.getAssets().open("glibc-python.tar.gz");
-      } catch (IOException missing) {
-        return ctx.getAssets().open("glibc-python.tar");
-      }
     }
   }
 

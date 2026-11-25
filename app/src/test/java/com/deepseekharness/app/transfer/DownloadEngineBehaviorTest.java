@@ -5,12 +5,15 @@ import static org.junit.Assert.*;
 
 import android.app.Application;
 import android.net.Uri;
+import androidx.lifecycle.MutableLiveData;
 import com.deepseekharness.app.core.PluginRepositoryQueryLifecycleTest;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import org.json.JSONObject;
@@ -58,6 +61,104 @@ public final class DownloadEngineBehaviorTest {
 
   private static String status(DownloadEngine engine, String id) throws Exception {
     return engine.snapshot(id).getString("status");
+  }
+
+  @Test
+  public void finishedBatchKeepsUnconfirmedAndUnfinishedRecordsAndPublishedBytes()
+      throws Exception {
+    String complete = enqueue("complete.bin", "downloads");
+    String cancelled = enqueue("cancelled.bin", "downloads");
+    String paused = enqueue("pending.bin", "downloads");
+    engine.cancel(cancelled);
+    engine.pause(paused);
+    engine.runQueued();
+    queue(engine).runAll();
+    Uri published = Uri.parse(engine.snapshot(complete).getString("uri"));
+    String late = enqueue("not-in-confirmation.bin", "downloads");
+    engine.cancel(late);
+    assertEquals(
+        2, engine.removeFinished(List.of(complete, cancelled, paused, cancelled, "missing")));
+    assertArrayEquals(BYTES, fixture.media.require(published).bytes);
+    assertTrue(fixture.media.deleted.isEmpty());
+    assertEquals("PAUSED", status(engine, paused));
+    assertEquals("CANCELLED", status(engine, late));
+    assertArrayEquals(BYTES, Files.readAllBytes(fixture.partial(paused).toPath()));
+    assertEquals(0, engine.removeFinished(List.of(complete, cancelled)));
+    assertEquals(2, fixture.engine().snapshot(null).getJSONArray("tasks").length());
+  }
+
+  @Test
+  public void batchRetainsJournalForAnUnremovableEntryAndCanRetryIt() throws Exception {
+    String first = enqueue("blocked.bin", "downloads");
+    String second = enqueue("other.bin", "downloads");
+    engine.cancel(first);
+    engine.cancel(second);
+    File staged = new File(fixture.partial(first).getParentFile(), "share-pending");
+    assertTrue(staged.mkdir());
+    Files.writeString(new File(staged, "fixture").toPath(), "protected");
+    assertEquals(1, engine.removeFinished(List.of(first, second)));
+    assertEquals("CANCELLED", fixture.journal(first).getString("status"));
+    assertEquals("protected", Files.readString(new File(staged, "fixture").toPath()));
+    assertThrows(IOException.class, () -> engine.snapshot(second));
+    Files.delete(new File(staged, "fixture").toPath());
+    assertEquals(1, fixture.engine().removeFinished(List.of(first)));
+  }
+
+  @Test
+  public void clearingMaximumRestoredHistoryPublishesOneFinalFrame() throws Exception {
+    String first = enqueue("batch.bin", "downloads");
+    JSONObject template = fixture.journal(first).put("status", "CANCELLED");
+    List<String> ids = new ArrayList<>(List.of(first));
+    while (ids.size() < 200) ids.add(UUID.randomUUID().toString());
+    class Frames extends MutableLiveData<DownloadEngine.State> {
+      int frames, snapshotTasks;
+      long firstNs;
+
+      @Override
+      public void postValue(DownloadEngine.State value) {
+        if (frames++ == 0) firstNs = System.nanoTime();
+        snapshotTasks += value.tasks.size();
+        super.postValue(value);
+      }
+    }
+    for (boolean batch : new boolean[] {false, true}) {
+      for (String id : ids) {
+        File dir = fixture.partial(id).getParentFile();
+        Files.createDirectories(dir.toPath());
+        template.getJSONObject("artifact").put("id", "remote-" + id);
+        Files.writeString(new File(dir, "task.json").toPath(), template.put("id", id).toString());
+      }
+      DownloadEngine restored = fixture.engine();
+      Frames frames = new Frames();
+      field(DownloadEngine.class, "state").set(restored, frames);
+      int[] releaseComparisons = {0};
+      HostFiles.beforeRead =
+          file -> {
+            if ("releases.json".equals(file.getName())) releaseComparisons[0]++;
+          };
+      long started = System.nanoTime();
+      if (batch) assertEquals(200, restored.removeFinished(ids));
+      else for (String id : ids) restored.remove(id);
+      long completed = System.nanoTime() - started;
+      HostFiles.beforeRead = null;
+      assertEquals(batch ? 1 : 200, frames.frames);
+      assertEquals(batch ? 0 : 19900, frames.snapshotTasks);
+      assertTrue(batch ? releaseComparisons[0] <= 1 : releaseComparisons[0] >= 199);
+      System.out.println(
+          "transfer cleanup batch="
+              + batch
+              + " records=200 frames="
+              + frames.frames
+              + " taskCopies="
+              + frames.snapshotTasks
+              + " releaseComparisons="
+              + releaseComparisons[0]
+              + " firstPublishedNs="
+              + (frames.firstNs - started)
+              + " completeNs="
+              + completed);
+      assertEquals(0, restored.snapshot(null).getJSONArray("tasks").length());
+    }
   }
 
   @Test
@@ -209,6 +310,30 @@ public final class DownloadEngineBehaviorTest {
     queue(engine).runAll();
     assertTrue(fixture.media.insertedNames.isEmpty());
     assertFalse(engine.isBusy());
+  }
+
+  @Test
+  public void verifiedOfflineSaveAsNeedsOnlyJournalReserveOnPrivateVolume() throws Exception {
+    String id = enqueue("external.bin", "saveas");
+    File originalRoot = (File) field(engine, "root");
+    File limited =
+        new File(originalRoot.getPath()) {
+          @Override
+          public long getUsableSpace() {
+            return 16L * 1024 * 1024;
+          }
+        };
+    field(DownloadEngine.class, "root").set(engine, limited);
+    engine.runQueued();
+    queue(engine).runAll();
+    assertEquals("WAITING_DESTINATION", status(engine, id));
+    Uri target = fixture.media.document("on-another-volume.bin", new byte[0]);
+    engine.provideSaveTarget(id, target);
+    engine.runQueued();
+    queue(engine).runAll();
+    assertEquals("COMPLETE", status(engine, id));
+    assertArrayEquals(BYTES, fixture.media.require(target).bytes);
+    assertEquals(0, Controller.readyReads);
   }
 
   @Test

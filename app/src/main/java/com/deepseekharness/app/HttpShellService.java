@@ -190,6 +190,11 @@ public final class HttpShellService {
     final long webGeneration;
     final String requestId;
     volatile boolean canceled;
+    java.util.function.Predicate<String> privilegedWindowAllowed;
+    java.util.function.BooleanSupplier releaseScreenData;
+    String withheldReply;
+    java.util.function.BooleanSupplier releaseActivity;
+    String withoutActivity;
     volatile com.deepseekharness.app.capabilities.CapabilityRequest capability;
 
     RequestScope(
@@ -378,6 +383,12 @@ public final class HttpShellService {
    *  防止重解压 rootfs 后内存 token 与文件不一致导致 agent 无法认证。 */
   private static volatile String authToken = "";
 
+  private static volatile boolean rotationBlocked;
+
+  private static android.content.SharedPreferences rotationState(Context context) {
+    return context.getSharedPreferences("bridge-rotation-state", Context.MODE_PRIVATE);
+  }
+
   /** token 持久化位置（rootfs 内 agent 可读，建议 0600） */
   public HttpShellService(Context ctx) {
     this(ctx, null);
@@ -487,32 +498,31 @@ public final class HttpShellService {
   }
 
   private static java.io.File tokenFileIfPossible() {
-    Context c = null;
+    Context context = tokenCtx;
+    if (context == null) return null;
     try {
-      HttpShellService current = tokenOwner;
-      if (current == null) current = instance;
-      if (current != null && current.fixtureTokenFile != null) return current.fixtureTokenFile;
-      c = current == null ? null : current.ctx;
-    } catch (Throwable ignored) {
+      return verifiedTokenFile(context);
+    } catch (IOException | RuntimeException unavailable) {
+      return null;
     }
-    if (c == null) c = tokenCtx;
-    if (c == null) return null;
-    try {
-      HarnessController hc = HarnessController.get(c);
-      if (hc != null && hc.proot() != null && hc.proot().getRootfsDir() != null) {
-        var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
-        String authority = c.getApplicationInfo().dataDir;
-        if (authority == null) return null;
-        java.io.File files =
-            com.deepseekharness.app.util.ColdInstallPackages.privateFiles(
-                fs, new java.io.File(authority), c.getFilesDir());
-        java.io.File data = new com.deepseekharness.app.backup.UserDataLayout(fs, files).current();
-        if (!fs.stat(data).type.equals("DIRECTORY")) return null;
-        return fs.child(data, com.deepseekharness.app.util.CredentialPaths.BRIDGE_TOKEN);
-      }
-    } catch (Throwable ignored) {
-    }
-    return null;
+  }
+
+  /** Null exclusively means both supported homes are absent and none has ever been selected. */
+  private static java.io.File verifiedTokenFile(Context context) throws IOException {
+    HttpShellService owner = tokenOwner == null ? instance : tokenOwner;
+    if (owner != null && owner.fixtureTokenFile != null) return owner.fixtureTokenFile;
+    var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
+    String authority = context.getApplicationInfo().dataDir;
+    if (authority == null) throw new IOException("BRIDGE_DATA_ROOT_UNAVAILABLE");
+    java.io.File files =
+        com.deepseekharness.app.util.ColdInstallPackages.privateFiles(
+            fs, new java.io.File(authority), context.getFilesDir());
+    var layout = new com.deepseekharness.app.backup.UserDataLayout(fs, files);
+    java.io.File data = layout.current();
+    if ("DIRECTORY".equals(fs.stat(data).type))
+      return fs.child(data, com.deepseekharness.app.util.CredentialPaths.BRIDGE_TOKEN);
+    if (layout.pristineMissingHome()) return null;
+    throw new IOException("BRIDGE_DATA_ROOT_UNAVAILABLE");
   }
 
   /** 读取 rootfs 内 token 文件（只读，不修改内容）。 */
@@ -528,13 +538,21 @@ public final class HttpShellService {
 
   private static String ensureToken() {
     synchronized (HttpShellService.class) {
-      java.io.File tf = tokenFileIfPossible();
-      if (tf == null) {
-        if (authToken.isEmpty())
-          authToken = java.util.UUID.randomUUID().toString().replace("-", "");
-        return authToken;
-      }
+      Context context = tokenCtx;
+      if (context == null || rotationBlocked || rotationState(context).contains("pending"))
+        return "";
       try {
+        java.io.File tf = verifiedTokenFile(context);
+        boolean firstHome = rotationState(context).getBoolean("first-home", false);
+        if (firstHome) {
+          if (tf == null) return "";
+          return publishFreshToken(context, tf);
+        }
+        if (tf == null) {
+          if (authToken.isEmpty())
+            authToken = java.util.UUID.randomUUID().toString().replace("-", "");
+          return authToken;
+        }
         var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
         String token = readTokenFromFile(tf);
         boolean replace = token == null || token.isEmpty();
@@ -825,24 +843,69 @@ public final class HttpShellService {
     return authToken == null ? "" : authToken;
   }
 
-  /** After a committed restore, atomically rotate the host bridge token and revoke screen grants. */
-  public static void resetTokenAfterRestore(Context context) {
-    bindTokenContext(context);
+  /** Persist outside restored guest data, before its first switch. */
+  public static void requireTokenRotation(Context context) throws IOException {
+    requireTokenRotation(context, "host");
+  }
+
+  static void requireTokenRotation(Context context, String owner) throws IOException {
+    try {
+      synchronized (HttpShellService.class) {
+        rotationBlocked = true;
+        authToken = "";
+        bindTokenContext(context);
+        if (!rotationState(context).edit().putString("pending", owner).commit())
+          throw new IOException("BRIDGE_TOKEN_ROTATION_STATE_UNAVAILABLE");
+      }
+    } finally {
+      // Revocation takes the lifecycle lock. Never nest it under the credential lock.
+      revokeScreenGrant(context);
+    }
+  }
+
+  static boolean legacyTokenRotationPending(Context context) {
+    return "legacy".equals(rotationState(context).getString("pending", ""));
+  }
+
+  /** Finish restore after verified publication, or defer mandatory first publication for a proven empty install. */
+  public static void resetTokenAfterRestore(Context context) throws IOException {
+    requireTokenRotation(context, rotationState(context).getString("pending", "host"));
     synchronized (HttpShellService.class) {
-      authToken = "";
-      java.io.File file = tokenFileIfPossible();
-      if (file == null) return;
       try {
-        String token = java.util.UUID.randomUUID().toString().replace("-", "");
-        com.deepseekharness.app.util.BridgeCredentialFiles.publish(
-            new com.deepseekharness.app.backup.AndroidBackupFileSystem(), file, token, true);
-        authToken = token;
-        com.deepseekharness.app.util.SensitiveData.registerKnownSecret(token);
-        revokeScreenGrant(context);
-      } catch (Throwable error) {
-        android.util.Log.w("DSHA", "BRIDGE_TOKEN_ROTATION_FAILED: " + safeError(error));
+        java.io.File file = verifiedTokenFile(context);
+        if (file == null) {
+          // Cold initialization owns directory creation. A later guest file can never supply
+          // the first credential for this installation, even after a process restart.
+          if (!rotationState(context)
+              .edit()
+              .putBoolean("first-home", true)
+              .remove("pending")
+              .commit()) throw new IOException("BRIDGE_TOKEN_ROTATION_STATE_UNAVAILABLE");
+          rotationBlocked = false;
+          return;
+        }
+        publishFreshToken(context, file);
+      } catch (Exception error) {
+        throw new IOException("BRIDGE_TOKEN_ROTATION_FAILED", error);
       }
     }
+  }
+
+  /** Called with the credential lock held. Publish only after readback of both files. */
+  private static String publishFreshToken(Context context, java.io.File file) throws IOException {
+    String token = java.util.UUID.randomUUID().toString().replace("-", "");
+    publishReplacement(file, token);
+    com.deepseekharness.app.util.SensitiveData.registerKnownSecret(token);
+    if (!rotationState(context).edit().remove("pending").remove("first-home").commit())
+      throw new IOException("BRIDGE_TOKEN_ROTATION_STATE_UNAVAILABLE");
+    authToken = token;
+    rotationBlocked = false;
+    return token;
+  }
+
+  private static void publishReplacement(java.io.File file, String token) throws IOException {
+    com.deepseekharness.app.util.BridgeCredentialFiles.publish(
+        new com.deepseekharness.app.backup.AndroidBackupFileSystem(), file, token, true);
   }
 
   private static boolean tokenMatch(String presented) {
@@ -898,11 +961,14 @@ public final class HttpShellService {
       try (com.deepseekharness.app.core.RuntimeTasks work =
           authed ? com.deepseekharness.app.core.RuntimeTasks.begin() : null) {
         String result;
-        if (!authed) {
+        if (!authed
+            || !com.deepseekharness.app.util.BridgeCredentialAuth.authorized(
+                path, tokenHeaders, authToken)) {
           result = "[UNAUTHORIZED]";
         } else {
           if (!post
-              && (selected == BridgeRoutes.Route.UI
+              && (selected == BridgeRoutes.Route.PRIV
+                  || selected == BridgeRoutes.Route.UI
                   || selected == BridgeRoutes.Route.SENSE
                   || selected == BridgeRoutes.Route.VSCREEN
                   || selected == BridgeRoutes.Route.LAUNCH)) monitorScreenPeer(scope, requestInput);
@@ -937,6 +1003,14 @@ public final class HttpShellService {
                   c, com.deepseekharness.app.util.BridgeImageWriteDeadline.RESPONSE_TIMEOUT_MILLIS);
         String body = "{\"result\":\"" + jsonEscape(result) + "\"}";
         byte[] bodyBytes = body.getBytes("UTF-8");
+        if (scope.releaseActivity != null && !scope.releaseActivity.getAsBoolean()) {
+          bodyBytes =
+              ("{\"result\":\"" + jsonEscape(scope.withoutActivity) + "\"}").getBytes("UTF-8");
+        }
+        if (scope.releaseScreenData != null && !scope.releaseScreenData.getAsBoolean()) {
+          bodyBytes =
+              ("{\"result\":\"" + jsonEscape(scope.withheldReply) + "\"}").getBytes("UTF-8");
+        }
         String head =
             "HTTP/1.1 200 OK\r\n"
                 + "Content-Type: application/json; charset=utf-8\r\n"
@@ -1733,13 +1807,7 @@ public final class HttpShellService {
     return appUi("/app/ui/sense/state" + (query.isEmpty() ? "" : "?" + query), scope);
   }
 
-  /**
-   * T130：实体屏特权执行桥。{@code /app/priv/*} 只接受完整端点；能力开关、当前手机任务、
-   * 屏幕确认策略与目标窗口都在这里先判，再交给 {@code PhysicalScreenManager}。
-   *
-   * <p>Phase A 不发原生逐动作确认窗：屏幕确认策略未允许该应用时一律 NOT_SENT（fail-closed），
-   * 只放行「全部允许」或该应用显式 ALLOW。整条路径不需要无障碍：抓帧与注入由受管特权 Core 完成。
-   */
+  /** Privileged metadata and an explicit handoff to the separately authorized window capture. */
   private String appPriv(String path, RequestScope scope) {
     String route = path.split("\\?", 2)[0];
     String operation = com.deepseekharness.app.util.PrivilegedScreenRoutes.operation(route);
@@ -1777,61 +1845,73 @@ public final class HttpShellService {
         return privRefused("PRIV_SCREEN_TASK_PAUSED", "ASK_USER_TO_RESUME_OR_STOP_THE_TASK", null);
 
       var manager = com.deepseekharness.app.vscreen.PhysicalScreenManager.from(ctx);
-      if (operation.equals("info") || operation.equals("frame")) {
-        org.json.JSONObject receipt = operation.equals("info") ? manager.info() : manager.frame();
-        if (receipt.optBoolean("ok")) {
-          String rejected =
-              privTargetGate(
-                  receipt.optString("package", ""), receipt.optBoolean("packageVerified", false));
-          if (rejected != null) return rejected;
+      var coordinator = com.deepseekharness.app.control.PhoneControlCoordinator.get(ctx);
+      var lease = coordinator.lease(binding);
+      var grants = new com.deepseekharness.app.core.DeviceGrants(ctx);
+      var access =
+          new com.deepseekharness.app.vscreen.PhysicalScreenManager.Access(
+              lease,
+              () ->
+                  coordinator.current(lease)
+                      && !uiGrant.paused()
+                      && screenBridgeCurrent(scope)
+                      && grants.privilegedExecutionAllowed(),
+              this::privTargetRejection);
+      String windowOperation =
+          com.deepseekharness.app.util.PrivilegedScreenRoutes.windowOperation(
+              operation,
+              arguments.optString("source"),
+              !arguments.optString("observationId").isEmpty(),
+              android.os.Build.VERSION.SDK_INT);
+      if (!windowOperation.isEmpty()) {
+        if (!DshaAccessibilityService.connected())
+          return com.deepseekharness.app.screen.ScreenReply.unavailable().toString();
+        scope.privilegedWindowAllowed =
+            pkg -> access.live().getAsBoolean() && privTargetRejection(pkg) == null;
+        android.net.Uri.Builder request =
+            new android.net.Uri.Builder()
+                .path("/app/ui/" + windowOperation)
+                .appendQueryParameter("taskSessionId", binding.taskSessionId())
+                .appendQueryParameter("turnId", binding.turnId());
+        if (windowOperation.equals("screenshot")) {
+          request.appendQueryParameter("format", "mcp");
+        } else {
+          // Forward only window-coordinate arguments. appUi consumes the window observation once.
+          for (String field :
+              windowOperation.equals("tap")
+                  ? java.util.List.of("observationId", "x", "y")
+                  : java.util.List.of("observationId", "x1", "y1", "x2", "y2", "ms")) {
+            if (!arguments.has(field) && !field.equals("ms"))
+              return privRefused("PRIV_INVALID_ARGUMENT", "FIX_THE_REQUEST", null);
+            if (arguments.has(field))
+              request.appendQueryParameter(field, arguments.getString(field));
+          }
         }
-        return receipt.toString();
+        return appUi(request.build().toString(), scope);
       }
-      if (operation.equals("config")) {
-        Integer maxWidth = arguments.has("maxWidth") ? privInt(arguments, "maxWidth") : null;
-        Integer quality = arguments.has("jpegQuality") ? privInt(arguments, "jpegQuality") : null;
-        Integer fps = arguments.has("maxFps") ? privInt(arguments, "maxFps") : null;
-        return manager.configure(maxWidth, quality, fps).toString();
+      if (com.deepseekharness.app.util.PrivilegedScreenRoutes.needsMirrorObservation(operation))
+        return manager.windowSourceRequired(access).toString();
+      org.json.JSONObject receipt =
+          switch (operation) {
+            case "info" -> manager.info(access);
+            case "config" ->
+                manager.configure(
+                    access,
+                    arguments.has("maxWidth") ? privInt(arguments, "maxWidth") : null,
+                    arguments.has("jpegQuality") ? privInt(arguments, "jpegQuality") : null,
+                    arguments.has("maxFps") ? privInt(arguments, "maxFps") : null);
+            case "close" -> manager.close(access);
+            default -> throw new IllegalArgumentException("PRIV_UNKNOWN_ROUTE");
+          };
+      if (receipt.optBoolean("ok") && receipt.optBoolean("packageVerified")) {
+        String pkg = receipt.optString("package");
+        String generation = receipt.optString("generation");
+        scope.releaseScreenData = () -> manager.resultCurrent(access, pkg, generation);
+        scope.withheldReply =
+            privRefused(
+                "PRIV_TARGET_OR_AUTHORITY_CHANGED", "CHECK_THE_AUTHORIZED_TARGET_APP", null);
       }
-      if (operation.equals("close")) return manager.close().toString();
-      // 动作与 benchmark 必须先有过一次成功观察：Phase A 不做"没看屏就点"。
-      String target = manager.targetPackage();
-      if (!manager.targetVerified() || target.isEmpty())
-        return privRefused("PRIV_OBSERVE_FIRST", "CALL_app_priv_frame_FIRST", null);
-      String rejected = privTargetGate(target, true);
-      if (rejected != null) return rejected;
-      int waitMs =
-          arguments.has("waitMs")
-              ? privInt(arguments, "waitMs")
-              : com.deepseekharness.app.util.PrivilegedScreenPolicy.DEFAULT_FRAME_WAIT_MS;
-      switch (operation) {
-        case "tap":
-          return manager
-              .tap(privFloat(arguments, "x"), privFloat(arguments, "y"), waitMs)
-              .toString();
-        case "swipe":
-          return manager
-              .swipe(
-                  privFloat(arguments, "x1"),
-                  privFloat(arguments, "y1"),
-                  privFloat(arguments, "x2"),
-                  privFloat(arguments, "y2"),
-                  arguments.has("ms") ? privInt(arguments, "ms") : 300,
-                  waitMs)
-              .toString();
-        case "key":
-          return manager.key(privInt(arguments, "keycode"), waitMs).toString();
-        case "benchmark":
-          return manager
-              .benchmark(
-                  privInt(arguments, "n"),
-                  privFloat(arguments, "x"),
-                  privFloat(arguments, "y"),
-                  waitMs)
-              .toString();
-        default:
-          return privRefused("PRIV_UNKNOWN_ROUTE", "USE_A_DOCUMENTED_PRIV_ENDPOINT", null);
-      }
+      return receipt.toString();
     } catch (IllegalArgumentException invalid) {
       return privRefused("PRIV_INVALID_ARGUMENT", "FIX_THE_REQUEST", null);
     } catch (Exception error) {
@@ -1840,32 +1920,18 @@ public final class HttpShellService {
   }
 
   /** 目标窗口与屏幕确认门禁：目标不明、敏感应用或未允许都 fail-closed。 */
-  private String privTargetGate(String pkg, boolean verified) {
-    if (!verified || pkg.isEmpty())
-      return privRefused("PRIV_TARGET_UNVERIFIABLE", "OBSERVE_THE_PHYSICAL_SCREEN_AGAIN", pkg);
+  private String privTargetRejection(String pkg) {
     if (com.deepseekharness.app.util.SensitiveAppPolicy.sensitive(pkg))
-      return privRefused(
-          "PRIV_SENSITIVE_TARGET_UNSUPPORTED", "BRING_A_SUPPORTED_APP_TO_THE_FOREGROUND", pkg);
-    var policy = new com.deepseekharness.app.core.DeviceGrants(ctx).effectiveScreenPolicy();
-    if (!policy.allows(pkg))
-      return privRefused(
-          "SCREEN_CONFIRMATION_REQUIRED",
-          "ALLOW_SCREEN_CONTROL_FOR_THIS_APP_IN_DEVICE_GRANTS",
-          pkg);
-    return null;
+      return "PRIV_SENSITIVE_TARGET_UNSUPPORTED";
+    return new com.deepseekharness.app.core.DeviceGrants(ctx).effectiveScreenPolicy().allows(pkg)
+        ? null
+        : "SCREEN_CONFIRMATION_REQUIRED";
   }
 
   private static int privInt(org.json.JSONObject arguments, String key) {
     String value = arguments.optString(key, "");
     if (!value.matches("-?[0-9]{1,6}")) throw new IllegalArgumentException("PRIV_INVALID_ARGUMENT");
     return Integer.parseInt(value);
-  }
-
-  private static float privFloat(org.json.JSONObject arguments, String key) {
-    String value = arguments.optString(key, "");
-    if (!value.matches("-?[0-9]{1,6}(\\.[0-9]{1,4})?"))
-      throw new IllegalArgumentException("PRIV_INVALID_ARGUMENT");
-    return Float.parseFloat(value);
   }
 
   private static String privRefused(String code, String nextAction, String detail) {
@@ -1941,9 +2007,20 @@ public final class HttpShellService {
               scope.run.runId + ":" + runtime.instanceId,
               taskSessionId,
               turnId);
-      // 统一包装点：同一任务的所有 JSON 回执（含拒绝与 history）都附带最近活动摘要。
+      boolean history = operation.equals("history");
       String reply = appUiBound(scope, operation, arguments, binding);
-      return com.deepseekharness.app.screen.ScreenActivityRecorder.attach(reply, binding);
+      synchronized (com.deepseekharness.app.screen.ScreenActivityRecorder.class) {
+        if (history && reply.isEmpty()) reply = appUiHistory(arguments, binding);
+        if (!reply.startsWith("{")) return reply;
+        var check = com.deepseekharness.app.screen.ScreenActivityRecorder.deliveryCheck(binding);
+        scope.releaseActivity = () -> screenBridgeCurrent(scope) && check.getAsBoolean();
+        scope.withoutActivity =
+            history
+                ? com.deepseekharness.app.screen.ScreenActivityRecorder.history(
+                    arguments.optString("since"), arguments.optString("limit"), null)
+                : reply;
+        return com.deepseekharness.app.screen.ScreenActivityRecorder.attach(reply, binding);
+      }
     } catch (Exception error) {
       return "[ERR] " + safeError(error);
     }
@@ -1985,7 +2062,8 @@ public final class HttpShellService {
               binding.owner(), binding.connection(), taskSessionId, completed));
     }
     // 活动历史是内存里的只读事实，不要求任务窗可见；未开始/结束/暂停时返回空记录。
-    if (operation.equals("history")) return appUiHistory(arguments, binding);
+    if (operation.equals("history"))
+      return ""; // Serialized together with recent activity in appUi.
     var taskUi = com.deepseekharness.app.assistant.AssistantService.ensureLocalTask(ctx, binding);
     if (!taskUi.ready()) return taskUi.failureReply();
     if (!screenBridgeCurrent(scope)) return "[ERR] BRIDGE_RUN_CHANGED";
@@ -1994,8 +2072,9 @@ public final class HttpShellService {
         return new com.deepseekharness.app.assistant.AssistantService.TaskUiResult(
                 false, "ASSISTANT_STOP_NOTIFICATION_REQUIRED")
             .failureReply();
-      coordinator.begin(binding);
-      com.deepseekharness.app.screen.ScreenActivityRecorder.observeTask(ctx, binding);
+      var lease = coordinator.begin(binding);
+      com.deepseekharness.app.screen.ScreenActivityRecorder.observeTask(
+          ctx, lease, () -> coordinator.current(lease));
       return com.deepseekharness.app.screen.ScreenReply.completed()
           .put("needsObservation", true)
           .toString();
@@ -2047,7 +2126,8 @@ public final class HttpShellService {
     if (!screenUi.ready()) return screenUi.failureReply();
     var taskLease = coordinator.begin(binding);
     // 只有真正拿到当前任务的租约才开始记录；同一任务重复调用不会重置已有摘要。
-    com.deepseekharness.app.screen.ScreenActivityRecorder.observeTask(ctx, binding);
+    com.deepseekharness.app.screen.ScreenActivityRecorder.observeTask(
+        ctx, taskLease, () -> coordinator.current(taskLease));
     if (!observing && !coordinator.actionAllowed(taskLease))
       return com.deepseekharness.app.screen.ScreenReply.refused("FRESH_SCREEN_OBSERVATION_REQUIRED")
           .toString();
@@ -2064,6 +2144,10 @@ public final class HttpShellService {
     if (!observing && !coordinator.checkActionTarget(taskLease, observed.target))
       return com.deepseekharness.app.screen.ScreenReply.refused("SCREEN_TARGET_CHANGED").toString();
     var target = observed.target;
+    if (scope.privilegedWindowAllowed != null
+        && !scope.privilegedWindowAllowed.test(target.packageName))
+      return privRefused(
+          "PRIV_TARGET_OR_AUTHORITY_CHANGED", "CHECK_THE_AUTHORIZED_TARGET_APP", null);
     var capability = screenRequest(scope, operation, target);
     coordinator.bindRequest(capability, taskLease);
     ScreenAuthorization authorization =
@@ -2079,6 +2163,8 @@ public final class HttpShellService {
     java.util.function.BooleanSupplier live =
         () ->
             com.deepseekharness.app.assistant.AssistantService.stopChannelCurrent(ctx, binding)
+                && (scope.privilegedWindowAllowed == null
+                    || scope.privilegedWindowAllowed.test(target.packageName))
                 && screenBridgeCurrent(scope)
                 && coordinator.current(taskLease)
                 && (observing || coordinator.actionAllowed(taskLease, target))
@@ -2099,11 +2185,39 @@ public final class HttpShellService {
       annotated.put("userComposing", true);
       reply = annotated.toString();
     }
-    if (observing
-        && new org.json.JSONObject(reply).optString("state").equals("COMPLETED")
-        && !coordinator.observed(taskLease, observationSequence, target))
-      return com.deepseekharness.app.screen.ScreenReply.refused("SCREEN_OBSERVATION_SUPERSEDED")
-          .toString();
+    if (observing && new org.json.JSONObject(reply).optString("state").equals("COMPLETED")) {
+      if (!coordinator.observed(taskLease, observationSequence, target))
+        return com.deepseekharness.app.screen.ScreenReply.refused("SCREEN_OBSERVATION_SUPERSEDED")
+            .toString();
+      var grants = new com.deepseekharness.app.core.DeviceGrants(ctx);
+      long policyRevision = capability.policyRevision;
+      scope.releaseScreenData =
+          () ->
+              live.getAsBoolean()
+                  && grants.screenAuthorityRevision() == policyRevision
+                  && coordinator.actionAllowed(taskLease, target)
+                  && target.matches(DshaAccessibilityService.observeTargetForRequest(live).target);
+      scope.withheldReply =
+          com.deepseekharness.app.screen.ScreenReply.refused("SCREEN_TARGET_CHANGED").toString();
+      // Policy writers revoke the task before publishing changes. Read policy outside the
+      // recorder lock; the callback only checks the lease and its revocation revision.
+      long approvedRevision = scope.screenRevision;
+      boolean allowWhileTaskActive =
+          !isSensitiveApp(target.packageName)
+              && grants.screenAuthorityRevision() == policyRevision
+              && grants.effectiveScreenPolicy().allows(target.packageName);
+      com.deepseekharness.app.screen.ScreenActivityRecorder.approveTarget(
+          taskLease,
+          target,
+          () ->
+              coordinator.actionAllowed(taskLease, target)
+                  && uiGrant.revision() == approvedRevision
+                  && !isSensitiveApp(target.packageName)
+                  && (allowWhileTaskActive
+                      || coordinator
+                          .turnGrants()
+                          .allows(binding.identity(), target.packageName, false, policyRevision)));
+    }
     return reply;
   }
 
@@ -2667,16 +2781,16 @@ public final class HttpShellService {
             "\n== Network and DNS (experimental) ==\n/app/net  host default network (transport/VPN/validation/private DNS/device DNS) and the container resolv.conf source and staleness; read-only, no local IP\n/app/net/resolve?host=example.com&family=0|4|6  resolve a name with the Android system resolver on the current network; returns DSHA_RESOLVE_V1 text; resolves only, never connects\nAfter a network switch the host refreshes the DSHA-managed block of the container resolv.conf; Node lookups that fail with EAI_AGAIN/EAI_FAIL fall back to this endpoint once. User nameservers are never rewritten. Best-effort fix; reliability is not guaranteed on every network.\n");
     String rootPolicyHelp =
         com.deepseekharness.app.util.UiText.choose(
-            "\n== root 命令拦截档位 ==\n设置 → 设备能力授权 → Root 命令拦截：严格（默认，仅白名单）、放宽（任意命令，但拦截格式化/刷机/重启/清数据等不可逆操作）、完全放宽（不按命令内容拦截）。档位只对 root 通道生效；Shizuku/ADB 通用执行器仍按严格档，短信读取三档都需要原生授权。\n",
-            "\n== Root command interception modes ==\nSettings → Device permissions → Root command interception: Strict (default, allow-list only), Relaxed (any command, but irreversible operations such as formatting, flashing, reboot or clearing app data stay blocked), Full (no command-content checks). Modes apply to the root channel only; the generic Shizuku/ADB executor stays strict, and SMS reads still require native authorization in all modes.\n");
+            "\n== root 命令拦截档位 ==\n设置 → 设备能力授权 → Root 命令拦截：严格档仅允许列出的命令，并拒绝递归读取目录。放宽档可运行原始 root 脚本，拦截已识别的高风险命令。完全放宽档也允许高风险命令。后两档的 root 脚本可直接读取私有数据。受管短信查询始终需要原生授权。Shizuku 和普通 ADB 执行器使用严格档。\n",
+            "\n== Root command interception modes ==\nSettings → Device permissions → Root command interception: Strict (default) allows listed commands and rejects recursive directory reads. Relaxed runs raw root scripts and blocks recognized high-risk commands. Full also permits high-risk commands. Root scripts in both modes can directly read private data. Managed SMS queries always require native authorization. Generic Shizuku and ADB execution stays strict.\n");
     String modeHelp =
         com.deepseekharness.app.util.UiText.choose(
             "\n== 识屏模式（实体 / 虚拟互斥） ==\n用户在 设置 → 设备能力授权 → 识屏 选择：关闭、实体识屏或虚拟识屏，两者不能同时开启。\n实体识屏：/app/ui/* 与 dsha-android 工具可用；需要无障碍。虚拟识屏：/app/vscreen/* 与 dsha-vscreen 工具可用；需要 Root / Shizuku / ADB 任一可用通道；只在设置里切换到虚拟识屏、或已开启但虚拟屏未运行（STOPPED）时再次选择，才尝试创建；App 启动/恢复、崩溃或关闭后不会自动重建，创建失败会在设置页提示错误码；无障碍只增强节点与中文输入。\n模式关闭返回 SCREEN_MODE_OFF；实体模式下调虚拟屏返回 SCREEN_MODE_VIRTUAL_OFF，虚拟模式下调实体主屏返回 SCREEN_MODE_PHYSICAL_OFF。这表示容器没有拿到这块屏的授权：照原话告诉用户去哪里切换，不要改用另一块屏，也不要重试。/app/ui/task-end 收尾不受模式限制。\n",
             "\n== Screen mode (physical / virtual, mutually exclusive) ==\nThe user chooses Off, Physical screen or Virtual screen in Settings → Device permissions → Screen; both cannot be on at once.\nPhysical: /app/ui/* and the dsha-android tools work; requires accessibility. Virtual: /app/vscreen/* and the dsha-vscreen tools work; requires a usable Root / Shizuku / ADB channel; creation is attempted only when switching the mode to Virtual, or re-selecting while the mode is on but the screen is stopped (STOPPED); it is not recreated after app start, recovery or close, and a failed creation shows an error code in Settings; accessibility only adds nodes and Unicode input.\nOff returns SCREEN_MODE_OFF; virtual-screen calls in physical mode return SCREEN_MODE_VIRTUAL_OFF and main-screen calls in virtual mode return SCREEN_MODE_PHYSICAL_OFF. This means the container has no authorization for that screen: tell the user where to switch, never use the other screen instead and do not retry. /app/ui/task-end cleanup is not restricted by the mode.\n");
     String privHelp =
         com.deepseekharness.app.util.UiText.choose(
-            "\n== 实体屏特权执行（实验；设置→设备能力授权→特权执行，默认关闭）==\n不依赖无障碍：受管特权 Core 镜像 display 0 并注入 tap/swipe/key。只在当前手机任务期间可用（先 /app/ui/task-begin，并带真实 taskSessionId/turnId）；权限要求：能力开关 + 目标应用屏幕确认允许；敏感应用与无法核验的目标一律 NOT_SENT。\n/app/priv/info  状态：displayId=0、generation、frameSeq、目标包、输入后端、frameConfig\n/app/priv/frame?since=  取帧并签发一次性 observationId；同帧只回 unchanged\n/app/priv/config?maxWidth=320..1920&jpegQuality=30..90&maxFps=1..10\n/app/priv/tap?x=&y=&frameSeq=&observationId=&generation=&waitMs=0..500\n/app/priv/swipe?x1=&y1=&x2=&y2=&ms=1..3000&frameSeq=&observationId=&generation=\n/app/priv/key?keycode=3|4|66|67&frameSeq=&observationId=&generation=\n/app/priv/benchmark?n=1..20&x=&y=&waitMs=  连续动作，返回 roundTripMs/inputMs/frameWaitMs 的 p50/p95/max 与 frameConfig\n/app/priv/close  关闭 Core\n坐标使用回执 width×height 图像空间。动作回执带新帧与新 observation，可直接做下一步，不要每步重新取帧。凭据 30 秒、一次性、绑定 generation/目标包；EXECUTION_UNKNOWN 不自动重放；失败不回退无障碍。默认帧配置 maxWidth=1280 / jpegQuality=60 / maxFps=6。\n",
-            "\n== Physical-screen privileged input (experimental; Settings → Device permissions → Privileged input, off by default) ==\nNo accessibility dependency: the managed privileged Core mirrors display 0 and injects tap/swipe/key. It only works during the current phone task (call /app/ui/task-begin first and pass the real taskSessionId/turnId); gates: capability switch + screen-control permission for the target app; sensitive apps and unverifiable targets are always NOT_SENT.\n/app/priv/info  status: displayId=0, generation, frameSeq, target package, input backend, frameConfig\n/app/priv/frame?since=  capture a frame and issue a one-use observationId; the same frame returns unchanged only\n/app/priv/config?maxWidth=320..1920&jpegQuality=30..90&maxFps=1..10\n/app/priv/tap?x=&y=&frameSeq=&observationId=&generation=&waitMs=0..500\n/app/priv/swipe?x1=&y1=&x2=&y2=&ms=1..3000&frameSeq=&observationId=&generation=\n/app/priv/key?keycode=3|4|66|67&frameSeq=&observationId=&generation=\n/app/priv/benchmark?n=1..20&x=&y=&waitMs=  repeated actions; returns p50/p95/max of roundTripMs/inputMs/frameWaitMs plus frameConfig\n/app/priv/close  close the Core\nCoordinates are in the receipt image space (width x height). An action receipt carries a new frame and a new observation, so the next action can follow directly without re-capturing. Credentials last 30 s, are single-use and bound to generation/target package; EXECUTION_UNKNOWN is never replayed and failures never fall back to accessibility. Defaults: maxWidth=1280 / jpegQuality=60 / maxFps=6.\n");
+            "\n== 实体屏与特权通道 ==\n设置 → 设备能力授权 → 特权执行。接口要求当前任务的 taskSessionId、turnId 和目标应用授权。\n/app/priv/info、config、close 用于查询状态、配置和关闭通道。\nAndroid 14 及以上开启物理识屏和系统无障碍后，android_screenshot 或 /app/priv/frame 返回已批准窗口的 PNG 和 observationId。/app/priv/tap 和 swipe 必须传入该窗口的新 observationId 及图片坐标。\nAndroid 11–13 使用 android_get_state 读取目标控件，并通过 android_node 操作。完整显示镜像没有窗口归属证明，旧特权 key 和 benchmark 返回 NOT_SENT。\n",
+            "\n== Physical screen and privileged channel ==\nSettings → Device permissions → Privileged input. Supply the current taskSessionId and turnId and obtain permission for the target app.\nUse /app/priv/info, config and close for channel status, configuration and shutdown.\nOn Android 14 or later, enable Physical screen mode and the system accessibility service. android_screenshot or /app/priv/frame returns the approved window PNG and observationId. /app/priv/tap and swipe require that fresh ID and image coordinates.\nOn Android 11–13, use android_get_state and android_node to read and operate the approved controls. A full display mirror has no window ownership proof. Legacy privileged key and benchmark return NOT_SENT.\n");
     String extdevHelp =
         com.deepseekharness.app.util.UiText.choose(
             "\n== 外接设备（USB-ADB 主机，实验性） ==\n先在 设置 → 设备能力授权 打开「外接设备（实验性）」开关并启用「允许 Root Shell」；没有 su 时明确不可用，不会改用本机 shell。这是对另一台 Android 设备的独立通道，与本机 su / Shizuku / ADB 三通道语义无关。\n/app/extdev/status   能力开关 / root 状态 / transport（usb-root 或 wireless-root）/ 是否已绑定目标\n/app/extdev/discover  列出宿主 USB 主机口设备（含 9008 等非 adb 模式）与本次会话 adb 设备；adb 不可用时返回 adbUnavailable 原因\n/app/extdev/inspect?serial=…   只读读取目标 product / fingerprint / epoch，作为 bind 的输入\n/app/extdev/bind?serial=…&product=…&fingerprint=…&epoch=…   绑定唯一目标；必须经用户原生确认，之后每次操作仍校验目标代次\n/app/extdev/import?path=/sdcard/Download/xxx.apk   从共享 Download 复制到 App 私有导入槽（≤4 GiB），返回 file / name / size / sha256 / imageType\n/app/extdev/preflight?file=导入返回的file&partition=boot   只读预检与刷写计划（dry-run），不写目标\n/app/extdev/operate?operation=…&partition=…&value=…   已开放：status / devices / shell（只读诊断命令）/ reboot / connect / pair / getvar；screenshot 与 flash / sideload / set_active 未开放；L1 及以上需原生确认，L3 直接拒绝；加 observe=1 时动作执行后在同一请求内附 settle 与 observation（事件采样，UNKNOWN 不附）\n安装  operation=install&value=导入返回的file   专用确认先显示摘要、大小与目标代次，确认后才安装；文件或目标在确认后变化即拒绝\n/app/extdev/watch?mode=events&since=<digest>&samples=6   只读观察/等待页面变化：在同一个 adb 会话里连续采样目标事件，返回 state（CHANGED / UNCHANGED / UNCERTAIN / OBSERVED）、sequence、timestampMs、foregroundPackage / foregroundActivity、digest 与 settle；mode=window 用 dumpsys window 做单次权威采样（state=OBSERVED），samples 2–12 默认 6，quiet 默认 2；启动后 250ms 内重复调用返回 NOT_SENT / RATE_LIMITED。只读、不需要确认、不写目标，digest 不含屏幕文本。\n/app/extdev/forget   清除绑定\n失败返回 NOT_SENT / CONFIRMATION_REQUIRED / [POLICY_BLOCKED] / [EXECUTION_UNKNOWN]：未发送的不重试，UNKNOWN 先核对目标实际状态，不切换通道、不自动重放。\n",

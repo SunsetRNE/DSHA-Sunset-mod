@@ -1,5 +1,5 @@
 {
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-llm-deepseek/lib/index.js",
   "patches": [
     {
@@ -14,6 +14,10 @@
     {
       "before": "\t\t}] : message.content.flatMap((block) => input([block]));",
       "after": "\t\t}] : message.content.flatMap((block) => block.type === \"tool-result\" ? [{\r\n\t\t\ttype: \"tool_result\",\r\n\t\t\ttool_use_id: block.toolCallId,\r\n\t\t\tcontent: input(block.content),\r\n\t\t\t...block.isError === void 0 ? {} : { is_error: block.isError }\r\n\t\t}] : input([block]));"
+    },
+    {
+      "before": "async function resolveDeepSeekApiKey(ctx, ref) {\n\tconst credentials = ctx.get(\"credentials\");\n\tif (credentials !== void 0) {\n\t\tconst hit = await credentials.resolve(ref);\n\t\treturn hit === void 0 ? void 0 : assertUsableApiKey(hit.value, \"llm-deepseek\", ref);\n\t}\n\tconst ambient = launchEnvironmentOf(ctx).get(ref);\n\treturn ambient === void 0 || ambient.value.length === 0 ? void 0 : assertUsableApiKey(ambient.value, \"llm-deepseek\", ref);\n}",
+      "after": "async function resolveDeepSeekApiKey(ctx, ref, review) {\n\tconst credentials = ctx.get(\"credentials\");\n\tif (credentials !== void 0) {\n\t\tconst hit = await credentials.resolve(ref);\n\t\tif (hit === void 0) return;\n\t\treview?.(hit.value, hit.source);\n\t\treturn assertUsableApiKey(hit.value, \"llm-deepseek\", ref);\n\t}\n\tconst ambient = launchEnvironmentOf(ctx).get(ref);\n\tif (ambient === void 0 || ambient.value.length === 0) return;\n\treview?.(ambient.value, ambient.source);\n\treturn assertUsableApiKey(ambient.value, \"llm-deepseek\", ref);\n}"
     }
   ]
 }

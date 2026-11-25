@@ -1,9 +1,12 @@
 package com.deepseekharness.app;
 
+import android.content.ContentProviderClient;
+import android.content.ContentResolver;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteException;
 import android.os.CancellationSignal;
+import android.os.FileObserver;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
@@ -14,6 +17,8 @@ import android.system.Os;
 import android.system.OsConstants;
 import android.webkit.MimeTypeMap;
 import com.deepseekharness.app.core.RuntimeTasks;
+import com.deepseekharness.app.backup.BackupControl;
+import com.deepseekharness.app.backup.DocumentStreams;
 import com.deepseekharness.app.util.DocumentPaths;
 import java.io.File;
 import java.io.FileDescriptor;
@@ -216,8 +221,9 @@ public class DshaDocumentsProvider extends DocumentsProvider {
   @Override
   public Cursor queryDocument(String id, String[] projection) throws FileNotFoundException {
     try (RuntimeTasks ignored = lease(false)) {
+      Object[] row = values(id, projection == null ? DOCUMENT_COLUMNS : projection);
       MatrixCursor result = documents(projection, id);
-      include(result, id);
+      result.addRow(row);
       return result;
     } catch (IOException error) {
       throw failure(error);
@@ -256,6 +262,100 @@ public class DshaDocumentsProvider extends DocumentsProvider {
       }
     } catch (IOException | DirectoryIteratorException | SQLiteException | SecurityException error) {
       throw failure(error);
+    }
+  }
+
+  /** A single work-file browser owns one cursor. SAF clients retain their usual per-query cursor. */
+  public static final class WorkspaceListing implements AutoCloseable {
+    private final DshaDocumentsProvider provider;
+    private final String id;
+    private final File directory;
+    private final long modified;
+    private final FileObserver watch;
+    private final BackupControl reading;
+    private volatile boolean changed;
+    public final Cursor cursor;
+
+    public static WorkspaceListing open(
+        ContentResolver resolver,
+        String authority,
+        String id,
+        String[] columns,
+        BackupControl control)
+        throws IOException {
+      android.net.Uri uri = DocumentsContract.buildChildDocumentsUri(authority, id);
+      try (ContentProviderClient client = resolver.acquireContentProviderClient(uri)) {
+        DshaDocumentsProvider provider =
+            client != null
+                    && client.getLocalContentProvider() instanceof DshaDocumentsProvider local
+                ? local
+                : null;
+        return new WorkspaceListing(provider, id, resolver, uri, columns, control);
+      }
+    }
+
+    private WorkspaceListing(
+        DshaDocumentsProvider provider,
+        String id,
+        ContentResolver resolver,
+        android.net.Uri uri,
+        String[] columns,
+        BackupControl control)
+        throws IOException {
+      this.provider = provider;
+      this.id = id;
+      this.reading = control;
+      directory = provider == null ? null : provider.existing(id);
+      modified = directory == null ? 0 : directory.lastModified();
+      watch =
+          directory == null
+              ? null
+              : new FileObserver(
+                  directory,
+                  FileObserver.CREATE
+                      | FileObserver.DELETE
+                      | FileObserver.MOVED_FROM
+                      | FileObserver.MOVED_TO
+                      | FileObserver.MODIFY
+                      | FileObserver.ATTRIB
+                      | FileObserver.CLOSE_WRITE
+                      | FileObserver.DELETE_SELF
+                      | FileObserver.MOVE_SELF) {
+                @Override
+                public void onEvent(int event, String path) {
+                  changed = true;
+                }
+              };
+      try {
+        if (watch != null) watch.startWatching();
+        cursor = DocumentStreams.query(resolver, uri, columns, control);
+      } catch (IOException | RuntimeException | Error failure) {
+        if (watch != null) watch.stopWatching();
+        throw failure;
+      }
+    }
+
+    public boolean current(String requestedId) throws IOException {
+      return !changed
+          && !reading.isCancelled()
+          && directory != null
+          && id.equals(requestedId)
+          && directory.equals(provider.existing(id))
+          && modified == directory.lastModified()
+          && !cursor.isClosed();
+    }
+
+    public AutoCloseable cancelWith(BackupControl page) {
+      return page.onCancel(reading::cancel);
+    }
+
+    @Override
+    public void close() {
+      try {
+        cursor.close();
+      } finally {
+        if (watch != null) watch.stopWatching();
+      }
     }
   }
 

@@ -17,10 +17,13 @@ import com.deepseekharness.app.ShizukuShell;
 import com.deepseekharness.app.bridge.AdbBridge;
 import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.core.HarnessController;
+import com.deepseekharness.app.extdev.ExternalDeviceHost;
 import com.deepseekharness.app.util.Constants;
 import com.deepseekharness.app.util.DeviceShellPolicy;
 import com.deepseekharness.app.util.UiText;
 import com.google.android.material.materialswitch.MaterialSwitch;
+import java.util.concurrent.Executor;
+import java.util.function.Function;
 
 /**
  * 设备执行通道（独立页面）：Root / Shizuku·Stellar / ADB / 外接设备，以及 root 命令拦截档位。
@@ -30,8 +33,11 @@ import com.google.android.material.materialswitch.MaterialSwitch;
 public final class DeviceChannelsFragment extends Fragment {
   private boolean updating;
   private int adbStatusRequest;
+  private int externalDeviceStatusRequest;
   private MaterialSwitch externalDevice;
   private TextView externalDeviceStatus;
+  private final Executor externalDeviceQueries;
+  private final Function<Context, String> externalDeviceStatusReader;
   private android.widget.RadioGroup rootModes;
   private android.widget.RadioButton[] rootModeButtons;
 
@@ -51,6 +57,17 @@ public final class DeviceChannelsFragment extends Fragment {
           main.postDelayed(this, 1000);
         }
       };
+
+  public DeviceChannelsFragment() {
+    this(
+        task -> new Thread(task, "external-device-status").start(),
+        DeviceChannelsFragment::loadExternalDeviceStatus);
+  }
+
+  DeviceChannelsFragment(Executor externalDeviceQueries, Function<Context, String> statusReader) {
+    this.externalDeviceQueries = externalDeviceQueries;
+    this.externalDeviceStatusReader = statusReader;
+  }
 
   @Override
   public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle saved) {
@@ -211,7 +228,9 @@ public final class DeviceChannelsFragment extends Fragment {
         "external-device",
         UiText.choose(
             "实验性，未经真机验收。独立授权另一台手机（USB 或无线调试），绑定后可受控调试、重启和确认后安装；刷机只做只读预检，不执行刷写。",
-            "Experimental, not yet device-verified. Authorize another phone (USB or wireless debugging); once bound it allows controlled debugging, reboot and confirmed installs. Flashing is read-only preflight only."),
+            "Experimental, not yet device-verified. Authorize another phone (USB or wireless"
+                + " debugging); once bound it allows controlled debugging, reboot and confirmed"
+                + " installs. Flashing is read-only preflight only."),
         false);
     title.setMinHeight(0);
     // 状态与标题叠成左列：开关先量，状态胶囊在剩余宽度内换行，长译文不会把开关挤出屏幕（T125）。
@@ -223,7 +242,7 @@ public final class DeviceChannelsFragment extends Fragment {
     row.addView(text, new android.widget.LinearLayout.LayoutParams(0, -2, 1f));
     externalDevice = new MaterialSwitch(ctx);
     externalDevice.setContentDescription(UiText.choose("允许外接设备能力", "Allow external-device access"));
-    externalDevice.setChecked(new com.deepseekharness.app.extdev.ExternalDeviceHost(ctx).enabled());
+    showExternalDevice(new ExternalDeviceHost(ctx).enabled());
     android.widget.LinearLayout.LayoutParams switchParams =
         new android.widget.LinearLayout.LayoutParams(-2, -2);
     switchParams.setMarginStart(dp(4));
@@ -233,70 +252,71 @@ public final class DeviceChannelsFragment extends Fragment {
         (button, enabled) -> {
           if (updating) return;
           if (!enabled) {
-            if (!new com.deepseekharness.app.extdev.ExternalDeviceHost(ctx).setEnabled(false))
-              toast(UiText.text("设置保存失败，请重试"));
-            refreshExternalDeviceStatus();
+            saveExternalDevice(ctx, false);
             return;
           }
+          // 未确认时继续显示现有授权状态，返回键、遮罩与取消按钮行为一致。
+          showExternalDevice(new ExternalDeviceHost(ctx).enabled());
           new DshaDialogBuilder(ctx)
               .setTitle(UiText.text("开启外接设备能力？"))
               .setMessage(
                   UiText.choose(
                       "实验性功能。这会允许 DSHA 通过已授权的 root 访问 USB 或无线调试目标。它不会开启本机刷机，也不会自动授权或刷写另一台手机。",
-                      "Experimental. This allows DSHA to access a USB or wireless-debugging target through authorized root. It does not enable host flashing or automatically authorize or flash the target."))
+                      "Experimental. This allows DSHA to access a USB or wireless-debugging target"
+                          + " through authorized root. It does not enable host flashing or"
+                          + " automatically authorize or flash the target."))
               .setPositiveButton(
-                  UiText.choose("开启", "Enable"),
-                  (dialog, which) -> {
-                    if (!new com.deepseekharness.app.extdev.ExternalDeviceHost(ctx)
-                        .setEnabled(true)) {
-                      updating = true;
-                      externalDevice.setChecked(false);
-                      updating = false;
-                      toast(UiText.text("设置保存失败，请重试"));
-                    }
-                    refreshExternalDeviceStatus();
-                  })
-              .setNegativeButton(
-                  UiText.choose("取消", "Cancel"),
-                  (dialog, which) -> {
-                    updating = true;
-                    externalDevice.setChecked(false);
-                    updating = false;
-                  })
+                  UiText.choose("开启", "Enable"), (dialog, which) -> saveExternalDevice(ctx, true))
+              .setNegativeButton(UiText.choose("取消", "Cancel"), null)
               .show();
         });
     refreshExternalDeviceStatus();
   }
 
+  private void showExternalDevice(boolean enabled) {
+    if (externalDevice == null) return;
+    updating = true;
+    externalDevice.setChecked(enabled);
+    updating = false;
+  }
+
+  private void saveExternalDevice(Context ctx, boolean enabled) {
+    ExternalDeviceHost devices = new ExternalDeviceHost(ctx);
+    if (!devices.setEnabled(enabled)) toast(UiText.text("设置保存失败，请重试"));
+    showExternalDevice(devices.enabled());
+    refreshExternalDeviceStatus();
+  }
+
   private void refreshExternalDeviceStatus() {
-    if (externalDeviceStatus == null || !isAdded()) return;
+    TextView statusView = externalDeviceStatus;
+    if (statusView == null || !isAdded()) return;
+    int request = ++externalDeviceStatusRequest;
     final Context ctx = requireContext().getApplicationContext();
-    new Thread(
-            () -> {
-              String text;
-              try {
-                org.json.JSONObject state =
-                    new com.deepseekharness.app.extdev.ExternalDeviceHost(ctx).status();
-                text =
-                    state.optBoolean("enabled", false)
-                        ? state.optBoolean("rootVerified", false)
-                            ? state.optBoolean("bound", false)
-                                ? UiText.choose("已绑定", "Bound")
-                                : UiText.choose("未绑定", "Not bound")
-                            : UiText.choose("未验证", "Unverified")
-                        : UiText.choose("已关闭", "Off");
-              } catch (Throwable error) {
-                text = UiText.choose("状态不可用", "Unavailable");
-              }
-              final String displayText = text;
-              main.post(
-                  () -> {
-                    if (isAdded() && externalDeviceStatus != null)
-                      externalDeviceStatus.setText(displayText);
-                  });
-            },
-            "external-device-status")
-        .start();
+    externalDeviceQueries.execute(
+        () -> {
+          String displayText = externalDeviceStatusReader.apply(ctx);
+          main.post(
+              () -> {
+                if (isAdded()
+                    && externalDeviceStatus == statusView
+                    && externalDeviceStatusRequest == request) statusView.setText(displayText);
+              });
+        });
+  }
+
+  private static String loadExternalDeviceStatus(Context ctx) {
+    try {
+      org.json.JSONObject state = new ExternalDeviceHost(ctx).status();
+      return state.optBoolean("enabled", false)
+          ? state.optBoolean("rootVerified", false)
+              ? state.optBoolean("bound", false)
+                  ? UiText.choose("已绑定", "Bound")
+                  : UiText.choose("未绑定", "Not bound")
+              : UiText.choose("未验证", "Unverified")
+          : UiText.choose("已关闭", "Off");
+    } catch (Throwable error) {
+      return UiText.choose("状态不可用", "Unavailable");
+    }
   }
 
   private static final DeviceShellPolicy.Mode[] ROOT_MODES = {
@@ -315,14 +335,8 @@ public final class DeviceChannelsFragment extends Fragment {
       UiText.format(
           "%s, %s",
           UiText.text("严格（默认）"), UiText.choose("仅放行白名单内的命令", "Only allowlisted commands run")),
-      UiText.format(
-          "%s, %s",
-          UiText.choose("放宽", "Relaxed"),
-          UiText.choose("允许任意命令，仍拦截不可逆操作", "Any command; irreversible operations still blocked")),
-      UiText.format(
-          "%s, %s",
-          UiText.choose("完全放宽", "Fully relaxed"),
-          UiText.choose("不按命令内容拦截", "No command-content checks"))
+      UiText.format("%s, %s", UiText.choose("放宽", "Relaxed"), rootRisk(false)),
+      UiText.format("%s, %s", UiText.choose("完全放宽", "Fully relaxed"), rootRisk(true))
     };
     rootModeButtons =
         GrantsUi.buildSegment(
@@ -347,6 +361,16 @@ public final class DeviceChannelsFragment extends Fragment {
     if (mode != current) confirmRootPolicy(mode);
   }
 
+  private static String rootRisk(boolean full) {
+    return full
+        ? UiText.choose(
+            "严重风险：root 脚本可读取私有数据、清除文件或损坏系统。",
+            "Severe risk: root scripts can read private data, erase files or damage the system.")
+        : UiText.choose(
+            "高风险：root 脚本可读取私有数据。放宽档只拦截能识别的高风险命令。",
+            "High risk: root scripts can read private data. Relaxed mode blocks only recognized high-risk commands.");
+  }
+
   /** 当前档位按已保存值选中；放宽 / 完全放宽时显示红色警告框。Root 未启用时分段变淡。 */
   private void refreshRootPolicy() {
     if (rootModeButtons == null || !isAdded()) return;
@@ -366,25 +390,9 @@ public final class DeviceChannelsFragment extends Fragment {
     warning.setVisibility(relaxed ? View.VISIBLE : View.GONE);
     if (!relaxed) return;
     boolean full = mode == DeviceShellPolicy.Mode.FULL;
-    String detail =
-        full
-            ? UiText.choose(
-                "严重风险：已完全放宽。助手和插件可用 root 执行任意命令，包括格式化、刷机、清除数据等不可逆操作，可能导致数据丢失或系统损坏。不用时请改回严格。",
-                "Severe risk: fully relaxed. The assistant and plugins can run any root command, including irreversible ones such as formatting, flashing or wiping data. This may cause data loss or system damage. Switch back to strict when not needed.")
-            : UiText.choose(
-                "高风险：已放宽。助手和插件可用 root 执行白名单以外的任意命令；仅拦截格式化、刷机、清除数据等不可逆操作。不用时请改回严格。",
-                "High risk: relaxed. The assistant and plugins can run root commands beyond the allowlist; only irreversible operations such as formatting, flashing or wiping data are blocked. Switch back to strict when not needed.");
-    // 行内只留一句（含「严重风险 / 高风险」与后果），点按看完整原文；读屏直接读完整原文。
-    // 档位切换时淡入新结论（审计 C-02）；从隐藏变为可见时整块淡入。
-    UiMotion.crossFadeText(
-        warning,
-        full
-            ? UiText.choose(
-                "严重风险：root 可执行任意命令，含格式化、刷机等不可逆操作",
-                "Severe risk: root can run any command, including irreversible ones")
-            : UiText.choose(
-                "高风险：root 可执行白名单外命令，仅拦截不可逆操作",
-                "High risk: root can run commands beyond the allowlist"));
+    String risk = rootRisk(full);
+    String detail = risk + "\n" + getString(R.string.ui134_root_hint);
+    UiMotion.crossFadeText(warning, risk);
     if (wasHidden) UiMotion.reveal(warning);
     warning.setTag(R.id.device_root_policy_warning, detail);
     warning.setContentDescription(detail);
@@ -398,7 +406,9 @@ public final class DeviceChannelsFragment extends Fragment {
         com.deepseekharness.app.ShizukuManagerCompat.isStellar(ctx)
             ? UiText.choose(
                 "已识别 Stellar（Shizuku 兼容管理器）。请在 Stellar 中启动服务并开启「Shizuku 兼容层」，再返回授权；手机重启后通常需要重新启动服务。",
-                "Stellar (a Shizuku-compatible manager) is detected. Start its service and enable the Shizuku compatibility layer, then authorize here. Restart the service after reboot.")
+                "Stellar (a Shizuku-compatible manager) is detected. Start its service and enable"
+                    + " the Shizuku compatibility layer, then authorize here. Restart the service"
+                    + " after reboot.")
             : getString(R.string.ui134_shizuku_hint);
     String full =
         UiText.format(
@@ -589,14 +599,7 @@ public final class DeviceChannelsFragment extends Fragment {
     warning.setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_section_warning, 0, 0, 0);
     warning.setCompoundDrawablePadding(dp(10));
     warning.setCompoundDrawableTintList(android.content.res.ColorStateList.valueOf(bad));
-    warning.setText(
-        full
-            ? UiText.choose(
-                "完全放宽后不按命令拦截；可执行格式化、刷机、清除数据等不可逆操作，可能造成数据丢失或系统损坏。",
-                "Severe risk: fully relaxed mode does not inspect command content. The assistant and plugins can run irreversible root operations such as formatting, flashing or wiping data, which may cause data loss or system damage.")
-            : UiText.choose(
-                "放宽后可用 root 执行白名单外命令；格式化、刷机、清除数据仍被拦截。",
-                "High risk: relaxed mode lets the assistant and plugins run root commands beyond the allowlist; irreversible operations such as formatting, flashing or wiping data stay blocked."));
+    warning.setText(rootRisk(full));
     TextView scope = new TextView(ctx);
     scope.setTextSize(12);
     scope.setTextColor(ctx.getColor(R.color.shell_text_secondary));
@@ -717,7 +720,20 @@ public final class DeviceChannelsFragment extends Fragment {
     refreshChannelLabels();
     refreshExternalDeviceStatus();
     View page = getView();
-    if (page != null) refreshAdbStatus(page.findViewById(R.id.config_adb_status));
+    if (page != null) {
+      CompoundButton adb = page.findViewById(R.id.config_adb_enable);
+      boolean enabled = pref(requireContext(), "adb_enabled", false);
+      if (adb.isChecked() != enabled) {
+        boolean wasUpdating = updating;
+        updating = true;
+        try {
+          adb.setChecked(enabled);
+        } finally {
+          updating = wasUpdating;
+        }
+      }
+      refreshAdbStatus(page.findViewById(R.id.config_adb_status));
+    }
     main.removeCallbacks(refreshConnections);
     main.post(refreshConnections);
   }

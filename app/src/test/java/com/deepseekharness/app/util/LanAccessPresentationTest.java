@@ -6,6 +6,7 @@ import java.util.List;
 import org.junit.Test;
 
 public final class LanAccessPresentationTest {
+  private static final String FINGERPRINT = "AA:".repeat(31) + "BC";
   private static final LanAddressPolicy.Discovery ADDRESSES =
       new LanAddressPolicy.Discovery(
           List.of("192.168.1.2", "10.2.0.2"), false, LanAddressPolicy.Failure.NONE);
@@ -17,7 +18,8 @@ public final class LanAccessPresentationTest {
       boolean auth,
       int port,
       LanAddressPolicy.Discovery discovery) {
-    return LanAccessPresentation.capture(enabled, permission, generation, auth, port, discovery);
+    return LanAccessPresentation.capture(
+        enabled, permission, true, generation, auth, port, discovery, FINGERPRINT);
   }
 
   @Test
@@ -28,6 +30,14 @@ public final class LanAccessPresentationTest {
     var denied = capture(true, false, 7, true, 3082, ADDRESSES);
     assertEquals(LanAccessPresentation.State.PERMISSION_REQUIRED, denied.state);
     assertTrue(denied.services.isEmpty());
+  }
+
+  @Test
+  public void savedSwitchAloneDoesNotOfferAnAddressAfterTheNetworkChanges() {
+    var paused =
+        LanAccessPresentation.capture(true, true, false, 7, true, 3082, ADDRESSES, FINGERPRINT);
+    assertEquals(LanAccessPresentation.State.CONFIRM_NETWORK, paused.state);
+    assertTrue(paused.services.isEmpty());
   }
 
   @Test
@@ -49,10 +59,12 @@ public final class LanAccessPresentationTest {
   public void actualDynamicPortIsUsedForEveryCurrentInterfaceAddress() {
     var ready = capture(true, true, 7, true, 49231, ADDRESSES);
     assertEquals(LanAccessPresentation.State.READY, ready.state);
-    assertEquals(List.of("http://192.168.1.2:49231/", "http://10.2.0.2:49231/"), ready.services);
-    assertTrue(ready.stillOffers(7, "http://192.168.1.2:49231/"));
-    assertFalse(ready.stillOffers(8, "http://192.168.1.2:49231/"));
-    assertFalse(ready.stillOffers(7, "http://192.168.1.2:3082/"));
+    assertEquals(FINGERPRINT, ready.certificateSha256);
+    assertFalse(ready.stillOffers(7, "http://192.168.1.2:49231/"));
+    assertEquals(List.of("https://192.168.1.2:49231/", "https://10.2.0.2:49231/"), ready.services);
+    assertTrue(ready.stillOffers(7, "https://192.168.1.2:49231/"));
+    assertFalse(ready.stillOffers(8, "https://192.168.1.2:49231/"));
+    assertFalse(ready.stillOffers(7, "https://192.168.1.2:3082/"));
   }
 
   @Test
@@ -125,13 +137,13 @@ public final class LanAccessPresentationTest {
                     "192.168.1.2"),
                 false,
                 LanAddressPolicy.Failure.NONE));
-    assertEquals(List.of("http://192.168.1.2:49231/"), snapshot.services);
+    assertEquals(List.of("https://192.168.1.2:49231/"), snapshot.services);
     assertFalse(snapshot.services.toString().contains("token"));
   }
 
   @Test
   public void changedSettingsAddressOrListenerRevokesPreviouslyOfferedLink() {
-    String old = "http://192.168.1.2:3082/";
+    String old = "https://192.168.1.2:3082/";
     assertFalse(capture(false, true, 7, true, 3082, ADDRESSES).stillOffers(7, old));
     assertFalse(capture(true, false, 7, true, 3082, ADDRESSES).stillOffers(7, old));
     assertFalse(capture(true, true, 7, true, 0, ADDRESSES).stillOffers(7, old));

@@ -6,6 +6,10 @@ import android.os.Bundle;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MutableLiveData;
 import com.deepseekharness.app.core.RuntimeTasks;
+import com.deepseekharness.app.backup.BackupControl;
+import com.deepseekharness.app.transfer.SelectedDocumentSave;
+import com.deepseekharness.app.util.FileIntegrity;
+import com.deepseekharness.app.util.RustDigest;
 import com.deepseekharness.app.util.WebPreviewPolicy;
 import com.deepseekharness.app.util.WebTransferPolicy;
 import java.io.*;
@@ -23,6 +27,9 @@ public final class WebDownloadModel extends AndroidViewModel {
   private volatile InputStream input;
   private volatile HttpURLConnection connection;
   private volatile File staged;
+  private volatile BackupControl saveControl;
+  private long stagedBytes;
+  private String stagedDigest;
   private String name = "download.bin";
   public volatile boolean pickerOpen;
   private volatile Uri lastSavedUri;
@@ -52,7 +59,8 @@ public final class WebDownloadModel extends AndroidViewModel {
     if (staged != null && staged.isFile()) {
       out.putString("web-file-stage", staged.getName());
       out.putString("web-file-name", name);
-      out.putLong("web-file-size", staged.length());
+      out.putLong("web-file-size", stagedBytes);
+      out.putString("web-file-digest", stagedDigest);
       out.putBoolean("web-file-picker", pickerOpen);
       out.putBoolean("web-file-share", shareRequested);
       out.putString("web-file-mime", shareMime);
@@ -66,6 +74,8 @@ public final class WebDownloadModel extends AndroidViewModel {
       File candidate = new File(new File(getApplication().getCacheDir(), "web-downloads"), id);
       if (candidate.isFile() && candidate.length() == saved.getLong("web-file-size", -1)) {
         staged = candidate;
+        stagedBytes = saved.getLong("web-file-size");
+        stagedDigest = saved.getString("web-file-digest");
         name = WebTransferPolicy.fileName(saved.getString("web-file-name"));
         pickerOpen = saved.getBoolean("web-file-picker");
         shareRequested = saved.getBoolean("web-file-share");
@@ -141,6 +151,7 @@ public final class WebDownloadModel extends AndroidViewModel {
     shareMime = checkedMime;
     queuedTaskId = null;
     completion = complete;
+    lastSavedUri = null;
     name = WebTransferPolicy.fileName(filename);
     state.setValue(new State("downloading", downloadMessage(supplied != null), 0, expected));
     new Thread(
@@ -192,6 +203,8 @@ public final class WebDownloadModel extends AndroidViewModel {
                 if (total > 0 && dir.getUsableSpace() < total + 16L * 1024 * 1024)
                   throw new IOException(com.deepseekharness.app.util.UiText.text("存储空间不足"));
                 long bytes = 0, last = 0;
+                MessageDigest digest =
+                    gallery || share ? null : MessageDigest.getInstance("SHA-256");
                 try (InputStream in = input;
                     FileOutputStream out = new FileOutputStream(file)) {
                   if (in == null)
@@ -204,6 +217,7 @@ public final class WebDownloadModel extends AndroidViewModel {
                     WebTransferPolicy.checkSize(
                         bytes, total, WebTransferPolicy.DOWNLOAD_LIMIT, false);
                     out.write(buffer, 0, n);
+                    if (digest != null) digest.update(buffer, 0, n);
                     if (android.os.SystemClock.elapsedRealtime() - last > 200) {
                       last = android.os.SystemClock.elapsedRealtime();
                       state.postValue(
@@ -236,6 +250,8 @@ public final class WebDownloadModel extends AndroidViewModel {
                   synchronized (this) {
                     checkCancelled();
                     staged = file;
+                    stagedBytes = bytes;
+                    stagedDigest = digest == null ? null : RustDigest.hex(digest.digest());
                     file = null;
                   }
                   result =
@@ -263,19 +279,14 @@ public final class WebDownloadModel extends AndroidViewModel {
 
   public synchronized void save(Uri uri) {
     pickerOpen = false;
+    if (busy) return;
     if (uri == null) {
       discard();
       state.setValue(new State("idle", com.deepseekharness.app.util.UiText.text("已取消保存"), 0, -1));
       complete(false, "AbortError");
       return;
     }
-    if (busy) return;
     if (staged == null) {
-      try {
-        android.provider.DocumentsContract.deleteDocument(
-            getApplication().getContentResolver(), uri);
-      } catch (Exception ignored) {
-      }
       state.setValue(
           new State("error", com.deepseekharness.app.util.UiText.text("下载缓存已丢失，请重新导出"), 0, -1));
       complete(false, "DOWNLOAD_CACHE_MISSING");
@@ -284,59 +295,46 @@ public final class WebDownloadModel extends AndroidViewModel {
     busy = true;
     cancelled = false;
     final File file = staged;
+    final long expectedBytes = stagedBytes;
+    final String expectedDigest = stagedDigest;
+    final BackupControl control = new BackupControl(null);
+    saveControl = control;
     state.setValue(
         new State(
-            "saving", com.deepseekharness.app.util.UiText.text("正在保存并校验文件"), 0, file.length()));
+            "saving", com.deepseekharness.app.util.UiText.text("正在保存并校验文件"), 0, expectedBytes));
     new Thread(
             () -> {
               State status;
               try (RuntimeTasks ignored = RuntimeTasks.begin()) {
-                MessageDigest source = MessageDigest.getInstance("SHA-256");
-                try (InputStream in = new FileInputStream(file);
-                    OutputStream out =
-                        getApplication().getContentResolver().openOutputStream(uri, "wt")) {
-                  if (out == null)
-                    throw new IOException(com.deepseekharness.app.util.UiText.text("无法写入所选位置"));
-                  byte[] buffer = new byte[65536];
-                  int n;
-                  while ((n = in.read(buffer)) != -1) {
-                    checkCancelled();
-                    out.write(buffer, 0, n);
-                    source.update(buffer, 0, n);
-                  }
+                // A picker can return an existing document. Verify the private source before
+                // opening that document for replacement, including after process recreation.
+                if (!file.isFile() || file.length() != expectedBytes) throw invalidCache();
+                FileIntegrity.Result source;
+                try (InputStream in = new FileInputStream(file)) {
+                  source = FileIntegrity.copy(in, null, expectedBytes, this::checkCancelled);
                 }
-                MessageDigest result = MessageDigest.getInstance("SHA-256");
-                long count = 0;
-                try (InputStream in = getApplication().getContentResolver().openInputStream(uri)) {
-                  if (in == null)
-                    throw new IOException(com.deepseekharness.app.util.UiText.text("保存后无法读取校验"));
-                  byte[] buffer = new byte[65536];
-                  int n;
-                  while ((n = in.read(buffer)) != -1) {
-                    checkCancelled();
-                    count += n;
-                    result.update(buffer, 0, n);
-                  }
-                }
-                if (count != file.length()
-                    || !MessageDigest.isEqual(source.digest(), result.digest()))
-                  throw new IOException(com.deepseekharness.app.util.UiText.text("保存校验失败，请更换位置重试"));
+                if (source.size != expectedBytes
+                    || (expectedDigest != null && !source.sha256.equals(expectedDigest)))
+                  throw invalidCache();
+                SelectedDocumentSave.write(
+                    getApplication(),
+                    uri,
+                    () -> new FileInputStream(file),
+                    source.size,
+                    source.sha256,
+                    control);
                 lastSavedUri = uri;
                 discard();
                 status =
                     new State(
                         "done",
                         com.deepseekharness.app.util.UiText.format("已保存：%s", name),
-                        count,
-                        count);
+                        expectedBytes,
+                        expectedBytes);
               } catch (Exception error) {
-                // CreateDocument 返回本次文件；失败仅清理本次输出，缓存仍可重试。
-                try {
-                  android.provider.DocumentsContract.deleteDocument(
-                      getApplication().getContentResolver(), uri);
-                } catch (Exception ignored) {
-                }
                 status = failure(error);
+              } finally {
+                saveControl = null;
               }
               finishState(status);
             },
@@ -346,6 +344,8 @@ public final class WebDownloadModel extends AndroidViewModel {
 
   public void cancel() {
     cancelled = true;
+    BackupControl control = saveControl;
+    if (control != null) control.cancel();
     // Android 自带 OkHttp 的 InputStream 不能在主线程与 read() 并发 close()。
     // 连接取消交给独立线程；写入线程仍负责最终关闭、删除与取消检查。
     HttpURLConnection c = connection;
@@ -363,6 +363,20 @@ public final class WebDownloadModel extends AndroidViewModel {
   public synchronized void discard() {
     if (staged != null) staged.delete();
     staged = null;
+    stagedBytes = 0;
+    stagedDigest = null;
+  }
+
+  private IOException invalidCache() {
+    discard();
+    return new IOException(com.deepseekharness.app.util.UiText.text("下载缓存已丢失，请重新导出"));
+  }
+
+  void pickerUnavailable() {
+    pickerOpen = false;
+    state.setValue(
+        new State(
+            "error", com.deepseekharness.app.util.UiText.text("无法打开保存位置选择器，请启用系统文件应用后重试"), 0, -1));
   }
 
   public void acknowledge() {
@@ -401,6 +415,8 @@ public final class WebDownloadModel extends AndroidViewModel {
   }
 
   private State failure(Exception error) {
+    String recovery = SelectedDocumentSave.recoveryMessage(error.getMessage());
+    if (recovery != null) return new State("error", recovery, 0, -1);
     return new State(
         "error",
         cancelled
@@ -423,7 +439,7 @@ public final class WebDownloadModel extends AndroidViewModel {
               state.setValue(result);
               if (result.phase().equals("done")) complete(true, "saved");
               else if (result.phase().equals("queued")) complete(true, "queued:" + queuedTaskId);
-              else if (result.phase().equals("error"))
+              else if (result.phase().equals("error") && !canRetrySave())
                 complete(false, cancelled ? "AbortError" : result.message());
             });
   }

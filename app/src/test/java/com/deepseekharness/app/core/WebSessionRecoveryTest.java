@@ -494,6 +494,38 @@ public final class WebSessionRecoveryTest {
   }
 
   @Test
+  public void oldPidRecordCanReleaseDeferredStartAfterReadOnlyExitProof() {
+    ObservedFixture f =
+        new ObservedFixture() {
+          public boolean unrecordedExitConfirmed() {
+            calls.add("legacy-exit");
+            return true;
+          }
+        };
+    f.failAt = "read";
+    var outcome = WebSessionRecovery.recoverDetailed(f);
+    assertOutcome(WebSessionRecovery.Result.EXITED, "EXIT_CONFIRMED", 0, outcome);
+    assertEquals("LEGACY_EXIT_CHECK", outcome.stage());
+    assertEquals(List.of("read", "legacy-exit"), f.calls);
+  }
+
+  @Test
+  public void legacyAbsenceCheckCannotWinIfTheUserStoppedDuringObservation() {
+    ObservedFixture f =
+        new ObservedFixture() {
+          public boolean unrecordedExitConfirmed() {
+            calls.add("legacy-exit");
+            current = false;
+            return true;
+          }
+        };
+    f.failAt = "read";
+    assertOutcome(
+        WebSessionRecovery.Result.STALE, "STALE", 0, WebSessionRecovery.recoverDetailed(f));
+    assertEquals(List.of("read", "legacy-exit"), f.calls);
+  }
+
+  @Test
   public void earlierStopStillLoadsReadOnlyEvidenceBeforeRejectingAdoption() {
     Fixture f = new Fixture();
     f.current = false;

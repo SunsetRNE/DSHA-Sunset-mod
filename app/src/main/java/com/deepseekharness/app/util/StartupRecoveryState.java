@@ -31,6 +31,7 @@ public final class StartupRecoveryState {
     PORT(Tone.BAD, "WEB_PORT_IN_USE"),
     PLUGIN(Tone.BAD, "PLUGIN_LOAD_FAILED"),
     REGISTER(Tone.BAD, "PLUGIN_REGISTER_FAILED"),
+    MIGRATION_REVIEW(Tone.WARN, "RC1_MIGRATION_REVIEW_REQUIRED"),
     PAGE(Tone.BAD, "WEB_PAGE_FATAL"),
     CONFIG(Tone.BAD, "CONFIG_CHECK_FAILED"),
     EXIT(Tone.BAD, "PROCESS_EXITED"),
@@ -82,7 +83,15 @@ public final class StartupRecoveryState {
    * backendReady 表示已拿到官方鉴权链接，用于区分插件加载失败与网页初始化失败。
    */
   public static Failure classify(String reason, String zhLog, boolean backendReady) {
+    return classify(reason, zhLog, backendReady, "");
+  }
+
+  /** The host code is recorded separately from reason and runtime output. */
+  public static Failure classify(
+      String reason, String zhLog, boolean backendReady, String hostCode) {
     String why = reason == null ? "" : reason.trim(), log = zhLog == null ? "" : zhLog;
+    if (!backendReady && Rc1MigrationResult.isReviewCode(hostCode))
+      return new Failure(Kind.MIGRATION_REVIEW, "", hostCode, why);
     int port = WebPortPolicy.conflictPort(why);
     Matcher portLine = PORT_LINE.matcher(why + "\n" + log);
     if (port > 0 || portLine.find())
@@ -102,6 +111,32 @@ public final class StartupRecoveryState {
     if (CONFIG_LINE.matcher(log).find() || CONFIG_LINE.matcher(why).find())
       return new Failure(Kind.CONFIG, "", "", why);
     return new Failure(Kind.FAILED, "", "", why);
+  }
+
+  public static String migrationReviewReason() {
+    return UiText.text("旧版数据迁移需要核对");
+  }
+
+  public static String migrationReviewStage() {
+    return UiText.text("检查旧版数据迁移");
+  }
+
+  public static String migrationReviewDetail(String code) {
+    if (Rc1MigrationResult.LEGACY_COMPLETION_RECEIPT_MISSING.equals(code))
+      return UiText.text("已保留旧版数据副本，但找不到迁移完成回执。为避免重复导入，已暂停启动。可查看迁移记录和副本。");
+    String reason =
+        switch (code) {
+          case "RC5_RECHECK_LEGACY_INPUTS" -> UiText.text("发现需要核对的旧版数据。");
+          case "RC5_RECHECK_LEGACY_RECORD" -> UiText.text("无法确认旧迁移记录与当前环境相符。");
+          case "RC5_RECHECK_WRITE_EVIDENCE" -> UiText.text("发现先前迁移的写入记录，需要核对结果。");
+          case "RC5_RECHECK_SNAPSHOT_UNVERIFIED" -> UiText.text("未能完成本次副本核验。");
+          case "RC5_RECHECK_PREPARE_UNVERIFIED" -> UiText.text("无法确认迁移准备记录与当前数据相符。");
+          case "RC5_RECHECK_INPUT_CHANGED" -> UiText.text("迁移所需的数据或恢复记录发生了变化。");
+          case "RC5_RECHECK_UNAVAILABLE" -> UiText.text("核验所需的迁移记录或数据无法读取。");
+          default -> "";
+        };
+    String detail = UiText.text("为保护原件，已暂停启动。可查看迁移记录和副本。");
+    return reason.isEmpty() ? detail : reason + "\n" + detail;
   }
 
   /** 注册失败的可行动分类；只认应用自己写下的固定标记，不猜 guest 输出正文。 */
@@ -216,6 +251,8 @@ public final class StartupRecoveryState {
         return UiText.choose("插件出错", "Plugin error");
       case REGISTER:
         return UiText.choose("插件注册未完成", "Plugin registration incomplete");
+      case MIGRATION_REVIEW:
+        return migrationReviewReason();
       case PAGE:
         return UiText.choose("网页加载失败", "Web page failed");
       case CONFIG:
@@ -339,6 +376,8 @@ public final class StartupRecoveryState {
         return UiText.choose(
             "启动失败：插件注册未完成（可直接重试）",
             "Start failed: plugin registration did not complete (retry directly)");
+      case MIGRATION_REVIEW:
+        return migrationReviewReason();
       case PAGE:
         return UiText.format("网页加载失败：%s 初始化出错", s);
       case CONFIG:
@@ -389,6 +428,8 @@ public final class StartupRecoveryState {
         return UiText.choose(
             "插件注册没有完成。已经写好的共享依赖链接与插件登记会被下一次启动复用；直接重试通常可以继续，不需要清除数据。若上一次注册被超时结束，重试会接管已退出进程留下的锁。",
             "Plugin registration did not complete. Shared runtime links and plugin records already written are reused on the next start; retry directly and do not clear data. If the previous attempt was ended by a timeout, the retry takes over the lock left by the exited process.");
+      case MIGRATION_REVIEW:
+        return migrationReviewDetail("");
       case PAGE:
         return UiText.choose(
             "后端已启动，网页插件初始化失败。安全启动只加载官方基础界面。",

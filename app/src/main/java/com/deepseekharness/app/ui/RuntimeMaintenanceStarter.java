@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.deepseekharness.app.core.BackupTask;
 import com.deepseekharness.app.core.EnvironmentAccess;
 import com.deepseekharness.app.core.HarnessController;
+import com.deepseekharness.app.runtime.RuntimeTrial;
 import com.deepseekharness.app.util.BackupTaskKinds;
 import com.deepseekharness.app.util.BackupTaskState;
 import com.deepseekharness.app.util.EnvironmentIdentity;
@@ -24,9 +25,10 @@ final class RuntimeMaintenanceStarter {
 
   static final String ATTEMPTED_IDENTITY = "attempted_identity";
 
-  /** 自动开始的结果：DECLINED 表示已记下这次尝试，但应用级任务没有接受（已有任务或门禁变化）。 */
+  /** BUSY 未消耗候选尝试；DECLINED 已获得准入但未能启动受保护任务。 */
   enum Auto {
     NOT_ELIGIBLE,
+    BUSY,
     STARTED,
     DECLINED
   }
@@ -51,9 +53,9 @@ final class RuntimeMaintenanceStarter {
         EnvironmentAccess.runtimeVersionStatus(controller);
     if (version == com.deepseekharness.app.util.DshVersionPolicy.Status.INSTALLED_NEWER)
       return false;
-    if (task.maintenanceBusy() || task.busy() || task.pendingMaintenance()) return false;
+    if (task.maintenanceBusy() || task.busy() || needsRecovery(context)) return false;
     if (controller.isEnvironmentReady()) return false;
-    return attemptOnce(context, controller, task, false) == Auto.STARTED;
+    return attemptOnce(context, controller, task) == Auto.STARTED;
   }
 
   /** 覆盖更新的自动开始：满足 shouldAutoStart 时记一次 attempted_identity 再启动 updateEnvironment。 */
@@ -71,43 +73,56 @@ final class RuntimeMaintenanceStarter {
     if (version == com.deepseekharness.app.util.DshVersionPolicy.Status.INSTALLED_NEWER)
       return Auto.NOT_ELIGIBLE;
     // 有未关闭的试运行现场时自动更新必然以 TRIAL_RECOVERY_REQUIRED 失败，先由用户恢复。
-    if (task.maintenanceBusy() || needsRecovery(context)) return Auto.NOT_ELIGIBLE;
+    if (task.busy()) return Auto.BUSY;
+    if (needsRecovery(context)) return Auto.NOT_ELIGIBLE;
     if (controller.isEnvironmentReady()
         && !EnvironmentAccess.requiresMaintenanceBeforeStart(controller)) return Auto.NOT_ELIGIBLE;
-    return attemptOnce(context, controller, task, EnvironmentAccess.runtimeLatest(controller));
+    return attemptOnce(context, controller, task);
   }
 
-  private static Auto attemptOnce(
-      Context context, HarnessController controller, BackupTask task, boolean latest) {
+  private static Auto attemptOnce(Context context, HarnessController controller, BackupTask task) {
     com.deepseekharness.app.util.DshVersionPolicy.Status version =
         EnvironmentAccess.runtimeVersionStatus(controller);
     if (version == com.deepseekharness.app.util.DshVersionPolicy.Status.INSTALLED_NEWER)
       return Auto.NOT_ELIGIBLE;
     SharedPreferences attempts =
         context.getApplicationContext().getSharedPreferences(ATTEMPTS, Context.MODE_PRIVATE);
-    String attemptKey = "";
+    final String attemptKey;
     try {
       attemptKey = EnvironmentAccess.candidateAttemptKey(controller);
     } catch (java.io.IOException invalid) {
-      // 无法认证包内运行时描述时 attemptKey 为空，shouldAutoStart 会拒绝自动开始。
-    }
-    boolean ready = controller.isEnvironmentReady();
-    if (!EnvironmentIdentity.shouldAutoStart(
-        ready && latest,
-        task.busy(),
-        task.pendingMaintenance(),
-        attemptKey,
-        attempts.getString(ATTEMPTED_IDENTITY, ""),
-        task.snapshot().status,
-        ready,
-        controller.hasUnresolvedWebSession())) return Auto.NOT_ELIGIBLE;
-    // 先记一次尝试再启动应用级任务；旋转、失败和进程重建都不会重复覆盖旧环境。
-    if (!attempts.edit().putString(ATTEMPTED_IDENTITY, attemptKey).commit())
       return Auto.NOT_ELIGIBLE;
+    }
     boolean installed = controller.proot().isEnvironmentInstalled();
-    if (!task.updateEnvironment()) return Auto.DECLINED;
-    DeployMonitor.noteStarted(context, task.snapshot().id, installed);
-    return Auto.STARTED;
+    var result =
+        task.startAutomaticUpdate(
+            () -> {
+              if (EnvironmentAccess.runtimeVersionStatus(controller)
+                  == com.deepseekharness.app.util.DshVersionPolicy.Status.INSTALLED_NEWER)
+                return false;
+              boolean ready = controller.isEnvironmentReady();
+              if (ready && !EnvironmentAccess.requiresMaintenanceBeforeStart(controller))
+                return false;
+              if (!EnvironmentIdentity.shouldAutoStart(
+                  ready && EnvironmentAccess.runtimeLatest(controller),
+                  false, // BackupTask owns the exclusive execution lease at this point.
+                  needsRecovery(context),
+                  attemptKey,
+                  attempts.getString(ATTEMPTED_IDENTITY, ""),
+                  task.snapshot().status,
+                  ready,
+                  controller.hasUnresolvedWebSession())) return false;
+              // Persistence stays before any worker starts. A lock rejection cannot spend it.
+              return attempts.edit().putString(ATTEMPTED_IDENTITY, attemptKey).commit();
+            });
+    if (result == BackupTask.Admission.STARTED)
+      DeployMonitor.noteStarted(context, task.snapshot().id, installed);
+    return switch (result) {
+      case STARTED -> Auto.STARTED;
+      case BUSY -> Auto.BUSY;
+      case DECLINED -> Auto.DECLINED;
+      case NOT_ELIGIBLE -> Auto.NOT_ELIGIBLE;
+    };
   }
 
   /** 首次安装（环境未安装）：重试走同一任务，updateEnvironment 会落到 rebuild → initializeFresh 冷部署。 */
@@ -128,32 +143,22 @@ final class RuntimeMaintenanceStarter {
    * 所以重试必须改走恢复，不能再次发起更新。这里不删除、不修改任何文件。
    */
   static boolean pendingTrial(Context context) {
-    // 维护页每秒重绘会调用，但这里不做跨调用缓存：应急 DSH 的外部恢复完成后，页面下一次
-    // 重绘就必须反映真实的 trial 记录状态，不能先沿用恢复前的旧值再等缓存过期。
-    // 目录列举 + 少量 exists 的开销远小于让用户误以为仍要再恢复一次。
-    return scanPendingTrial(context);
-  }
-
-  private static boolean scanPendingTrial(Context context) {
     try {
-      java.io.File home =
-          new java.io.File(context.getFilesDir().getCanonicalFile(), "runtime-trials");
-      String[] entries = home.list();
-      if (entries == null) return false;
-      for (String id : entries) {
-        if (!id.matches(com.deepseekharness.app.util.Ids.UUID_PATTERN)) continue;
-        java.io.File operation = new java.io.File(home, id);
-        if (operation.isDirectory() && !new java.io.File(operation, "closed").exists()) return true;
-      }
-      return false;
+      return RuntimeTrial.hasPending(context);
     } catch (java.io.IOException | RuntimeException unreadable) {
-      return false;
+      // Malformed or unreadable closure cannot authorize ordinary entry, update, or rebuild.
+      return true;
     }
   }
 
   /** 需要先“恢复中断维护”：宿主维护事务，或未关闭的隔离试运行现场。 */
   static boolean needsRecovery(Context context) {
     return BackupTask.get(context).pendingMaintenance() || pendingTrial(context);
+  }
+
+  /** Keep the display cache for host maintenance; trial closure is re-read outside that cache. */
+  static boolean needsRecoveryForUi(Context context) {
+    return BackupTask.get(context).pendingMaintenanceForUi() || pendingTrial(context);
   }
 
   /** 与 ExtractActivity 原 retry 分支一致：待恢复优先，其次原位更新，首次安装为重试部署，否则保护数据并重建。 */
@@ -284,6 +289,10 @@ final class RuntimeMaintenanceStarter {
         .setPositiveButton(
             UiText.text("继续"),
             (dialog, which) -> {
+              if (kind != Retry.RECOVER && needsRecovery(activity)) {
+                offerRecoveryOrIsolation(activity, afterStart, rebuildRequested);
+                return;
+              }
               boolean installed = controller.proot().isEnvironmentInstalled();
               // 与原维护页相同：待恢复走恢复；明确重建保持重建；其余走 updateEnvironment
               // （不能原位更新时由 EnvironmentMaintenance.update 落到 rebuild / 首次冷部署）。

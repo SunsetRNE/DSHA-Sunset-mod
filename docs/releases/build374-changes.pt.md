@@ -1,0 +1,11 @@
+# DSHA 0.2.2-rc.5-20261119.2300-dsh0.2.2-rc.5 / build374
+
+- O aplicativo e o DSH integrado usam a versão 0.2.2-rc.5. Dispositivos arm64 com Android 11 ou posterior podem atualizar `dsh.android.client` com a assinatura E7E3 existente.
+- Melhora a inicialização e a leitura de plugins com o proot clássico. Corrige um problema que podia voltar à tela inicial do Android ao verificar as atualizações de todos os plugins. Corrige falhas ao abrir um link de instalação de plugin ou desativar o modo de segurança dos plugins. Corrige um aviso incorreto de mudança no ambiente que impedia a atualização do plugin após encontrar uma nova versão.
+- Alinha o texto da caixa de carregamento e remove a indicação de verificação pendente. A página de plugins da Web lista apenas os plugins que você pode gerenciar. O aplicativo continua oferecendo as integrações do shell do Android. Corrige um problema que podia deixar a versão anterior de um plugin indisponível quando a atualização pela Web falhava. O antigo plugin integrado de dicas de leitura foi removido.
+- Toque em qualquer ponto das linhas de manter a tela ligada e de economia de energia para alterar as opções. As transições dos painéis na Web móvel foram melhoradas.
+- O resultado da última verificação manual continua visível junto ao botão de atualizações quando a lista de extensões é atualizada automaticamente.
+- Ao reabrir o seletor de idioma, a opção guardada é indicada mesmo quando o idioma do sistema coincide com o escolhido manualmente.
+- Em tablets, o painel de instalação aparece ao abrir as configurações. O estado do ambiente e as versões são preenchidos após a leitura em segundo plano.
+- O modo limitado agora abre mesmo antes da instalação do ambiente de execução. A manutenção também consegue verificar um ambiente que ainda não tem registro de integridade. Corrige um bloqueio na inicialização normal após uma inicialização segura ou uma parada rápida quando não há dados antigos a migrar. A página de recuperação informa as causas conhecidas e permite ver os detalhes.
+- Em sistemas Android que executam aplicativos ARM64 por tradução, a manutenção e a exportação de diagnósticos usam os sinalizadores de diretório esperados pelo sistema.

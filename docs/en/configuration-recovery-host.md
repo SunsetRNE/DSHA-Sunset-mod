@@ -4,6 +4,8 @@
 
 The separate “Reset configuration” entry uses `NativeConfigurationReset` to save and switch `settings.yaml` and the current private working directory's `.env` as two transaction roots. Its record is `host-backup-operations/<UUID>/config-reset.json`; interruptions use the common host recovery entry. This does not change the fixed scope of the six-file checkpoints below. Credentials are checked and decrypted first; failure does not produce empty configuration over the originals. External directories, configuration symlinks, and targets across filesystems are not forcibly reset.
 
+When build374 resets the configuration, it keeps an existing `settings.yaml` in the transaction’s `previous/settings` and lets the runtime start with its defaults. If the file was already absent, the reset leaves it absent. The app still builds the workspace’s `.env` from the verified native configuration. The next ordinary startup can therefore use the defaults without treating an empty file from the reset as old settings to import.
+
 `StartupRepairs` commands list, prepare, healthy, before, new, restore, and recover execute through the Android host filesystem. Plugin install/remove continues to use its separate existing manager; its failure does not block display of native configuration records.
 
 Only six fixed files are handled: `profiles/web/package.json`, `profiles/web/cordis.patch.yml`, `profiles/web/pnpm-workspace.yaml`, `profiles/web/pnpm-lock.yaml`, `settings.yaml`, and `cordis.patch.yml`. Sessions, attachments, workspaces, and KeyVault are not traversed. Symlinks and unreadable paths return explicit errors instead of being treated as empty data.

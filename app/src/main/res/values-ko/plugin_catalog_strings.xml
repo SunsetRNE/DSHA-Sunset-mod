@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="plugin_catalog_reading">플러그인 목록 읽는 중…</string>
+    <string name="plugin_catalog_rechecking">플러그인 확인 중…</string>
+    <string name="plugin_catalog_cached">이전 플러그인 목록을 표시 중</string>
+    <string name="plugin_catalog_configured">설정 기준 · 검증 대기</string>
+    <string name="plugin_catalog_failed">플러그인 목록을 검증할 수 없음</string>
+    <string name="plugin_catalog_unconfirmed">확인되지 않은 플러그인 목록</string>
+    <string name="plugin_catalog_verified">플러그인 목록 검증 완료</string>
+    <string name="plugin_catalog_queued">플러그인 확인 대기 중</string>
+</resources>

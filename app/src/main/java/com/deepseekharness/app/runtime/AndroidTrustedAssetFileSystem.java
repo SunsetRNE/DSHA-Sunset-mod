@@ -99,6 +99,11 @@ final class AndroidTrustedAssetFileSystem
     signedMembers.add(name);
   }
 
+  /** 当前解压会话从已打开的输出描述符取到的身份，只用于核对这一轮失败的暂存文件。 */
+  Map<String, Node> writtenFiles() {
+    return Collections.unmodifiableMap(written);
+  }
+
   private void queueSync(FileDescriptor descriptor) throws IOException {
     pendingSync.add(ParcelFileDescriptor.dup(descriptor));
     if (pendingSync.size() == 128) flushPending();

@@ -2,6 +2,7 @@
 import json
 from pathlib import Path, PurePosixPath
 from source_layout import SourceLayout, PACKAGE
+from proroot_distribution import NATIVE_DIR, vendor_pins
 
 MANIFEST = 'app/src/main/assets/managed-runtime-inputs.json'
 ASSETS = 'app/src/main/assets'
@@ -152,6 +153,11 @@ def launcher_paths(root, spec=None):
         for path in sorted(directory.rglob('*.so')):
             key = path.relative_to(root).as_posix()
             _launcher(key, _file(root, path.relative_to(root).as_posix()), result)
+        if (root / NATIVE_DIR).parent == directory:
+            # Gradle declares these inputs before its offline/vendor restoration task runs.
+            for filename in vendor_pins(root):
+                key = NATIVE_DIR + '/' + filename
+                result.setdefault(key, root / key)
     for name in spec.get('generatorSources', []):
         result['generator:'+name] = _file(root, name)
     return dict(sorted(result.items()))

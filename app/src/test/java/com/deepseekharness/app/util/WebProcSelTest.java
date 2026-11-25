@@ -14,6 +14,24 @@ public class WebProcSelTest {
           + "/data/data/com.dsh.client/files/linux/ubuntu/usr/local/bin/node ";
 
   @Test
+  public void ordinaryProfileRequiresTheExactManagedLaunchShape() {
+    String executable = "/usr/local/lib/node_modules/@deepseek-ai/dsh/lib/bin.js ";
+    String ordinary = executable + "web --no-open --host 127.0.0.1 --port 3080";
+    assertTrue(WebProcSel.ordinaryProfile("/usr/local/bin/node " + ordinary));
+    assertTrue(WebProcSel.ordinaryProfile((BRIDGE + ordinary).replace(' ', '\0') + '\0'));
+    assertFalse(WebProcSel.ordinaryProfile("/usr/local/bin/node " + ordinary + " --profile other"));
+    assertFalse(
+        WebProcSel.ordinaryProfile(
+            "/usr/local/bin/node " + ordinary.replace("127.0.0.1", "0.0.0.0")));
+    assertFalse(
+        WebProcSel.ordinaryProfile(
+            BRIDGE
+                + executable
+                + "--profile dsha-recovery-ce608c6a2f1b4e67 --no-open --host 127.0.0.1 --port 3080"));
+    assertFalse(WebProcSel.ordinaryProfile("/bin/bash -c node " + ordinary));
+  }
+
+  @Test
   public void directVendorAndShimPreloadsRetainExactOwnedWebIdentity() {
     String directory = "/data/app/pkg/lib/arm64/";
     String prefix =

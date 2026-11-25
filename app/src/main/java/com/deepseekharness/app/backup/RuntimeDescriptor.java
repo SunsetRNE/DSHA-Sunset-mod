@@ -136,6 +136,27 @@ public final class RuntimeDescriptor {
     return new LinkedHashMap<>(value);
   }
 
+  /** 仅对从当前签名 APK 读取的候选调用。旧版安装描述不必含有暂存用量。 */
+  public long stagingSpace(long blockBytes) throws IOException {
+    if (!(value.get("stagingSpace") instanceof Map<?, ?> space) || blockBytes <= 0)
+      throw new IOException("RUNTIME_STAGING_SPACE");
+    if (!(space.get("logicalBytes") instanceof Long logical)
+        || !(space.get("nodes") instanceof Long nodes)
+        || !(space.get("largestFile") instanceof Long largest)
+        || logical <= 0
+        || nodes <= 0
+        || largest <= 0
+        || largest > logical) throw new IOException("RUNTIME_STAGING_SPACE");
+    try {
+      // 每项预留一个分配块及 inode/目录记录；原子替换临时文件按最大成员计算。
+      // 64 MiB 给宿主生成的覆盖层、事务记录与隔离试运行。旧运行时在同卷改名，不复制。
+      long allocation = Math.multiplyExact(nodes, Math.addExact(blockBytes, 512));
+      return Math.addExact(Math.addExact(logical, allocation), Math.addExact(largest, 64L << 20));
+    } catch (ArithmeticException overflow) {
+      throw new IOException("RUNTIME_STAGING_SPACE", overflow);
+    }
+  }
+
   public boolean canReadDataWrittenBy(RuntimeDescriptor current) {
     return ((List<?>) value.get("dataRead")).contains(current.value.get("dataWrite"))
         && DataFormatEvidence.sameReaderWriter(value, current.value);

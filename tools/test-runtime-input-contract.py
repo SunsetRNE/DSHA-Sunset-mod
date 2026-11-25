@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Run the production descriptor against isolated changes, never the real worktree."""
 import importlib.util
+import io
 import json
 from pathlib import Path
 import tempfile
+import tarfile
 import unittest
 from runtime_input_contract import MANIFEST, ASSETS, JAVA, load, asset_paths, launcher_paths
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,15 +22,32 @@ class RuntimeInputContractTest(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.write('ci/source-layout.json', (ROOT / 'ci/source-layout.json').read_text(encoding='utf8'))
         self.spec = {'schema': 1, 'installs': [{'asset': 'plugin.py', 'target': 'root/.dsh/plugin.py', 'executable': False}], 'assetFiles': ['offline-rootfs.version'], 'assetTrees': ['web'], 'launcherSources': ['util/Policy.java'], 'launcherTrees': [JAVA + '/runtime', 'app/src/main/jniLibs']}
+        self.spec['assetFiles'] += ['dsh-runtime.bin', 'pnpm-runtime.bin']
         self.write(MANIFEST, json.dumps(self.spec))
         for path, text in {ASSETS + '/plugin.py': 'pass\n', ASSETS + '/offline-rootfs.version': '10', ASSETS + '/web/compat.js': 'true;', JAVA + '/util/Policy.java': 'policy', JAVA + '/runtime/Runner.java': 'runner', 'app/src/main/jniLibs/arm64-v8a/liba.so': 'elf', 'tools/dsh-runtime/package.json': '{"dependencies":{"@deepseek-ai/dsh":"0.1.7-rc.2"}}'}.items():
             self.write(path, text)
+        self.archive('dsh-runtime.bin', {'dsh/tool': b'x' * 7})
+        self.archive('pnpm-runtime.bin', {'pnpm/tool': b'x' * 11})
+    def archive(self, name, members):
+        with tarfile.open(self.root / ASSETS / name, 'w') as archive:
+            for path, body in members.items():
+                entry = tarfile.TarInfo(path)
+                entry.size = len(body)
+                archive.addfile(entry, io.BytesIO(body))
     def write(self, path, text):
         target = self.root / path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(text, encoding='utf8')
     def identity(self):
         return descriptor.build_descriptor(self.root)['runtimeId']
+    def test_candidate_space_counts_selected_members_and_implicit_directories(self):
+        self.archive('gh-cli.tar.gz', {'docs/uninstalled': b'x' * 1024, 'bin/gh': b'x' * 31})
+        self.spec['installs'].append({'asset': 'gh-cli.tar.gz', 'target': 'opt/gh/bin/gh',
+            'executable': True, 'extract': {'member': 'bin/gh', 'sha256': 'a' * 64}})
+        self.write(MANIFEST, json.dumps(self.spec))
+        plan = descriptor.build_descriptor(self.root)['stagingSpace']
+        script_bytes = (self.root / ASSETS / 'plugin.py').stat().st_size
+        self.assertEqual({'logicalBytes': 7 + 11 + 31 + script_bytes, 'nodes': 11, 'largestFile': 31}, plan)
     def test_every_selected_input_changes_identity(self):
         for path in asset_paths(self.root) + list(launcher_paths(self.root).values()):
             if path == self.root / MANIFEST:

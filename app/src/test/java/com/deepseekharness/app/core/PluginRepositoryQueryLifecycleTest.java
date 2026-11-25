@@ -6,7 +6,10 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Looper;
 import com.deepseekharness.app.DshaApp;
+import com.deepseekharness.app.backup.AndroidBackupFileSystem;
+import com.deepseekharness.app.backup.BackupFileSystem.Node;
 import com.deepseekharness.app.plugins.PluginBackendAdapter;
+import com.deepseekharness.app.plugins.PluginManagementEngine;
 import com.deepseekharness.app.plugins.PluginOperationQueue.Phase;
 import com.deepseekharness.app.plugins.PluginSourceIdentity;
 import com.deepseekharness.app.runtime.ProotBootstrap;
@@ -14,8 +17,10 @@ import com.deepseekharness.app.util.BoundedProcessRunner;
 import com.deepseekharness.app.util.EnvironmentTaskGate;
 import com.deepseekharness.app.util.PluginDownloadSource;
 import com.deepseekharness.app.util.PluginSource;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -53,6 +58,7 @@ import org.robolectric.shadow.api.Shadow;
       PluginRepositoryQueryLifecycleTest.Boot.class,
       PluginRepositoryQueryLifecycleTest.Maintenance.class,
       PluginRepositoryQueryLifecycleTest.SourceResolver.class,
+      PluginRepositoryQueryLifecycleTest.ConfiguredProfile.class,
       PluginRepositoryQueryLifecycleTest.SignalAudit.class
     })
 @LooperMode(LooperMode.Mode.PAUSED)
@@ -180,6 +186,8 @@ public final class PluginRepositoryQueryLifecycleTest {
           session.startProtection.cancelAll();
           Controller.auth = "";
           Controller.starting = false;
+          readyEventsFixture()
+              .incrementAndGet(); // Origin of the owned stop, before Looper delivery.
         }
         commits++;
         owner.set(true);
@@ -200,20 +208,32 @@ public final class PluginRepositoryQueryLifecycleTest {
   @Implements(value = PluginBackendAdapter.class, isInAndroidSdk = false)
   public static final class SourceResolver {
     static final AtomicInteger resolutions = new AtomicInteger();
+    static final AtomicInteger identityChecks = new AtomicInteger();
     static volatile SourceObservation beforeReturn;
 
     @Implementation
     protected PluginBackendAdapter.ResolvedSource resolveSource() throws Exception {
-      assertNotSame("来源磁盘检查应在后台", Looper.getMainLooper(), Looper.myLooper());
       resolutions.incrementAndGet();
-      PluginSourceIdentity observed = identity();
-      SourceObservation hook = beforeReturn;
-      if (hook != null) hook.captured(observed);
+      PluginSourceIdentity observed = observe();
       Constructor<PluginBackendAdapter.ResolvedSource> constructor =
           PluginBackendAdapter.ResolvedSource.class.getDeclaredConstructor(
               PluginSourceIdentity.class, List.class);
       constructor.setAccessible(true);
       return constructor.newInstance(observed, List.of());
+    }
+
+    @Implementation
+    protected PluginSourceIdentity resolveSourceIdentity() throws Exception {
+      identityChecks.incrementAndGet();
+      return observe();
+    }
+
+    private static PluginSourceIdentity observe() throws Exception {
+      assertNotSame("来源磁盘检查应在后台", Looper.getMainLooper(), Looper.myLooper());
+      PluginSourceIdentity observed = identity();
+      SourceObservation hook = beforeReturn;
+      if (hook != null) hook.captured(observed);
+      return observed;
     }
 
     static PluginSourceIdentity identity() {
@@ -229,6 +249,32 @@ public final class PluginRepositoryQueryLifecycleTest {
     }
   }
 
+  @Implements(value = AndroidBackupFileSystem.class, isInAndroidSdk = false)
+  public static final class ConfiguredProfile {
+    static volatile byte[] manifest;
+    static final AtomicInteger reads = new AtomicInteger();
+
+    @Implementation
+    protected Node stat(File path) {
+      assertNotSame(Looper.getMainLooper(), Looper.myLooper());
+      var identity = SourceResolver.identity();
+      if (path.equals(identity.dataRoot))
+        return new Node("DIRECTORY", identity.dataRootKey, 0, 0, identity.dataRootDevice, 0);
+      byte[] bytes = manifest;
+      if (bytes != null && path.equals(new File(identity.dataRoot, "profiles/web/package.json")))
+        return new Node("FILE", path.getPath(), bytes.length, 0, identity.dataRootDevice, 0);
+      return new Node("MISSING", "", 0, 0, 0, 0);
+    }
+
+    @Implementation
+    protected InputStream read(File path, Node expected) {
+      assertNotSame(Looper.getMainLooper(), Looper.myLooper());
+      assertEquals(expected.key, path.getPath());
+      reads.incrementAndGet();
+      return new ByteArrayInputStream(manifest);
+    }
+  }
+
   interface Guest {
     BoundedProcessRunner.Result execute(String command, String taskId) throws Exception;
   }
@@ -238,6 +284,7 @@ public final class PluginRepositoryQueryLifecycleTest {
     static volatile File root;
     static volatile long generation;
     static volatile Guest guest;
+    static final AtomicInteger readinessChecks = new AtomicInteger();
     static final List<String> calls = new CopyOnWriteArrayList<>();
     static final List<String> taskIds = new CopyOnWriteArrayList<>();
     static final byte[] archive = "fixture plugin archive".getBytes(StandardCharsets.UTF_8);
@@ -250,6 +297,7 @@ public final class PluginRepositoryQueryLifecycleTest {
     @Implementation
     protected boolean isEnvironmentReady() {
       assertNotSame("环境检查应在后台", Looper.getMainLooper(), Looper.myLooper());
+      readinessChecks.incrementAndGet();
       return true;
     }
 
@@ -335,14 +383,19 @@ public final class PluginRepositoryQueryLifecycleTest {
     assertFalse(Controller.diagnostics.snapshot().safe);
     Boot.root = root("fixture-root");
     Boot.generation = 11;
+    readyEventsFixture().set(0L);
     Boot.calls.clear();
     Boot.taskIds.clear();
+    Boot.readinessChecks.set(0);
     Boot.guest =
         (command, id) -> {
           throw new IOException("未安排 guest 回执：" + command);
         };
     SourceResolver.resolutions.set(0);
+    SourceResolver.identityChecks.set(0);
     SourceResolver.beforeReturn = null;
+    ConfiguredProfile.manifest = null;
+    ConfiguredProfile.reads.set(0);
     Maintenance.commits = 0;
     Maintenance.afterStop = null;
     SignalAudit.mainIo.set(false);
@@ -500,13 +553,13 @@ public final class PluginRepositoryQueryLifecycleTest {
     seedManagement();
     long generation = Boot.generation;
     Controller.instance = "different-instance";
-    repository.observeMutationIdentity(Controller.value);
+    publishFixtureWebEvent();
     main.idle();
     assertEquals(generation, Boot.generation);
     assertEquals("unknown", repository.state().getValue().management.managementState);
     seedManagement();
     Controller.auth = "";
-    repository.observeMutationIdentity(Controller.value);
+    publishFixtureWebEvent();
     main.idle();
     assertEquals("unknown", repository.state().getValue().management.managementState);
     assertTrue(Boot.calls.isEmpty());
@@ -631,6 +684,7 @@ public final class PluginRepositoryQueryLifecycleTest {
     SignalAudit.closedTaskIds.clear();
     SignalAudit.closeAttemptTaskIds.clear();
     SourceResolver.resolutions.set(0);
+    SourceResolver.identityChecks.set(0);
   }
 
   private CountDownLatch blockGuest(Guest afterRelease) {
@@ -683,6 +737,7 @@ public final class PluginRepositoryQueryLifecycleTest {
     Controller.auth = "http://127.0.0.1:3080/?token=private";
     String id = repository.setEnabled(repository.state().getValue().items.get(0), true);
     // 两个无 payload 通知晚到时，getter 已恢复 A；仍须推进事件代次。
+    readyEventsFixture().addAndGet(2);
     repository.observeMutationIdentity(Controller.value);
     repository.observeMutationIdentity(Controller.value);
     runWorker();
@@ -711,7 +766,8 @@ public final class PluginRepositoryQueryLifecycleTest {
   }
 
   @Test
-  public void ownStopOneImmediateEventCommitsButLateEventRefusesGuestCommit() throws Exception {
+  public void ownStopImmediateEventCommitsButLateExternalEventRefusesGuestCommit()
+      throws Exception {
     seed();
     String previewId = "a".repeat(32), sha = "b".repeat(64);
     Boot.guest =
@@ -732,8 +788,7 @@ public final class PluginRepositoryQueryLifecycleTest {
               && Maintenance.commits == 2
               && !late.getAndSet(true)) {
             // owner 内 resolve 在transfer前；先让下一次重新核验触发迟到通知。
-            SourceResolver.beforeReturn =
-                again -> repository.observeMutationIdentity(Controller.value);
+            SourceResolver.beforeReturn = again -> publishFixtureWebEvent();
           }
         };
     String second = repository.install(PluginSource.parse("npm:" + BETA));
@@ -786,6 +841,99 @@ public final class PluginRepositoryQueryLifecycleTest {
   }
 
   @Test
+  public void configuredSelectionsAppearBeforeGuestResultWithoutConfirmingInstallation()
+      throws Exception {
+    ConfiguredProfile.manifest =
+        """
+        {"dsh":{"profile":{"bundles":["@deepseek-ai/dsh-base","dsh-base",
+                                      "example-alpha","dsh-auto-review",
+                                      "@deepseek-ai/dsh-experimental-auto-review","/bad",123]}},
+         "dependencies":{"example-beta":"link:/x"}}
+        """
+            .getBytes(StandardCharsets.UTF_8);
+    CountDownLatch entered = blockGuest((args, id) -> result(list(false, true)));
+    repository.refreshAutomatic();
+    Worker worker = startWorker();
+    assertTrue(entered.await(2, TimeUnit.SECONDS));
+    main.idle();
+    var firstPaint = repository.state().getValue();
+    assertTrue(firstPaint.refreshing);
+    assertTrue(firstPaint.catalog.loading);
+    assertFalse(firstPaint.catalog.known);
+    assertTrue(firstPaint.items.isEmpty());
+    assertEquals(
+        List.of("dsh-base", ALPHA, "@deepseek-ai/dsh-experimental-auto-review"),
+        firstPaint.configuredItems.stream().map(item -> item.name).toList());
+    for (var item : firstPaint.configuredItems) {
+      assertEquals(Boolean.TRUE, item.selected);
+      assertNull(item.installed);
+      assertFalse(item.available);
+      assertFalse(item.exportable);
+      assertTrue(item.runtimeStale);
+    }
+    // An explicit tap joins and promotes the already-running automatic verification.
+    repository.refresh();
+    repository.refresh();
+    assertFalse(repository.cancelAutomaticQueryForUserAction());
+    unblock();
+    finish(worker);
+    assertTrue(repository.state().getValue().catalog.known);
+    assertFalse(repository.state().getValue().refreshing);
+    assertTrue(repository.state().getValue().configuredItems.isEmpty());
+    assertEquals(List.of("refresh"), Boot.calls);
+    assertEquals(1, ConfiguredProfile.reads.get());
+    assertEquals(1, SourceResolver.resolutions.get());
+    assertEquals(2, SourceResolver.identityChecks.get());
+    assertTrue(queue.isEmpty());
+  }
+
+  @Test
+  public void explicitRefreshAfterCancelledAutomaticAttemptRunsOnce() throws Exception {
+    CountDownLatch entered =
+        blockGuest(
+            (args, id) -> {
+              throw new IOException("PLUGIN_QUERY_CANCELLED");
+            });
+    repository.refreshAutomatic();
+    Worker worker = startWorker();
+    assertTrue(entered.await(2, TimeUnit.SECONDS));
+    assertTrue(repository.cancelAutomaticQueryForUserAction());
+    repository.refresh();
+    repository.refresh();
+    assertTrue(repository.hasOutstandingQuery());
+    unblock();
+    finish(worker);
+    assertTrue(repository.hasOutstandingQuery());
+    assertEquals(1, queue.size());
+    reply(list(true, false));
+    runWorker();
+    assertFalse(repository.hasOutstandingQuery());
+    assertEquals(List.of("refresh", "refresh"), Boot.calls);
+    assertTrue(repository.state().getValue().items.get(0).enabled);
+    assertTrue(queue.isEmpty());
+  }
+
+  @Test
+  public void explicitRefreshAfterGuestResultDoesNotReuseAnOlderRead() throws Exception {
+    reply(list(true, false));
+    repository.refreshAutomatic();
+    startWorker().await(); // Guest and catalog are complete, main-thread callback is still queued.
+    assertTrue(repository.registry().snapshot().known);
+    assertTrue(repository.hasOutstandingQuery());
+    repository.refresh();
+    repository.refresh();
+    main.idle();
+    assertTrue(repository.state().getValue().refreshing);
+    assertEquals(1, queue.size());
+    reply(list(false, true));
+    runWorker();
+    assertEquals(List.of("refresh", "refresh"), Boot.calls);
+    assertFalse(repository.state().getValue().items.get(0).enabled);
+    assertTrue(repository.state().getValue().items.get(1).enabled);
+    assertFalse(repository.hasOutstandingQuery());
+  }
+
+  @Test
   public void firstReadFailureNeverPublishesAConfirmedEmptyCatalog() throws Exception {
     reply("{\"status\":\"error\",\"message\":\"synthetic listing failure\"}");
     repository.refresh();
@@ -794,6 +942,27 @@ public final class PluginRepositoryQueryLifecycleTest {
     assertEquals(List.of("refresh"), Boot.calls);
     assertTrue(repository.state().getValue().catalog.error.contains("synthetic listing failure"));
     assertTrue(queue.isEmpty());
+  }
+
+  @Test
+  public void readOnlyQueryUsesManagerReadinessAndRetainsItsDiagnostic() throws Exception {
+    Boot.guest =
+        (command, id) -> {
+          throw new IOException("ENV_NOT_READY");
+        };
+    repository.refresh();
+    runWorker();
+    assertEquals(0, Boot.readinessChecks.get());
+    assertEquals(List.of("refresh"), Boot.calls);
+    assertUnknown();
+    assertTrue(repository.state().getValue().catalog.error.contains("环境未就绪"));
+
+    reply(list(false, true));
+    repository.refresh();
+    runWorker();
+    assertEquals(0, Boot.readinessChecks.get());
+    assertTrue(repository.state().getValue().catalog.known);
+    assertEquals(List.of("refresh", "refresh"), Boot.calls);
   }
 
   @Test
@@ -1078,7 +1247,48 @@ public final class PluginRepositoryQueryLifecycleTest {
     assertEquals(Phase.FAILED, repository.operation(id).phase);
     assertEquals(List.of("check-updates"), Boot.calls);
     assertTrue(repository.operation(id).message.contains("synthetic version failure"));
+    assertEquals(PluginRepository.State.RESULT_FAILURE, repository.state().getValue().result);
+    assertTrue(repository.state().getValue().message.contains("synthetic version failure"));
     assertTrue(queue.isEmpty());
+  }
+
+  @Test
+  public void versionChecksSendDistinctScopesAndPublishConfirmedResults() throws Exception {
+    seed();
+    var alpha = repository.state().getValue().items.get(0);
+    try (var engine = new PluginManagementEngine(RuntimeEnvironment.getApplication(), repository)) {
+      reply("{\"status\":\"ok\",\"message\":\"checked all plugins\"}");
+      String all = engine.checkAllUpdates();
+      assertEquals(Phase.QUEUED, engine.operation(all).phase);
+      runWorker();
+      assertEquals(Phase.SUCCEEDED, engine.operation(all).phase);
+      assertEquals("checked all plugins", engine.state().getValue().message);
+
+      reply("{\"status\":\"ok\",\"message\":\"checked one plugin\"}");
+      String single = engine.checkUpdates(alpha);
+      assertEquals(alpha.stableKey, engine.operation(single).targetKey);
+      assertEquals(alpha.version, engine.operation(single).expectedVersion);
+      assertEquals(Phase.QUEUED, engine.operation(single).phase);
+      runWorker();
+      assertEquals(Phase.SUCCEEDED, engine.operation(single).phase);
+      assertEquals(PluginRepository.State.RESULT_SUCCESS, engine.state().getValue().result);
+      assertEquals("checked one plugin", engine.state().getValue().message);
+      assertEquals(List.of("check-updates", "check-updates '" + ALPHA + "'"), Boot.calls);
+    }
+    assertTrue(queue.isEmpty());
+  }
+
+  @Test
+  public void legacyNullVersionCheckUsesTheAllPluginsScopeThroughKotlinEngine() throws Exception {
+    seed();
+    try (var engine = new PluginManagementEngine(RuntimeEnvironment.getApplication(), repository)) {
+      reply("{\"status\":\"ok\",\"message\":\"checked all plugins\"}");
+      String all = engine.checkUpdates(null);
+      assertEquals("scope:web:CHECK_UPDATES", engine.operation(all).targetKey);
+      runWorker();
+      assertEquals(Phase.SUCCEEDED, engine.operation(all).phase);
+      assertEquals(List.of("check-updates"), Boot.calls);
+    }
   }
 
   @Test
@@ -1616,6 +1826,31 @@ public final class PluginRepositoryQueryLifecycleTest {
   }
 
   @Test
+  public void manualRefreshAfterInFlightInvalidationCoalescesOneNewVerification() throws Exception {
+    seed();
+    CountDownLatch entered = blockGuest((args, id) -> result(list(true, false)));
+    repository.refresh();
+    Worker worker = startWorker();
+    assertTrue(entered.await(2, TimeUnit.SECONDS));
+    repository.invalidateInstalledState();
+    assertTrue(repository.state().getValue().catalog.stale);
+    repository.refresh();
+    repository.refresh();
+    assertTrue(queue.isEmpty());
+    unblock();
+    finish(worker);
+    assertTrue(repository.state().getValue().catalog.stale);
+    assertTrue(repository.state().getValue().refreshing);
+    assertEquals(1, queue.size());
+    reply(list(false, true));
+    runWorker();
+    assertFalse(repository.state().getValue().catalog.stale);
+    assertFalse(repository.state().getValue().refreshing);
+    assertTrue(repository.state().getValue().items.get(1).enabled);
+    assertEquals(List.of("refresh", "refresh"), Boot.calls);
+  }
+
+  @Test
   public void busyReadOnlyTasksCoalesceRuntimeProjectionAndReplayOnlyTheRead() throws Exception {
     seed();
     var catalog = repository.registry().snapshot();
@@ -1645,13 +1880,31 @@ public final class PluginRepositoryQueryLifecycleTest {
     assertEquals(1, queue.size());
     runWorker(); // 后继任务再次 busy，保留同一个待投影请求。
     assertEquals(1, queue.size());
-    int reads = SourceResolver.resolutions.get();
+    int reads = SourceResolver.identityChecks.get();
+    int watchResolutions = SourceResolver.resolutions.get();
     runWorker();
-    assertEquals(reads + 2, SourceResolver.resolutions.get());
+    assertEquals(reads + 2, SourceResolver.identityChecks.get());
+    assertEquals(watchResolutions, SourceResolver.resolutions.get());
     assertEquals(
         List.of("capabilities '" + ALPHA + "'", "capabilities '" + BETA + "'"), Boot.calls);
     assertTrue(repository.state().getValue().items.get(0).runtimeStale);
     assertTrue(queue.isEmpty());
+  }
+
+  @Test
+  public void runtimeProjectionRetiresChangedSourceWithoutDispatchingGuest() throws Exception {
+    seed();
+    long revision = repository.installedRevision();
+    Boot.generation++;
+    repository.refreshRuntimeProjection();
+    runWorker();
+    assertEquals(SourceResolver.identity(), repository.state().getValue().catalog.source);
+    assertTrue(repository.state().getValue().catalog.known);
+    assertTrue(repository.state().getValue().catalog.stale);
+    assertEquals(revision + 1, repository.installedRevision());
+    assertTrue(Boot.calls.isEmpty());
+    assertEquals(0, SourceResolver.resolutions.get());
+    assertEquals(1, SourceResolver.identityChecks.get());
   }
 
   @Test
@@ -1937,5 +2190,229 @@ public final class PluginRepositoryQueryLifecycleTest {
     assertTrue(repository.installedDescription().contains(BETA));
     assertNull(repository.preview().getValue());
     assertTrue(queue.isEmpty());
+  }
+
+  private PluginRepository.Item loadCheckedCardUpdate() throws Exception {
+    readCardVersion("1.0.0", false);
+    var source = SourceResolver.identity();
+    var old = repository.state().getValue().items.get(0);
+    assertFalse(old.updateAvailable);
+    reply(
+        new JSONObject()
+            .put("status", "ok")
+            .put("message", "checked one plugin; one update available")
+            .toString());
+    String check = repository.checkUpdates(old);
+    runWorker();
+    assertEquals(Phase.SUCCEEDED, repository.operation(check).phase);
+    assertEquals(
+        com.deepseekharness.app.plugins.PluginOperationQueue.Type.CHECK_UPDATES,
+        repository.operation(check).type);
+    assertEquals("check-updates '" + ALPHA + "'", Boot.calls.get(1));
+    readCardVersion("1.0.0", true);
+    assertEquals(source, SourceResolver.identity());
+    var ready = repository.state().getValue().items.get(0);
+    assertTrue(ready.updateAvailable);
+    assertEquals("1.0.0", ready.version);
+    assertEquals("2.0.0", ready.latestVersion);
+    assertEquals(old.stableKey, ready.stableKey);
+    Boot.calls.clear();
+    Boot.taskIds.clear();
+    return ready;
+  }
+
+  private void readCardVersion(String installedVersion, boolean available) throws Exception {
+    reply(
+        new JSONObject()
+            .put("status", "ok")
+            .put("message", "verified fixture catalog")
+            .put(
+                "items",
+                new JSONArray()
+                    .put(
+                        item(ALPHA, true)
+                            .put("version", installedVersion)
+                            .put("updateAvailable", available)
+                            .put("latestVersion", available ? "2.0.0" : "")))
+            .toString());
+    repository.refresh();
+    runWorker();
+    assertTrue(repository.hasKnownItems());
+  }
+
+  private void installFixtureUpdateReply(Runnable duringPrepare) throws Exception {
+    String data = cardUpdatePreview();
+    Boot.guest =
+        (command, task) -> {
+          if (command.equals("prepare-update '" + ALPHA + "'")) {
+            if (duringPrepare != null) duringPrepare.run();
+            return result(data);
+          }
+          if (command.equals(cardUpdateCommit())) {
+            recordCommittedFixtureUpdate();
+            return result(
+                new JSONObject()
+                    .put("status", "ok")
+                    .put("message", "test update installed")
+                    .toString());
+          }
+          throw new IOException("Unexpected fixture command: " + command);
+        };
+  }
+
+  private void recordCommittedFixtureUpdate() throws Exception {
+    var destination = new File(Boot.root, "root/.dsh/plugin-src/" + ALPHA + "/package.json");
+    Files.createDirectories(destination.toPath().getParent());
+    Files.writeString(destination.toPath(), item(ALPHA, true).put("version", "2.0.0").toString());
+  }
+
+  private static String cardUpdatePreview() throws Exception {
+    var candidate = new JSONObject(preview(ALPHA, "e".repeat(32), "f".repeat(64)));
+    candidate
+        .getJSONObject("preview")
+        .getJSONArray("items")
+        .getJSONObject(0)
+        .put("version", "2.0.0");
+    return candidate.toString();
+  }
+
+  private static String cardUpdateCommit() {
+    return "install-preview '" + "e".repeat(32) + "' '" + "f".repeat(64) + "'";
+  }
+
+  private static java.util.concurrent.atomic.AtomicLong readyEventsFixture() {
+    return DshaApp.from(RuntimeEnvironment.getApplication()).harnessSession().readyWebEventRevision;
+  }
+
+  private void publishFixtureWebEvent() {
+    readyEventsFixture().incrementAndGet();
+    repository.observeMutationIdentity(Controller.value);
+  }
+
+  private void assertCommittedCardUpdate(String id, PluginSourceIdentity source) throws Exception {
+    var operation = repository.operation(id);
+    assertEquals(operation.message, Phase.SUCCEEDED, operation.phase);
+    assertEquals(List.of("prepare-update '" + ALPHA + "'", cardUpdateCommit()), Boot.calls);
+    assertEquals(List.of(id.replace("-", ""), id.replace("-", "")), Boot.taskIds);
+    assertEquals("e".repeat(32), operation.transactionId);
+    assertEquals(1, Maintenance.commits);
+    assertTrue(source.sameDataSource(SourceResolver.identity()));
+    assertEquals(source.webGeneration + 1, SourceResolver.identity().webGeneration);
+    var installed = new File(Boot.root, "root/.dsh/plugin-src/" + ALPHA + "/package.json");
+    String confirmedVersion =
+        new JSONObject(Files.readString(installed.toPath())).getString("version");
+    assertEquals("2.0.0", confirmedVersion);
+    Boot.calls.clear();
+    readCardVersion(confirmedVersion, false);
+    assertEquals("2.0.0", repository.state().getValue().items.get(0).version);
+    assertEquals(Phase.SUCCEEDED, repository.operation(id).phase);
+    assertEquals(List.of("refresh"), Boot.calls);
+  }
+
+  @Test
+  public void normalCardUpdateSurvivesActualObserverRepair() throws Exception {
+    var revisions = readyEventsFixture();
+    revisions.set(0L);
+    var target = loadCheckedCardUpdate();
+    var initial = SourceResolver.identity();
+    var produced = new CountDownLatch(1);
+    var permitPreview = new CountDownLatch(1);
+    releases.add(permitPreview);
+    var app = RuntimeEnvironment.getApplication();
+    try (var engine = new com.deepseekharness.app.plugins.PluginManagementEngine(app, repository)) {
+      var signal = engine.getClass().getDeclaredField("signalController");
+      signal.setAccessible(true);
+      signal.set(engine, Controller.value);
+      var privateDetector = field(engine, "detector");
+      var actualReconcile = (Runnable) field(privateDetector, "onReconcile");
+      Boot.guest =
+          (command, task) -> {
+            if (command.equals("prepare-update '" + ALPHA + "'")) {
+              var directory =
+                  Files.createDirectories(
+                      initial.dataRoot.toPath().resolve("plugin-previews").resolve("e".repeat(32)));
+              Files.writeString(directory.resolve("preview.json"), cardUpdatePreview());
+              produced.countDown();
+              assertTrue(
+                  "observer must reconcile before the preview reply",
+                  permitPreview.await(5, TimeUnit.SECONDS));
+              return result(cardUpdatePreview());
+            }
+            if (command.equals(cardUpdateCommit())) {
+              recordCommittedFixtureUpdate();
+              return result(
+                  new JSONObject()
+                      .put("status", "ok")
+                      .put("message", "installed after observer repair")
+                      .toString());
+            }
+            throw new IOException("Unexpected fixture command: " + command);
+          };
+      String id = repository.prepareUpdate(target);
+      Worker updating = startWorker();
+      assertTrue(produced.await(3, TimeUnit.SECONDS));
+      assertEquals(Phase.RUNNING, repository.operation(id).phase);
+      // The native detector supplies this callback after its structural repair.
+      actualReconcile.run();
+      main.idle();
+      assertEquals(initial, SourceResolver.identity());
+      assertEquals(0L, revisions.get());
+      permitPreview.countDown();
+      finish(updating);
+      assertCommittedCardUpdate(id, initial);
+      System.out.println(
+          "R10_SCOPE prepare-cut=actual-observer-repair-callback candidateFile=true webEventsBeforeCommit=0 stableRootAndMarker=true old=1.0.0 new=2.0.0");
+    }
+  }
+
+  @Test
+  public void normalCardUpdateSurvivesItsLateOwnedStopNotification() throws Exception {
+    var revisions = readyEventsFixture();
+    revisions.set(0L);
+    var target = loadCheckedCardUpdate();
+    var initial = SourceResolver.identity();
+    installFixtureUpdateReply(null);
+    AtomicBoolean delivered = new AtomicBoolean();
+    Maintenance.afterStop =
+        () -> {
+          int transferRead = SourceResolver.resolutions.get() + 1;
+          SourceResolver.beforeReturn =
+              source -> {
+                if (SourceResolver.resolutions.get() == transferRead + 1
+                    && delivered.compareAndSet(false, true)) {
+                  assertEquals(1L, revisions.get());
+                  assertTrue(initial.sameDataSource(source));
+                  repository.observeMutationIdentity(Controller.value);
+                }
+              };
+        };
+    String id = repository.prepareUpdate(target);
+    runWorker();
+    assertTrue(delivered.get());
+    assertCommittedCardUpdate(id, initial);
+    System.out.println(
+        "R10_SCOPE ownedStopRev=1 lateDelivery=1 prepare=1 install=1 old=1.0.0 new=2.0.0");
+  }
+
+  @Test
+  public void normalCardUpdateRejectsExternalSameStateLifecycleEvents() throws Exception {
+    var revisions = readyEventsFixture();
+    revisions.set(10L);
+    var target = loadCheckedCardUpdate();
+    var initial = SourceResolver.identity();
+    installFixtureUpdateReply(
+        () -> revisions.addAndGet(2)); // External A -> B -> A before any UI delivery.
+    String id = repository.prepareUpdate(target);
+    runWorker();
+    var operation = repository.operation(id);
+    assertEquals(operation.message, Phase.INVALIDATED, operation.phase);
+    assertTrue(operation.message.contains("插件执行环境已变化；未执行旧请求"));
+    assertEquals(initial, SourceResolver.identity());
+    assertEquals(0, Maintenance.commits);
+    assertEquals(List.of("prepare-update '" + ALPHA + "'"), Boot.calls);
+    assertEquals("1.0.0", repository.state().getValue().items.get(0).version);
+    assertNotNull(repository.operationPreview(id));
+    System.out.println(
+        "R10_SCOPE externalEventsRev=10->12 uiDelivery=0 finalSourceSame=true old=1.0.0 install=0");
   }
 }

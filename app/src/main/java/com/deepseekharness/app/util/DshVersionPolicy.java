@@ -19,7 +19,8 @@ public final class DshVersionPolicy {
       Map.of(
           "0.2.1-rc.3", 1,
           "0.2.1-rc.5", 2,
-          "0.2.2-rc.1", 3);
+          "0.2.2-rc.1", 3,
+          "0.2.2-rc.5", 4);
 
   private DshVersionPolicy() {}
 

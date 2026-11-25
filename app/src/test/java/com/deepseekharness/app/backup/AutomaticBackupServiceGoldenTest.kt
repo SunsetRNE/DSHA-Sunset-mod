@@ -208,12 +208,15 @@ class AutomaticBackupServiceGoldenTest {
         if (secret != null) assertTrue("secret erased by finally", secret.all { it == '\u0000' })
     }
 
+    private fun beginTicket(parameters: JobParameters): ScheduledBackupOwner.Ticket<JobParameters> =
+        checkNotNull(owner.begin(parameters)) { "Fixture requires an available scheduler ticket" }
+
     @Test
     fun busyPreparationDefersWithoutStoppingUserWorkAndOnlyManualRequestsRetry() {
         Backups.idle = false
         for (manual in listOf(false, true)) {
             val p = params()
-            val ticket = owner.begin(p)
+            val ticket = beginTicket(p)
             val producers = WorkerQuiescence()
             prepare(ticket, manual, producers.tryBegin())
             assertEquals(1, producers.active())
@@ -247,12 +250,12 @@ class AutomaticBackupServiceGoldenTest {
     @Test
     fun cancellationBeforeQueuedPreparationCannotExportOrFinishANewerRequest() {
         val oldParams = params()
-        val old = owner.begin(oldParams)
+        val old = beginTicket(oldParams)
         val producers = WorkerQuiescence()
         prepare(old, false, producers.tryBegin())
         assertEquals(1, Backups.passwordCalls)
         assertFalse(service.onStopJob(oldParams))
-        val next = owner.begin(params())
+        val next = beginTicket(params())
         shadowOf(Looper.getMainLooper()).idle()
         assertTrue(owner.current(next))
         assertEquals(0, producers.active())
@@ -263,7 +266,7 @@ class AutomaticBackupServiceGoldenTest {
 
     @Test
     fun destructionKeepsQueuedCleanupAlive() {
-        val ticket = owner.begin(params())
+        val ticket = beginTicket(params())
         val producers = WorkerQuiescence()
         prepare(ticket, false, producers.tryBegin())
         assertEquals(1, producers.active())
@@ -278,9 +281,9 @@ class AutomaticBackupServiceGoldenTest {
     @Test
     fun staleCompletionErasesItsSecretAndCannotPublishErrors() {
         val p = params()
-        val old = owner.begin(p)
+        val old = beginTicket(p)
         assertFalse(service.onStopJob(p))
-        val next = owner.begin(params())
+        val next = beginTicket(params())
         complete(old, "late-synthetic-secret".toCharArray(), error = "late-error")
         assertTrue(owner.current(next))
         assertTrue(Backups.errors.isEmpty())
@@ -291,7 +294,7 @@ class AutomaticBackupServiceGoldenTest {
     @Test
     fun disableBeforeCompletionReleasesSecretAndHonorsRetry() {
         val p = params()
-        val ticket = owner.begin(p)
+        val ticket = beginTicket(p)
         Backups.enabled = false
         complete(ticket, "synthetic-secret".toCharArray(), retry = true)
         assertEquals(listOf(p to true), Callbacks.finished)
@@ -301,7 +304,7 @@ class AutomaticBackupServiceGoldenTest {
         // 已提交后的轮询只取消 owned 作业，原生退出后发布该作业的错误并完成一次。
         Backups.enabled = true
         val runningParams = params()
-        val running = owner.begin(runningParams)
+        val running = beginTicket(runningParams)
         complete(running, "synthetic-secret".toCharArray())
         shadowOf(Looper.getMainLooper()).idle()
         assertTrue(owner.current(running))
@@ -328,7 +331,7 @@ class AutomaticBackupServiceGoldenTest {
     @Test
     fun ownedCancellationNeverTouchesAnUnrelatedNativeJob() {
         val p = params()
-        val ticket = owner.begin(p)
+        val ticket = beginTicket(p)
         complete(ticket, "synthetic-secret".toCharArray())
         assertEquals("owned-native-id", owner.jobId(ticket))
         assertEquals(1, Jobs.exports)
@@ -345,7 +348,7 @@ class AutomaticBackupServiceGoldenTest {
     @Test
     fun destructionCancelsOnlyItsOwnedJobAndLateCallbacksStillReleaseTheirLease() {
         val p = params()
-        val ticket = owner.begin(p)
+        val ticket = beginTicket(p)
         complete(ticket, "synthetic-secret".toCharArray())
         service.onDestroy()
         assertEquals(1, Jobs.cancellations)
@@ -357,7 +360,7 @@ class AutomaticBackupServiceGoldenTest {
     @Test
     fun preparationErrorFinishesExactlyOnceWithoutNativeSubmission() {
         val p = params()
-        val ticket = owner.begin(p)
+        val ticket = beginTicket(p)
         assertFalse(
             "active scheduler ticket rejects a duplicate start",
             service.onStartJob(params()),

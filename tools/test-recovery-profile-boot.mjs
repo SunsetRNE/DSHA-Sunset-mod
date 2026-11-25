@@ -10,8 +10,8 @@ import { zstdDecompressSync } from 'node:zlib';
 
 const root=path.resolve(import.meta.dirname,'..');
 const expectedDsh=JSON.parse(await readFile(path.join(root,'tools/recovery-runtime/lock.json'),'utf8')).dshVersion;
-const fixture=JSON.parse(await readFile(path.join(root,'app/build/test-runtimes/current.json'),'utf8'));
-const runtime=path.resolve(process.env.DSHA_TEST_RECOVERY_RUNTIME||process.env.DSHA_TEST_RUNTIME||fixture.raw);
+const runtime=path.resolve(process.env.DSHA_TEST_RECOVERY_RUNTIME||process.env.DSHA_TEST_RUNTIME
+  ||JSON.parse(await readFile(path.join(root,'app/build/test-runtimes/current.json'),'utf8')).raw);
 const actual=JSON.parse(await readFile(path.join(runtime,'node_modules/@deepseek-ai/dsh/package.json'),'utf8'));
 assert.equal(actual.version,expectedDsh);
 const tempParent=path.join(root,'app/build/tmp');await mkdir(tempParent,{recursive:true});
@@ -107,7 +107,7 @@ try{
       await login.getByRole('button',{name:/^(关闭|Close)$/i}).click();
       await login.waitFor({state:'hidden'});
     }
-    await page.getByText('DSHA Recovery',{exact:true}).first().waitFor({state:'visible'});
+    await page.getByText('DSHA Recovery',{exact:true}).filter({visible:true}).first().waitFor({state:'visible'});
     assert.equal(await page.getByText('选择一个工作区开始',{exact:true}).count(),0,'empty workspace screen cannot pass');
     await composer.waitFor({state:'visible'});await composer.click();
     const draft='DSHA 应急输入回归：只验证草稿，不发送模型请求。';

@@ -1,6 +1,7 @@
 package com.deepseekharness.app.runtime;
 
 import android.system.Os;
+import com.deepseekharness.app.util.BundledRootfsAsset;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -20,9 +21,19 @@ public final class ColdToolsBuild {
     if (args[1].equals("extract")) {
       if (!root.mkdir()) throw new IllegalStateException("ROOT_ALREADY_EXISTS");
       try (ZipFile apk = new ZipFile(new File(base, "source.apk"))) {
-        for (String name : new String[]{"offline-rootfs.bin", "glibc-python.bin", "python-support.bin"}) {
-          try (var input = apk.getInputStream(apk.getEntry("assets/" + name))) {
-            TarGzipExtractor.extractAuto(input, root, 0);
+        try (var metadata = apk.getInputStream(apk.getEntry("assets/" + BundledRootfsAsset.SHA256));
+             var input = apk.getInputStream(BundledRootfsAsset.find(apk));
+             var decoded = BundledRootfsAsset.decode(input, BundledRootfsAsset.readSha256(metadata))) {
+          TarGzipExtractor.extractAuto(decoded, root, 0);
+        }
+        for (String name : new String[]{"glibc-python.bin", "python-support.bin"}) {
+          var digestEntry = apk.getEntry("assets/" + name + ".sha256");
+          try (var input = apk.getInputStream(apk.getEntry("assets/" + name));
+               var digest = digestEntry == null ? null : apk.getInputStream(digestEntry)) {
+            if (digest == null) TarGzipExtractor.extractAuto(input, root, 0);
+            else try (var decoded = BundledRootfsAsset.decode(input, BundledRootfsAsset.readSha256(digest))) {
+              TarGzipExtractor.extractAuto(decoded, root, 0);
+            }
           }
         }
         File slot = new File(root,"root/.dsha-bundled-tools");

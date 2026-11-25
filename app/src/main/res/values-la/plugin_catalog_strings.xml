@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="plugin_catalog_reading">Index additamentorum legitur…</string>
+    <string name="plugin_catalog_rechecking">Additamenta probantur…</string>
+    <string name="plugin_catalog_cached">Index prior additamentorum ostenditur</string>
+    <string name="plugin_catalog_configured">Ex configuratione · probatio pendet</string>
+    <string name="plugin_catalog_failed">Index probari non potuit</string>
+    <string name="plugin_catalog_unconfirmed">Index nondum confirmatus</string>
+    <string name="plugin_catalog_verified">Index comprobatus</string>
+    <string name="plugin_catalog_queued">Probatio exspectatur</string>
+</resources>

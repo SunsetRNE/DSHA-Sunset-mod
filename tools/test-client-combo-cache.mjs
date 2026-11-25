@@ -74,6 +74,13 @@ for (const change of [()=>{},()=>{},()=>{b.entry.rev='four';b.bundle=Buffer.from
   assert.deepEqual(normalize([...newRegistry.previousBatchResponses]),normalize([...oldRegistry.previousBatchResponses]));
   for(const [url,response] of newRegistry.responses) {
     assert.deepEqual(await response.body(),await oldRegistry.responses.get(url).body());
+    const head = await newRegistry.bundleResource('HEAD', url);
+    assert.deepEqual(normalize(head), normalize(await oldRegistry.bundleResource('HEAD', url)));
+    assert.equal(head.headers['cache-control'], 'public, max-age=31536000, immutable');
+    assert.equal(head.body, undefined);
+    const get = await newRegistry.bundleResource('GET', url, '*');
+    assert.equal(get.status, 200, 'revisioned combos retain upstream HTTP semantics');
+    assert.deepEqual(normalize(get), normalize(await oldRegistry.bundleResource('GET', url, '*')));
   }
 }
 let reads=0;const lazy=after.buildCombo([a],()=>{reads++;return undefined;});

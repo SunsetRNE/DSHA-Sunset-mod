@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """主机 JVM 差分探针：JDK17 编译生产桥 + host-jvm/，加载主机目标 .so 对拍。
 
-R1 起直接编译 `app/src/main/java/com/deepseekharness/app/util/` 下的纯 Java 生产类
-（R3 起另含 `backup/StrictGzipInputStream` 与其限额常量作为 JVM 参考读取器；两者都零
-Android import），在同一进程里对比 Rust 后端与 JVM 参照实现：
+R1 起按源码布局解析生产 JVM 桥（Java/Kotlin）；R3 另含 JVM 参考读取器及限额常量。
+Java-only 闭包继续只用 javac；混合闭包要求显式提供与仓库 KGP/验证元数据一致的
+编译器 JAR 目录，不联网、不自动改写 Gradle 缓存，然后在同一进程内对拍：
 
 - digest（R1）：SHA-256 / SHA-1 已知向量、offset/中间区间、CHUNK 边界、单次 32 MiB
   上限；空内容（length=0 按 ABI 拒绝）、EOF 短读、非法 offset/length/algorithm、负
@@ -27,30 +27,39 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "tools"))
+from source_layout import SourceLayout  # noqa: E402
+PREPARE_SPEC = importlib.util.spec_from_file_location(
+    "rust_kotlin_host_prepare", ROOT / "tools/rust/prepare-kotlin-host.py")
+KOTLIN_PREPARER = importlib.util.module_from_spec(PREPARE_SPEC)
+PREPARE_SPEC.loader.exec_module(KOTLIN_PREPARER)
 PROBE_SOURCE = ROOT / "tools/rust/host-jvm"
 APP_SOURCE = ROOT / "app/src/main/java/com/deepseekharness/app"
 MAKE_FIXTURES = ROOT / "tools/rust/make-fixtures.py"
 BRIDGE_SOURCES = (
-    "util/RustNative.java",
-    "util/RustDigest.java",
-    "util/RustBackends.java",
-    "util/PlanViewCodec.java",
-    "util/PlanViewValidator.java",
-    "util/RustArchiveCodec.java",
-    "util/RustGzipOutputStream.java",
-    "util/RustGzipInputStream.java",
+    "util/RustNative",
+    "util/RustDigest",
+    "util/RustBackends",
+    "util/PlanViewCodec",
+    "util/PlanViewValidator",
+    "util/RustArchiveCodec",
+    "util/RustGzipOutputStream",
+    "util/RustGzipInputStream",
     # JVM 参考读取器（生产实现）与其限额常量：差分必须比同一份 JVM 语义，而不是测试副本。
-    "backup/StrictGzipInputStream.java",
-    "backup/BackupLimits.java",
+    "backup/StrictGzipInputStream",
+    "backup/BackupLimits",
 )
 PROBE_SOURCES = ("RustHostProbe.java", "PlanViewHostProbe.java", "ArchiveHostProbe.java")
 DIGEST_PROBE_CLASS = "com.deepseekharness.app.util.RustHostProbe"
@@ -164,20 +173,66 @@ def parse_rows(output: str) -> tuple[list[dict], list[dict]]:
     return checks, summaries
 
 
+def bridge_sources(root=ROOT) -> list[Path]:
+    """按逻辑类名解析两种语言，缺失或 Java/Kotlin 双实现均拒绝。"""
+    try:
+        layout = SourceLayout(root)
+        return [layout.resolve_class(name) for name in BRIDGE_SOURCES]
+    except ValueError as error:
+        raise ProbeError("RUST_BRIDGE_SOURCE_LAYOUT: " + str(error)) from error
+
+
+def kotlin_libraries(directory: Path | None, root=ROOT) -> list[Path]:
+    """与独立准备工具共用逐坐标 SHA 校验；消费者本身从不联网。"""
+    if directory is None:
+        raise ProbeError("KOTLIN_COMPILER_REQUIRED: run tools/rust/prepare-kotlin-host.py first")
+    try:
+        report = KOTLIN_PREPARER.prepare(directory, check=True, root=root)
+    except (KOTLIN_PREPARER.PrepareError, OSError, ET.ParseError) as error:
+        raise ProbeError("KOTLIN_COMPILER_REQUIRED: run tools/rust/prepare-kotlin-host.py "
+                         "--dir <kotlin-libs>; " + str(error)) from error
+    return [Path(report["directory"]) / row["file"] for row in report["files"]]
+
+
+def compile_sources(home: Path, sources: list[Path], classes: Path, temporary: Path,
+                    env: dict, kotlin_libs: Path | None) -> tuple[str, dict]:
+    kotlin = [path for path in sources if path.suffix == ".kt"]
+    java_sources = [path for path in sources if path.suffix == ".java"]
+    runtime_cp = str(classes)
+    evidence = {"languages": sorted({path.suffix for path in sources}), "kotlin": None}
+    if kotlin:
+        jars = kotlin_libraries(kotlin_libs)
+        library_dir = temporary / "kotlin-libs"
+        library_dir.mkdir()
+        for jar in jars:
+            shutil.copyfile(jar, library_dir / jar.name)
+        stdlib = next(path for path in jars if path.name.startswith("kotlin-stdlib-"))
+        compiler_cp = str(library_dir / "*")
+        run([str(home / "bin/java"), "-Xmx256m", "-XX:ActiveProcessorCount=1", "-cp", compiler_cp,
+             "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler", "-no-stdlib", "-no-reflect",
+             "-jvm-target", "17", "-module-name", "rust_host_probe",
+             "-classpath", str(library_dir / stdlib.name), "-d", str(classes),
+             *[str(path) for path in sources]], cwd=ROOT, env=env)
+        runtime_cp += os.pathsep + compiler_cp
+        evidence["kotlin"] = {"jars": [{"name": path.name,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest()} for path in jars]}
+    run([str(home / "bin/javac"), "-J-Xmx128m", "-encoding", "UTF-8", "-Xlint:all", "-Werror",
+         "-source", "17", "-target", "17", "-cp", runtime_cp, "-d", str(classes),
+         *[str(path) for path in java_sources]], cwd=ROOT, env=env)
+    return runtime_cp, evidence
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--lib", type=Path, required=True, help="主机目标 libdsha_rs.so")
     parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument("--kotlin-libs", type=Path, default=ROOT / "app/build/kotlin-host",
+                        help="prepare-kotlin-host.py 准备的 JAR 目录（默认 app/build/kotlin-host）")
     args = parser.parse_args(argv)
     library = args.lib.resolve()
     if not library.is_file():
         raise ProbeError("RUST_HOST_LIB_MISSING: " + str(library))
-    sources = [PROBE_SOURCE / name for name in PROBE_SOURCES]
-    for name in BRIDGE_SOURCES:
-        source = APP_SOURCE / name
-        if not source.is_file():
-            raise ProbeError("RUST_BRIDGE_SOURCE_MISSING: " + str(source))
-        sources.append(source)
+    sources = [PROBE_SOURCE / name for name in PROBE_SOURCES] + bridge_sources()
     home = java_home()
     env = dict(os.environ)
     env.pop("PYTHONOPTIMIZE", None)
@@ -189,18 +244,18 @@ def main(argv: list[str]) -> int:
         # 夹具由 tools/rust/fixtures.json 确定性生成；canonical 字节 pin 在生成器内核对。
         run([sys.executable, str(MAKE_FIXTURES), "--out", str(corpus),
              "--summary", str(fixtures_summary_path)], cwd=ROOT, env=env)
-        run([str(home / "bin/javac"), "-encoding", "UTF-8", "-Xlint:all", "-Werror",
-             "-d", str(classes), *[str(path) for path in sources]], cwd=ROOT, env=env)
+        runtime_cp, compiler_evidence = compile_sources(
+            home, sources, classes, Path(temporary), env, args.kotlin_libs)
         java = str(home / "bin/java")
-        digest_output = run([java, "-Xcheck:jni",
+        digest_output = run([java, "-Xmx128m", "-XX:ActiveProcessorCount=1", "-Xcheck:jni",
                              "--add-opens", "java.base/java.io=ALL-UNNAMED",
-                             "-cp", str(classes), DIGEST_PROBE_CLASS, str(library)],
+                             "-cp", runtime_cp, DIGEST_PROBE_CLASS, str(library)],
                             cwd=ROOT, env=env)
-        plan_output = run([java, "-Xcheck:jni",
-                           "-cp", str(classes), PLAN_PROBE_CLASS, str(library), str(corpus)],
+        plan_output = run([java, "-Xmx128m", "-XX:ActiveProcessorCount=1", "-Xcheck:jni",
+                           "-cp", runtime_cp, PLAN_PROBE_CLASS, str(library), str(corpus)],
                           cwd=ROOT, env=env)
-        archive_output = run([java, "-Xcheck:jni",
-                              "-cp", str(classes), ARCHIVE_PROBE_CLASS, str(library)],
+        archive_output = run([java, "-Xmx128m", "-XX:ActiveProcessorCount=1", "-Xcheck:jni",
+                              "-cp", runtime_cp, ARCHIVE_PROBE_CLASS, str(library)],
                              cwd=ROOT, env=env)
         fixtures_summary = json.loads(fixtures_summary_path.read_text(encoding="utf-8"))
     digest_checks, digest_summaries = parse_rows(digest_output)
@@ -246,6 +301,9 @@ def main(argv: list[str]) -> int:
                  "version": next((row.get("javaVersion") for row in plan_summaries
                                   if row.get("javaVersion")), None)},
         "checks": checks,
+        "compiler": compiler_evidence,
+        "sources": [{"path": path.relative_to(ROOT).as_posix(),
+                     "sha256": hashlib.sha256(path.read_bytes()).hexdigest()} for path in sources],
         "fixtures": {
             "generator": "tools/rust/make-fixtures.py",
             "source": "tools/rust/fixtures.json",

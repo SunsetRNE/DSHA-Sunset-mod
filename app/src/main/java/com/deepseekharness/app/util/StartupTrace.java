@@ -20,6 +20,8 @@ public final class StartupTrace {
     final String text, previous;
     final int kind;
     final boolean problem;
+    private String renderedLanguage;
+    private Entry rendered;
 
     Line(long at, long runtimeAt, String text, String previous, int kind, boolean problem) {
       this.at = at;
@@ -35,8 +37,15 @@ public final class StartupTrace {
       return kind == 0 ? text : StartupText.render(text, language);
     }
 
-    String render(String language) {
-      String value = body(language);
+    Entry entry(String language) {
+      if (language.equals(renderedLanguage)) return rendered;
+      String body = body(language);
+      rendered = new Entry(at, runtimeAt, kind, body, render(language, body), problem);
+      renderedLanguage = language;
+      return rendered;
+    }
+
+    private String render(String language, String value) {
       if (kind == 2) value = StartupText.choose(language, "正在", "Current stage: ") + value + "…";
       if (kind == 3)
         value =
@@ -215,7 +224,7 @@ public final class StartupTrace {
             previous,
             kind,
             appendingProblem);
-    if (!lines.isEmpty() && lines.peekLast().render("zh").equals(line.render("zh"))) return;
+    if (!lines.isEmpty() && lines.peekLast().entry("zh").line.equals(line.entry("zh").line)) return;
     lines.addLast(line);
     length += line.text.length() + line.previous.length() + 80;
     while (length > MAX_CHARS || lines.size() > MAX_LINES) {
@@ -273,7 +282,13 @@ public final class StartupTrace {
     backendReadyAt = now;
     add(expected, now, "BACKEND_AUTH_READY: " + format(now - began));
     if (nodeLaunchedAt >= 0)
-      add(expected, now, "STARTUP_AUTH_TIMING: nodeToAuthMs=" + Math.max(0, now - nodeLaunchedAt));
+      add(
+          expected,
+          now,
+          "STARTUP_AUTH_TIMING: nodeToAuthMs="
+              + Math.max(0, now - nodeLaunchedAt)
+              + " startToAuthMs="
+              + Math.max(0, now - began));
     revision++;
   }
 
@@ -300,8 +315,7 @@ public final class StartupTrace {
   public synchronized Snapshot snapshot(long now, String language) {
     String keyLanguage = language == null ? "" : language;
     if (renderedRevision != revision || !renderedLanguage.equals(keyLanguage)) {
-      renderedLog = renderLog(keyLanguage);
-      renderedEntries = renderEntries(keyLanguage);
+      renderSnapshot(keyLanguage);
       renderedRevision = revision;
       renderedLanguage = keyLanguage;
     }
@@ -322,27 +336,25 @@ public final class StartupTrace {
         renderedEntries);
   }
 
-  private java.util.List<Entry> renderEntries(String language) {
+  private void renderSnapshot(String language) {
     java.util.ArrayList<Entry> result = new java.util.ArrayList<>(lines.size());
-    for (Line line : lines)
-      result.add(
-          new Entry(
-              line.at,
-              line.runtimeAt,
-              line.kind,
-              line.body(language),
-              line.render(language),
-              line.problem));
-    return java.util.Collections.unmodifiableList(result);
+    StringBuilder log = new StringBuilder();
+    for (Line line : lines) {
+      Entry entry = line.entry(language);
+      result.add(entry);
+      if (log.length() > 0) log.append('\n');
+      log.append(entry.line);
+    }
+    renderedEntries = java.util.Collections.unmodifiableList(result);
+    renderedLog = log.toString();
   }
 
-  private String renderLog(String language) {
-    StringBuilder result = new StringBuilder();
-    for (Line line : lines) {
-      if (result.length() > 0) result.append('\n');
-      result.append(line.render(language));
-    }
-    return result.toString();
+  public synchronized boolean isBrowserReady() {
+    return browserReady;
+  }
+
+  public synchronized boolean isBackendReady() {
+    return backendReadyAt >= 0;
   }
 
   public synchronized boolean isCurrent(long expected) {

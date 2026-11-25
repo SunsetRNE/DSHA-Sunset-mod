@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="portable_password">Пароль резервной копии</string>
+    <string name="portable_password_confirm">Подтвердите пароль</string>
+    <string name="portable_password_help">Храните пароль отдельно. Он нужен для восстановления на другом устройстве. DSHA не может его восстановить.</string>
+    <string name="portable_password_length">Введите от 12 до 1024 символов.</string>
+    <string name="portable_password_mismatch">Пароли не совпадают.</string>
+    <string name="portable_export_summary">Защитите файл tar.gz паролем, чтобы восстановить данные на новом устройстве.</string>
+    <string name="portable_included_secrets">Выбранные данные могут содержать учётные данные из чатов, вложений и файлов.</string>
+    <string name="portable_import_summary">Выберите копию. Для зашифрованной копии нужен пароль. После проверки подтвердите, какие данные восстановить.</string>
+    <string name="portable_password_restore_help">Введите пароль, заданный при создании этой копии.</string>
+    <string name="portable_rescue_diagnostics">Зашифрованная аварийная копия содержит только данные. При экспорте без шифрования также включается доступная диагностическая сводка.</string>
+    <string name="portable_keep_password">Эта копия сохранит исходный пароль. Используйте его на новом устройстве.</string>
+    <string name="portable_plain_opt_in">Экспортировать без шифрования для совместимости. Любой получатель файла сможет прочитать всё, включая секреты в чатах и вложениях.</string>
+    <string name="portable_export_label">Экспорт переносимой копии</string>
+    <string name="portable_automatic_help">Удаление приложения стирает автоматические копии и ключ устройства. Перед переносом или удалением экспортируйте копию со своим паролем и сохраните файл вне приложения.</string>
+    <string name="portable_retry_password">Повторить ввод пароля</string>
+</resources>

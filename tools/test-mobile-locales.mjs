@@ -6,6 +6,7 @@ import vm from 'node:vm';
 import { createHash } from 'node:crypto';
 import { mobileLocaleCatalog, mobileLocaleDictionaries, mobileLocaleSourceFiles, applyMobileLocaleSourcePatch, restoreMobileLiveLocaleSource } from './mobile-locales.mjs';
 import { applyMobileClientPatches } from './apply-mobile-client-patches.mjs';
+import { applyMobileScrollPatch, restoreMobileConversationScrollSource } from './mobile-scroll-performance.mjs';
 
 const destination = 'app/src/main/assets/builtin-plugins/dsh-web-mobile';
 const bundle = readFileSync(destination + '/lib/client.js', 'utf8');
@@ -88,7 +89,7 @@ test('mobile source and bundle outputs are deterministic transformations of lock
   for (const name of mobileLocaleSourceFiles) {
     const output = readFileSync(destination + '/' + name, 'utf8');
     let pristine = output.split('\n// DSHA_MOBILE_LOCALES_V1:')[0];
-    if (name === 'src/client/index.tsx') pristine = pristine
+    if (name === 'src/client/index.tsx') pristine = restoreMobileConversationScrollSource(pristine)
       .replace("import { NS, mobileNavLocales } from './i18n/locales.ts'", "import { NS, en, zh } from './i18n/locales.ts'")
       .replace('ctx.locale.register(NS, mobileNavLocales)', 'ctx.locale.register(NS, { zh, en })');
     if (name === 'src/client/effects/file-share.ts') pristine = pristine
@@ -99,7 +100,8 @@ test('mobile source and bundle outputs are deterministic transformations of lock
     if (name === 'src/client/effects/drawer-session-log.ts' || name === 'src/client/effects/drawer-quick-settings.ts')
       pristine = restoreMobileLiveLocaleSource(name, pristine);
     assert.equal(createHash('sha256').update(pristine).digest('hex'), lock.files[name].sha256, name);
-    assert.equal(output, applyMobileLocaleSourcePatch(name, pristine), name);
+    const localized = applyMobileLocaleSourcePatch(name, pristine);
+    assert.equal(output, name === 'src/client/index.tsx' ? applyMobileScrollPatch(localized, name) : localized, name);
   }
   assert.match(readFileSync(destination + '/src/client/index.tsx', 'utf8'), /locale\.register\(NS, mobileNavLocales\)/);
   assert.match(readFileSync(destination + '/src/client/effects/file-share.ts', 'utf8'), /locale\.register\(FILE_SHARE_NS, fileShareLocales\)/);

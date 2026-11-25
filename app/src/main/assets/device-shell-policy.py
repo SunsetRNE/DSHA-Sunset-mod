@@ -81,10 +81,10 @@ def grep_read_paths(argv):
     if (not isinstance(argv, list) or not argv or argv[0] != 'grep'
             or any(not isinstance(arg, str) or '\0' in arg for arg in argv)):
         raise Blocked('GREP_READ_ARGUMENTS_UNVERIFIED')
-    flags = 'ZzEFHIabhinorRsvwcLlqx'
+    flags = 'ZzEFHIabhinosvwcLlqx'
     long_flags = {'line-buffered', 'byte-offset', 'no-filename', 'only-matching', 'count',
                   'files-without-match', 'files-with-matches', 'quiet', 'silent', 'help', 'version'}
-    paths, positional, options, explicit_pattern, recursive, i = [], [], True, False, False, 1
+    paths, positional, options, explicit_pattern, i = [], [], True, False, 1
     while i < len(argv):
         arg = argv[i]
         if options and arg == '--':
@@ -101,7 +101,7 @@ def grep_read_paths(argv):
                 if i >= len(argv): raise Blocked('GREP_READ_ARGUMENTS_UNVERIFIED')
         elif options and arg.startswith('-') and arg != '-':
             for j, flag in enumerate(arg[1:], 1):
-                if flag in 'rR': recursive = True
+                if flag in 'rR': raise Blocked('STRICT_RECURSIVE_READ_UNAVAILABLE')
                 if flag in flags: continue
                 if flag not in 'efMSABCm': raise Blocked('GREP_READ_ARGUMENTS_UNVERIFIED')
                 if j + 1 < len(arg): value = arg[j + 1:]
@@ -120,19 +120,26 @@ def grep_read_paths(argv):
         i += 1
     first_file = 0 if explicit_pattern else 1
     paths.extend(value for value in positional[first_file:] if value != '-')
-    if recursive and len(positional) <= first_file: paths.append('.')
     return paths
 
 
 def root_read_paths(plan):
     argv, kind = plan.get('argv', []), plan.get('kind')
+    if kind == 'READ' and argv and argv[0] in ('find', 'du'):
+        raise Blocked('STRICT_RECURSIVE_READ_UNAVAILABLE')
+    if kind == 'READ' and argv and argv[0] == 'ls':
+        for arg in argv[1:]:
+            if arg == '--': break
+            if not arg.startswith('-') or arg == '-': continue
+            if not re.fullmatch(r'-[1aAbBcCdDfFghHiklmnpqrstSuUxXZ]+|--(color(=(auto|always|never))?|full-time|group-directories-first|help|version)', arg):
+                raise Blocked('STRICT_LS_OPTIONS_UNVERIFIED')
     if kind == 'READ' and argv and argv[0] == 'grep':
         return grep_read_paths(argv)
     if kind == 'FILE' and argv and argv[0] == 'cp':
         return list(plan.get('operands', []))[:-1]
     if kind != 'READ' or not argv or argv[0] not in {
-            'cat', 'head', 'tail', 'wc', 'grep', 'stat', 'readlink', 'realpath', 'du', 'ls',
-            'find', 'md5sum', 'sha1sum', 'sha256sum', 'sha512sum'}:
+            'cat', 'head', 'tail', 'wc', 'grep', 'stat', 'readlink', 'realpath', 'ls',
+            'md5sum', 'sha1sum', 'sha256sum', 'sha512sum'}:
         return []
     result, after_separator = [], False
     for arg in argv[1:]:
@@ -140,17 +147,18 @@ def root_read_paths(plan):
             after_separator = True
             continue
         if not after_separator and arg.startswith('-'):
+            if argv[0] == 'ls':
+                if arg == '-': result.append(arg)
+                continue
             if arg.startswith('--') and '=' in arg:
                 arg = arg.split('=', 1)[1]
             elif len(arg) > 2 and arg[2] == '/':
                 arg = arg[2:]
             else:
                 continue
-        if arg.startswith('/') or '/' in arg or not arg.startswith('-'):
+        if after_separator or arg.startswith('/') or '/' in arg or not arg.startswith('-'):
             result.append(arg)
-    if not result and argv[0] == 'du':
-        result.append('.')
-    if not result and argv[0] == 'ls' and root_read_may_descend(plan):
+    if not result and argv[0] == 'ls':
         result.append('.')
     return result
 
@@ -167,16 +175,6 @@ def root_read_may_descend(plan):
             if arg.startswith('-') and ('r' in arg or 'R' in arg):
                 return True
         return False
-    if kind != 'READ':
-        return False
-    if command in ('find', 'du'):
-        return True
-    if command in ('ls', 'grep'):
-        for arg in argv[1:]:
-            if arg in ('-R', '-r', '--recursive'):
-                return True
-            if arg.startswith('-') and not arg.startswith('--') and ('r' in arg or 'R' in arg):
-                return True
     return False
 
 
@@ -358,7 +356,7 @@ def execute(plan, shell, result_class):
         return shell(argv_command(argv))
     if plan['kind'] == 'SHELL':
         # 用户显式选择放宽/完全放宽后的 root 原始命令。guest 只核对协议形态与 root 身份，
-        # 档位与不可逆操作判定由 App 进程负责；SMS 原生闸门在 guest 侧再守一道。
+        # App 决定档位与不可逆操作；这里的文本检查只能识别显式写出的短信 URI 或 provider。
         command = plan.get('command')
         if (not isinstance(command, str) or not command
                 or len(command.encode('utf-8')) > 16384 or '\0' in command

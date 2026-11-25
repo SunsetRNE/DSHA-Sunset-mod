@@ -2,6 +2,7 @@ package com.deepseekharness.app.runtime
 
 import android.content.Context
 import android.system.Os
+import com.deepseekharness.app.backup.BackupControl
 import com.deepseekharness.app.backup.ColdInstallTransaction
 import com.deepseekharness.app.backup.HostMaintenancePending
 import com.deepseekharness.app.backup.RuntimeDescriptor
@@ -101,6 +102,14 @@ constructor(
                         onLine: Consumer<String>?,
                     ): BoundedProcessRunner.Result =
                         execution.collect(command, timeoutMs, true, onLine)
+
+                    @Throws(IOException::class, InterruptedException::class)
+                    override fun runQuery(
+                        command: String,
+                        timeoutMs: Long,
+                        timing: Consumer<String>,
+                    ): BoundedProcessRunner.Result =
+                        execution.collectPluginQuery(command, timeoutMs, timing)
                 },
             )
     }
@@ -142,10 +151,11 @@ constructor(
         installation.expectedRuntimeDescriptor()
 
     @Throws(IOException::class)
-    open fun installedRuntimeDescriptor(): RuntimeDescriptor =
+    open fun installedRuntimeDescriptor(): RuntimeDescriptor? =
         installation.installedRuntimeDescriptor()
 
-    @Throws(IOException::class) fun runtimeHealth(): Map<String, Any> = installation.runtimeHealth()
+    @Throws(IOException::class)
+    fun runtimeHealth(): Map<String, Any>? = installation.runtimeHealth()
 
     fun needsRuntimeUpdate(): Boolean = installation.needsRuntimeUpdate()
 
@@ -159,8 +169,12 @@ constructor(
     fun canUpdateManagedRuntime(): Boolean = installation.canUpdateManagedRuntime()
 
     @Throws(IOException::class)
-    fun stageManagedRuntime(stage: File, progress: Consumer<String>?): List<String> =
-        installation.stageManagedRuntime(stage, progress)
+    @JvmOverloads
+    fun stageManagedRuntime(
+        stage: File,
+        progress: Consumer<String>?,
+        control: BackupControl = BackupControl(null),
+    ): List<String> = installation.stageManagedRuntime(stage, progress, control)
 
     @Throws(IOException::class)
     fun markOfflineExtracted() {
@@ -220,6 +234,8 @@ constructor(
 
         @Throws(IOException::class, InterruptedException::class)
         fun legacy(): BoundedProcessRunner.Result = scripts.legacy()
+
+        fun legacyUsesGuest(): Boolean = scripts.legacyUsesGuest()
 
         override fun close() {
             scripts.close()
@@ -307,8 +323,33 @@ constructor(
         beforeStart: LaunchCheck,
     ): Process = execution.exec(command, environment, beforeStart)
 
+    /** Launches the exact engine chosen and reported for this Web startup. */
+    @Throws(IOException::class)
+    fun execWeb(
+        selected: ContainerRuntime,
+        command: String,
+        environment: Map<String, String>,
+        beforeStart: LaunchCheck?,
+    ): Process = execution.exec(command, environment, beforeStart, selected)
+
     @Throws(IOException::class)
     open fun execRootfsForInstall(command: String): Process = execution.install(command, false)
+
+    @Throws(Exception::class)
+    fun checkInstall(
+        command: String,
+        timeoutMs: Long,
+        cancelled: java.util.function.BooleanSupplier,
+        output: java.util.function.Consumer<String>,
+    ): Int = execution.checkInstall(command, timeoutMs, cancelled, output)
+
+    @Throws(Exception::class)
+    open fun checkInstall(
+        guestArgv: List<String>,
+        timeoutMs: Long,
+        cancelled: java.util.function.BooleanSupplier,
+        output: java.util.function.Consumer<String>,
+    ): Int = execution.checkInstall(guestArgv, timeoutMs, cancelled, output)
 
     @Throws(IOException::class)
     fun execRootfsForInstallWithPipedInput(command: String): Process =

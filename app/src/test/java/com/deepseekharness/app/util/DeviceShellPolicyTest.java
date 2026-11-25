@@ -1,7 +1,8 @@
 package com.deepseekharness.app.util;
 
-import org.junit.Test;
 import static org.junit.Assert.*;
+
+import org.junit.Test;
 
 public class DeviceShellPolicyTest {
   private void denied(String... commands) {
@@ -25,8 +26,7 @@ public class DeviceShellPolicyTest {
           "pm list packages -U -s",
           "dumpsys activity processes",
           "date +%s",
-          "logcat -d -t 50",
-          "find / -name '*.jpg'"
+          "logcat -d -t 50"
         }) assertEquals(cmd, DeviceShellPolicy.Kind.READ, DeviceShellPolicy.inspect(cmd).kind);
   }
 
@@ -216,8 +216,8 @@ public class DeviceShellPolicyTest {
     String prefix =
         "app_process -Djava.class.path="
             + apk
-            + " /system/bin "
-            + "com.deepseekharness.app.vscreen.VirtualScreenCore --launch --port 0 --package com.dsh.clienu";
+            + " /system/bin com.deepseekharness.app.vscreen.VirtualScreenCore --launch --port 0"
+            + " --package com.dsh.clienu";
     assertEquals(
         DeviceShellPolicy.Kind.VIRTUAL_SCREEN,
         DeviceShellPolicy.inspectVirtualScreenLaunch(prefix, apk, "com.dsh.clienu").kind);
@@ -269,33 +269,38 @@ public class DeviceShellPolicyTest {
   }
 
   @Test
-  public void recursiveRootReadsCannotDescendIntoSmsProviderParents() {
+  public void strictReadsRejectTreeWalkersBeforeDispatchAndKeepManagedCopyChecks() {
+    denied(
+        "find /fixture",
+        "du",
+        "du -s /fixture",
+        "toybox grep -inR sample /fixture",
+        "grep -r sample /fixture",
+        "ls -aR /fixture",
+        "ls --recursive /fixture",
+        "ls --unrecognized /fixture",
+        "ls -w -- /fixture");
     for (String command :
         new String[] {
-          "find /",
-          "du",
-          "du data",
-          "du /data",
-          "grep -R message /data/data",
-          "ls -R",
-          "ls -R data",
-          "ls -R /data/user",
-          "cp -R /data/data /sdcard/Download/apps"
-        }) {
-      DeviceShellPolicy.Plan plan = DeviceShellPolicy.inspect(command);
-      assertNotEquals(command, DeviceShellPolicy.Kind.DENY, plan.kind);
-      assertTrue(command, DeviceShellPolicy.rootReadMayDescend(plan));
-      assertFalse(command, DeviceShellPolicy.rootReadPaths(plan).isEmpty());
-      boolean coversSmsTree = false;
-      for (String path : DeviceShellPolicy.rootReadPaths(plan))
-        coversSmsTree |=
-            path.equals(".")
-                || !path.startsWith("/")
-                || DeviceShellPolicy.smsProviderDescendant(path);
-      assertTrue(
-          command + " omitted recursive input path: " + DeviceShellPolicy.rootReadPaths(plan),
-          coversSmsTree);
-    }
+          "ls -lar /fixture",
+          "ls --color=never /fixture",
+          "ls -- -R",
+          "grep -e -R /fixture",
+          "grep -- sample -R"
+        })
+      assertEquals(command, DeviceShellPolicy.Kind.READ, DeviceShellPolicy.inspect(command).kind);
+    assertEquals(
+        java.util.List.of("-R"),
+        DeviceShellPolicy.rootReadPaths(DeviceShellPolicy.inspect("ls -- -R")));
+    assertEquals(
+        java.util.List.of("."),
+        DeviceShellPolicy.rootReadPaths(DeviceShellPolicy.inspect("ls -lar")));
+    assertEquals(
+        java.util.List.of("-"), DeviceShellPolicy.rootReadPaths(DeviceShellPolicy.inspect("ls -")));
+    var copy = DeviceShellPolicy.inspect("cp -R /data/data /sdcard/Download/apps");
+    assertEquals(DeviceShellPolicy.Kind.FILE, copy.kind);
+    assertTrue(DeviceShellPolicy.rootReadMayDescend(copy));
+    assertEquals(java.util.List.of("/data/data"), DeviceShellPolicy.rootReadPaths(copy));
     assertTrue(DeviceShellPolicy.smsProviderDescendant("/"));
     assertTrue(DeviceShellPolicy.smsProviderDescendant("/data"));
     assertTrue(DeviceShellPolicy.smsProviderDescendant("/data/user/0"));
@@ -435,14 +440,8 @@ public class DeviceShellPolicyTest {
   }
 
   @Test
-  public void recursiveGrepWithoutInputFilesChecksWorkingDirectory() {
-    assertEquals(
-        java.util.List.of("."),
-        DeviceShellPolicy.rootReadPaths(DeviceShellPolicy.inspect("grep -R -e x")));
-    assertEquals(
-        java.util.List.of("/data/local/tmp/patterns", "."),
-        DeviceShellPolicy.rootReadPaths(
-            DeviceShellPolicy.inspect("grep -Rf/data/local/tmp/patterns")));
+  public void recursiveGrepWithoutInputFilesIsRefusedButPatternValuesRemainData() {
+    denied("grep -R -e x", "grep -Rf/data/local/tmp/patterns");
     assertEquals(
         java.util.List.of(),
         DeviceShellPolicy.rootReadPaths(DeviceShellPolicy.inspect("grep -e -R")));

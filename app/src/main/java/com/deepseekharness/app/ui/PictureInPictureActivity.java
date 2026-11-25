@@ -15,6 +15,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Rect;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Icon;
 import android.os.Build;
 import android.os.Bundle;
@@ -32,7 +33,7 @@ public abstract class PictureInPictureActivity extends AppCompatActivity {
   private PictureInPictureFrame pictureFrame;
   private final com.deepseekharness.app.util.BrowserPresentationState presentation =
       new com.deepseekharness.app.util.BrowserPresentationState();
-  private int browserThemeColor;
+  private final ColorDrawable browserBackground = new ColorDrawable();
   private boolean restoredPresentation;
   private boolean userHidden;
   private SharedPreferences picturePreferences;
@@ -139,7 +140,7 @@ public abstract class PictureInPictureActivity extends AppCompatActivity {
     presentation.restore(saved == null ? "FULL" : saved.getString("browser-presentation", "FULL"));
     userHidden = saved != null && saved.getBoolean("browser-user-hidden", false);
     if (showing(this)) presentation.picture(true);
-    browserThemeColor = getColor(R.color.surface);
+    browserBackground.setColor(getColor(R.color.surface));
     if (saved != null) {
       restoredViewportWidth = saved.getInt("pip-viewport-width");
       restoredViewportHeight = saved.getInt("pip-viewport-height");
@@ -172,8 +173,9 @@ public abstract class PictureInPictureActivity extends AppCompatActivity {
     android.view.View webpage = getLayoutInflater().inflate(layout, pictureFrame, false);
     pictureFrame.addView(webpage, new android.widget.FrameLayout.LayoutParams(-1, -1));
     super.setContentView(pictureFrame);
-    if (restoredPresentation) updatePresentationLayout();
-    else receivePresentationIntent();
+    // 窗口底色同时覆盖安全区、加载空白和小窗留边，避免内容层再各画一遍整面背景。
+    getWindow().setBackgroundDrawable(browserBackground);
+    if (!restoredPresentation) receivePresentationIntent();
     pictureFrame.addOnLayoutChangeListener(
         (view, l, t, r, b, oldL, oldT, oldR, oldB) -> refreshPictureInPicture());
   }
@@ -287,10 +289,14 @@ public abstract class PictureInPictureActivity extends AppCompatActivity {
   /** 隐藏和替换入口先撤销排队路由及鉴权；浏览器实例继续保留。 */
   protected void cancelConversationRequests() {}
 
-  protected final void hideConversation() {
-    if (isFinishing() || isDestroyed()) return;
+  /** 先打开原生子页，等返回旧网页宿主时再交还原生主任务。 */
+  protected final void openNativeDestination(Intent destination) {
+    if (!userHidden && markConversationHidden(showing(this))) startActivity(destination);
+  }
+
+  private boolean markConversationHidden(boolean inPicture) {
+    if (isFinishing() || isDestroyed()) return false;
     BrowserTasks.nativeNavigation();
-    boolean inPicture = showing(this);
     if (inPicture) pictureExitRequested = true;
     presentation.hide();
     userHidden = true;
@@ -302,6 +308,12 @@ public abstract class PictureInPictureActivity extends AppCompatActivity {
         (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
     if (input != null && pictureFrame != null)
       input.hideSoftInputFromWindow(pictureFrame.getWindowToken(), 0);
+    return true;
+  }
+
+  protected final void hideConversation() {
+    boolean inPicture = showing(this);
+    if (!markConversationHidden(inPicture)) return;
     // 保留任务及 ViewModel；再次进入接管同一页面、草稿和浏览器会话。
     if (inPicture) {
       // 先将同一宿主从 PiP 展开，再显式返回原生主页；保留当前网页。宿主不再独占 affinity，
@@ -351,12 +363,10 @@ public abstract class PictureInPictureActivity extends AppCompatActivity {
       userHidden = true;
       leavingForActivity = true;
       cancelConversationRequests();
-      updatePresentationLayout();
       if (!showing(this)) hideConversationTask();
       return;
     }
     if (requested != null || conversationHidden()) showConversation();
-    else updatePresentationLayout();
   }
 
   private void showConversation() {
@@ -365,7 +375,6 @@ public abstract class PictureInPictureActivity extends AppCompatActivity {
     leavingForActivity = false;
     if (getIntent() != null) getIntent().putExtra(BrowserConversationRoute.MODE, "FULL");
     synchronizePictureViewport();
-    updatePresentationLayout();
     WebFullscreenUi.applySystemBars(this);
     android.view.View content = findViewById(android.R.id.content);
     if (content != null) ViewCompat.requestApplyInsets(content);
@@ -373,16 +382,11 @@ public abstract class PictureInPictureActivity extends AppCompatActivity {
   }
 
   public final void applyBrowserTheme(int color) {
-    browserThemeColor = color;
-    updatePresentationLayout();
+    browserBackground.setColor(color);
   }
 
   public final int browserThemeColor() {
-    return browserThemeColor;
-  }
-
-  private void updatePresentationLayout() {
-    if (pictureFrame != null) pictureFrame.setBackgroundColor(browserThemeColor);
+    return browserBackground.getColor();
   }
 
   /** A reused task can return full screen before its PiP mode callback is delivered. */
@@ -411,7 +415,6 @@ public abstract class PictureInPictureActivity extends AppCompatActivity {
   public void onPictureInPictureModeChanged(boolean inPicture, Configuration config) {
     if (!inPicture) pictureExitRequested = false;
     presentation.picture(inPicture);
-    updatePresentationLayout();
     if (pictureFrame != null) pictureFrame.setCompact(inPicture);
     super.onPictureInPictureModeChanged(inPicture, config);
     WebFullscreenUi.applySystemBars(this);
@@ -435,7 +438,6 @@ public abstract class PictureInPictureActivity extends AppCompatActivity {
     super.onStart();
     if (conversationHidden() && !userHidden) {
       presentation.show();
-      updatePresentationLayout();
       WebFullscreenUi.applySystemBars(this);
     }
     if (showing(this)) {

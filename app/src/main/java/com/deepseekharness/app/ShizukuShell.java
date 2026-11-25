@@ -18,12 +18,13 @@ public final class ShizukuShell {
   private static final Handler MAIN = new Handler(Looper.getMainLooper());
   private static final Object LOCK = new Object();
   private static volatile Context context;
-  private static volatile IShellService service;
-  private static volatile ServiceConnection connection;
+  private static volatile OwnedConnection connection;
+  // Main-thread only. A revoked grant can prevent both manager removal and SDK detachment.
+  private static final java.util.Set<OwnedConnection> unfinishedReleases =
+      new java.util.HashSet<>();
   private static volatile String failure = "";
   // 最近一次用户点击授权的结果，只影响文案；Binder 断开或重新请求时清空。
   private static volatile ShizukuChannelStatus.Outcome outcome = ShizukuChannelStatus.Outcome.NONE;
-  private static Shizuku.UserServiceArgs arguments;
   private static boolean listening;
   private static int requestCode = 9527;
 
@@ -41,7 +42,9 @@ public final class ShizukuShell {
               MAIN.post(
                   () -> {
                     outcome = ShizukuChannelStatus.Outcome.NONE;
-                    disconnect(UiText.text("Shizuku 服务已停止"), false);
+                    OwnedConnection current = connection;
+                    if (current != null && (!current.sameManager() || !isAvailable()))
+                      disconnect(current, UiText.text("Shizuku 服务已停止"));
                   }));
       Shizuku.addBinderReceivedListenerSticky(() -> MAIN.post(() -> ensureBound(context)));
     } catch (Throwable e) {
@@ -73,8 +76,14 @@ public final class ShizukuShell {
   }
 
   public static boolean isReady() {
-    IShellService current = service;
-    return hasPermission() && current != null && current.asBinder().pingBinder();
+    return readyService() != null;
+  }
+
+  private static IShellService readyService() {
+    OwnedConnection current = connection;
+    if (current == null || !hasPermission() || !current.sameManager()) return null;
+    IShellService bound = current.bound;
+    return bound != null && bound.asBinder().pingBinder() && connection == current ? bound : null;
   }
 
   /** 只读事实，不触发绑定或授权；真实 UID 与本次业务许可仍需独立回执。 */
@@ -99,6 +108,7 @@ public final class ShizukuShell {
   }
 
   public static String status() {
+    OwnedConnection current = connection;
     return "binder="
         + isAvailable()
         + ",permission="
@@ -106,7 +116,7 @@ public final class ShizukuShell {
         + ",bound="
         + isReady()
         + ",binding="
-        + (connection != null && service == null)
+        + (current != null && current.bound == null)
         + (outcome == ShizukuChannelStatus.Outcome.NONE ? "" : ",request=" + outcome)
         + (failure.isEmpty() ? "" : ",error=" + failure);
   }
@@ -201,7 +211,7 @@ public final class ShizukuShell {
                         : timedOut[0]
                             ? ShizukuChannelStatus.Outcome.TIMEOUT
                             : ShizukuChannelStatus.Outcome.DENIED;
-                if (result == PackageManager.PERMISSION_GRANTED) ensureBound(context);
+                ensureBound(context);
                 if (callback != null) callback.onRequestPermissionResult(code, result);
               };
           try {
@@ -232,100 +242,162 @@ public final class ShizukuShell {
     }
     if (context == null) return;
     if (!hasPermission()) {
-      if (connection != null) disconnect("", true);
+      disconnect(connection, "");
       return;
     }
+    for (OwnedConnection old : new java.util.ArrayList<>(unfinishedReleases))
+      releaseBinding(old, null);
     if (isReady()) return;
-    if (service != null) disconnect("", true);
+    if (connection != null && (connection.bound != null || !connection.sameManager()))
+      disconnect(connection, "");
     if (connection != null) return;
-    failure = "";
-    arguments =
+    int ownerUid = android.os.Process.myUid();
+    // Shizuku otherwise shares a service between profiles. A fresh tag also prevents a late
+    // remove for an expired bind from removing its replacement.
+    var args =
         new Shizuku.UserServiceArgs(new ComponentName(context, ShellService.class))
-            .processNameSuffix("shizuku")
-            .tag("dsha-device-shell")
+            .processNameSuffix("shizuku_" + ownerUid)
+            .tag("dsha-device-shell-" + ownerUid + "-" + java.util.UUID.randomUUID())
             .daemon(false)
             .version(BuildConfig.VERSION_CODE);
-    ServiceConnection pending =
-        new ServiceConnection() {
-          @Override
-          public void onServiceConnected(ComponentName name, IBinder binder) {
-            if (connection != this) return;
-            try {
-              if (binder == null || !binder.pingBinder())
-                throw new IllegalStateException(
-                    com.deepseekharness.app.util.UiText.text("设备 Shell 返回了失效的 Binder"));
-              binder.linkToDeath(
-                  () ->
-                      MAIN.post(
-                          () ->
-                              lost(this, com.deepseekharness.app.util.UiText.text("设备 Shell 已退出"))),
-                  0);
-              synchronized (LOCK) {
-                service = IShellService.Stub.asInterface(binder);
-                failure = "";
-                LOCK.notifyAll();
-              }
-            } catch (Throwable e) {
-              fail(e);
-              lost(this, failure);
-            }
-          }
-
-          @Override
-          public void onServiceDisconnected(ComponentName name) {
-            lost(this, com.deepseekharness.app.util.UiText.text("设备 Shell 连接断开"));
-          }
-
-          @Override
-          public void onBindingDied(ComponentName name) {
-            lost(this, com.deepseekharness.app.util.UiText.text("设备 Shell 绑定已失效"));
-          }
-
-          @Override
-          public void onNullBinding(ComponentName name) {
-            lost(this, com.deepseekharness.app.util.UiText.text("设备 Shell 未返回 Binder"));
-          }
-        };
+    OwnedConnection pending = new OwnedConnection(args);
     connection = pending;
+    failure = "";
     try {
-      Shizuku.bindUserService(arguments, pending);
-      MAIN.postDelayed(
+      Shizuku.bindUserService(args, pending);
+      MAIN.postDelayed(pending.timeout, 15_000);
+    } catch (RuntimeException error) {
+      fail(error);
+      disconnect(pending, failure);
+    }
+  }
+
+  /** Each callback and timer refers to the exact manager record created for this bind. */
+  private static final class OwnedConnection implements ServiceConnection {
+    final Shizuku.UserServiceArgs args;
+    final IBinder manager = Shizuku.getBinder();
+    volatile IShellService bound;
+    boolean removePending = true;
+    boolean detachPending = true;
+
+    boolean sameManager() {
+      return manager != null && manager == Shizuku.getBinder();
+    }
+
+    final Runnable timeout =
+        () -> {
+          if (connection == this && bound == null) disconnect(this, UiText.text("设备 Shell 连接超时"));
+        };
+
+    OwnedConnection(Shizuku.UserServiceArgs args) {
+      this.args = args;
+    }
+
+    @Override
+    public void onServiceConnected(ComponentName name, IBinder binder) {
+      // Defer removal until Shizuku has finished iterating its local callback set.
+      MAIN.post(
           () -> {
-            if (connection == pending && service == null)
-              disconnect(com.deepseekharness.app.util.UiText.text("设备 Shell 连接超时"), true);
-          },
-          15_000);
-    } catch (Throwable e) {
-      fail(e);
-      disconnect(failure, true);
+            if (connection != this) {
+              releaseReturnedService(binder);
+              return;
+            }
+            if (!sameManager() || !hasPermission()) {
+              disconnect(this, "");
+              releaseReturnedService(binder);
+              return;
+            }
+            if (binder == null || !binder.pingBinder()) {
+              lost(this, UiText.text("设备 Shell 返回了失效的 Binder"));
+              return;
+            }
+            MAIN.removeCallbacks(timeout);
+            synchronized (LOCK) {
+              bound = IShellService.Stub.asInterface(binder);
+              failure = "";
+              LOCK.notifyAll();
+            }
+          });
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName name) {
+      MAIN.post(() -> lost(this, UiText.text("设备 Shell 连接断开")));
+    }
+
+    @Override
+    public void onBindingDied(ComponentName name) {
+      MAIN.post(() -> lost(this, UiText.text("设备 Shell 绑定已失效")));
+    }
+
+    @Override
+    public void onNullBinding(ComponentName name) {
+      MAIN.post(() -> lost(this, UiText.text("设备 Shell 未返回 Binder")));
     }
   }
 
-  private static void lost(ServiceConnection expected, String message) {
-    if (Looper.myLooper() != Looper.getMainLooper()) {
-      MAIN.post(() -> lost(expected, message));
-      return;
-    }
+  private static void lost(OwnedConnection expected, String message) {
     if (connection != expected) return;
-    disconnect(message, true);
-    MAIN.postDelayed(() -> ensureBound(context), 4000);
+    disconnect(expected, message);
+    MAIN.postDelayed(
+        () -> {
+          if (connection == null && hasPermission()) ensureBound(context);
+        },
+        4000);
   }
 
-  private static void disconnect(String message, boolean unbind) {
-    ServiceConnection old = connection;
-    Shizuku.UserServiceArgs oldArguments = arguments;
+  private static void disconnect(OwnedConnection expected, String message) {
+    if (expected == null || connection != expected) return;
+    MAIN.removeCallbacks(expected.timeout);
+    IShellService attached;
     synchronized (LOCK) {
+      attached = expected.bound;
+      expected.bound = null;
       connection = null;
-      service = null;
       failure = message;
       LOCK.notifyAll();
     }
-    if (unbind && old != null && oldArguments != null) {
+    releaseBinding(expected, attached);
+  }
+
+  private static void releaseBinding(OwnedConnection old, IShellService attached) {
+    // remove=true removes the manager record. remove=false clears the SDK callback cache.
+    if (old.removePending) {
       try {
-        Shizuku.unbindUserService(oldArguments, old, false);
-      } catch (Throwable ignored) {
+        if (old.sameManager()) Shizuku.unbindUserService(old.args, old, true);
+        else if (attached != null) releaseReturnedService(attached.asBinder());
+        old.removePending = false;
+      } catch (RuntimeException denied) {
+        if (attached != null) releaseReturnedService(attached.asBinder());
       }
     }
+    if (old.detachPending) {
+      try {
+        Shizuku.unbindUserService(old.args, old, false);
+        old.detachPending = false;
+      } catch (RuntimeException denied) {
+        // Retry this exact tag when a manager and grant are available again.
+      }
+    }
+    if (old.removePending || old.detachPending) unfinishedReleases.add(old);
+    else unfinishedReleases.remove(old);
+  }
+
+  private static void releaseReturnedService(IBinder binder) {
+    if (binder == null || !binder.pingBinder()) return;
+    // The synchronous historical close can wait for the remote service to reap a child.
+    Thread cleanup =
+        new Thread(
+            () -> {
+              try {
+                IShellService.Stub.asInterface(binder).destroy();
+              } catch (android.os.RemoteException | RuntimeException gone) {
+                android.util.Log.d("ShizukuShell", "UserService already unavailable");
+              }
+            },
+            "dsha-shizuku-release");
+    cleanup.setDaemon(true);
+    cleanup.start();
   }
 
   private static void fail(Throwable error) {
@@ -354,9 +426,8 @@ public final class ShizukuShell {
   }
 
   public static String exec(String command) {
-    if (!awaitReady(context, 8000))
-      return "[SHIZUKU_SERVICE_NOT_READY] " + status() + "\n[EXIT=124]";
-    IShellService current = service;
+    IShellService current = awaitReady(context, 8000) ? readyService() : null;
+    if (current == null) return "[SHIZUKU_SERVICE_NOT_READY] " + status() + "\n[EXIT=124]";
     try {
       return current.exec(command);
     } catch (Throwable e) {
@@ -369,12 +440,12 @@ public final class ShizukuShell {
   /** No Binder call is attempted when readiness is unavailable. */
   public static com.deepseekharness.app.device.DeviceTransportResult execVirtualScreenTyped(
       String command) {
-    if (!awaitReady(context, 8000))
+    IShellService current = awaitReady(context, 8000) ? readyService() : null;
+    if (current == null)
       return com.deepseekharness.app.device.DeviceTransportResult.notSent(
           "shizuku",
           "SHIZUKU_SERVICE_NOT_READY",
           "[SHIZUKU_SERVICE_NOT_READY] " + status() + "\n[EXIT=124]");
-    IShellService current = service;
     try {
       return com.deepseekharness.app.device.DeviceTransportResult.fromLegacy(
           "shizuku",
@@ -393,9 +464,8 @@ public final class ShizukuShell {
 
   /** Dedicated native-only operation; the generic Binder exec still rejects app_process. */
   public static String execVirtualScreen(String command) {
-    if (!awaitReady(context, 8000))
-      return "[SHIZUKU_SERVICE_NOT_READY] " + status() + "\n[EXIT=124]";
-    IShellService current = service;
+    IShellService current = awaitReady(context, 8000) ? readyService() : null;
+    if (current == null) return "[SHIZUKU_SERVICE_NOT_READY] " + status() + "\n[EXIT=124]";
     try {
       return current.execVirtualScreen(command);
     } catch (Throwable e) {

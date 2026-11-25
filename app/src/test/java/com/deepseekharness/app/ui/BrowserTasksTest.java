@@ -10,6 +10,7 @@ import android.content.ContextWrapper;
 import android.content.Intent;
 import android.os.Bundle;
 import com.deepseekharness.app.core.ConfigStore;
+import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
@@ -438,7 +439,7 @@ public final class BrowserTasksTest {
     field.set(null, value);
   }
 
-  /** 以 Web 为根、但存活 Main 已加入的同一任务（通知先开 Web 的单任务布局）。 */
+  /** 模拟仍由系统保留的 Main。用例需持有返回值直至断言完毕。 */
   private Host liveMainIn(int task) throws Exception {
     var main = new Host();
     main.id = task;
@@ -449,18 +450,19 @@ public final class BrowserTasksTest {
 
   @Test
   public void sharedWebRootedTaskWithLiveMainStaysTheOneVisibleCard() throws Exception {
-    liveMainIn(7);
+    var main = liveMainIn(7);
     var shared = task(7, WebPreviewActivity.class, 2);
     var legacyMain = task(3, MainActivity.class, 1);
     Shadow.<ShadowActivityManager>extract(manager).setAppTasks(List.of(legacyMain, shared));
     BrowserTasks.reconcileRecents(context, -1);
     assertFalse(Shadow.<ShadowAppTask>extract(shared).isExcludedFromRecents());
     assertTrue(Shadow.<ShadowAppTask>extract(legacyMain).isExcludedFromRecents());
+    Reference.reachabilityFence(main);
   }
 
   @Test
   public void explicitHomeReordersMainInsideTheSharedTaskInsteadOfAnotherWindow() throws Exception {
-    liveMainIn(7);
+    var main = liveMainIn(7);
     var browser = new Browser();
     setField(
         BrowserConversationRoute.class,
@@ -477,6 +479,7 @@ public final class BrowserTasksTest {
     assertEquals(
         Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP, intent.getFlags());
     assertFalse(browser.finished);
+    Reference.reachabilityFence(main);
   }
 
   @Test
@@ -509,6 +512,7 @@ public final class BrowserTasksTest {
     bounced.entry = forward;
     assertFalse(BrowserTasks.forwardToLiveBrowser(bounced));
     assertTrue(bounced.starts.isEmpty());
+    Reference.reachabilityFence(live);
   }
 
   @Test
@@ -529,6 +533,7 @@ public final class BrowserTasksTest {
     var orphan = new Browser();
     assertFalse(BrowserTasks.forwardToLiveBrowser(orphan));
     assertTrue(orphan.starts.isEmpty());
+    Reference.reachabilityFence(live);
   }
 
   @Test
@@ -558,7 +563,7 @@ public final class BrowserTasksTest {
   @Test
   public void disablingThePreferenceRestoresTheSingleMainCard() throws Exception {
     new ConfigStore(context).setHideFromRecents(false);
-    liveMainIn(8);
+    var main = liveMainIn(8);
     var oldMain = task(3, MainActivity.class, 4);
     var currentMain = task(8, MainActivity.class, 1);
     var browser = task(7, WebPreviewActivity.class, 1);
@@ -568,6 +573,7 @@ public final class BrowserTasksTest {
     assertTrue(Shadow.<ShadowAppTask>extract(oldMain).isExcludedFromRecents());
     assertFalse(Shadow.<ShadowAppTask>extract(currentMain).isExcludedFromRecents());
     assertTrue(Shadow.<ShadowAppTask>extract(browser).isExcludedFromRecents());
+    Reference.reachabilityFence(main);
   }
 
   @Test
@@ -594,7 +600,7 @@ public final class BrowserTasksTest {
   @Test
   public void replayingOnResumeWithThePreferenceOffKeepsTheLiveMainCardVisible() throws Exception {
     new ConfigStore(context).setHideFromRecents(false);
-    liveMainIn(8);
+    var main = liveMainIn(8);
     var currentMain = task(8, MainActivity.class, 1);
     var preview = task(7, WebPreviewActivity.class, 1);
     Shadow.<ShadowActivityManager>extract(manager).setAppTasks(List.of(currentMain, preview));
@@ -602,5 +608,6 @@ public final class BrowserTasksTest {
     assertFalse(Shadow.<ShadowAppTask>extract(currentMain).isExcludedFromRecents());
     // 网页宿主按既有单主卡规则继续隐藏，关闭偏好不会把预览页放回最近任务。
     assertTrue(Shadow.<ShadowAppTask>extract(preview).isExcludedFromRecents());
+    Reference.reachabilityFence(main);
   }
 }

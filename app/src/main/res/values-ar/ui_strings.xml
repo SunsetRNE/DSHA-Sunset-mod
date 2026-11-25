@@ -61,7 +61,7 @@
     <string name="ui134_recent_startups" formatted="false">"آخر خمس عمليات بدء تشغيل"</string>
     <string name="ui134_recent_startups_sub" formatted="false">"المراحل والأخطاء ورموز الخروج"</string>
     <string name="ui134_results" formatted="false">"نتائج الفحص"</string>
-    <string name="ui134_root_hint" formatted="false">"عندما يكون الهاتف بصلاحيات root، يمكن استخدام su مباشرة دون اقتران ADB. فوّض DSHA في مدير root عند أول تنفيذ. اختر مستوى اعتراض الأوامر أدناه؛ تظل البوابات الأصلية مثل قراءة الرسائل سارية في المستويات الثلاثة."</string>
+    <string name="ui134_root_hint" formatted="false">"اسمح لتطبيق DSHA في مدير صلاحيات الجذر عند الاستخدام الأول. يحظر الوضع الصارم قراءة المجلدات بشكل تكراري. تتطلب استعلامات الرسائل القصيرة المُدارة موافقة منفصلة. في كلا الوضعين المخففين، تستطيع برامج الجذر النصية قراءة البيانات الخاصة مباشرة."</string>
     <string name="ui134_screen_setup" formatted="false">"إعداد التحكم في الشاشة · خطوتان"</string>
     <string name="ui134_shizuku_hint" formatted="false">"شغّل Shizuku في مديره، ثم فوّض DSHA هنا. تحتاج الخدمة عادةً إلى إعادة التشغيل بعد إقلاع الجهاز."</string>
     <string name="ui134_start_records" formatted="false">"سجلات بدء التشغيل"</string>
@@ -130,7 +130,7 @@
     <string name="ui2_meet" formatted="false">"اكتشف DSHA"</string>
     <string name="ui2_network_runtime" formatted="false">"بيئة التشغيل والشبكة"</string>
     <string name="ui2_offline_badge" formatted="false">"إعداد دون اتصال  ·  دون صلاحيات الجذر  ·  %1$s"</string>
-    <string name="ui2_online_notice" formatted="false">"تتلقى النماذج المتصلة بالإنترنت الرسائل والمرفقات التي تختار إرسالها."</string>
+    <string name="ui2_online_notice" formatted="false">"قد يتلقى النموذج المتصل بالإنترنت الذي اخترته الرسائل والمرفقات ونتائج الأدوات، مثل نص الشاشة أو لقطاتها."</string>
     <string name="ui2_overlay" formatted="false">"الحالة العائمة"</string>
     <string name="ui2_overlay_sub" formatted="false">"المحتوى والعتامة ومدة العرض"</string>
     <string name="ui2_plugin_link" formatted="false">"رابط المستودع أو التنزيل"</string>
@@ -187,7 +187,6 @@
     <string name="ui_adb_code_label" formatted="false">"رمز الاقتران (6 أرقام)"</string>
     <string name="ui_adb_host_label" formatted="false">"عنوان الجهاز (فارغ = اكتشاف)"</string>
     <string name="ui_adb_port_label" formatted="false">"منفذ الاقتران (فارغ = اكتشاف)"</string>
-    <string name="ui_lan_unencrypted" formatted="false">"حركة الشبكة المحلية غير مشفّرة؛ اقتصر على شبكات وأجهزة موثوقة"</string>
     <string name="ui_language_title" formatted="false">"اللغة"</string>
     <string name="ui_m0001" formatted="false">"تنزيل التحديث"</string>
     <string name="ui_m0002" formatted="false">"حفظ الإعدادات"</string>

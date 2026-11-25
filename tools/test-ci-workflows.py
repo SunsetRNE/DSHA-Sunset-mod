@@ -147,14 +147,15 @@ class ReleaseGraph(unittest.TestCase):
             self.assertIn(f"--identity {self.identity}", self.jobs["sign-verify"])
             self.assertIn("tools/sign-release-apks.py", self.jobs["sign-verify"])
         else:
+            unsigned = self.jobs["build-unsigned"]
             signed = self.jobs["build-signed"]
-            self.assertIn(f":app:assembleStandardRelease -Pdsha.identity={self.identity} ", signed)
-            self.assertIn(f"open('ci/release-identity.{self.identity}.json'", signed)
+            self.assertIn(f":app:assembleStandardRelease -Pdsha.identity={self.identity} -Pdsha.unsignedPackage=true", unsigned)
+            self.assertIn(f"--identity {self.identity}", signed)
+            self.assertIn("tools/sign-release-apks.py --apk", signed)
             self.assertIn("${KEY_ALIAS:-" + self.expected["keyAlias"] + "}", signed)
             self.assertIn(f"application-label:'{self.expected['appName']}'", signed)
-            self.assertIn("match.group(1) != identity['certificateSha256']", signed)
-            self.assertIn("if 'application-debuggable' in badging:", signed)
-            self.assertIn("version_name.endswith(('-test', '-SunsetTest', '-island'))", signed)
+            self.assertNotIn("./gradlew", signed)
+            self.assertNotIn("./.github/actions/restore-handoff", signed)
         tag = self.expected["tagPrefix"]
         self.assertIn(f"re.fullmatch(r'{tag}[0-9]+-[0-9]{{8}}-[0-9]{{6}}', tag)", self.jobs["bind"])
         self.assertIn(f"output.write('apk_name={self.expected['apkPrefix']}-'", self.jobs["bind"])
@@ -190,10 +191,11 @@ class ReleaseGraph(unittest.TestCase):
         else:
             self.assertEqual(set(self.jobs), {"bind", "contracts", "java-format", "kotlin-format",
                                               "host-regression", "inputs", "unit", "lint",
-                                              "build-signed", "publish"})
+                                              "build-unsigned", "build-signed", "publish"})
+            self.assertEqual(needs(self.jobs["build-unsigned"]), {"bind", "inputs"})
             self.assertEqual(needs(self.jobs["build-signed"]),
                              {"bind", "contracts", "java-format", "kotlin-format", "host-regression",
-                              "inputs", "unit", "lint"})
+                              "inputs", "unit", "lint", "build-unsigned"})
             self.assertEqual(needs(self.jobs["publish"]), {"bind", "build-signed"})
             for name in ("contracts", "java-format", "kotlin-format", "host-regression", "inputs"):
                 self.assertEqual(needs(self.jobs[name]), {"bind"}, name)
@@ -244,11 +246,19 @@ class ReleaseGraph(unittest.TestCase):
             self.assertLess(signed.index("Sign unsigned production APK and verify identity"),
                             signed.index("Package commit-bound build evidence"))
         else:
+            unsigned = self.jobs["build-unsigned"]
             signed = self.jobs["build-signed"]
-            gate = signed.index("tools/verify-apk-managed-assets.py")
-            self.assertLess(
-                signed.index("Verify production APK identity and signing certificate"), gate)
-            self.assertLess(gate, signed.index("Package commit-bound build evidence"))
+            gate = unsigned.index("tools/verify-apk-managed-assets.py")
+            handoff = unsigned.index("Hand unsigned APK to the signing node")
+            self.assertLess(unsigned.index("tools/sign-release-apks.py --check-only"), gate)
+            self.assertLess(gate, handoff)
+            self.assertLess(unsigned.index("tools/verify-third-party-apk.py"), handoff)
+            self.assertIn("needs.build-unsigned.outputs.apk_sha256", signed)
+            self.assertLess(signed.index('= "$EXPECTED_UNSIGNED_SHA"'),
+                            signed.index("tools/sign-release-apks.py --apk"))
+            self.assertNotIn("DSHA_KEYSTORE_PASSWORD=%s", signed)
+            self.assertLess(signed.index("Sign unsigned production APK and verify identity"),
+                            signed.index("Package commit-bound build evidence"))
 
     def test_full_unit_tests_require_fixtures_with_one_fork(self):
         unit = self.jobs["unit"]
@@ -538,21 +548,23 @@ class RustGraph(unittest.TestCase):
         self.assertIn("mode: repro", package["rust-repro"])
         self.assertIn("mode: native", package["rust-native"])
 
-    def test_full_unit_runs_build_the_host_library_for_rust_differential(self):
-        # R1：full 单测要求 0 skipped；RustDigestDifferentialTest 需要主机目标 .so，
-        # 所有 full 调用方都必须传 rust_host=true（source-only 的 unit-source 不传）。
+    def test_full_and_source_unit_runs_supply_real_host_native_golden_input(self):
+        # source-only 只省略归档夹具；缺库硬失败的 JNI 黄金也必须拿到真实 host .so。
         node = text("_node-unit-tests.yml")
         for fragment in ("rust_host:", "tools/rust/build.py --host --expect-lock",
                          "-Pdsha.rust.hostLib=$PWD/out/rust-host/libdsha_rs.so",
                          "-Pdsha.rust.required=true"):
             with self.subTest(fragment=fragment):
                 self.assertIn(fragment, node)
+        request = node.split("      rust_host:", 1)[1].split("      artifact:", 1)[0]
+        self.assertIn("default: true", request)
         for name in ("release-production.yml", "release-upstream.yml", "test-package.yml",
-                     "test-package-variants.yml"):
+                     "test-package-variants.yml", "unit-tests.yml", "ci-fast.yml"):
             with self.subTest(workflow=name):
                 self.assertIn("rust_host: true", text(name))
-        self.assertIn("rust_host: ${{ inputs.mode == 'full' }}", text("unit-tests.yml"))
-        self.assertNotIn("rust_host: true", text("ci-fast.yml"))
+        self.assertNotIn("rust_host: ${{ inputs.mode == 'full' }}", text("unit-tests.yml"))
+        native_golden = ROOT / "app/src/test/java/com/deepseekharness/app/util/RustBridgeNativeGoldenTest.java"
+        self.assertNotIn("Assume", native_golden.read_text(encoding="utf-8"))
 
     def test_artifact_lock_is_registered_for_every_build_target(self):
         # R1：产物摘要口径固定；跨 run 复现证据不足时保持 pending，不得写死不可复现字段。

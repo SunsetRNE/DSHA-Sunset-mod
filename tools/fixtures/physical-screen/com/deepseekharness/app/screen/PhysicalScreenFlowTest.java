@@ -64,9 +64,9 @@ public final class PhysicalScreenFlowTest {
       var executor = new ScreenActionExecutor(null, null, null);
       var coordinate =
           ScreenActionExecutor.class.getDeclaredMethod(
-              "coordinate", ScreenRequestContext.class, String.class, JSONObject.class);
+              "coordinate", ScreenRequestContext.class, com.deepseekharness.app.util.PhysicalActionRequest.Pixel.class, JSONObject.class);
       coordinate.setAccessible(true);
-      JSONObject result = (JSONObject) coordinate.invoke(executor, null, "tap", new JSONObject());
+      JSONObject result = (JSONObject) coordinate.invoke(executor, null, new com.deepseekharness.app.util.PhysicalActionRequest.Pixel(com.deepseekharness.app.util.PhysicalActionRequest.Operation.TAP, ""), new JSONObject());
       assertEquals("NOT_SENT", result.getString("state"));
       assertEquals("GESTURE_UNSUPPORTED", result.getString("code"));
       var display =
@@ -103,6 +103,10 @@ public final class PhysicalScreenFlowTest {
     Platform.reset();
     broker = new CapabilityBroker(clock::get);
     service = Robolectric.buildService(DshaAccessibilityService.class).get();
+    var display = service.getSystemService(android.hardware.display.DisplayManager.class).getDisplay(0);
+    org.robolectric.shadows.ShadowDisplay geometry = Shadow.extract(display);
+    geometry.setRealWidth(8);
+    geometry.setRealHeight(12);
     app = window(41, 1, AccessibilityWindowInfo.TYPE_APPLICATION, true, new Rect(0, 0, 8, 12));
     root = AccessibilityNodeInfo.obtain();
     root.setPackageName(PACKAGE);
@@ -161,7 +165,7 @@ public final class PhysicalScreenFlowTest {
         .put("x",3).put("y",8),2000).getString("state"));
     windows.add(window(78,21,AccessibilityWindowInfo.TYPE_SYSTEM,false,new Rect(2,3,4,5)));
     register(service);
-    assertFalse(shot().getBoolean("coordinatesAvailable"));
+    assertWithheld(shot());
   }
 
   @Test
@@ -198,9 +202,7 @@ public final class PhysicalScreenFlowTest {
     assertEquals(0,Platform.sends.get());
     ownRoot.setPackageName("org.example.foreign");
     JSONObject foreign = shot();
-    assertFalse(foreign.getBoolean("coordinatesAvailable"));
-    assertEquals(77,foreign.getJSONObject("geometry").getJSONArray("occludingWindows")
-        .getJSONObject(0).getInt("windowId"));
+    assertWithheld(foreign);
     ownRoot.setPackageName(service.getPackageName());
     com.deepseekharness.app.control.OwnedScreenOverlay.publish("physical-fixture",77,
         new com.deepseekharness.app.util.ScreenWindowRegion.Bounds(5,4,7,5),true);
@@ -214,9 +216,7 @@ public final class PhysicalScreenFlowTest {
     com.deepseekharness.app.control.OwnedScreenOverlay.publish("physical-fixture",77,
         new com.deepseekharness.app.util.ScreenWindowRegion.Bounds(0,0,8,12),true);
     JSONObject covered = shot();
-    assertFalse(covered.getBoolean("coordinatesAvailable"));
-    assertFalse(covered.has("observationId"));
-    assertEquals("OWNED_CONTROL_COVERS_TARGET", covered.getString("reason"));
+    assertWithheld(covered);
     assertEquals(0,Platform.sends.get());
   }
 
@@ -280,7 +280,7 @@ public final class PhysicalScreenFlowTest {
     ownRoot.setPackageName(service.getPackageName());
     ((ShadowAccessibilityWindowInfo)Shadow.extract(overlay)).setBoundsInScreen(new Rect(0,2,8,10));
     assertEquals("NODE_SCROLL_REGION_UNAVAILABLE",scrollNode().getString("code"));
-    assertFalse(shot().getBoolean("coordinatesAvailable"));
+    assertWithheld(shot());
     assertEquals(1,performed.get());
     assertEquals(0,Platform.sends.get());
   }
@@ -350,8 +350,12 @@ public final class PhysicalScreenFlowTest {
     http.start();
     try {
       String script = """
-          const assert=require('node:assert/strict'),server=require(process.argv[1]);
+          const assert=require('node:assert/strict'),path=require('node:path');
           const base=process.argv[2], task={sessionId:'fixture-mcp-node-task',turnId:'1'};
+          // The guest port file is a separate production boundary. Bind this test to its own loopback server.
+          const portModule=require.resolve(path.join(path.dirname(process.argv[1]),'bridge-port.cjs'));
+          require.cache[portModule]={id:portModule,filename:portModule,loaded:true,exports:()=>Number(new URL(base).port)};
+          const server=require(process.argv[1]);
           const deps={fs:{async readFile(path){assert.equal(path,'/root/.dsh/.bridge_token');return 'fixture-token';}},
             fetch(url,options){return fetch(base+url.pathname+url.search,options);}};
           const receipts=[];
@@ -482,6 +486,28 @@ public final class PhysicalScreenFlowTest {
   }
 
   @Test
+  @Config(sdk = 33)
+  public void legacyDisplayScreenshotIsWithheldAndTheTargetSemanticTreeRemainsUsable()
+      throws Exception {
+    root.setText("synthetic-target-control");
+    windows = new ArrayList<>(windows);
+    windows.add(window(58, 8, AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY, false,
+        new Rect(2, 3, 4, 5)));
+    register(service);
+    var blocked = shot();
+    assertEquals("SCREEN_WINDOW_CAPTURE_UNSUPPORTED", blocked.getString("code"));
+    assertFalse(blocked.has("data"));
+    assertFalse(blocked.has("path"));
+    assertFalse(blocked.has("observationId"));
+    assertEquals(0, Pixels.acquisitions.get());
+    var semantic = call("tree", new JSONObject(), 2000);
+    assertTrue(semantic.getBoolean("ok"));
+    assertTrue(semantic.getString("text").contains("synthetic-target-control"));
+    assertFalse(semantic.getString("treeId").isEmpty());
+    assertEquals(0, Platform.sends.get());
+  }
+
+  @Test
   public void actualBridgeHelpExplainsCredentialAndEffectBoundaries() throws Exception {
     assertProductionOrigin(com.deepseekharness.app.HttpShellService.class);
     var bridge =
@@ -580,9 +606,7 @@ public final class PhysicalScreenFlowTest {
     windows.add(overlay);
     register(service);
     JSONObject shot = shot();
-    assertFalse(shot.getBoolean("coordinatesAvailable"));
-    assertFalse(shot.has("observationId"));
-    assertEquals("TARGET_WINDOW_OCCLUDED", shot.getString("reason"));
+    assertWithheld(shot);
     assertEquals("FRAME_NOT_OBSERVED", tap(id, 2000).getString("code"));
     assertEquals(0, Platform.sends.get());
   }
@@ -966,6 +990,14 @@ public final class PhysicalScreenFlowTest {
     assertEquals(0, Platform.globalActions.get());
   }
 
+  private static void assertWithheld(JSONObject reply) throws Exception {
+    assertFalse(reply.getBoolean("ok"));
+    assertEquals("SCREEN_TARGET_WINDOW_OCCLUDED", reply.getString("code"));
+    assertFalse(reply.has("observationId"));
+    assertFalse(reply.has("data"));
+    assertFalse(reply.has("path"));
+  }
+
   private JSONObject shot() throws Exception {
     return call("screenshot", new JSONObject().put("format", "mcp"), 5000);
   }
@@ -1099,7 +1131,8 @@ public final class PhysicalScreenFlowTest {
     String member = type.getName().replace('.', '/') + ".class";
     try {
       java.nio.file.Path expected =
-          java.nio.file.Path.of(System.getProperty("physical.classes")).resolve(member);
+          java.nio.file.Path.of(System.getProperty(
+              type == CapabilityBroker.class ? "physical.kotlinClasses" : "physical.classes")).resolve(member);
       try (var actual = type.getClassLoader().getResourceAsStream(member)) {
         assertNotNull("actual production resource: " + member, actual);
         assertArrayEquals(
@@ -1117,6 +1150,7 @@ public final class PhysicalScreenFlowTest {
   public static final class Pixels extends ShadowLegacyBitmap {
     static final AtomicInteger acquisitions = new AtomicInteger();
     static final int[] values = new int[8 * 12];
+    static Rect captureBounds;
 
     static void reset() {
       acquisitions.set(0);
@@ -1127,8 +1161,9 @@ public final class PhysicalScreenFlowTest {
     protected static Bitmap wrapHardwareBuffer(HardwareBuffer buffer, ColorSpace colorSpace) {
       if (buffer == null || colorSpace == null) return null;
       acquisitions.incrementAndGet();
-      Bitmap bitmap = Bitmap.createBitmap(8, 12, Bitmap.Config.ARGB_8888);
-      bitmap.setPixels(values.clone(), 0, 8, 0, 0, 8, 12);
+      Rect bounds = captureBounds;
+      Bitmap bitmap = Bitmap.createBitmap(bounds.width(), bounds.height(), Bitmap.Config.ARGB_8888);
+      bitmap.setPixels(values, bounds.top * 8 + bounds.left, 8, 0, 0, bounds.width(), bounds.height());
       return bitmap;
     }
   }
@@ -1176,13 +1211,25 @@ public final class PhysicalScreenFlowTest {
     }
 
     @Implementation(minSdk = 30)
-    @Override
-    protected void takeScreenshot(
-        int displayId,
-        java.util.concurrent.Executor executor,
+    protected void takeScreenshot(int displayId, java.util.concurrent.Executor executor,
+        AccessibilityService.TakeScreenshotCallback callback) {
+      throw new AssertionError("Unexpected whole-display capture");
+    }
+
+    @Implementation(minSdk = 34)
+    protected void takeScreenshotOfWindow(int windowId, java.util.concurrent.Executor executor,
         AccessibilityService.TakeScreenshotCallback callback) {
       if (blockCapture) await(captureRelease);
-      super.takeScreenshot(displayId, executor, callback);
+      for (var window : super.getWindowsOnAllDisplays().get(0)) {
+        if (window.getId() == windowId) {
+          Pixels.captureBounds = new Rect();
+          window.getBoundsInScreen(Pixels.captureBounds);
+          // The stock callback supplies only a fake handle. Pixels above come from the selected window.
+          super.takeScreenshot(0, executor, callback);
+          return;
+        }
+      }
+      executor.execute(() -> callback.onFailure(AccessibilityService.ERROR_TAKE_SCREENSHOT_INVALID_WINDOW));
     }
 
     @Implementation(minSdk = 24)

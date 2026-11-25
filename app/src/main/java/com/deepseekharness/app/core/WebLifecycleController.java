@@ -8,8 +8,10 @@ import android.util.Log;
 import com.deepseekharness.app.runtime.ProotBootstrap;
 import com.deepseekharness.app.runtime.WebProcessManager;
 import com.deepseekharness.app.util.DshAuthUrl;
+import com.deepseekharness.app.util.EnvironmentTaskGate;
 import com.deepseekharness.app.util.WebLifecycle;
 import com.deepseekharness.app.util.WebProcSel;
+import com.deepseekharness.app.util.WebStartProtection;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,6 +45,7 @@ final class WebLifecycleController {
     volatile String authUrl = "";
     volatile int port;
     volatile boolean compatible;
+    volatile boolean ordinaryProfile;
     volatile com.deepseekharness.app.util.AgentTaskRegistration registration;
     volatile com.deepseekharness.app.runtime.StoredWebSession.Record recovered;
     volatile boolean recoveredLive;
@@ -104,6 +107,7 @@ final class WebLifecycleController {
   interface Launcher {
     Process start(
         ProotBootstrap boot,
+        com.deepseekharness.app.runtime.ContainerRuntime selected,
         String command,
         Map<String, String> environment,
         ProotBootstrap.LaunchCheck beforeStart)
@@ -162,13 +166,7 @@ final class WebLifecycleController {
                     .prepare(generation, safe, actions)
             : preparation;
     this.stopResources = stopResources == null ? this::finishStopResources : stopResources;
-    this.launcher =
-        launcher == null
-            ? (boot, command, environment, check) ->
-                check == null
-                    ? boot.execRootfs(command, environment)
-                    : boot.execRootfs(command, environment, check)
-            : launcher;
+    this.launcher = launcher == null ? ProotBootstrap::execWeb : launcher;
     this.lanAuth = new LanAuthBridge(ctx, config, proot, state);
     synchronized (lifecycle) {
       if (state.authFailure == null)
@@ -232,7 +230,10 @@ final class WebLifecycleController {
                         throws Exception {
                       try {
                         var record = storedSession.read();
-                        if (record != null) state.retainedWebStopProof = record.proof();
+                        if (record != null) {
+                          state.retainedWebStopProof = record.proof();
+                          state.unreadableWebStopProof = false;
+                        }
                         if (record == null && webProc.hasRecordedSession())
                           throw new IOException("WEB_SESSION_RECORD_MISSING_FOR_EXISTING_PID");
                         return record;
@@ -244,6 +245,10 @@ final class WebLifecycleController {
 
                     public boolean current() {
                       return lifecycle.generation() == 0 && !lifecycle.isUserStopped();
+                    }
+
+                    public boolean unrecordedExitConfirmed() throws IOException {
+                      return webProc.observeLegacySessionExited();
                     }
 
                     public void unavailable(String stage, Exception failure) {
@@ -291,8 +296,14 @@ final class WebLifecycleController {
                     /** 两个退出证明已由恢复器核验；这里只按原身份退休记录，不发送信号。 */
                     public boolean retire(com.deepseekharness.app.runtime.StoredWebSession.Record r)
                         throws Exception {
-                      if (!current()) return false;
-                      return webProc.retireConfirmedExit(r.proof()) && storedSession.retire(r);
+                      if (!current()
+                          || !webProc.retireConfirmedExit(r.proof())
+                          || !storedSession.retire(r)) return false;
+                      synchronized (lifecycle) {
+                        if (current() && state.retainedWebStopProof == r.proof())
+                          state.retainedWebStopProof = null;
+                      }
+                      return true;
                     }
 
                     public void progress(String reason, int attempt) {
@@ -328,6 +339,7 @@ final class WebLifecycleController {
                         run.authUrl = r.authUrl();
                         run.port = java.net.URI.create(r.authUrl()).getPort();
                         run.compatible = r.compatible();
+                        run.ordinaryProfile = WebProcSel.ordinaryProfile(r.proof().webCommand());
                         run.registration =
                             com.deepseekharness.app.util.AgentTaskRegistration.restore(
                                 run.generation, run.instanceId, r.taskToken());
@@ -431,24 +443,12 @@ final class WebLifecycleController {
             outcome.result() == WebSessionRecovery.Result.EXITED
                 ? WebSessionRestoreText.continuingAfterExit()
                 : WebSessionRestoreText.continuingAfterNoRecord());
-        StartAdmission admission =
-            requestStart(
-                pending.status(), false, 0, pending.safe(), pending.generation(), pending.ticket());
-        if (admission == StartAdmission.REJECTED) {
-          closePendingTicket(pending);
-          notifyPendingStart(pending, WebSessionRestoreText.continuationBlocked());
-        }
+        resumePendingStart(pending);
         return;
       case STOPPED_PENDING:
         // 用户已停止不是“不兼容”：继续这次已请求的启动，由启动前置停止在同一窗口内等旧实例退出。
         notifyPendingStart(pending, WebSessionRestoreText.continuingAfterStop());
-        StartAdmission stoppedAdmission =
-            requestStart(
-                pending.status(), false, 0, pending.safe(), pending.generation(), pending.ticket());
-        if (stoppedAdmission == StartAdmission.REJECTED) {
-          closePendingTicket(pending);
-          notifyPendingStart(pending, WebSessionRestoreText.continuationBlocked());
-        }
+        resumePendingStart(pending);
         return;
       case UNKNOWN:
         DiagnosticLog.record(
@@ -460,6 +460,34 @@ final class WebLifecycleController {
       default:
         closePendingTicket(pending);
     }
+  }
+
+  private void resumePendingStart(HarnessSessionState.PendingStart pending) {
+    Runnable continuation =
+        () -> {
+          StartAdmission admission = StartAdmission.REJECTED;
+          try {
+            admission =
+                requestStart(
+                    pending.status(),
+                    false,
+                    0,
+                    pending.safe(),
+                    pending.generation(),
+                    pending.ticket());
+          } finally {
+            if (admission == StartAdmission.REJECTED) {
+              closePendingTicket(pending);
+              notifyPendingStart(pending, WebSessionRestoreText.continuationBlocked());
+            }
+          }
+        };
+    if (pending.ticket() != null && pending.ticket().mayWaitForMaintenance()) {
+      // 维护可能要在 Web IO 队列上停止旧实例；续接不能阻塞这条队列。
+      Thread waiter = new Thread(continuation, "dsh-start-admission");
+      waiter.setDaemon(true);
+      waiter.start();
+    } else continuation.run();
   }
 
   private static void notifyPendingStart(HarnessSessionState.PendingStart pending, String message) {
@@ -758,6 +786,7 @@ final class WebLifecycleController {
         stage = "STORE_WRITE";
         storedSession.write(record);
         state.retainedWebStopProof = proof;
+        state.unreadableWebStopProof = false;
         run.recovered = record;
         run.recoveredLive = true;
       }
@@ -804,6 +833,10 @@ final class WebLifecycleController {
     return processes.confirmStopped();
   }
 
+  boolean observeWebStopped() throws IOException {
+    return webProc.observeStopped(processes.observeLiveLaunchers());
+  }
+
   /** 最近一次停止任务的结构化结果；仅供同一维护屏障读取，不含用户内容。 */
   public String lastStopError() {
     return state.lastStopError.isEmpty() ? "" : state.lastStopResult.detail();
@@ -839,6 +872,17 @@ final class WebLifecycleController {
       WebRun run = state.currentRun;
       return readyWebPageIdentity(
           lifecycle, run, run != null && state.recovery.failed(run.generation));
+    }
+  }
+
+  boolean isOrdinaryWebPage(com.deepseekharness.app.util.PreviewPageSession.Identity expected) {
+    synchronized (lifecycle) {
+      WebRun run = state.currentRun;
+      return expected != null
+          && run != null
+          && run.ordinaryProfile
+          && expected.equals(
+              readyWebPageIdentity(lifecycle, run, state.recovery.failed(run.generation)));
     }
   }
 
@@ -880,6 +924,8 @@ final class WebLifecycleController {
   }
 
   private void notifyReadyWebPageChanged() {
+    // Count the lifecycle event at its origin even with no UI observers attached.
+    state.readyWebEventRevision.incrementAndGet();
     if (state.readyWebPageListeners.isEmpty()) return;
     android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
     for (Runnable listener : state.readyWebPageListeners) {
@@ -1008,11 +1054,12 @@ final class WebLifecycleController {
       long expectedGeneration,
       boolean safeMode,
       long admissionGeneration,
-      com.deepseekharness.app.util.WebStartProtection.Ticket protection,
+      WebStartProtection.Ticket protection,
       HarnessSessionState.RestartHandoff handoff) {
     final long admissionStarted = System.nanoTime();
     synchronized (lifecycle) {
-      if (lifecycle.generation() != admissionGeneration) return StartAdmission.REJECTED;
+      if ((protection == null || !protection.mayWaitForMaintenance())
+          && lifecycle.generation() != admissionGeneration) return StartAdmission.REJECTED;
       if (protection != null && !state.startProtection.canAdmit(protection))
         return StartAdmission.REJECTED;
       if (automatic && state.startProtection.hasPreparing()) return StartAdmission.REJECTED;
@@ -1042,9 +1089,92 @@ final class WebLifecycleController {
           && (lifecycle.isUserStopped() || lifecycle.isStarting() || lifecycle.isStopping()))
         return StartAdmission.REJECTED;
     }
-    // ADB reconnect owns this nonblocking gate too. Never wait on filesystem preflight or
-    // hold the lifecycle monitor while that task is still preparing the environment.
-    if (MaintenanceCoordinator.isEnvironmentTaskBusy()) {
+    String leaseKind = com.deepseekharness.app.util.UiText.text("启动 Web");
+    EnvironmentTaskGate.Lease startup = EnvironmentTaskGate.tryAcquireShared(leaseKind);
+    boolean waited = startup == null && protection != null && protection.mayWaitForMaintenance();
+    if (waited) startup = waitForStartupLease(protection, leaseKind, onStatus);
+    if (startup == null) {
+      if (!waited && onStatus != null)
+        onStatus.accept(com.deepseekharness.app.util.UiText.text("正在执行环境任务，完成后再启动 Web"));
+      return StartAdmission.REJECTED;
+    }
+    StartAdmission result = StartAdmission.REJECTED;
+    try {
+      synchronized (lifecycle) {
+        if (protection != null && !state.startProtection.canAdmit(protection))
+          return StartAdmission.REJECTED;
+        if (protection != null && protection.mayWaitForMaintenance())
+          admissionGeneration = protection.generation();
+        if (lifecycle.generation() != admissionGeneration) return StartAdmission.REJECTED;
+        if (protection != null
+            && protection.crossedMaintenanceStop()
+            && (lifecycle.isStopping()
+                || state.lastStopResult == null
+                || !state.lastStopResult.stopped()
+                || !state.lastStopError.isEmpty())) {
+          if (onStatus != null)
+            onStatus.accept(
+                com.deepseekharness.app.util.UiText.choose(
+                    "维护期间未能确认 Web 已停止，请检查运行状态后重试。",
+                    "Maintenance could not confirm that Web stopped. Check its status and retry."));
+          return StartAdmission.REJECTED;
+        }
+      }
+      result =
+          startWithLease(
+              startup,
+              onStatus,
+              automatic,
+              expectedGeneration,
+              safeMode,
+              admissionGeneration,
+              protection,
+              handoff,
+              admissionStarted);
+      return result;
+    } finally {
+      if (result != StartAdmission.ACCEPTED) startup.close();
+    }
+  }
+
+  /** 等待真实租约释放，定期检查同一前台票据的取消、服务丢失与有效期。 */
+  private EnvironmentTaskGate.Lease waitForStartupLease(
+      WebStartProtection.Ticket ticket, String kind, Consumer<String> onStatus) {
+    if (onStatus != null)
+      onStatus.accept(
+          com.deepseekharness.app.util.UiText.choose(
+              "正在等待环境任务完成，完成后会自动启动 Web。",
+              "Waiting for the environment task to finish. Web will then start automatically."));
+    try {
+      long remaining;
+      while ((remaining = ticket.maintenanceWaitBudgetMillis()) > 0) {
+        EnvironmentTaskGate.Lease lease = EnvironmentTaskGate.tryAcquireShared(kind);
+        if (lease != null) return lease;
+        EnvironmentTaskGate.awaitExclusiveRelease(Math.min(remaining, 250));
+      }
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+    }
+    if (onStatus != null)
+      onStatus.accept(
+          com.deepseekharness.app.util.UiText.choose(
+              "等待环境任务结束的启动请求已取消或超时。",
+              "The start request was cancelled or timed out while waiting for the environment task."));
+    return null;
+  }
+
+  private StartAdmission startWithLease(
+      EnvironmentTaskGate.Lease startup,
+      Consumer<String> onStatus,
+      boolean automatic,
+      long expectedGeneration,
+      boolean safeMode,
+      long admissionGeneration,
+      WebStartProtection.Ticket protection,
+      HarnessSessionState.RestartHandoff handoff,
+      long admissionStarted) {
+    if (Thread.currentThread().isInterrupted()) return StartAdmission.REJECTED;
+    if (MaintenanceCoordinator.isExclusive()) {
       if (onStatus != null)
         onStatus.accept(com.deepseekharness.app.util.UiText.text("正在执行环境任务，完成后再启动 Web"));
       return StartAdmission.REJECTED;
@@ -1053,7 +1183,11 @@ final class WebLifecycleController {
     // 尚未尝试的新受管候选必须先走维护事务；否则看门狗会用兼容但过期的
     // 运行时重新拉起 Web，令本 APK 的运行补丁和系统插件尚未落地。
     // 已经尝试失败的候选仍可使用通过健康确认的兼容前代。
-    if (!proot.isEnvironmentReady() || EnvironmentAccess.requiresMaintenanceBeforeStart(owner)) {
+    EnvironmentAccess.StartupMaintenance maintenance =
+        proot.isEnvironmentReady()
+            ? EnvironmentAccess.startupMaintenance(owner)
+            : EnvironmentAccess.StartupMaintenance.RUNTIME;
+    if (maintenance == EnvironmentAccess.StartupMaintenance.RUNTIME) {
       if (onStatus != null)
         onStatus.accept(
             com.deepseekharness.app.util.UiText.choose(
@@ -1069,7 +1203,8 @@ final class WebLifecycleController {
                 "Configuration repair is incomplete. Open Startup Recovery first."));
       return StartAdmission.REJECTED;
     }
-    if (com.deepseekharness.app.core.MaintenanceCoordinator.pending(owner)) {
+    if (maintenance == EnvironmentAccess.StartupMaintenance.TRIAL
+        || com.deepseekharness.app.core.MaintenanceCoordinator.pending(owner)) {
       if (onStatus != null)
         onStatus.accept(com.deepseekharness.app.util.UiText.text("上次环境维护未完成，请先到安装与修复页恢复中断维护"));
       return StartAdmission.REJECTED;
@@ -1081,25 +1216,11 @@ final class WebLifecycleController {
       if (protection != null && !state.startProtection.canAdmit(protection))
         return StartAdmission.REJECTED;
       if (automatic && state.startProtection.hasPreparing()) return StartAdmission.REJECTED;
-      if (com.deepseekharness.app.core.MaintenanceCoordinator.isEnvironmentTaskBusy()) {
-        if (onStatus != null)
-          onStatus.accept(com.deepseekharness.app.util.UiText.text("正在执行环境任务，完成后再启动 Web"));
-        return StartAdmission.REJECTED;
-      }
       if (automatic
           && (state.recovery.blocked()
               || expectedGeneration != lifecycle.generation()
               || Thread.currentThread().isInterrupted())) return StartAdmission.REJECTED;
-      com.deepseekharness.app.util.EnvironmentTaskGate.Lease startup =
-          com.deepseekharness.app.util.EnvironmentTaskGate.tryAcquireShared(
-              com.deepseekharness.app.util.UiText.text("启动 Web"));
-      if (startup == null) {
-        if (onStatus != null)
-          onStatus.accept(com.deepseekharness.app.util.UiText.text("已有环境任务启动，请等待完成后重试"));
-        return StartAdmission.REJECTED;
-      }
       long startedGeneration = -1;
-      boolean transferred = false;
       try {
         if (protection == null) state.startProtection.cancelAll();
         final long generation =
@@ -1189,7 +1310,6 @@ final class WebLifecycleController {
                         com.deepseekharness.app.util.SensitiveData.redact(String.valueOf(e))));
               }
             });
-        transferred = true;
         return StartAdmission.ACCEPTED;
       } catch (RuntimeException e) {
         String detail =
@@ -1201,9 +1321,6 @@ final class WebLifecycleController {
           reportStatus(startedGeneration, onStatus, detail);
         } else if (onStatus != null) onStatus.accept(detail);
         return StartAdmission.REJECTED;
-      } finally {
-        // 入队前任何一步失败均释放；成功后由启动 worker 独占并负责关闭。
-        if (!transferred) startup.close();
       }
     }
   }
@@ -1242,16 +1359,20 @@ final class WebLifecycleController {
   }
 
   private void recordStartFailure(long generation, String reason) {
+    recordStartFailure(generation, reason, "");
+  }
+
+  private void recordStartFailure(long generation, String reason, String failureCode) {
     WebRun run = webRuns.get(generation);
     if (run == null || run.handoff == null) {
-      recordWebFailure(generation, reason);
+      recordWebFailure(generation, reason, failureCode);
       return;
     }
     synchronized (lifecycle) {
       if (!lifecycle.isCurrent(generation)) return;
-      state.recovery.fail(generation, reason);
+      state.recovery.fail(generation, reason, failureCode);
       state.diagnostics.message(generation, "WEB_STOP_HANDOFF_BLOCKED");
-      state.diagnostics.completed(generation, "failed", reason);
+      state.diagnostics.completed(generation, "failed", reason, failureCode);
       config.requestStartupRecovery(true);
       DiagnosticLog.record(ctx, "WEB_STOP_HANDOFF_BLOCKED", reason);
     }
@@ -1306,11 +1427,12 @@ final class WebLifecycleController {
                   stage -> setWebStage(generation, stage),
                   status -> reportStatus(generation, onStatus, status)));
       if (startupProfile == null) return;
+      run.ordinaryProfile = "web".equals(startupProfile);
       // 交接stop已退休原记录；不能先清除新记录，末次复核必须保留变化现场并拒绝续启。
       if (run.handoff == null) storedSession.clear();
       com.deepseekharness.app.runtime.ContainerRuntime selectedRuntime = boot.runtime();
       String runtimeName = selectedRuntime.id();
-      // seccomp 状态与随后 execRootfs 读取同一 invocation 配置快照，展示的就是实际启动参数。
+      // 本次选择直接交给启动器，诊断显示的是实际启动的引擎与同一配置快照。
       state.diagnostics.message(
           generation,
           com.deepseekharness.app.util.UiText.format(
@@ -1349,6 +1471,7 @@ final class WebLifecycleController {
       Process p =
           launcher.start(
               boot,
+              selectedRuntime,
               runCoreCommand(startupProfile, ports.listen, generation),
               launchEnvironment,
               run.handoff == null ? null : () -> requireStopHandoff(run, true));
@@ -1391,10 +1514,14 @@ final class WebLifecycleController {
     } catch (Exception e) {
       if (e instanceof InterruptedException) Thread.currentThread().interrupt();
       String failure;
+      String failureCode = "";
       if (e instanceof com.deepseekharness.app.util.CredentialRead.Unavailable) {
         var unreadable = ((com.deepseekharness.app.util.CredentialRead.Unavailable) e).result;
         Log.w("DSHA", "credential read: " + unreadable.reason.name());
         failure = ConfigStore.credentialMessage(unreadable);
+      } else if (e instanceof StartupPipeline.MigrationReviewRequired migrationReview) {
+        failure = com.deepseekharness.app.util.StartupRecoveryState.migrationReviewReason();
+        failureCode = migrationReview.getMessage();
       } else if (e instanceof StartupStopFailure) {
         // 启动前置停止的结论已含“发生了什么/影响/下一步 + 已核验残留”，不再套内部前缀。
         StartupStopFailure stopFailure = (StartupStopFailure) e;
@@ -1416,7 +1543,7 @@ final class WebLifecycleController {
         failure = com.deepseekharness.app.util.UiText.format("启动失败：%s", e.getMessage());
       }
       lifecycle.finishStart(generation);
-      recordStartFailure(generation, failure);
+      recordStartFailure(generation, failure, failureCode);
       reportStatus(generation, onStatus, failure);
     } finally {
       if (!draining) lifecycle.finishStart(generation);
@@ -1700,6 +1827,12 @@ final class WebLifecycleController {
     enqueueStop(onStatus);
   }
 
+  void stopWebDuringMaintenance() {
+    boolean ownsMaintenance =
+        com.deepseekharness.app.util.EnvironmentTaskGate.ownsExclusiveCurrentThread();
+    enqueueStop(null, null, null, -1, null, ownsMaintenance);
+  }
+
   /** A destroyed foreground owner may stop only the generation it actually protected. */
   public void stopWebIfUnchanged(long generation) {
     if (generation > 0) enqueueStop(null, null, null, generation);
@@ -1917,13 +2050,24 @@ final class WebLifecycleController {
       com.deepseekharness.app.util.WebStartProtection.Ticket protection,
       long expectedGeneration,
       java.util.function.Consumer<HarnessSessionState.StopReceipt> receiptConsumer) {
+    return enqueueStop(
+        onStatus, forcedCandidate, protection, expectedGeneration, receiptConsumer, false);
+  }
+
+  private Future<?> enqueueStop(
+      Consumer<String> onStatus,
+      WebProcessManager.ForceCandidate forcedCandidate,
+      com.deepseekharness.app.util.WebStartProtection.Ticket protection,
+      long expectedGeneration,
+      java.util.function.Consumer<HarnessSessionState.StopReceipt> receiptConsumer,
+      boolean maintenance) {
     // Every external Stop revokes pending starts, including a repeated Stop whose
     // generation does not advance. Only the exact recovery capability may cross its own Stop.
     java.util.concurrent.CountDownLatch revoked = new java.util.concurrent.CountDownLatch(1);
     Future<?> submitted;
     synchronized (lifecycle) {
       if (expectedGeneration >= 0 && !lifecycle.isCurrent(expectedGeneration)) return null;
-      if (protection == null) state.startProtection.cancelAll();
+      if (protection == null) state.startProtection.cancelForStop(maintenance);
       if (protection != null && !state.startProtection.canAdmit(protection)) return null;
       if (lifecycle.isStopping()) {
         // 重复点击停止在同一个停止请求上合并：给本次点击一个可解释的状态，但结论回调只发一次，
@@ -1938,7 +2082,7 @@ final class WebLifecycleController {
       long previous = lifecycle.generation();
       long generation =
           protection == null
-              ? lifecycle.beginStop()
+              ? maintenance ? state.startProtection.beginMaintenanceStop() : lifecycle.beginStop()
               : state.startProtection.beginInternalStop(protection);
       if (generation < 0) return null;
       var operation = state.identifyStop(previous, generation);
@@ -2357,12 +2501,17 @@ final class WebLifecycleController {
   }
 
   private void recordWebFailure(long generation, String reason) {
+    recordWebFailure(generation, reason, "");
+  }
+
+  private void recordWebFailure(long generation, String reason, String failureCode) {
     synchronized (lifecycle) {
       if (lifecycle.isCurrent(generation))
         state.recovery.stage(generation, state.diagnostics.snapshot().stage);
-      if (!lifecycle.isCurrent(generation) || !state.recovery.fail(generation, reason)) return;
+      if (!lifecycle.isCurrent(generation) || !state.recovery.fail(generation, reason, failureCode))
+        return;
       notifyReadyWebPageChanged();
-      state.diagnostics.completed(generation, "failed", reason);
+      state.diagnostics.completed(generation, "failed", reason, failureCode);
       WebRun failedRun = webRuns.get(generation);
       if (failedRun != null && failedRun.registration != null) failedRun.registration.revoke();
       state.diagnostics.preserveFailure(new File(proot.getRootfsDir(), "root/dsh-web.log"), reason);

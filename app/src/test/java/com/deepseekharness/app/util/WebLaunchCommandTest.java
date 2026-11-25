@@ -13,8 +13,13 @@ public class WebLaunchCommandTest {
     assertTrue(result.contains("export DSHA_WORKSPACE_DOCUMENTS=/root/Documents && "));
     assertTrue(result.indexOf("DSHA_WORKSPACE_DOCUMENTS=") < result.indexOf(DshEntrypoint.exec()));
     assertTrue(result.endsWith(DshEntrypoint.exec() + " web --no-open --host 127.0.0.1 --port 0"));
-    assertTrue(result.indexOf("echo $$ >") < result.indexOf("[ ! -e"));
-    assertTrue(result.indexOf("[ ! -e") < result.indexOf(DshEntrypoint.exec()));
+    String identity = WebProcSel.IDENTITY_WEB;
+    String sentinel = "[ ! -e " + WebProcSel.STOP_SENTINEL;
+    assertTrue(
+        result.contains(
+            "[ ! -e " + identity + " ] && [ ! -L " + identity + " ] || rm -f " + identity));
+    assertTrue(result.indexOf("echo $$ >") < result.indexOf(sentinel));
+    assertTrue(result.indexOf(sentinel) < result.indexOf(DshEntrypoint.exec()));
     assertFalse(result.contains("API_KEY"));
     assertTrue(result.contains("${NODE_OPTIONS-}"));
   }

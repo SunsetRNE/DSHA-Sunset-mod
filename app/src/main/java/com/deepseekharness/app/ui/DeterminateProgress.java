@@ -182,18 +182,20 @@ final class DeterminateProgress extends LinearLayout {
   void setPercent(int percent) {
     boolean started = state.phase() == ProgressState.Phase.IDLE && state.start();
     if (!state.running()) return;
-    if (indeterminate) {
+    boolean wasIndeterminate = indeterminate;
+    if (wasIndeterminate) {
       indeterminate = false;
       bar.setIndeterminate(false);
       updateIndeterminateVisibility();
     }
-    if (state.report(percent) || started) renderPercent();
+    if (state.report(percent) || started || wasIndeterminate) animateTo(state.percent());
   }
 
   /** 总量未知：只表示“正在做”，不显示百分比，也不假装快满了。 */
   void setIndeterminate() {
     if (state.phase() == ProgressState.Phase.IDLE) state.start();
     if (!state.running() || indeterminate) return;
+    stopAnimations();
     indeterminate = true;
     bar.setIndeterminate(true);
     updateIndeterminateVisibility();
@@ -264,9 +266,7 @@ final class DeterminateProgress extends LinearLayout {
     state.reset();
     indeterminate = false;
     bar.setIndeterminate(false);
-    bar.setProgress(0);
-    shownPercent = 0;
-    value.setText("");
+    renderProgress(0);
     label.setText("");
     setDetail("");
     terminal.setVisibility(GONE);
@@ -305,36 +305,20 @@ final class DeterminateProgress extends LinearLayout {
     return cancel.getText();
   }
 
-  private void renderPercent() {
-    int target = state.percent();
-    if (!UiMotion.animationsEnabled(getContext())) {
-      shownPercent = target;
-      bar.setProgress(target);
-      ring.setProgress(target);
-      renderValues(target);
-      return;
-    }
-    animateTo(target);
-  }
-
   private void animateTo(int target) {
     stopAnimations();
     if (!UiMotion.animationsEnabled(getContext()) || target == shownPercent) {
-      shownPercent = target;
-      bar.setProgress(target);
-      ring.setProgress(target);
-      renderValues(target);
+      renderProgress(target);
       return;
     }
+    renderProgress(shownPercent);
     fillAnimator = ValueAnimator.ofInt(shownPercent, target);
     fillAnimator.setDuration(FILL_MS);
     fillAnimator.setInterpolator(UiMotion.standard());
     fillAnimator.addUpdateListener(
         running -> {
-          shownPercent = (Integer) running.getAnimatedValue();
-          bar.setProgress(shownPercent);
-          ring.setProgress(shownPercent);
-          renderValues(shownPercent);
+          int next = (Integer) running.getAnimatedValue();
+          if (next != shownPercent) renderProgress(next);
         });
     fillAnimator.start();
   }
@@ -346,25 +330,21 @@ final class DeterminateProgress extends LinearLayout {
     }
   }
 
-  private void renderValues(int shown) {
-    if (state.phase() != ProgressState.Phase.RUNNING || indeterminate) {
-      value.setText("");
-      ringValue.setText("");
-      return;
+  private void renderProgress(int shown) {
+    if (shown != shownPercent) {
+      shownPercent = shown;
+      if (mode == Mode.BAR) bar.setProgress(shown);
+      else ring.setProgress(shown);
     }
-    String text = String.format(Locale.ROOT, "%d%%", Math.max(0, Math.min(100, shown)));
-    value.setText(text);
-    ringValue.setText(text);
+    String text = state.running() && !indeterminate ? shown + "%" : "";
+    UiMotion.setTextIfChanged(mode == Mode.BAR ? value : ringValue, text);
   }
 
   private void updateIndeterminateVisibility() {
     boolean showValue = !indeterminate && state.running();
     value.setVisibility(showValue && mode == Mode.BAR ? VISIBLE : GONE);
     ringValue.setVisibility(showValue && mode == Mode.RING ? VISIBLE : GONE);
-    if (indeterminate) {
-      value.setText("");
-      ringValue.setText("");
-    }
+    if (indeterminate) renderProgress(shownPercent);
   }
 
   private void announce(CharSequence text) {

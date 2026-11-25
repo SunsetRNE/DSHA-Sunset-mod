@@ -417,7 +417,7 @@
   "m0417": "Autorisation réseau local non accordée ; accordez-la d’abord",
   "m0418": "Afficher le texte des commandes des appels d'outils",
   "m0419": "Enregistré : ",
-  "m0420": "Enregistré. Rouvrez la conversation pour appliquer les options d'affichage Web. Les modifications de port ou d'environnement nécessitent un redémarrage du service Web.",
+  "m0420": "Enregistré. Le réglage de l’affichage pour ordinateur s’applique à la création d’une nouvelle vue Web de l’espace de travail. En revenant, vous retrouvez la page en cours. Changer le port ou l’environnement d’exécution nécessite de redémarrer le service Web.",
   "m0421": "Terminal simple sélectionné. Les sessions PTY continuent en arrière-plan.",
   "m0422": "Annulé",
   "m0423": "Téléchargement ou enregistrement annulé",
@@ -2967,7 +2967,7 @@
   "ui2_ws2_1": "Protégées localement et exclues des sauvegardes par défaut.",
   "ui2_w2_2": "Actions sur l’appareil",
   "ui2_ws2_2": "Root, Shizuku, ADB et SMS ont des autorisations distinctes.",
-  "ui2_online_notice": "Les modèles en ligne reçoivent les messages et pièces jointes que vous choisissez d’envoyer.",
+  "ui2_online_notice": "Le modèle en ligne choisi peut recevoir les messages, les pièces jointes et les résultats des outils, comme du texte ou des captures d’écran.",
   "ui2_meet": "Découvrir DSHA",
   "ui2_skip": "Passer la présentation",
   "ui2_install_environment": "Installation/exécution",
@@ -3197,7 +3197,7 @@
   "build156_15334f885418": "[ERR] Impossible de créer le répertoire %s",
   "build156_6ecf1c33fed9": "OK Capture d’écran enregistrée : %s(%sx%s)",
   "build156_91fa78a28abb": "[ERR] Impossible d’écrire le fichier de capture d’écran : %s",
-  "build156_d1da9750dbcf": "Proxy du réseau local démarré : 0.0.0.0:%s -> 127.0.0.1:%s",
+  "build156_d1da9750dbcf": "Proxy du réseau local démarré : %s -> 127.0.0.1:%s",
   "build156_30301968b328": "Impossible d’accepter la connexion : %s",
   "build156_ced8b809645f": "Échec de la liaison du proxy du réseau local : %s",
   "build156_07854ff2bfe5": "Connexion depuis %s",
@@ -3775,5 +3775,6 @@
   "m9513": "Liste incomplète",
   "m9514": "Aucun module",
   "m9515": "Suppression en attente",
-  "m9516": "Désactivé"
+  "m9516": "Désactivé",
+  "m9517": "Android a refusé la demande de sauvegarde. Réessayez plus tard."
 }

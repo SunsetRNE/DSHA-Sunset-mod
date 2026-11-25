@@ -308,8 +308,9 @@ public final class FragmentEntrySelfTest {
     }
 
     @Override
-    void syncInstalledState() {
+    Runnable watchInstalledState() {
       if (!blocked && fixtureDirty) publishFixture();
+      return () -> {};
     }
 
     void publishFixture() {

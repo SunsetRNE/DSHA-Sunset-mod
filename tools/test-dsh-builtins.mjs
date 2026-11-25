@@ -67,7 +67,8 @@ const migratedPeers = {
 };
 test('all signed builtin manifests pass the actual upstream version gate without exemptions',async()=>{
   assert.equal(runtimeVersion,officialManifest.dependencies['@deepseek-ai/dsh']);
-  assert.equal(builtinRegistry.plugins.length,11);
+  assert.equal(builtinRegistry.plugins.length,10);
+  assert(!builtinRegistry.plugins.some(plugin=>plugin.name==='dsh-fs-read-hint'));
   for (const plugin of builtinRegistry.plugins) {
     const manifest = await bundledManifest(plugin);
     assert.equal(evaluatePluginCompatibility(manifest,{},runtimeVersion),undefined,
@@ -99,7 +100,7 @@ test('the upstream version gate still rejects each original stale wrapper declar
 });
 
 
-test('all eleven signed wrappers activate with real 0.2.2 services; actual MCP and Auto lifecycles dispose cleanly',async()=>{
+test('all ten signed wrappers activate with real 0.2.2 services; actual MCP and Auto lifecycles dispose cleanly',async()=>{
   process.env.DSHA_BUILTIN_TEST_RUNTIME = runtime;
   await import('./fixtures/builtin-host-hooks.mjs');
   const load = async name => import(pathToFileURL(runtimeRequire.resolve(name)));
@@ -154,7 +155,7 @@ test('all eleven signed wrappers activate with real 0.2.2 services; actual MCP a
     const passthrough=await ctx.waterfall(null,'tools/pre-execute',{name:'fixture',signal:new AbortController().signal},async()=>{next++;return {kind:'allow'};});
     assert.equal(passthrough.kind,'allow');assert.equal(next,1);assert.equal(llmRequests,0);
     const schemas=ctx.tools.schemas().map(tool=>tool.name);
-    assert.equal(schemas.filter(name=>name.startsWith('mcp__dsha-android__')).length,11);
+    assert.equal(schemas.filter(name=>name.startsWith('mcp__dsha-android__')).length,12);
     assert(schemas.includes('mcp__dsha-android__android_read_image'),'shared-storage image reads are exposed as a separate physical-phone tool');
     assert(schemas.includes('mcp__dsha-android__android_node'),'physical-screen semantic actions must be exposed to ordinary conversations');
     assert(schemas.includes('mcp__dsha-android__android_control'),'ordinary conversations need explicit task begin/finish without changing chats');
@@ -249,11 +250,11 @@ test('actual official base/Web and all signed bundle patches compose with every 
       dsh:{profile:{bundles:['@deepseek-ai/dsh-base','@deepseek-ai/dsh-web-app',...builtinRegistry.plugins.map(plugin=>plugin.name)]}}}));
     await writeFile(resolve(owned,'cordis.patch.yml'),'[]\n');
     const profile=loadProfileDirectory('dsh',owned,resolve(runtime,'node_modules/@deepseek-ai/dsh/package.json'));
-    assert.deepEqual(profile.skippedBundles,[]);assert.equal(profile.layers.length,13);
+    assert.deepEqual(profile.skippedBundles,[]);assert.equal(profile.layers.length,12);
     const entries=composeEntries([...profile.layers.map(layer=>layer.patches),profile.patches]);
     for(const name of ['dsh-device-shell-guide','dsh-task-notifier','dsh-status-overlay','dsh-web-mobile',
       '@deepseek-ai/dsh-computer-use','dsh-computer-use-android','@deepseek-ai/dsh-experimental-auto-review',
-      'dsh-tool-vscreen','dsh-launch-target','dsh-fs-read-hint','dsh-fs-search-scope','dsh-app-integration']) {
+      'dsh-tool-vscreen','dsh-launch-target','dsh-fs-search-scope','dsh-app-integration']) {
       const rows=entries.filter(row=>row.name===name);assert.equal(rows.length,1,name+' must be composed exactly once');
       assert.notEqual(rows[0].disabled,true,name+' must not be accidentally disabled');
     }

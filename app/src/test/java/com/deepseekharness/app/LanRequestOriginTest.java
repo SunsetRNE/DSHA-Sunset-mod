@@ -14,7 +14,8 @@ public class LanRequestOriginTest {
   @Test
   public void sameOriginAndNavigationAreAllowedButRebindingAndCrossOriginAreNot() {
     assertTrue(allowed(HOST, List.of(), List.of("none"), false));
-    assertTrue(allowed(HOST, List.of("http://192.168.1.5:3082"), List.of("same-origin"), true));
+    assertTrue(allowed(HOST, List.of("https://192.168.1.5:3082"), List.of("same-origin"), true));
+    assertFalse(allowed(HOST, List.of("http://192.168.1.5:3082"), List.of("same-origin"), true));
     assertFalse(allowed(HOST, List.of("http://attacker.example"), List.of(), false));
     assertFalse(allowed(HOST, List.of("http://attacker.example"), List.of(), true));
     assertFalse(allowed(HOST, List.of(), List.of("cross-site"), false));

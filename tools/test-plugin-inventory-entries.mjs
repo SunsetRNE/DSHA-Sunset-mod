@@ -47,9 +47,9 @@ const beforeFile=path.join(owned,'manager-before.mjs'),afterFile=path.join(owned
 fs.writeFileSync(beforeFile,beforeManager.replace('from "@deepseek-ai/dsh-host-plugin-inventory"','from '+JSON.stringify(pathToFileURL(path.join(raw,'node_modules',inventoryName)).href)));
 fs.writeFileSync(afterFile,afterManager);
 const mod=name=>import(pathToFileURL(path.join(raw,'node_modules/@deepseek-ai',name,'lib/index.js')));
-const [{PluginManager:Before},{PluginManager:After},beforeInventory,afterInventory,{boot,readProfilePatches},{default:Hmr},{default:Timer},{AgentPresetRegistry}]=await Promise.all([
+const [{PluginManager:Before},{PluginManager:After},beforeInventory,afterInventory,{boot,readProfilePatches},{default:Hmr},{default:Timer},{AgentPresetRegistry},{AgentRegistry}]=await Promise.all([
  import(pathToFileURL(beforeFile)),import(pathToFileURL(afterFile)),import(pathToFileURL(path.join(raw,'node_modules',inventoryName))),import(pathToFileURL(inventoryFile)),
- mod('dsh-app-boot'),mod('dsh-hmr'),mod('cordis-plugin-timer'),mod('dsh-agent-preset-registry')
+ mod('dsh-app-boot'),mod('dsh-hmr'),mod('cordis-plugin-timer'),mod('dsh-agent-preset-registry'),mod('dsh-agent')
 ]);
 const home=path.join(owned,'home'),profileDir=path.join(home,'profiles/web');fs.mkdirSync(path.join(profileDir,'node_modules'),{recursive:true});
 globalThis.__DSHA_ENTRIES_PROOF__={events:[],slow:Promise.withResolvers()};
@@ -69,7 +69,7 @@ const ctx=await boot('dsh',configPath,readProfilePatches('dsh',profile),async co
 const evidence={schema:1,owned,scope:'real host lifecycle and a controlled async Host-loading barrier; no device speed claim',sourceHashes:{inventory:sha(originalInventory),managerBefore:sha(beforeManager),inventoryAfter:sha(inventorySource),managerAfter:sha(afterManager)},cases:[]};
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 try{
- await ctx.plugin(Timer,{});await ctx.plugin(Hmr,{base:pathToFileURL(owned+'/').href,root:[],ignored:[]});await ctx.plugin(After,{});await ctx.plugin(AgentPresetRegistry,{default:'fixture-preset'});await ctx.loader.await();
+ await ctx.plugin(Timer,{});await ctx.plugin(Hmr,{base:pathToFileURL(owned+'/').href,root:[],ignored:[]});await ctx.plugin(After,{});await ctx.plugin(AgentRegistry,{});await ctx.plugin(AgentPresetRegistry,{default:'fixture-preset'});await ctx.loader.await();
  await ctx.agentPresets.register({id:'fixture-preset',name:'Real pending preset',plugins:[{id:'preset-pending',name:pathToFileURL(pendingFile).href}]});
  const baseline=Object.create(Before.prototype);Object.defineProperty(baseline,'ctx',{value:ctx});Object.assign(baseline,{profile,ownerContext:ctx});
  const registry=ctx.agentPresets,composition=registry.compositionInventory;let audits=0;registry.compositionInventory=function(...args){audits++;return composition.apply(this,args);};

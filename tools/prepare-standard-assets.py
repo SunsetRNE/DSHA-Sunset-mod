@@ -6,6 +6,7 @@ import collections
 import gzip
 import hashlib
 import json
+import lzma
 import posixpath
 import re
 from pathlib import Path
@@ -37,6 +38,19 @@ def sha256(path):
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def encode_tool_archive(source, target):
+    """Change the APK carrier while preserving the original tar byte stream."""
+    # Both tools contain ARM64 code. Group literals by their position in a
+    # four-byte instruction, keeping preset 1's 1 MiB decoder dictionary.
+    filters = [{"id": lzma.FILTER_LZMA2, "preset": 1 | lzma.PRESET_EXTREME,
+                "lc": 2, "lp": 2}]
+    with gzip.open(source, "rb") as raw, lzma.open(
+            target, "wb", format=lzma.FORMAT_XZ, check=lzma.CHECK_CRC64,
+            filters=filters) as encoded:
+        shutil.copyfileobj(raw, encoded, length=1024 * 1024)
+    write_source_text(target.with_name(target.name + ".sha256"), sha256(target) + "\n", encoding="ascii")
 
 
 def omit(name, foreign):
@@ -89,6 +103,47 @@ def valid_overlay(item, name):
         and posixpath.normpath(posixpath.join(posixpath.dirname(name), item.linkname)) == prefix + 'node_modules/' + target_package
 
 
+def build_optimized_rootfs(rootfs, output):
+    """Keep the canonical filtered tar exactly; encode only its outer signed rootfs asset."""
+    foreign = set()
+    with tarfile.open(rootfs, "r|gz") as archive:
+        for item in archive:
+            name = item.name.removeprefix("./").rstrip("/")
+            if item.isfile() and name.endswith("/package.json") and item.size < 1024 * 1024 \
+                    and "/node_modules/" in name and ".npm" not in name.split("/"):
+                try:
+                    pkg = json.load(archive.extractfile(item))
+                    if excluded_platform(pkg.get("os"), "linux") or excluded_platform(pkg.get("cpu"), "arm64") \
+                            or excluded_platform(pkg.get("libc"), "glibc"):
+                        foreign.add(name.rsplit("/", 1)[0])
+                except (ValueError, UnicodeError, AttributeError):
+                    pass
+    removed = collections.Counter()
+    kept = hashlib.sha256()
+    kept_bytes = 0
+    # Extreme changes encoder effort while retaining preset 3's 4 MiB dictionary.
+    with lzma.open(output, "wb", format=lzma.FORMAT_XZ, check=lzma.CHECK_CRC64,
+                   preset=3 | lzma.PRESET_EXTREME) as compressed:
+        with tarfile.open(rootfs, "r|gz") as archive, tarfile.open(
+                fileobj=compressed, mode="w|", format=tarfile.PAX_FORMAT) as target:
+            for item in archive:
+                name = item.name.removeprefix("./").rstrip("/")
+                reason = "replaced-dsh-runtime" if replaced_runtime(name) else omit(name, foreign)
+                if reason:
+                    removed[reason] += item.size
+                    continue
+                # 删除外平台包时同目录的符号链接也必须一起去掉。
+                if item.issym():
+                    resolved = posixpath.normpath(posixpath.join(posixpath.dirname(name), item.linkname))
+                    if omit(resolved, foreign):
+                        removed["obsolete-link"] += 0
+                        continue
+                kept.update((name + "\n").encode())
+                kept_bytes += item.size if item.isfile() else 0
+                target.addfile(item, archive.extractfile(item) if item.isfile() else None)
+    return kept, kept_bytes, removed, foreign
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", required=True)
@@ -100,11 +155,14 @@ def main():
     rootfs = source / "offline-rootfs.bin"
     runtime = source / "dsh-runtime.bin"
     deployment = load_manifest()
+    archive_transforms = deployment["sourceTransforms"]
+    recompressed = deployment["recompressedArchives"]
     verify_reader_contracts(source, deployment)
     selected = selected_assets(source, deployment)
     expected = {relative.as_posix() for _, relative in selected}
     expected.update({"web-integration/gecko-compat.js", "glibc-python.bin", "adb-wheels.bin",
                      "gh-cli.bin"})
+    expected.update(archive_transforms[name] + ".sha256" for name in recompressed)
     if rootfs.is_file():
         expected.update({"offline-rootfs.bin", "offline-rootfs.bytes", "offline-rootfs.sha256",
                          "offline-rootfs.layout", "dsh-runtime.bin", "dsh-runtime.sha256"})
@@ -121,7 +179,6 @@ def main():
             or sha256(source / 'web-integration/es-compat.js') != compat_meta['sha256']:
         raise ValueError('网页兼容代码与依赖锁不一致，请运行 tools/prepare-web-compat.mjs')
     compatibility = (source / 'web-integration/es-compat.js').read_text(encoding='utf-8')
-    compatibility += '\n' + (source / 'web-integration/compat.js').read_text(encoding='utf-8')
     compatibility += '\n' + (source / 'bridge-token-compat.cjs').read_text(encoding='utf-8')
     compatibility += '\n' + (source / 'web-integration/startup.js').read_text(encoding='utf-8')
     injector = "(function(){function install(){var root=document.head||document.documentElement;if(!root)return;var script=document.createElement('script');script.textContent=" \
@@ -132,8 +189,12 @@ def main():
         (output / "runtime-python" / name).unlink(missing_ok=True)
     # 源固定输入保持 .tar.gz 原名；APK 内改用 bin 扩展名，避免 AGP 资产合并把 .gz
     # 自动 gunzip 并去掉扩展名（AGP 9.1.1 sdk-common，aapt2 不这么做）。读取端按 magic 判断格式。
-    for name in ("glibc-python", "adb-wheels", "gh-cli"):
-        shutil.copyfile(source / (name + ".tar.gz"), output / (name + ".bin"))
+    # The wheel cache records the original gzip digest, so its carrier remains byte-identical.
+    for input_name, packaged in archive_transforms.items():
+        if input_name in recompressed:
+            encode_tool_archive(source / input_name, output / packaged)
+        else:
+            shutil.copyfile(source / input_name, output / packaged)
     if not rootfs.is_file():
         (output / "offline-rootfs.bin").unlink(missing_ok=True)
         for name in ('dsh-runtime.bin', 'dsh-runtime.sha256', 'offline-rootfs.layout'):
@@ -196,42 +257,8 @@ def main():
                 return
         except (ValueError, OSError):
             pass
-    foreign = set()
-    with tarfile.open(rootfs, "r|gz") as archive:
-        for item in archive:
-            name = item.name.removeprefix("./").rstrip("/")
-            if item.isfile() and name.endswith("/package.json") and item.size < 1024 * 1024 \
-                    and "/node_modules/" in name and ".npm" not in name.split("/"):
-                try:
-                    pkg = json.load(archive.extractfile(item))
-                    if excluded_platform(pkg.get("os"), "linux") or excluded_platform(pkg.get("cpu"), "arm64") \
-                            or excluded_platform(pkg.get("libc"), "glibc"):
-                        foreign.add(name.rsplit("/", 1)[0])
-                except (ValueError, UnicodeError, AttributeError):
-                    pass
-    removed = collections.Counter()
-    kept = hashlib.sha256()
-    kept_bytes = 0
     temp = output / "offline-rootfs.bin.tmp"
-    with temp.open("wb") as raw, gzip.GzipFile(fileobj=raw, mode="wb", filename="", mtime=0,
-                                             compresslevel=9) as compressed:
-        with tarfile.open(rootfs, "r|gz") as archive, tarfile.open(
-                fileobj=compressed, mode="w|", format=tarfile.PAX_FORMAT) as target:
-            for item in archive:
-                name = item.name.removeprefix("./").rstrip("/")
-                reason = "replaced-dsh-runtime" if replaced_runtime(name) else omit(name, foreign)
-                if reason:
-                    removed[reason] += item.size
-                    continue
-                # 删除外平台包时同目录的符号链接也必须一起去掉。
-                if item.issym():
-                    resolved = posixpath.normpath(posixpath.join(posixpath.dirname(name), item.linkname))
-                    if omit(resolved, foreign):
-                        removed["obsolete-link"] += 0
-                        continue
-                kept.update((name + "\n").encode())
-                kept_bytes += item.size if item.isfile() else 0
-                target.addfile(item, archive.extractfile(item) if item.isfile() else None)
+    kept, kept_bytes, removed, foreign = build_optimized_rootfs(rootfs, temp)
     with tarfile.open(runtime, "r|gz") as overlay:
         for item in overlay:
             name = item.name.removeprefix("./").rstrip("/")
@@ -242,6 +269,7 @@ def main():
     temp.replace(output / "offline-rootfs.bin")
     report = dict(original_bytes=rootfs.stat().st_size,
                   unpacked_bytes=kept_bytes,
+                  rootfs_encoding="xz-crc64",
                   optimized_bytes=(output / "offline-rootfs.bin").stat().st_size,
                   removed_unpacked_bytes=dict(removed), foreign_packages=sorted(foreign),
                   kept_paths_sha256=kept.hexdigest(),

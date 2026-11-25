@@ -70,6 +70,7 @@ public final class OneClickBackupLifecycleTest {
     }
   }
 
+  final char[] password = "synthetic one-click backup".toCharArray();
   Application app;
   Queue queue;
   Exporter exporter;
@@ -89,14 +90,23 @@ public final class OneClickBackupLifecycleTest {
   }
 
   @Test
+  public void passwordMustBeValidBeforeSchedulingOrOpeningADirectoryPicker() {
+    assertFalse(model.start(null));
+    assertFalse(model.start("short".toCharArray()));
+    assertFalse(model.start(new char[1025]));
+    assertTrue(queue.work.isEmpty());
+    assertFalse(model.claimDirectoryPicker());
+  }
+
+  @Test
   public void doubleTapAndBusyJobNeverSubmitTwice() throws Exception {
-    assertTrue(model.start());
-    assertFalse(model.start());
+    assertTrue(model.start(password));
+    assertFalse(model.start(password));
     assertEquals(1, queue.work.size());
     assertEquals(0, exporter.submitted);
     queue.next();
     assertEquals(1, exporter.submitted);
-    assertFalse(model.start());
+    assertFalse(model.start(password));
     assertTrue(queue.work.isEmpty());
   }
 
@@ -115,7 +125,7 @@ public final class OneClickBackupLifecycleTest {
   @Config(sdk = false ? 23 : 34)
   public void destinationRequestAndViewRecreationDoNotSubmitTwice() throws Exception {
     assertEquals(false ? 23 : 34, Build.VERSION.SDK_INT);
-    assertTrue(model.start());
+    assertTrue(model.start(password));
     queue.next();
     if (false) {
       assertEquals(0, exporter.submitted);
@@ -139,7 +149,7 @@ public final class OneClickBackupLifecycleTest {
     var recreated = new ViewModelProvider(store, factory).get(OneClickBackup.class);
     assertSame(first, recreated);
     assertFalse(recreated.claimDirectoryPicker());
-    assertFalse(recreated.start());
+    assertFalse(recreated.start(password));
     assertEquals(false ? 0 : 1, exporter.submitted);
     assertTrue(queue.work.isEmpty());
     store.clear();
@@ -149,7 +159,7 @@ public final class OneClickBackupLifecycleTest {
   @Config(sdk = false ? 23 : 34)
   public void cancellingDestinationPreparationDoesNotCreateOrReplayAnExport() throws Exception {
     assertEquals(false ? 23 : 34, Build.VERSION.SDK_INT);
-    model.start();
+    model.start(password);
     if (false) {
       queue.next();
       assertTrue(model.claimDirectoryPicker());
@@ -175,7 +185,7 @@ public final class OneClickBackupLifecycleTest {
 
   @Test
   public void cancellingQueuedPreparationCannotStartAJob() throws Exception {
-    model.start();
+    model.start(password);
     model.cancel();
     queue.next();
     queue.next();
@@ -188,7 +198,7 @@ public final class OneClickBackupLifecycleTest {
   public void destinationFailureIsExplicitAndNeverFallsBackToPrivateSuccessOrRetry()
       throws Exception {
     exporter.fail = true;
-    model.start();
+    model.start(password);
     queue.next();
     assertEquals(1, exporter.submitted);
     assertTrue(queue.work.isEmpty());
@@ -209,7 +219,7 @@ public final class OneClickBackupLifecycleTest {
         .edit()
         .putString("destination_tree", tree.toString())
         .commit();
-    model.start();
+    model.start(password);
     queue.next();
     assertEquals(1, exporter.submitted);
     assertEquals(false ? tree : null, exporter.target);
@@ -224,7 +234,7 @@ public final class OneClickBackupLifecycleTest {
         .edit()
         .putString("destination_tree", "content://lost/tree/backup")
         .commit();
-    model.start();
+    model.start(password);
     queue.next();
     if (false) {
       assertEquals(0, exporter.submitted);

@@ -1,0 +1,46 @@
+{
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-chat/lib/client.js",
+  "packageVersion": "0.2.2-rc.5",
+  "canonicalSourceSha256": "eef53e82b8cd584d2f0e543a4a93395f9d90df3bba1218891bd99d07d788de5c",
+  "sourceSha256": "eef53e82b8cd584d2f0e543a4a93395f9d90df3bba1218891bd99d07d788de5c",
+  "packageIntegrity": "sha512-ZEw+3zt3+ENW7OpfnHBoEoU7jRCT9js8UZSe9gEYoRvVgAxO8/JKhNAXf1NCL0HLFD3fgkD0v4OkRZ2JXybSXw==",
+  "patches": [
+    {
+      "before": "function rootCall(match,previous){",
+      "after": "function dshaToolHistoryIdentityInvalid(id, name) {\n    // Check the original fields before the view converts IDs to string keys.\n    return typeof id !== \"string\" || !id.trim() || typeof name !== \"string\" || !name.trim();\n}\nfunction rootCall(match,previous){"
+    },
+    {
+      "before": "callId:String(match.event.data.callId),name:match.event.data.name,",
+      "after": "callId:String(match.event.data.callId),dshaInvalidIdentity:dshaToolHistoryIdentityInvalid(match.event.data.callId,match.event.data.name),name:match.event.data.name,"
+    },
+    {
+      "before": "callId:String(chunk.id),name:chunk.name,",
+      "after": "callId:String(chunk.id),dshaInvalidIdentity:dshaToolHistoryIdentityInvalid(chunk.id,chunk.name),name:chunk.name,"
+    },
+    {
+      "before": "root:{...root,name:chunk.block.name,args:root.args.settle(chunk.block.arguments)}",
+      "after": "root:{...root,dshaInvalidIdentity:root.dshaInvalidIdentity===true||dshaToolHistoryIdentityInvalid(chunk.block.id,chunk.block.name),name:chunk.block.name,args:root.args.settle(chunk.block.arguments)}"
+    },
+    {
+      "before": "current.name===root.name&&current.args===root.args",
+      "after": "current.name===root.name&&current.args===root.args&&current.dshaInvalidIdentity===root.dshaInvalidIdentity"
+    },
+    {
+      "before": "callId:String(message.source.callId),name:previous?.name??``,",
+      "after": "callId:String(message.source.callId),dshaInvalidIdentity:previous?.dshaInvalidIdentity===true||dshaToolHistoryIdentityInvalid(message.source.callId,previous?.name),name:previous?.name??``,"
+    },
+    {
+      "before": "callId:data.subCallId,parentCallId:data.parentCallId,name:data.name,argsRaw:jsonArguments(data.arguments),",
+      "after": "callId:data.subCallId,parentCallId:data.parentCallId,dshaInvalidIdentity:dshaToolHistoryIdentityInvalid(data.subCallId,data.name)||dshaToolHistoryIdentityInvalid(data.parentCallId,data.name),name:data.name,argsRaw:jsonArguments(data.arguments),"
+    },
+    {
+      "before": "callId:data.subCallId,parentCallId:data.parentCallId,name:data.name,args:previous",
+      "after": "callId:data.subCallId,parentCallId:data.parentCallId,dshaInvalidIdentity:previous?.dshaInvalidIdentity===true||dshaToolHistoryIdentityInvalid(data.subCallId,data.name)||dshaToolHistoryIdentityInvalid(data.parentCallId,data.name),name:data.name,args:previous"
+    },
+    {
+      "before": "time:interruptedAt.time,callId:block.callId,",
+      "after": "time:interruptedAt.time,callId:block.callId,dshaInvalidIdentity:block.dshaInvalidIdentity===true,"
+    }
+  ]
+}

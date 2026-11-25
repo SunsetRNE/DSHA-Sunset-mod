@@ -1,21 +1,21 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-client-ui-conversation/lib/client.js",
   "patches": [
     {
-      "before": "disabled: !running,",
-      "after": "disabled: false,"
+      "before": "delayMs:500,disabled:!running,",
+      "after": "delayMs:500,disabled: false,"
     },
     {
-      "before": "title: running ? void 0 : t(\"queue.steer.unavailable\"),",
+      "before": "title:running?void 0:t(`queue.steer.unavailable`),",
       "after": "title: void 0,"
     },
     {
-      "before": "\t\t\t\t\t\t\t\t\t\t\t\t\t\"aria-label\": t(\"queue.steer\"),\n\t\t\t\t\t\t\t\t\t\t\t\t\ttitle: void 0,\n\t\t\t\t\t\t\t\t\t\t\t\t\tdisabled: busy !== null || !running,",
-      "after": "\t\t\t\t\t\t\t\t\t\t\t\t\t\"aria-label\": t(\"queue.steer\"),\n\t\t\t\t\t\t\t\t\t\t\t\t\ttitle: void 0,\n\t\t\t\t\t\t\t\t\t\t\t\t\tdisabled: busy !== null,"
+      "before": "\"aria-label\":t(`queue.steer`),title: void 0,disabled:busy!==null||!running,",
+      "after": "\"aria-label\":t(`queue.steer`),title: void 0,disabled: busy !== null,"
     }
   ],
-  "sourceSha256": "9a37949cc76603ea3a965ce4d0d6ca65885de4a9808345c38748e595ac396378",
-  "packageIntegrity": "sha512-bxxnfa7meTpRAm6ErErSkVWi/IBVNt7LGg2StoH85wknvIn0jVShg6wqPwCbei6myR0/C5u17CjiBoCqAvsviA=="
+  "sourceSha256": "3d166eab312749bf8c528dd7d26d95340df75a27fec668b3510e4558fe9b343b",
+  "packageIntegrity": "sha512-WDmtmnpdsoleopdilRi6P7N5VjCaH+Hs2s2xRqr6OG+wYDp2FyWSNPV8zIA6I9iyPVnv8WoPc8Xr9V9Xb/BsiA=="
 }

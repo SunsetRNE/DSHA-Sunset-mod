@@ -450,8 +450,8 @@ Native `lastStartOutcome()` / `safeStartOutcome()` 提供去除秘密和图像�
   `applicationWindowCount` / `systemWindowCount` / `inputMethodWindowCount`、`focusedWindowId` /
   `activeWindowId`、`windowAmbiguous`；窗口唯一时再附 `targetWindowDisplayId` / `targetWindowId` /
   `targetWindowType` / `targetWindowLayer` / `targetWindowBounds` / `targetWindowFocused` /
-  `targetWindowActive` / `targetWindowTitle` / `targetWindowPackage`。
-- 字段只来自无障碍窗口清单：标题去掉控制字符、折叠空白并截断到 64 码点，包名按包名格式校验后保留，其余
+  `targetWindowActive` / `targetWindowPackage`。
+- 字段只来自无障碍窗口清单：包名按包名格式校验后保留，其余
   不合格值直接省略；不含节点文本、控件内容、截图或完整窗口清单。窗口 id 会复用，不能当长期身份。
 - `NO_UNIQUE_APPLICATION_WINDOW` 用计数区分两种原因：多个应用窗口并列（分屏/悬浮窗）→
   `reason=VSCREEN_WINDOW_AMBIGUOUS`、`nextAction=ASK_USER_TO_CLOSE_SPLIT_SCREEN`；只有系统/输入法窗口、

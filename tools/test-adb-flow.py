@@ -7,9 +7,11 @@ import io
 import json
 from pathlib import Path
 import re
+import shlex
 import socket
 import subprocess
 import sys
+import tempfile
 import types
 import unittest
 import urllib.error
@@ -264,6 +266,18 @@ class FlowTest(unittest.TestCase):
         verify.assert_called_once()
         handshake.assert_not_called()
 
+    def test_unreachable_pair_port_never_starts_handshake_or_verification(self):
+        with patch.object(pair.sys, 'argv', ['adb-pair.py', '--code', '123456', '--port', '39000']), \
+             patch.object(pair, 'probe', return_value=False), \
+             patch.object(pair, 'do_pair') as handshake, \
+             patch.object(pair, 'verify_connection') as verify, \
+             contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(1, pair.main())
+        self.assertIn('PORT_UNREACHABLE:', output.getvalue())
+        self.assertNotIn('PAIR_HANDSHAKE:', output.getvalue())
+        handshake.assert_not_called()
+        verify.assert_not_called()
+
     def test_invalid_pair_input_does_not_prepare_or_pair(self):
         for code in ['12345', '1234567', '１２３４５６']:
             with patch.object(pair.sys, 'argv', ['adb-pair.py', '--code', code]), contextlib.redirect_stdout(io.StringIO()):
@@ -281,17 +295,37 @@ class FlowTest(unittest.TestCase):
         self.assertIn('bundledDeviceScriptsMatch()', source)
         self.assertNotIn('SCRIPT_VERSION =', source)
 
-    def test_keepalive_grants_only_native_actual_package_and_missing_identity_sends_nothing(self):
-        mods={'adb_shell_wifi.adb_device':types.SimpleNamespace(AdbDeviceTls=self.Device),
-              'adb_shell_wifi.auth.sign_pythonrsa':types.SimpleNamespace(PythonRSASigner=self.Signer)}
-        with patch.dict(sys.modules,mods), patch.object(pair.sys,'argv',['adb-pair.py','--grant-keepalive']), \
-                patch.object(adb,'request_device_plan',return_value={'version':1,'kind':'READ','selfPackage':'com.dsh.clienu'}) as identity, \
-                patch.object(adb,'connect_with_retry',return_value=types.SimpleNamespace(output='done',exit_code=0)) as send, \
-                contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(0,pair.main());identity.assert_called_once_with('id',False)
-            self.assertEqual(['/system/bin/pm','grant','com.dsh.clienu','android.permission.WRITE_SECURE_SETTINGS'],__import__('shlex').split(send.call_args.args[2]))
-            send.reset_mock();identity.return_value={'version':1,'kind':'READ'}
-            self.assertEqual(1,pair.main());send.assert_not_called()
+    def test_keepalive_explicitly_targets_only_the_authenticated_system_user_package(self):
+        mods = {'adb_shell_wifi.adb_device': types.SimpleNamespace(AdbDeviceTls=self.Device),
+                'adb_shell_wifi.auth.sign_pythonrsa': types.SimpleNamespace(PythonRSASigner=self.Signer)}
+        plan = {'version': 1, 'kind': 'READ', 'selfPackage': 'com.dsh.clienu', 'selfUid': 10292}
+        with patch.dict(sys.modules, mods), \
+             patch.object(pair.sys, 'argv', ['adb-pair.py', '--grant-keepalive']), \
+             patch.object(adb, 'request_device_plan', return_value=plan) as identity, \
+             patch.object(adb, 'connect_with_retry', return_value=types.SimpleNamespace(output='done', exit_code=0)) as send, \
+             contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(0, pair.main())
+        identity.assert_called_once_with('id', False)
+        send.assert_called_once()
+        self.assertEqual(
+            ['/system/bin/pm', 'grant', '--user', '0', 'com.dsh.clienu', 'android.permission.WRITE_SECURE_SETTINGS'],
+            shlex.split(send.call_args.args[2]))
+
+    def test_other_profiles_and_missing_identity_cannot_reach_the_keepalive_device_command(self):
+        for uid, marker in [(99910292, 'KEEPALIVE_SKIPPED:'), (1010292, 'KEEPALIVE_SKIPPED:'),
+                            (None, 'SELF_PACKAGE_UNVERIFIED'), ('10292', 'SELF_PACKAGE_UNVERIFIED'),
+                            (True, 'SELF_PACKAGE_UNVERIFIED'), (2000, 'SELF_PACKAGE_UNVERIFIED')]:
+            with self.subTest(uid=uid):
+                plan = {'version': 1, 'kind': 'READ', 'selfPackage': 'com.dsh.clienu', 'selfUid': uid}
+                with patch.object(pair.sys, 'argv', ['adb-pair.py', '--grant-keepalive']), \
+                     patch.object(adb, 'request_device_plan', return_value=plan), \
+                     patch.object(pair, 'check_deps') as deps, \
+                     patch.object(adb, 'connect_with_retry') as send, \
+                     contextlib.redirect_stdout(io.StringIO()) as output:
+                    self.assertEqual(1, pair.main())
+                deps.assert_not_called()
+                send.assert_not_called()
+                self.assertIn(marker, output.getvalue())
 
 
 class NativeRouteTest(unittest.TestCase):
@@ -319,13 +353,19 @@ class NativeRouteTest(unittest.TestCase):
         response.__enter__ = Mock(return_value=response); response.__exit__ = Mock(return_value=False)
         response.read.return_value = json.dumps({'result': json.dumps(value)}).encode()
         opener = Mock(); opener.open.return_value = response; opener.open.side_effect = error
-        with patch.object(adb, 'open', return_value=io.StringIO('fake-token'), create=True), \
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(adb, 'BRIDGE_PORT_FILE', str(Path(directory) / 'absent-bridge-port')), \
+             patch.dict(adb.os.environ, {'DSHA_BRIDGE_PORT': '43190'}), \
+             patch.object(adb, 'open', return_value=io.StringIO('fake-token'), create=True), \
              patch.object(urllib.request, 'build_opener', return_value=opener):
             try:
                 return adb.request_native_execution('id')
             finally:
                 opener.open.assert_called_once()
-                self.assertNotIn('fake-token', opener.open.call_args.args[0].full_url)
+                request = opener.open.call_args.args[0]
+                self.assertTrue(request.full_url.startswith('http://127.0.0.1:43190/device/execute?'))
+                self.assertEqual('fake-token', request.get_header('X-token'))
+                self.assertNotIn('fake-token', request.full_url)
 
     def test_only_explicit_plan_can_trigger_adb(self):
         plan = {'version': 1, 'kind': 'READ', 'argv': ['id'], 'su': False}

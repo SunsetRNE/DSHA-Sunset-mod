@@ -276,6 +276,7 @@ public class NativeEnvironmentRebuildTest {
             NativeEnvironmentRebuildTest.class,
             EnvironmentRebuildTransaction.class,
             com.google.gson.stream.JsonReader.class,
+            kotlin.Unit.class,
             org.junit.Assert.class))
       classpath.add(
           new File(type.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath());

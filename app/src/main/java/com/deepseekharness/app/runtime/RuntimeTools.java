@@ -26,9 +26,9 @@ final class RuntimeTools {
 
   private static final Object LOCK = new Object();
 
-  /** Host mirror 字节契约在 rc5 与 0.2.2-rc.1 之间不变，但代次门仍须精确识别。 */
+  /** 每个已审核的 DSH 版本须匹配对应的 Host mirror 字节契约。 */
   private static final Map<String, String> LAN_SETTINGS_CONTRACT_VERSIONS =
-      Map.of("0.2.1-rc.5", "0.2.1-rc.5", "0.2.2-rc.1", "0.2.1-rc.5");
+      Map.of("0.2.1-rc.5", "0.2.1-rc.5", "0.2.2-rc.1", "0.2.1-rc.5", "0.2.2-rc.5", "0.2.2-rc.5");
 
   private static String preparedRoot;
   private static String preparedApk;
@@ -833,13 +833,8 @@ final class RuntimeTools {
    * Robolectric 夹具仍只有源名，打不开打包名时回退，避免把兼容读法一起删掉。
    */
   private static InputStream openManagedArchive(Context context, String asset) throws IOException {
-    if ("gh-cli.tar.gz".equals(asset)) {
-      try {
-        return context.getAssets().open("gh-cli.bin");
-      } catch (IOException missingPackagedName) {
-        return context.getAssets().open(asset);
-      }
-    }
+    if ("gh-cli.tar.gz".equals(asset))
+      return RuntimeAssetFiles.openArchive(context, "gh-cli.bin", asset);
     return context.getAssets().open(asset);
   }
 
@@ -935,9 +930,8 @@ final class RuntimeTools {
       String version = fileObject(pkg).getString("version");
       String contractVersion = LAN_SETTINGS_CONTRACT_VERSIONS.get(version);
       if (contractVersion != null) {
-        // rc5 与 0.2.2-rc.1 暴露相同 Host mirror 字节；保留签名的精确契约，
-        // 但按运行时版本表选择对应的契约族，不能让未知版本复用旧摘要。
-        var contract = assetObject(context, "lan-settings-upstream-contract.json");
+        String suffix = "0.2.1-rc.5".equals(contractVersion) ? "" : "-" + contractVersion;
+        var contract = assetObject(context, "lan-settings-upstream-contract" + suffix + ".json");
         if (contract.getInt("schema") != 1
             || !contractVersion.equals(contract.getString("dshVersion"))
             || !"@deepseek-ai/dsh-client-ui-settings/lib/client.js"

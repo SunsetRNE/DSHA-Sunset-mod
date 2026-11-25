@@ -1,5 +1,6 @@
 package com.deepseekharness.app.runtime;
 
+import com.deepseekharness.app.util.BundledRootfsAsset;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,7 +48,7 @@ final class ColdBundleExtractor {
       if (raw == null) {
         IOException last = null;
         try {
-          raw = boot.ctx.getAssets().open(com.deepseekharness.app.util.BundledRootfsAsset.NAME);
+          raw = boot.ctx.getAssets().open(BundledRootfsAsset.NAME);
         } catch (IOException e) {
           last = e;
         }
@@ -56,6 +57,11 @@ final class ColdBundleExtractor {
               ? last
               : new IOException(com.deepseekharness.app.util.UiText.text("assets 里也没有离线包"));
         }
+      }
+
+      final String rootfsSha256;
+      try (InputStream metadata = boot.ctx.getAssets().open(BundledRootfsAsset.SHA256)) {
+        rootfsSha256 = BundledRootfsAsset.readSha256(metadata);
       }
 
       boolean split =
@@ -89,11 +95,18 @@ final class ColdBundleExtractor {
               input,
               totalBytes,
               onProgress,
+              (archive, root) -> {
+                try (InputStream decoded = BundledRootfsAsset.decode(archive, rootfsSha256)) {
+                  return ColdSplitExtraction.extractSigned(decoded, root);
+                }
+              },
               ColdSplitExtraction::extractSigned);
         }
         boot.requireColdCandidate();
       } else {
-        TarGzipExtractor.extractAuto(progress.count(raw), boot.rootfsDir, 0);
+        try (InputStream decoded = BundledRootfsAsset.decode(progress.count(raw), rootfsSha256)) {
+          TarGzipExtractor.extractAuto(decoded, boot.rootfsDir, 0);
+        }
         progress.flush();
         if (split) {
           boot.extractionStage(

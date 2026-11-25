@@ -34,6 +34,17 @@ public final class TarGzipExtractor {
   static void extractSelected(
       InputStream in, File dest, int strip, Predicate<String> selected, BackupFileSystem fs)
       throws IOException {
+    extractSelected(in, dest, strip, selected, fs, new BackupControl(null));
+  }
+
+  static void extractSelected(
+      InputStream in,
+      File dest,
+      int strip,
+      Predicate<String> selected,
+      BackupFileSystem fs,
+      BackupControl control)
+      throws IOException {
     if (strip < 0 || strip > 64) throw new IOException("TAR_STRIP");
     GuestScriptBudget.checkpoint();
     ArchiveFileBoundary files = new ArchiveFileBoundary(fs, dest);
@@ -70,7 +81,7 @@ public final class TarGzipExtractor {
                 "TAR_ENTRY_FAILURE:" + path + ":" + target.type + ":" + error.getMessage(), error);
           }
         },
-        new BackupControl(null));
+        control);
     files.finish();
     GuestScriptBudget.checkpoint();
   }

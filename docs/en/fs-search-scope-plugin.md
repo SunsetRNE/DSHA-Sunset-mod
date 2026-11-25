@@ -27,4 +27,4 @@ Disabling or removing `dsh-fs-search-scope` on the plugins page restores upstrea
 
 ## 4. Verification and removal
 
-[test-fs-search-scope.mjs](../../tools/test-fs-search-scope.mjs) runs the real managed `ToolRuntime`, `dsh-subprocess-local` and `dsh-tool-fs-search` against a temporary git repository with linked worktrees. Remove the plugin when upstream glob prunes nested worktrees, or when the upstream-contract or policy-order cases fail after a DSH upgrade. Removal steps match [dsh-fs-read-hint](fs-read-hint-plugin.md); see the [Chinese page](../fs-search-scope-plugin.md) for details.
+[test-fs-search-scope.mjs](../../tools/test-fs-search-scope.mjs) runs the real managed `ToolRuntime`, `dsh-subprocess-local` and `dsh-tool-fs-search` against a temporary git repository with linked worktrees. Remove the plugin when upstream glob prunes nested worktrees, or when the upstream-contract or policy-order cases fail after a DSH upgrade. See the [Chinese page](../fs-search-scope-plugin.md) for removal steps.

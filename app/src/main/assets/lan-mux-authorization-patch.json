@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-client-connection/lib/client.browser.js",
+  "sourceSha256": "5f6107953fa764c80b6c06aa161be318ffa0b71e565ac81536fc4267d5d62412",
+  "patches": [
+    {
+      "before": "function openConnectionWebSocket(path,factory=url=>new WebSocket(url),baseUrl)",
+      "after": "// Only the ordinary browser's DSH event/stream mux uses a LAN ticket.\nfunction dshaPrepareLanMux(transport) {\n  if (transport != null || typeof document === \"undefined\" || globalThis.location?.protocol !== \"https:\") return;\n  const target = new URL(\"api/remote.mux\", document.baseURI);\n  if (target.origin !== globalThis.location.origin || target.username || target.password) return;\n  const issuer = new URL(\"/__dsha/lan/ws-ticket\", target);\n  target.protocol = \"wss:\";\n  let recognized = false;\n  return async function prepare(signal) {\n    const response = await fetch(issuer, {\n      method: \"POST\", credentials: \"same-origin\", cache: \"no-store\", redirect: \"error\", signal,\n      headers: { \"X-Dsha-WebSocket-Path\": target.pathname }\n    });\n    const transportVersion = response.headers.get(\"X-Dsha-Lan-Transport\");\n    if (transportVersion === null && !recognized) return;\n    recognized = true;\n    if (transportVersion !== \"v1\" || response.status !== 200) throw new Error(\"LAN WebSocket authorization failed\");\n    const { protocol } = await response.json();\n    if (typeof protocol !== \"string\" || !/^dsha-lan-ticket-v1\\.[A-Za-z0-9_-]{43}$/.test(protocol))\n      throw new Error(\"Invalid LAN WebSocket authorization\");\n    return () => new WebSocket(target.href, [\"dsha-lan-v1\", protocol]);\n  };\n}\nfunction openConnectionWebSocket(path,factory=url=>new WebSocket(url),baseUrl)"
+    },
+    {
+      "before": "const handle={interactions,openWebSocket:path=>openConnectionWebSocket(",
+      "after": "const handle={interactions,dshaPrepareLanMux:dshaPrepareLanMux(transport),openWebSocket:path=>openConnectionWebSocket("
+    }
+  ]
+}

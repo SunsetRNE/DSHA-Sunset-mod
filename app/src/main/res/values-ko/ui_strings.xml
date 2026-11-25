@@ -61,7 +61,7 @@
     <string name="ui134_recent_startups" formatted="false">"최근 5회 시작"</string>
     <string name="ui134_recent_startups_sub" formatted="false">"단계, 실제 오류 및 종료 코드"</string>
     <string name="ui134_results" formatted="false">"확인 결과"</string>
-    <string name="ui134_root_hint" formatted="false">"루팅된 기기에서는 ADB 페어링 없이 su를 바로 사용할 수 있습니다. 처음 실행할 때 root 관리자에서 DSHA를 허용하세요. 아래에서 명령 차단 단계를 선택할 수 있으며, SMS 읽기 같은 네이티브 차단은 세 단계 모두에서 적용됩니다."</string>
+    <string name="ui134_root_hint" formatted="false">"처음 사용할 때 루트 관리자에서 DSHA를 승인하세요. 엄격 모드는 디렉터리 재귀 읽기를 차단합니다. 관리형 SMS 조회에는 별도의 동의가 필요합니다. 두 완화 모드에서 루트 스크립트는 비공개 데이터를 직접 읽을 수 있습니다."</string>
     <string name="ui134_screen_setup" formatted="false">"화면 제어 설정 · 두 단계"</string>
     <string name="ui134_shizuku_hint" formatted="false">"Shizuku 관리자에서 서비스를 시작한 후 여기에서 DSHA를 허용하세요. 보통 재부팅 후 서비스를 다시 시작해야 합니다."</string>
     <string name="ui134_start_records" formatted="false">"시작 기록"</string>
@@ -130,7 +130,7 @@
     <string name="ui2_meet" formatted="false">"DSHA 알아보기"</string>
     <string name="ui2_network_runtime" formatted="false">"런타임 및 네트워크"</string>
     <string name="ui2_offline_badge" formatted="false">"오프라인 설정  ·  루팅 불필요  ·  %1$s"</string>
-    <string name="ui2_online_notice" formatted="false">"온라인 모델에는 전송하도록 선택한 메시지와 첨부파일이 전달됩니다."</string>
+    <string name="ui2_online_notice" formatted="false">"선택한 온라인 모델에 메시지, 첨부파일 및 화면의 글자나 스크린샷과 같은 도구 결과가 전송될 수 있습니다."</string>
     <string name="ui2_overlay" formatted="false">"플로팅 상태"</string>
     <string name="ui2_overlay_sub" formatted="false">"내용, 불투명도 및 표시 시간"</string>
     <string name="ui2_plugin_link" formatted="false">"저장소 또는 다운로드 URL"</string>
@@ -187,7 +187,6 @@
     <string name="ui_adb_code_label" formatted="false">"페어링 코드 (6자리)"</string>
     <string name="ui_adb_host_label" formatted="false">"기기 주소 (비워두면 검색)"</string>
     <string name="ui_adb_port_label" formatted="false">"페어링 포트 (비워두면 검색)"</string>
-    <string name="ui_lan_unencrypted" formatted="false">"로컬 네트워크 트래픽은 암호화되지 않습니다. 신뢰하는 네트워크와 기기에서만 사용하세요"</string>
     <string name="ui_language_title" formatted="false">"언어"</string>
     <string name="ui_m0001" formatted="false">"업데이트 다운로드"</string>
     <string name="ui_m0002" formatted="false">"설정 저장"</string>

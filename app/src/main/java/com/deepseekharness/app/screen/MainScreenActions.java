@@ -229,13 +229,19 @@ public final class MainScreenActions {
       recordFailure(context, FailureStage.MAIN, code, failure, "screenshot".equals(operation));
     }
     JSONObject result = ScreenReply.failure(context, code);
-    if (!context.submitted()
-        && java.util.Set.of("SCREEN_WINDOW_GEOMETRY_CHANGED", "SCREEN_GEOMETRY_CHANGED")
-            .contains(code))
+    String nextAction =
+        switch (code) {
+          case "SCREEN_WINDOW_GEOMETRY_CHANGED", "SCREEN_GEOMETRY_CHANGED" ->
+              "OBSERVE_A_NEW_SCREENSHOT_AFTER_LAYOUT_SETTLES";
+          case "SCREEN_WINDOW_CAPTURE_UNSUPPORTED" ->
+              "USE_ANDROID_GET_STATE_FOR_THE_AUTHORIZED_WINDOW";
+          case "SCREEN_WINDOW_GEOMETRY_UNAVAILABLE", "SCREEN_TARGET_WINDOW_OCCLUDED" ->
+              "CLEAR_OCCLUSION_OR_USE_FRESH_TREE_NODE";
+          default -> null;
+        };
+    if (nextAction != null)
       try {
-        result
-            .put("nextAction", "OBSERVE_A_NEW_SCREENSHOT_AFTER_LAYOUT_SETTLES")
-            .put("automaticRetry", false);
+        result.put("nextAction", nextAction).put("automaticRetry", false);
       } catch (org.json.JSONException impossible) {
         throw new IllegalStateException(impossible);
       }
@@ -348,9 +354,8 @@ public final class MainScreenActions {
   }
 
   /**
-   * 动作回执里附一份动作后生成的新观察。只有已验证完成（COMPLETED）或凭据失效（NOT_SENT）的动作才附；
-   * 像素坐标动作不返回截图，坐标凭据仍必须单独走 /app/ui/screenshot。观察失败只写
-   * {@code observationUnavailable}，绝不改写动作状态，也不把 UNKNOWN 变成成功。
+   * 动作回执里附一份动作后生成的新观察。只有已验证完成（COMPLETED）或凭据失效（NOT_SENT）的动作才附； 像素坐标动作不返回截图，坐标凭据仍必须单独走
+   * /app/ui/screenshot。观察失败只写 {@code observationUnavailable}，绝不改写动作状态，也不把 UNKNOWN 变成成功。
    */
   private boolean attachObservation(
       ScreenRequestContext context, JSONObject reply, long dispatchAt) {
@@ -451,9 +456,10 @@ public final class MainScreenActions {
       throws Exception {
     if (!format.equals("mcp") && !format.equals("path"))
       return ScreenReply.refused("SCREENSHOT_FORMAT_INVALID");
+    File targetFile = null;
+    boolean delivered = false;
+    observations.clear();
     try (var shot = captures.capture(context)) {
-      boolean coordinatesAvailable =
-          shot.region != null && shot.region.hasUnexcludedArea(shot.region.content());
       JSONObject result =
           ScreenReply.completed()
               .put("kind", "dsha-screenshot-v1")
@@ -461,32 +467,23 @@ public final class MainScreenActions {
               .put("width", shot.bitmap.getWidth())
               .put("height", shot.bitmap.getHeight())
               .put("rotation", shot.rotation)
-              .put("coordinatesAvailable", coordinatesAvailable)
+              .put("coordinatesAvailable", true)
               .put("coordinateBoundaryReservePixels", 1)
               .put("serviceEpoch", context.serviceEpoch())
               .put("geometry", ScreenGeometry.describe(shot.region))
               .put("target", ScreenSnapshotReader.target(context.target()));
-      if (coordinatesAvailable) {
-        result.put("observationRegion", region(shot.region.content()));
-        result.put("windowBounds", region(shot.region.window()));
-        var exclusions = new org.json.JSONArray();
-        for (var exclusion : shot.region.exclusions())
-          exclusions.put(
-              new JSONObject()
-                  .put("windowId", exclusion.windowId())
-                  .put("epoch", exclusion.epoch())
-                  .put("bounds", region(exclusion.bounds())));
-        result.put("excludedRegions", exclusions);
-      } else {
-        result.put(
-            "reason",
-            shot.region == null
-                ? "TARGET_WINDOW_GEOMETRY_UNAVAILABLE"
-                : shot.region.obscured()
-                    ? "TARGET_WINDOW_OCCLUDED"
-                    : "OWNED_CONTROL_COVERS_TARGET");
-        result.put("nextAction", "CLEAR_OCCLUSION_OR_USE_FRESH_TREE_NODE");
-      }
+      result.put("observationRegion", region(shot.region.content()));
+      result.put("windowBounds", region(shot.region.window()));
+      var exclusions = new org.json.JSONArray();
+      for (var exclusion : shot.region.exclusions())
+        exclusions.put(
+            new JSONObject()
+                .put("windowId", exclusion.windowId())
+                .put("epoch", exclusion.epoch())
+                .put("bounds", region(exclusion.bounds())));
+      result.put("excludedRegions", exclusions);
+      if (!shot.region.equals(context.currentRegionIfKnown()))
+        throw new IllegalStateException("SCREEN_WINDOW_GEOMETRY_CHANGED");
       if (format.equals("mcp")) {
         ByteArrayOutputStream encoded = new ByteArrayOutputStream();
         if (!shot.bitmap.compress(Bitmap.CompressFormat.PNG, 90, encoded))
@@ -503,26 +500,15 @@ public final class MainScreenActions {
         File directory = new File(base, "DSHA");
         if (!directory.isDirectory() && !directory.mkdirs())
           throw new IllegalStateException("SCREENSHOT_STORAGE_UNAVAILABLE");
-        File target = new File(directory, "screen-" + UUID.randomUUID() + ".png");
-        try (FileOutputStream stream = new FileOutputStream(target)) {
+        targetFile = new File(directory, "screen-" + UUID.randomUUID() + ".png");
+        try (FileOutputStream stream = new FileOutputStream(targetFile)) {
           if (!shot.bitmap.compress(Bitmap.CompressFormat.PNG, 90, stream))
             throw new IllegalStateException("SCREENSHOT_ENCODE_FAILED");
         }
-        try {
-          context.validateCurrentTarget();
-        } catch (RuntimeException revoked) {
-          // 本次尚未发布的私有截图不留在磁盘，也不能交给后续请求。
-          if (!target.delete()) target.deleteOnExit();
-          throw revoked;
-        }
-        result.put("path", target.getAbsolutePath());
+        result.put("path", targetFile.getAbsolutePath());
       }
-      context.validateCurrentTarget();
-      if (!coordinatesAvailable) {
-        observations.clear();
-        if (!context.current()) return ScreenReply.refused("SCREEN_RUN_CHANGED");
-        return result;
-      }
+      if (!shot.region.equals(context.currentRegionIfKnown()))
+        throw new IllegalStateException("SCREEN_WINDOW_GEOMETRY_CHANGED");
       var observation =
           observations.publish(
               context.target(),
@@ -538,7 +524,11 @@ public final class MainScreenActions {
         observations.clear();
         return ScreenReply.refused("SCREEN_RUN_CHANGED");
       }
+      delivered = true;
       return result;
+    } finally {
+      if (!delivered && targetFile != null && targetFile.exists() && !targetFile.delete())
+        targetFile.deleteOnExit();
     }
   }
 

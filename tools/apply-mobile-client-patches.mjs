@@ -1,11 +1,13 @@
 // 从固定上游预构建产物重建 DSHA 差异；不执行上游安装/构建脚本。
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { applyFileTransferClient } from './file-transfer/client-mobile.mjs';
 import { applyMobileSafeArea } from './mobile-safe-area.mjs';
 import { applyMobileLocaleBundlePatch, applyMobileLocaleSourcePatch, mobileLocaleSourceFiles } from './mobile-locales.mjs';
+import { applyMobileScrollPatch, mobileScrollSourceFiles } from './mobile-scroll-performance.mjs';
+import { applyMobilePanelMotion, mobilePanelMotionSourceFiles } from './mobile-panel-motion.mjs';
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const lock = JSON.parse(readFileSync(path.join(project, 'tools/mobile-plugin-upstream.lock.json'), 'utf8'));
 export const upstreamCommit = lock.commit;
@@ -42,13 +44,14 @@ export function applyMobileClientPatches(bytes) {
     source = source.replace(before, after);
   };
   // build336（T101 重做，用户选 C）+ build351（2026-11-09 同步上游 3.3.5）：以上游为基座，
-  // client 只保留四类本地差异：
+  // client 的本地差异：
   //   1) 宿主集成 DSHA_GEAR_FIT_V1 + DSHA_GEAR_SINGLETON_V1：footer 齿轮按实测行宽让位
   //      （上游 3.3.5 仍是旧的「连接条 :has() 存在性」判据，DSH 0.2.2 首连不渲染指示灯时会判错），
   //      并且同一行只保留一颗齿轮（还原 / 热重载 / 重复注册可能让插件同时存在多个实例）；
   //   2) 安全区：applyMobileSafeArea 把 env(safe-area-inset-*) 包成 DSHA 原生发布的变量；
   //   3) 文件传输：applyFileTransferClient（原生 share / save-as / 下载记录与 32 MiB 限制）；
   //   4) 多语言：applyMobileLocaleBundlePatch（zh-Hant/ru/ja/ko/ar/pt/la/fr + live-locale）。
+  //   5) 会话滚动：applyMobileScrollPatch（仅在模型菜单可见时跟随滚动，文档锁只监听视口滚动）。
   // 会话输入 V4、手机搜索、快捷键弹层可见带、字体族行换行、遮罩按压染色按「完全追随上游」
   // 删除；残留问题、上游覆盖情况与测试变更见 docs/web-mobile-patches.md 与 build336/build351 记录。
   // DSHA_GEAR_FIT_V1（T61）：footer 齿轮的让位判据改成**只量几何**，不再读宿主
@@ -158,22 +161,30 @@ function createDrawerQuickSettingsTask(ctx) {`);
                     target.appendChild(wrap);
             }
             bindRowHook();`);
-  return applyMobileSafeArea(applyFileTransferClient(applyMobileLocaleBundlePatch(source)));
+  return applyMobileSafeArea(applyFileTransferClient(applyMobileLocaleBundlePatch(applyMobilePanelMotion(applyMobileScrollPatch(source)))));
 }
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1], { throwIfNoEntry: false }) === fileURLToPath(import.meta.url)) {
   const [input, action = '--check'] = process.argv.slice(2);
-  if (input === '--locale-sources') {
-    const [directory, localeAction = '--check'] = process.argv.slice(3);
-    if (!directory || !['--check', '--write'].includes(localeAction)) throw new Error('用法: node tools/apply-mobile-client-patches.mjs --locale-sources <固定上游目录> [--check|--write]');
-    for (const name of mobileLocaleSourceFiles) {
+  if (input === '--locale-sources' || input === '--scroll-sources' || input === '--client-sources') {
+    const [directory, sourceAction = '--check'] = process.argv.slice(3);
+    if (!directory || !['--check', '--write'].includes(sourceAction)) throw new Error('用法: node tools/apply-mobile-client-patches.mjs ' + input + ' <固定上游目录> [--check|--write]');
+    const files = new Set([
+      ...(input === '--scroll-sources' ? [] : mobileLocaleSourceFiles),
+      ...(input === '--locale-sources' ? [] : mobileScrollSourceFiles),
+      ...(input === '--client-sources' ? mobilePanelMotionSourceFiles : []),
+    ]);
+    for (const name of files) {
       const bytes = readFileSync(path.join(directory, name));
-      if (sha(bytes) !== lock.files[name]?.sha256) throw new Error('mobile locale source differs from fixed commit: ' + name);
-      const patched = applyMobileLocaleSourcePatch(name, bytes.toString('utf8'));
+      if (sha(bytes) !== lock.files[name]?.sha256) throw new Error('mobile client source differs from fixed commit: ' + name);
+      let patched = bytes.toString('utf8');
+      if (mobileLocaleSourceFiles.includes(name)) patched = applyMobileLocaleSourcePatch(name, patched);
+      if (mobileScrollSourceFiles.includes(name)) patched = applyMobileScrollPatch(patched, name);
+      if (mobilePanelMotionSourceFiles.includes(name)) patched = applyMobilePanelMotion(patched, name);
       const output = path.join(project, 'app/src/main/assets/builtin-plugins/dsh-web-mobile', name);
-      if (localeAction === '--write') writeFileSync(output, patched);
-      else if (readFileSync(output, 'utf8') !== patched) throw new Error('移动语言源码与锁定补丁不符: ' + name);
+      if (sourceAction === '--write') writeFileSync(output, patched);
+      else if (readFileSync(output, 'utf8') !== patched) throw new Error('移动客户端源码与锁定补丁不符: ' + name);
     }
-    console.log('移动语言源码与上游指纹核验通过: ' + upstreamCommit);
+    console.log('移动客户端源码与上游指纹核验通过: ' + upstreamCommit);
     process.exit(0);
   }
   if (input === '--server') {

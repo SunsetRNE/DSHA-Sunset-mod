@@ -7,7 +7,7 @@
                    非测试身份）必须与源码一致，且 apksigner verify 必须失败（确实未签名）。
   sign-verify    → 本工具：签名前核对 keystore 中的证书等于 ci/release-identity.<identity>.json，
                    按身份 schemes 显式签 v1+v2+v3，签名后复验证书与全部 scheme，并断言除
-                   META-INF/ 外每个 ZIP 成员的 CRC32 与大小与未签名输入完全一致（签名不改载荷）。
+                   META-INF/ 外每个 ZIP 成员的 SHA-256 与大小与未签名输入完全一致（签名不改载荷）。
 
 用法：
 
@@ -34,6 +34,8 @@ import shutil
 import subprocess
 import tempfile
 import zipfile
+from proroot_distribution import verify_apk as verify_proroot
+from proot_source_distribution import verify_apk as verify_proot
 
 ROOT = Path(__file__).resolve().parents[1]
 META_PREFIX = "META-INF/"
@@ -112,19 +114,30 @@ def metadata_version(path):
     return {"versionCode": int(value["versionCode"]), "versionName": value["versionName"]}
 
 
-def digest(path):
+def digest_stream(stream):
     value = hashlib.sha256()
-    with Path(path).open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1048576), b""):
-            value.update(chunk)
+    for chunk in iter(lambda: stream.read(1048576), b""):
+        value.update(chunk)
     return value.hexdigest()
 
 
+def digest(path):
+    with Path(path).open("rb") as stream:
+        return digest_stream(stream)
+
+
 def payload_entries(path):
-    """ZIP 载荷清单：签名只允许新增 META-INF/ 成员，其余成员的 CRC32 与大小不得变化。"""
+    """ZIP 载荷清单：签名重写 META-INF，其余成员的内容与大小不得变化。"""
     with zipfile.ZipFile(path) as archive:
-        return {info.filename: (info.CRC, info.file_size)
-                for info in archive.infolist() if not info.filename.startswith(META_PREFIX)}
+        entries = archive.infolist()
+        if len({entry.filename for entry in entries}) != len(entries):
+            raise SystemExit("APK_DUPLICATE_MEMBER")
+        payload = {}
+        for entry in entries:
+            if not entry.filename.startswith(META_PREFIX):
+                with archive.open(entry) as stream:
+                    payload[entry.filename] = (entry.file_size, digest_stream(stream))
+        return payload
 
 
 def compare_payload(unsigned, signed):
@@ -186,7 +199,7 @@ def badging(aapt2, apk):
     try:
         return subprocess.check_output([str(aapt2), "dump", "badging", str(apk)],
                                        stderr=subprocess.STDOUT, text=True)
-    except subprocess.CalledProcessError as error:
+    except (OSError, subprocess.CalledProcessError) as error:
         raise SystemExit("APK_BADGING_FAILED") from error
 
 
@@ -210,6 +223,9 @@ def check_unsigned(apk, selected, expected, tools):
         raise SystemExit("ONLY_UNSIGNED_INPUT")
     values = check_manifest(parse_badging(badging(tools["aapt2"], apk)), selected, expected)
     require_unsigned(tools["apksigner"], apk)
+    with zipfile.ZipFile(apk) as package:
+        verify_proroot(package)
+        verify_proot(package)
     return values
 
 
@@ -255,6 +271,9 @@ def verify_signed(apk, unsigned, selected, tools):
     text = badging(tools["aapt2"], apk)
     values = check_manifest(parse_badging(text), selected, source_version())
     members = compare_payload(unsigned, apk)
+    with zipfile.ZipFile(apk) as package:
+        verify_proroot(package)
+        verify_proot(package)
     return {"signature": output, "badging": text, "values": values,
             "certificate": certificate, "schemes": schemes, "payloadMembers": members}
 

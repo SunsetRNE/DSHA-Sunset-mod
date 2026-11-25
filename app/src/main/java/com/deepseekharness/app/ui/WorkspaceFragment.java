@@ -37,7 +37,7 @@ public class WorkspaceFragment extends Fragment {
   private final Handler main = new Handler(Looper.getMainLooper());
   private HarnessController controller;
   private com.deepseekharness.app.core.BackupTask task;
-  private AlertDialog previewDialog;
+  private AlertDialog previewDialog, backupDialog;
   private OneClickBackup oneClick;
 
   /** 状态卡展开状态：旋转/返回后保留，用户折叠后不再被异常默认展开覆盖。 */
@@ -193,6 +193,12 @@ public class WorkspaceFragment extends Fragment {
   @Override
   public void onViewCreated(@NonNull View view, @Nullable Bundle state) {
     super.onViewCreated(view, state);
+    if (state != null && state.getBoolean("backupPasswordPrompt"))
+      view.post(
+          () -> {
+            if (getView() == view && !Boolean.TRUE.equals(oneClick.busy.getValue()))
+              confirmBackup();
+          });
     oneClick.status.observe(getViewLifecycleOwner(), value -> refreshBackupStatus(view));
     oneClick.busy.observe(getViewLifecycleOwner(), value -> refreshBackupStatus(view));
     oneClick.failure.observe(getViewLifecycleOwner(), value -> refreshBackupStatus(view));
@@ -227,14 +233,12 @@ public class WorkspaceFragment extends Fragment {
 
   /** 一键备份前的确认：列出包含 / 不包含与保存位置。真正开始仍走 {@link OneClickBackup#start}。 */
   private void confirmBackup() {
-    if (!isAdded()) return;
+    if (!isAdded() || backupDialog != null) return;
     CardPage page =
         new CardPage(
             requireContext(),
             UiText.text("一键备份"),
-            UiText.choose(
-                "无需密码，保存为可在新设备恢复的 tar.gz。",
-                "No password. Saves a tar.gz you can restore on a new device."),
+            getString(R.string.portable_export_summary),
             true);
     LinearLayout included = page.card();
     sheetLine(page, included, UiText.choose("会包含", "Included"), true);
@@ -265,14 +269,30 @@ public class WorkspaceFragment extends Fragment {
             R.color.shell_text_secondary);
     notice.setLineSpacing(page.dp(3), 1);
     page.content.addView(notice);
+    PortablePasswordFields fields = new PortablePasswordFields(requireContext());
+    page.card().addView(fields);
     AlertDialog dialog = CardSheet.create(requireContext(), page);
+    backupDialog = dialog;
+    dialog.setOnDismissListener(
+        ignored -> {
+          fields.clear();
+          if (backupDialog == dialog) backupDialog = null;
+        });
     page.button(
         page.footer,
         UiText.text("开始备份"),
         true,
         () -> {
+          char[] password = fields.validated();
+          if (password == null) return;
+          boolean started;
+          try {
+            started = oneClick.start(password);
+          } finally {
+            java.util.Arrays.fill(password, (char) 0);
+          }
           dialog.dismiss();
-          if (!oneClick.start()) {
+          if (!started) {
             toast(
                 UiText.choose(
                     "已有备份或保存位置选择正在进行。",
@@ -612,6 +632,7 @@ public class WorkspaceFragment extends Fragment {
   public void onSaveInstanceState(@NonNull Bundle outState) {
     super.onSaveInstanceState(outState);
     disclosure.save(outState, "disclosure");
+    outState.putBoolean("backupPasswordPrompt", backupDialog != null && backupDialog.isShowing());
   }
 
   @Override
@@ -634,6 +655,10 @@ public class WorkspaceFragment extends Fragment {
 
   @Override
   public void onDestroyView() {
+    if (backupDialog != null) {
+      backupDialog.dismiss();
+      backupDialog = null;
+    }
     main.removeCallbacks(refreshTask);
     super.onDestroyView();
   }

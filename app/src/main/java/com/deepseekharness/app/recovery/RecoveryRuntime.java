@@ -5,7 +5,9 @@ import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
 import com.deepseekharness.app.BuildConfig;
+import com.deepseekharness.app.backup.BackupControl;
 import com.deepseekharness.app.runtime.TarGzipExtractor;
+import com.deepseekharness.app.util.BundledRootfsAsset;
 import com.deepseekharness.app.util.Compat;
 import com.deepseekharness.app.util.ProcessTermination;
 import com.deepseekharness.app.util.ProcessIdentity;
@@ -68,19 +70,20 @@ public final class RecoveryRuntime {
   private final File files;
   private final JSONObject descriptor;
   private final Map<String, String> archiveSources;
-  private final BooleanSupplier cancelled;
+  private final BackupControl control;
   private final Consumer<String> progress;
   public final String runtimeId, instanceId, profile;
   public final File session, home;
   private File rootfs;
 
   public RecoveryRuntime(
-      Context context, String instanceId, BooleanSupplier cancelled, Consumer<String> progress)
+      Context context, String instanceId, BackupControl control, Consumer<String> progress)
       throws IOException {
     if (!RuntimeInstanceRegistry.validId(instanceId)) throw new IOException("RECOVERY_INSTANCE_ID");
     this.context = context.getApplicationContext();
     this.instanceId = instanceId;
-    this.cancelled = cancelled;
+    this.control = control;
+    control.check();
     this.progress = progress;
     files = privateFiles(this.context);
     try {
@@ -138,13 +141,13 @@ public final class RecoveryRuntime {
     File selected = null;
     try {
       var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
-      selected = RecoveryStoragePlan.reusable(fs, files, capsules, runtimeId, PREPARING);
+      selected = RecoveryStoragePlan.reusable(fs, files, capsules, runtimeId, PREPARING, control);
       if (selected != null && !PREPARING.add(selected.getAbsolutePath())) selected = null;
       if (selected != null) {
         progress.accept(
             UiText.choose("正在复用已完整核验的应急候选…", "Reusing a fully verified recovery candidate…"));
         verifyRoot(new File(selected, "linux/ubuntu"));
-        publishCapsule(selected, capsule, capsules);
+        publishCapsule(selected, capsules);
         return;
       }
       long bytes = descriptor.getLong("expandedBytes");
@@ -152,7 +155,8 @@ public final class RecoveryRuntime {
           || bytes > Long.MAX_VALUE - RESERVE_BYTES
           || files.getUsableSpace() < bytes + RESERVE_BYTES)
         throw new IOException(
-            "RECOVERY_SPACE_INSUFFICIENT: " + storageDetail(RecoveryStoragePlan.usage(fs, files)));
+            "RECOVERY_SPACE_INSUFFICIENT: "
+                + storageDetail(RecoveryStoragePlan.usage(fs, files, control)));
       File staging = new File(capsules, runtimeId + ".pending-" + instanceId);
       if (staging.exists()) throw new IOException("RECOVERY_PREPARATION_PENDING");
       mkdir(staging);
@@ -173,16 +177,20 @@ public final class RecoveryRuntime {
           verifyDigest(input, expected);
         }
         progress.accept(UiText.format("正在准备应急环境 (%s/%s)…", i + 1, archives.length()));
-        try (InputStream input = context.getAssets().open(source)) {
-          TarGzipExtractor.extractAuto(new CheckedInput(input), candidate, 0);
+        try (InputStream input = context.getAssets().open(source);
+            InputStream checked =
+                BundledRootfsAsset.RECOVERY_NAME.equals(name)
+                    ? BundledRootfsAsset.decode(new CheckedInput(input), expected)
+                    : new CheckedInput(input)) {
+          TarGzipExtractor.extractAuto(checked, candidate, 0);
         }
       }
       applyBrowserOverlay(candidate);
       installCapsuleDependencies(candidate);
       verifyRoot(candidate);
       check();
-      RecoveryStoragePlan.prepared(fs, staging, runtimeId, instanceId);
-      publishCapsule(staging, capsule, capsules);
+      RecoveryStoragePlan.prepared(fs, staging, runtimeId, instanceId, control);
+      publishCapsule(staging, capsules);
     } catch (JSONException error) {
       throw new IOException("RECOVERY_DESCRIPTOR_INVALID", error);
     } finally {
@@ -190,13 +198,14 @@ public final class RecoveryRuntime {
     }
   }
 
-  private void publishCapsule(File staging, File capsule, File capsules) throws IOException {
+  private void publishCapsule(File staging, File capsules) throws IOException {
     RecoveryStoragePlan.publish(
         new com.deepseekharness.app.backup.AndroidBackupFileSystem(),
         capsules,
         staging,
         runtimeId,
-        instanceId);
+        instanceId,
+        control);
   }
 
   private static File privateFiles(Context context) throws IOException {
@@ -857,8 +866,7 @@ public final class RecoveryRuntime {
   }
 
   private void check() throws IOException {
-    if (cancelled.getAsBoolean() || Thread.currentThread().isInterrupted())
-      throw new InterruptedIOException("RECOVERY_CANCELLED");
+    control.check();
   }
 
   private byte[] asset(String name, int limit) throws IOException {

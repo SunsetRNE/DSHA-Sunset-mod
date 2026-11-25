@@ -1,8 +1,5 @@
-# DSHA 0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1 / build369
+# DSHA 0.2.2-rc.5-20261125.1442-dsh0.2.2-rc.5 / build377
 
-- Migration par domaine vers Kotlin : 6 classes capabilities, 8 classes de composition des commandes et montages runtime et 11 classes de gestion plugins, soit 25 classes Java. Les règles de permissions, de démarrage et de transaction restent identiques. Aucun gain de performances n’est annoncé ; le découpage A8-P3 en modules est exclu.
-- Les lecteurs dynamiques gérés ciblent désormais ProotBootstrap.kt. Les chemins source, les tests de contrat et le descriptor sont actualisés pour éviter les anciennes références Java ou empreintes du générateur.
-- runtimeId : 1d42f79d5fea6bad5caaa2409822aa5949691c89e6e230b95011ae35db8a5757. baseVersion 10, DSH 0.2.2-rc.1 et format des données restent identiques. Au premier démarrage après 368→369, une seule page de maintenance de l’environnement en plein écran est attendue ; les données personnelles sont conservées.
-- Rust reste assemblé en prebuilt et son backend reste actif par défaut, avec preuve de provenance du même run. Une bibliothèque indisponible sélectionne la JVM avec un motif typé ; un échec après sélection de Rust n’est pas rejoué et les divergences ne sont pas masquées par un résultat JVM.
-- dsh-web-mobile 3.3.5 reste intégré et actif par défaut. Le choix de désactivation, le mode sans échec, Android 11+ / arm64, le nom du paquet et la signature Mod sont conservés ; versionCode 369.
-- Le candidat intégré c243b7a0 a passé tous les contrôles logiciels et de signature du dry-run 43823137009. La CI de publication vérifie à nouveau le commit final de build369. Cette version n’a pas encore de validation sur appareil ; les reçus build368 ne la remplacent pas.
+- Les connexions au réseau local utilisent HTTPS. Vérifiez l’empreinte du certificat sur le téléphone avant la première connexion.
+- Une sauvegarde manuelle peut être chiffrée par mot de passe. Ce même mot de passe permet de la restaurer sur un autre appareil. Les anciennes sauvegardes restent lisibles.
+- La capture tient compte de la fenêtre autorisée. L’intégrité du fichier est vérifiée à l’enregistrement et seuls les réglages modifiés sont sauvegardés.

@@ -34,6 +34,11 @@ final class EnvironmentUiReader implements EnvironmentUiFacts.Reader {
   }
 
   @Override
+  public boolean acceptedRollback() {
+    return EnvironmentAccess.hasAcceptedRollback(controller);
+  }
+
+  @Override
   public boolean hostPending() {
     return MaintenanceCoordinator.pending(controller);
   }
@@ -50,7 +55,9 @@ final class EnvironmentUiReader implements EnvironmentUiFacts.Reader {
 
   @Override
   public boolean blocksEntry() {
-    return MainEntryMaintenance.blocksEntry(controller);
+    return MainEntryMaintenance.blocksEntry(controller)
+        || !MaintenanceCoordinator.isEnvironmentTaskBusy()
+            && RuntimeMaintenanceStarter.pendingTrial(context);
   }
 
   @Override

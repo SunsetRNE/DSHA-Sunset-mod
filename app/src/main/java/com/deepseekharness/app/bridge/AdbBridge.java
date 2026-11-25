@@ -21,6 +21,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * ADB 无线配对桥（绕过 Shizuku，通道直连设备 adbd）。
@@ -111,12 +114,7 @@ public final class AdbBridge {
               timeoutMs,
               true,
               () -> Thread.currentThread().isInterrupted(),
-              line -> {
-                if (line.equals(com.deepseekharness.app.util.UiText.text("[输出行过长，已隐藏]")))
-                  complete[0] = false;
-                if (output.length() + line.length() + 1 <= 131072) output.append(line).append('\n');
-                else complete[0] = false;
-              },
+              boundedOutput(output, complete),
               Compat::destroy);
       helperExited = true; // InstallProcess.read returned only after owning/reaping this process.
       if (exit != 0) output.append("[ADB_PROCESS_EXIT=").append(exit).append("]\n");
@@ -144,6 +142,14 @@ public final class AdbBridge {
     }
     return new AdbVirtualScreenStart.HelperResult(
         SensitiveData.redact(output.toString()), helperExited, complete[0]);
+  }
+
+  private static Consumer<String> boundedOutput(StringBuilder output, boolean[] complete) {
+    return line -> {
+      if (line.equals(com.deepseekharness.app.util.UiText.text("[输出行过长，已隐藏]"))) complete[0] = false;
+      if (output.length() + line.length() + 1 <= 131072) output.append(line).append('\n');
+      else complete[0] = false;
+    };
   }
 
   private static String execOwned(ProotBootstrap proot, String command) {
@@ -514,26 +520,61 @@ public final class AdbBridge {
     return out.toString();
   }
 
-  /** 配对成功后通过 adb shell（uid=2000）给本 App 授予 WRITE_SECURE_SETTINGS，
-   *  之后开机广播可自动开启无线调试（保活依赖）。 */
+  private static boolean ownsWirelessDebugKeepalive(Context context) {
+    int uid = context.getApplicationInfo().uid;
+    return uid == android.os.Process.myUid() && AdbResult.isWirelessDebugKeepaliveOwner(uid);
+  }
+
+  private static boolean hasSecureSettings(Context context) {
+    return context.checkSelfPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS)
+        == android.content.pm.PackageManager.PERMISSION_GRANTED;
+  }
+
+  public static boolean canRestoreWirelessDebugging(Context context) {
+    return ownsWirelessDebugKeepalive(context) && hasSecureSettings(context);
+  }
+
+  /** 系统用户保留原保活行为。以本安装的真实权限读回判定结果。 */
   private static String grantSecureSettings(ProotBootstrap proot) {
     try {
-      String r = execOwned(proot, "python3 /root/.dsh/adb-pair.py --grant-keepalive 2>&1", 45_000);
-      android.util.Log.i(
-          "DSHA-ADB",
-          com.deepseekharness.app.util.UiText.format(
-              "WRITE_SECURE_SETTINGS 授权结果: %s", SensitiveData.redact(r)));
-      return r != null && r.trim().endsWith("[EXIT=0]")
-          ? com.deepseekharness.app.util.UiText.text("KEEPALIVE_OK: 已允许自动恢复无线调试")
-          : com.deepseekharness.app.util.UiText.format(
-              "KEEPALIVE_WARN: 连接已验证，但自动恢复授权未完成；重启后可能需手动打开无线调试\n%s", SensitiveData.redact(r));
-    } catch (Throwable t) {
+      return wirelessDebugKeepalive(
+          ownsWirelessDebugKeepalive(proot.ctx),
+          () -> hasSecureSettings(proot.ctx),
+          () -> {
+            String output =
+                execOwned(proot, "python3 /root/.dsh/adb-pair.py --grant-keepalive 2>&1", 45_000);
+            android.util.Log.i(
+                "DSHA-ADB",
+                "WRITE_SECURE_SETTINGS helper exited successfully: "
+                    + (output != null && output.trim().endsWith("[EXIT=0]")));
+          });
+    } catch (RuntimeException t) {
       android.util.Log.w(
           "DSHA-ADB",
           com.deepseekharness.app.util.UiText.format(
               "WRITE_SECURE_SETTINGS 授权失败: %s", SensitiveData.redact(String.valueOf(t))));
-      return com.deepseekharness.app.util.UiText.text("KEEPALIVE_WARN: 自动恢复授权未完成；重启后可能需手动打开无线调试");
+      return keepaliveUnavailable();
     }
+  }
+
+  static String wirelessDebugKeepalive(
+      boolean systemUserApp, java.util.function.BooleanSupplier granted, Runnable requestGrant) {
+    if (!systemUserApp)
+      return com.deepseekharness.app.util.UiText.choose(
+          "KEEPALIVE_SKIPPED: 自动恢复无线调试仅在系统用户中可用",
+          "KEEPALIVE_SKIPPED: Only the system user can restore wireless debugging automatically");
+    boolean allowed = granted.getAsBoolean();
+    if (!allowed) {
+      requestGrant.run();
+      allowed = granted.getAsBoolean();
+    }
+    return allowed
+        ? com.deepseekharness.app.util.UiText.text("KEEPALIVE_OK: 已允许自动恢复无线调试")
+        : keepaliveUnavailable();
+  }
+
+  private static String keepaliveUnavailable() {
+    return com.deepseekharness.app.util.UiText.text("KEEPALIVE_WARN: 自动恢复授权未完成；重启后可能需手动打开无线调试");
   }
 
   /** 状态快照：key/deps/connect_port（供 UI 展示）。 */
@@ -551,7 +592,7 @@ public final class AdbBridge {
     return execOwned(proot, cmd, 60_000);
   }
 
-  /** 后台探测也使用同一进程回收与环境任务范围。 */
+  /** 后台探测持有环境任务凭据，并等待本次隔离 guest 会话退出。 */
   public static String probe(ProotBootstrap proot, Endpoint endpoint) {
     return environmentResult(
         proot,
@@ -560,17 +601,39 @@ public final class AdbBridge {
           // 探活必须真的走 ADB：不带端点时 adb-shell 会先让原生层选 root / Shizuku，
           // 那条通道返回的 uid=… 会被当成「ADB 已连接」（T38）。显式端口让原生层只给 ADB 计划；
           // 端口失效时脚本仍会经 mDNS 与历史端口重新发现。
-          String options =
-              endpoint == null
-                  ? " --port " + savedConnectPort(proot)
-                  : " --host " + ShellQuote.arg(endpoint.host) + " --port " + endpoint.port;
-          return execOwned(
-              proot,
-              "python3 /root/.dsh/adb-shell.py"
-                  + " --connect-timeout 20 --timeout 10"
-                  + options
-                  + " id 2>&1",
-              60_000);
+          int port = endpoint == null ? savedConnectPort(proot) : endpoint.port;
+          var argv =
+              new ArrayList<>(
+                  List.of(
+                      "python3",
+                      "/root/.dsh/adb-shell.py",
+                      "--connect-timeout",
+                      "20",
+                      "--timeout",
+                      "10"));
+          if (endpoint != null) argv.addAll(List.of("--host", endpoint.host));
+          argv.addAll(List.of("--port", Integer.toString(port), "id"));
+          StringBuilder output = new StringBuilder();
+          boolean[] complete = {true};
+          try (var work = com.deepseekharness.app.core.RuntimeTasks.begin()) {
+            int exit =
+                proot.checkInstall(
+                    argv,
+                    60_000,
+                    Thread.currentThread()::isInterrupted,
+                    boundedOutput(output, complete));
+            if (exit != 0) output.append("[ADB_PROCESS_EXIT=").append(exit).append("]\n");
+            if (!complete[0]) output.append("ADB_ERROR: PROBE_OUTPUT_INCOMPLETE\n");
+          } catch (Exception error) {
+            if (error instanceof InterruptedException) Thread.currentThread().interrupt();
+            if (error instanceof InstallProcess.OwnedExitFailure)
+              output.append("ADB_PROCESS_EXIT_UNCONFIRMED\n");
+            output
+                .append("ADB_ERROR: ")
+                .append(SensitiveData.redact(String.valueOf(error)))
+                .append('\n');
+          }
+          return SensitiveData.redact(output.toString());
         });
   }
 

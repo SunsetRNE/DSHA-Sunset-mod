@@ -471,13 +471,13 @@ public final class AgentTaskNotifications {
       if (!posted.contains(tag) || !signature.equals(signatures.get(tag))) {
         var publicNotice =
             new NotificationCompat.Builder(context, CHANNEL)
-                .setSmallIcon(R.mipmap.ic_launcher_v137)
+                .setSmallIcon(R.drawable.ic_dsha_mark)
                 .setContentTitle(UiText.choose("DSHA 任务", "DSHA task"))
                 .setContentText(phaseText)
                 .build();
         var notice =
             new NotificationCompat.Builder(context, CHANNEL)
-                .setSmallIcon(R.mipmap.ic_launcher_v137)
+                .setSmallIcon(R.drawable.ic_dsha_mark)
                 .setContentTitle(contentTitle)
                 .setContentText(collapsed)
                 .setSubText(subText)
@@ -647,7 +647,7 @@ public final class AgentTaskNotifications {
             .putExtra("multi", quick.multi)
             .putExtra("rowAction", row.action());
     return new NotificationCompat.Action.Builder(
-            R.mipmap.ic_launcher_v137,
+            android.R.drawable.ic_menu_edit,
             UiText.choose("自己写", "Write"),
             PendingIntent.getBroadcast(
                 context, (row.action().hashCode() & 0x0fffffff) * 8 + 7, intent, mutableFlags()))

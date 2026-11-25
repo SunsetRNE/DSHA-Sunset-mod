@@ -15,10 +15,12 @@ import com.deepseekharness.app.util.PluginSource
 import com.deepseekharness.app.util.SensitiveData
 import java.util.Objects
 import java.util.concurrent.Executor
-import java.util.concurrent.ScheduledThreadPoolExecutor
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadFactory
+import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import java.util.function.Consumer
 
 /**
@@ -34,13 +36,13 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
 
     private val main: Handler = Handler(Looper.getMainLooper())
 
-    private val worker: Background = Background()
+    private val worker: Background = Background(main)
 
     private val detector: PluginChangeDetector =
         PluginChangeDetector(
             Runnable { dispatch(Runnable { repository.invalidateInstalledState() }) },
             Runnable { runtimeChanged() },
-            Runnable { readyChanged() },
+            Runnable { readyChanged(projectRuntime = false, lifecycleEvent = false) },
             Runnable { watchCoverageChanged() },
         )
 
@@ -76,14 +78,17 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
                     if (automatic) repository.refreshAutomatic() else repository.refresh()
                 }
 
-                override fun autoQueryAllowed(): Boolean = autoQueriesAllowed()
+                override fun automaticRetryDelayMillis(): Long =
+                    (autoQuerySuspendedUntil.get() - android.os.SystemClock.elapsedRealtime())
+                        .coerceAtLeast(0)
+
+                override fun queryOutstanding(): Boolean = repository.hasOutstandingQuery()
 
                 override fun cancelQuery() {
-                    repository.cancelRefresh()
+                    repository.cancelAutomaticQueryForUserAction()
                 }
 
                 override fun projection() {
-                    watchCoverageChanged()
                     repository.refreshRuntimeProjection()
                 }
 
@@ -91,6 +96,8 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
                     val current = detector.coverage()
                     repository.updateWatchCoverage(current.limited, current.reasons)
                 }
+
+                override fun reconcileObservation() = detector.reconcileObservation()
 
                 override fun observing(value: Boolean) {
                     detector.foreground(value)
@@ -147,7 +154,7 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
 
     private var backupChanges: LiveData<NativeBackupJobs.State>? = null
 
-    @Volatile private var autoQuerySuspendedUntil: Long = 0
+    private val autoQuerySuspendedUntil = AtomicLong()
 
     init {
         repository.setListener(
@@ -172,17 +179,34 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
         if (Looper.myLooper() == Looper.getMainLooper()) guarded.run() else main.post(guarded)
     }
 
-    private fun readyChanged() {
+    private fun readyChanged(
+        reconcile: Boolean = true,
+        projectRuntime: Boolean = true,
+        lifecycleEvent: Boolean = true,
+    ) {
         dispatch(
             Runnable {
                 val controller = signalController
+                var generationChanged = false
+                var startupReady = false
                 if (controller != null) {
-                    repository.observeMutationIdentity(controller)
-                    if (repository.registry().updateWebGeneration(controller.webGeneration)) {
-                        publishSourceChange()
+                    if (lifecycleEvent) repository.observeMutationIdentity(controller)
+                    else repository.reconcileMutationIdentity(controller)
+                    generationChanged =
+                        repository.registry().updateWebGeneration(controller.webGeneration)
+                    if (generationChanged) publishSourceChange()
+                    val suspendedUntil = autoQuerySuspendedUntil.get()
+                    if (suspendedUntil > 0 && projectRuntime) {
+                        val ready = controller.readyWebPageIdentity
+                        startupReady =
+                            ready != null &&
+                                ready.generation() == controller.webGeneration &&
+                                autoQuerySuspendedUntil.compareAndSet(suspendedUntil, 0)
                     }
                 }
-                coordinator.reconcile()
+                if (generationChanged || startupReady || (reconcile && projectRuntime))
+                    coordinator.reconcile()
+                else if (reconcile) coordinator.observationReconciled()
             }
         )
     }
@@ -216,7 +240,7 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
 
     /** 用户启动/重启等优先动作调用；取消自动查询并给启动留出有界收尾窗口。 必须在后台线程调用，不能阻塞主线程。 */
     fun yieldToUserAction() {
-        autoQuerySuspendedUntil = android.os.SystemClock.elapsedRealtime() + 120_000
+        autoQuerySuspendedUntil.set(android.os.SystemClock.elapsedRealtime() + 120_000)
         repository.cancelAutomaticQueryForUserAction()
         val deadline = android.os.SystemClock.elapsedRealtime() + 3_000
         try {
@@ -230,9 +254,6 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
             Thread.currentThread().interrupt()
         }
     }
-
-    private fun autoQueriesAllowed(): Boolean =
-        android.os.SystemClock.elapsedRealtime() >= autoQuerySuspendedUntil
 
     fun refresh() {
         dispatch(Runnable { coordinator.refresh() })
@@ -251,7 +272,7 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
     }
 
     /**
-     * 插件页 / 安装页可见期间持有；只有持有期间才做 TTL 周期核对与自动目录查询。
+     * 插件目录页可见期间持有；只有持有期间才做 TTL 周期核对与自动目录查询。
      *
      * @return 幂等释放；必须在页面 onPause 调用
      */
@@ -297,8 +318,8 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
             signalsAttached = true
             controller.addReadyWebPageListener(readyChangedListener)
             changes.observeForever(backupChangedListener)
-            // 订阅之前可能已发生切换；先撤销旧代证据，再只读核对来源。
-            readyChanged()
+            // 实际源头记录了订阅前事件，初始只采样当前身份和事件代次。
+            readyChanged(reconcile = false, lifecycleEvent = false)
             return
         }
         signalsLoading = true
@@ -360,9 +381,11 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
 
     fun preview(): LiveData<PluginRepository.Preview> = repository.preview()
 
-    fun operation(id: String): PluginOperationQueue.Operation? = repository.operation(id)
+    fun operation(id: String?): PluginOperationQueue.Operation? =
+        if (id.isNullOrBlank()) null else repository.operation(id)
 
-    fun operationPreview(id: String): PluginRepository.Preview? = repository.operationPreview(id)
+    fun operationPreview(id: String?): PluginRepository.Preview? =
+        if (id.isNullOrBlank()) null else repository.operationPreview(id)
 
     fun isBusy(): Boolean = repository.isBusy()
 
@@ -407,13 +430,15 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
 
     fun discardPreview(): String = repository.discardPreview()
 
-    fun checkUpdates(item: PluginRepository.Item): String = repository.checkUpdates(item)
+    fun checkAllUpdates(): String = repository.checkAllUpdates()
+
+    fun checkUpdates(item: PluginRepository.Item?): String = repository.checkUpdates(item)
 
     fun prepareUpdate(item: PluginRepository.Item): String = repository.prepareUpdate(item)
 
     fun rollback(item: PluginRepository.Item): String = repository.rollback(item)
 
-    fun safeMode(enabled: Boolean, afterSuccess: Runnable): String =
+    fun safeMode(enabled: Boolean, afterSuccess: Runnable?): String =
         repository.safeMode(enabled, afterSuccess)
 
     fun importArchive(uri: Uri): String = repository.importArchive(uri)
@@ -474,7 +499,9 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
 
         fun query(automatic: Boolean)
 
-        fun autoQueryAllowed(): Boolean = true
+        fun automaticRetryDelayMillis(): Long = 0
+
+        fun queryOutstanding(): Boolean = false
 
         fun cancelQuery() {}
 
@@ -483,6 +510,8 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
         fun observing(foreground: Boolean)
 
         fun watchCoverage() {}
+
+        fun reconcileObservation() {}
 
         fun unavailable(error: Exception?)
     }
@@ -494,78 +523,66 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
         private val worker: Scheduler,
         private val main: Executor,
     ) {
-        private val changes: PluginChangeCoalescer = PluginChangeCoalescer()
-
+        private val changes = PluginChangeCoalescer()
         private var scanTask: Cancellation? = null
-
+        private var scanDue: Long = -1
+        private var scanRevision: Long = 0
         private var periodicTask: Cancellation? = null
-
+        private var periodicRevision: Long = 0
         private var runtimeTask: Cancellation? = null
-
-        private var runtimeExpiryTask: Cancellation? = null
-
+        private var runtimePending: Boolean = false
+        @Volatile private var runtimeRevision: Long = 0
         private var foreground: Boolean = false
-
-        private var demand: Boolean = false
-
-        private var closed: Boolean = false
-
-        private var probing: Boolean = false
-
-        private var awaitingProbe: Boolean = false
-
-        private var queryIssued: Boolean = false
-
-        // 有插件页可见时才做 TTL 周期核对与自动目录查询；App 前台本身只维持廉价的来源核对、变更标记和运行投影。
         private var watched: Boolean = false
-
-        private var cancellingPrefetch: Boolean = false
-
-        private var reconcilePending: Boolean = false
-
-        private var sourceUnavailable: Boolean = false
-
         private var lifecycle: Long = 0
-
-        private var runtimeRevision: Long = 0
-
+        private var closed: Boolean = false
+        private var pageDemand: Boolean = false
+        private var manualPending: Boolean = false
+        private var manualQuery: Boolean = false
+        private var observationPending: Boolean = false
+        private var cancellingAutomatic: Boolean = false
+        private var queryRevision: Long = 0
+        private var probing: Boolean = false
+        private var reconcilePending: Boolean = false
+        private var reconcileRuntime: Boolean = false
+        private var sourceUnavailable: Boolean = false
         private var failedAt: Long = -1
-
         private var failedSource: Any? = null
-
         private var freshStamp: Long = Long.MIN_VALUE
-
         private var freshObservedAt: Long = 0
-
         private var freshFor: Long = 0
-
         private var freshSource: Any? = null
 
-        /** 覆盖提示不修改缓存新鲜度，也不成为查询、probe 或运行投影的调度事件。 */
+        /** 观察器仅发布覆盖状态，目录新鲜度由实际查询决定。 */
         @JvmName("watchCoverageChanged")
         internal fun watchCoverageChanged() {
             if (!closed) backend.watchCoverage()
         }
 
+        /** 独立安装入口的显式读取需求，允许在 Activity 的首个空闲回调之前入队。 */
         @JvmName("ensureLoaded")
         internal fun ensureLoaded() {
-            if (closed || fresh(backend.cache())) return
-            if (changes.isScanning()) {
-                demand = true
-                return
-            }
-            if (!mayRetry(backend.cache())) return
-            demand = true
-            changes.requestNow(clock.now())
-            scheduleScan()
+            if (closed) return
+            val cache = backend.cache()
+            if (fresh(cache) || !mayRetry(cache)) return
+            if (changes.isScanning() && !cancellingAutomatic) return
+            pageDemand = true
+            requestLoad()
         }
 
         @JvmName("refresh")
         internal fun refresh() {
             if (closed) return
-            demand = true
-            changes.requestNow(clock.now())
-            scheduleScan()
+            observationPending = true
+            if (changes.isScanning()) {
+                // 仓储原子接管同一查询，或在取消/换代后接续一个显式请求。
+                manualQuery = true
+                issueQuery(automatic = false)
+            } else {
+                manualPending = true
+                changes.requestNow(clock.now())
+                scheduleScan()
+            }
         }
 
         @JvmName("foreground")
@@ -575,49 +592,48 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
             lifecycle++
             backend.observing(value)
             if (value) {
-                reconcile()
-                scheduleScan()
+                if (active()) requestLoad()
+                if (!changes.hasPending() && backend.cache().source != null) reconcile()
                 schedulePeriodic()
             } else {
                 reconcilePending = false
-                cancelScan()
-                periodicTask?.cancel()
-                runtimeTask?.cancel()
-                runtimeExpiryTask?.cancel()
-                periodicTask = null
-                runtimeTask = null
-                runtimeExpiryTask = null
-                if (queryIssued && !demand && !cancellingPrefetch) {
-                    cancellingPrefetch = true
-                    backend.cancelQuery()
-                }
-                // 自动预取的 probe 可退休；用户已请求的查询可继续，但不保留后台周期工作。
-                if (awaitingProbe && !queryIssued && !demand) {
-                    awaitingProbe = false
-                    changes.scanFinished(clock.now())
-                }
-                if (demand) scheduleScan()
+                reconcileRuntime = false
+                cancelPeriodic()
+                cancelRuntime()
+                cancelAutomatic()
+                scheduleScan()
             }
         }
 
-        /** 插件页可见性。对话页等其它界面在前台时不周期跑 guest 目录查询；变更信号保留到下次可见再核对。 */
+        /** 切换应用内页面时保留在途查询和已绑定的来源，只有可见期间才启动自动列表读取。 */
         @JvmName("watched")
         internal fun watched(value: Boolean) {
             if (closed || watched == value) return
             watched = value
-            if (value) {
-                if (!foreground) return
-                reconcile()
-                scheduleScan()
+            if (active()) {
+                requestLoad()
+                if (runtimePending) runtimeDirty()
                 schedulePeriodic()
             } else {
-                periodicTask?.cancel()
-                periodicTask = null
-                if (!demand) cancelScan()
+                cancelPeriodic()
+                cancelRuntime()
+                scheduleScan()
             }
         }
 
         private fun active(): Boolean = foreground && watched
+
+        private fun requestLoad() {
+            if (!changes.isScanning() && !changes.hasPending()) {
+                val cache = backend.cache()
+                if (!fresh(cache) && mayRetry(cache)) {
+                    // 低频核对同时修复未能传递到 Android FileObserver 的丢失观察事件。
+                    if (cache.known && !cache.stale) observationPending = true
+                    changes.requestNow(clock.now())
+                }
+            }
+            scheduleScan()
+        }
 
         @JvmName("invalidated")
         internal fun invalidated() {
@@ -626,10 +642,22 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
             scheduleScan()
         }
 
+        /** READY、观察根变化或实际前后台切换时核对身份；目录查询自身会解析来源。 */
         @JvmName("reconcile")
         internal fun reconcile() {
+            requestReconcile(projectRuntime = true)
+        }
+
+        @JvmName("observationReconciled")
+        internal fun observationReconciled() {
+            // Foreground can publish an empty initial plan before the first source is resolved.
+            if (backend.cache().source != null) requestReconcile(projectRuntime = false)
+        }
+
+        private fun requestReconcile(projectRuntime: Boolean) {
             if (closed || !foreground) return
             reconcilePending = true
+            reconcileRuntime = reconcileRuntime || projectRuntime
             reconcileIfIdle()
         }
 
@@ -637,81 +665,147 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
             if (!reconcilePending || closed || !foreground || probing || changes.isScanning())
                 return
             reconcilePending = false
-            probe()
+            val projectRuntime = reconcileRuntime
+            reconcileRuntime = false
+            val before = backend.cache()
+            if (active() && changes.hasPending()) {
+                scheduleScan()
+                return
+            }
+            if (before.source == null) {
+                if (active()) {
+                    changes.requestNow(clock.now())
+                    scheduleScan()
+                }
+                return
+            }
+            probing = true
+            val epoch = lifecycle
+            val revision = queryRevision
+            worker.execute(
+                Runnable {
+                    var source: S? = null
+                    var error: Exception? = null
+                    try {
+                        source = backend.probe()
+                    } catch (unavailable: Exception) {
+                        error = unavailable
+                    }
+                    val resolved = source
+                    val failure = error
+                    main.execute(
+                        Runnable {
+                            probed(epoch, revision, before, resolved, failure, projectRuntime)
+                        }
+                    )
+                }
+            )
+        }
+
+        private fun probed(
+            epoch: Long,
+            revision: Long,
+            before: Cache,
+            source: S?,
+            error: Exception?,
+            projectRuntime: Boolean,
+        ) {
+            probing = false
+            if (closed) return
+            try {
+                if (!foreground || lifecycle != epoch || queryRevision != revision) return
+                val current = backend.cache()
+                if (
+                    !Objects.equals(current.source, before.source) &&
+                        (source == null || !Objects.equals(current.source, backend.source(source)))
+                ) {
+                    reconcilePending = true
+                    reconcileRuntime = reconcileRuntime || projectRuntime
+                    return
+                }
+                if (source == null) {
+                    backend.unavailable(error)
+                    sourceUnavailable = true
+                    return
+                }
+                val recovered = sourceUnavailable
+                sourceUnavailable = false
+                backend.bind(source)
+                if (recovered || !Objects.equals(current.source, backend.cache().source))
+                    failedAt = -1
+                if (active()) requestLoad()
+                if (projectRuntime && fresh(backend.cache())) runtimeDirty()
+            } finally {
+                reconcileIfIdle()
+            }
         }
 
         @JvmName("sourceResolved")
         internal fun sourceResolved(source: S?) {
             if (closed || source == null) return
-            if (!Objects.equals(backend.cache().source, backend.source(source))) {
-                // Repo 可能已发布较新来源；迟到回调不能反向覆盖。
+            if (Objects.equals(backend.cache().source, backend.source(source))) {
+                backend.bind(source)
+            } else {
                 reconcile()
-                return
             }
-            backend.bind(source)
         }
 
         @JvmName("queryFinished")
         internal fun queryFinished() {
-            if (closed) return
-            awaitingProbe = false
-            queryIssued = false
+            if (closed || !changes.isScanning() || backend.queryOutstanding()) return
             val cache = backend.cache()
-            val cancelledPrefetch = cancellingPrefetch
-            val resumeCancelled = cancelledPrefetch && (active() || demand) && !fresh(cache)
-            cancellingPrefetch = false
-            sourceUnavailable = false
-            demand = demand && (changes.hasPending() || resumeCancelled)
-            // 在途期间新到的 READY 是一次独立核对机会；普通失败不会自行再查。
-            if (!cache.error.isEmpty() && !cancelledPrefetch && !reconcilePending) {
+            val cancelled = cancellingAutomatic
+            cancellingAutomatic = false
+            manualQuery = false
+            changes.scanFinished(clock.now())
+            if (cache.error.isNotEmpty() && !cancelled) {
                 failedAt = clock.now()
                 failedSource = cache.source
             } else {
                 failedAt = -1
-                freshStamp = Long.MIN_VALUE
+                sourceUnavailable = false
             }
-            changes.scanFinished(clock.now())
-            // 取消期间发生的前台/页面需求允许一次新读取；普通成功或失败仍不会自行失效。
-            if (resumeCancelled) changes.requestNow(clock.now())
-            scheduleScan()
-            if (!cancelledPrefetch && cache.known && cache.error.isEmpty()) runtimeDirty()
+            if (cancelled && !fresh(cache) && (active() || pageDemand))
+                changes.requestNow(clock.now())
+            if (observationPending && fresh(cache)) {
+                observationPending = false
+                if (foreground) backend.reconcileObservation()
+            }
+            // 新到的 READY 允许一次恢复，普通失败只在实际变化或到期后重试。
+            if (reconcilePending && cache.error.isNotEmpty()) failedAt = -1
             reconcileIfIdle()
+            scheduleScan()
+            cancelPeriodic()
+            schedulePeriodic()
+            if (runtimePending) runtimeDirty()
+        }
+
+        private fun cancelAutomatic() {
+            if (changes.isScanning() && !manualQuery && !cancellingAutomatic) {
+                cancellingAutomatic = true
+                backend.cancelQuery()
+            }
         }
 
         @JvmName("runtimeDirty")
         internal fun runtimeDirty() {
-            if (closed || !foreground) return
-            val epoch = lifecycle
+            if (closed) return
+            runtimePending = true
+            if (!active() || runtimeTask != null || !backend.cache().known) return
             val revision = ++runtimeRevision
-            runtimeExpiryTask?.cancel()
-            runtimeExpiryTask =
-                worker.schedule(
-                    Runnable {
-                        main.execute(
-                            Runnable {
-                                if (
-                                    !closed &&
-                                        foreground &&
-                                        lifecycle == epoch &&
-                                        runtimeRevision == revision
-                                ) {
-                                    runtimeExpiryTask = null
-                                    worker.execute(Runnable { backend.projection() })
-                                }
-                            }
-                        )
-                    },
-                    RUNTIME_EXPIRY_MS,
-                )
-            if (runtimeTask != null) return
             runtimeTask =
                 worker.schedule(
                     Runnable {
                         main.execute(
                             Runnable {
-                                if (!closed && foreground && lifecycle == epoch) {
+                                if (!closed && active() && runtimeRevision == revision) {
                                     runtimeTask = null
-                                    worker.execute(Runnable { backend.projection() })
+                                    runtimePending = false
+                                    worker.execute(
+                                        Runnable {
+                                            if (runtimeRevision == revision) backend.projection()
+                                        }
+                                    )
                                 }
                             }
                         )
@@ -720,123 +814,60 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
                 )
         }
 
+        private fun cancelRuntime() {
+            runtimeRevision++
+            runtimeTask?.cancel()
+            runtimeTask = null
+        }
+
         private fun scheduleScan() {
-            cancelScan()
-            if (closed || (!active() && !demand)) return
-            val delay = changes.nextDelayMillis(clock.now())
-            if (delay < 0) return
-            scanTask = worker.schedule(Runnable { main.execute(Runnable { beginScan() }) }, delay)
-        }
-
-        private fun beginScan() {
-            scanTask = null
-            if (closed || (!active() && !demand) || !changes.beginScan(clock.now())) return
-            awaitingProbe = true
-            probe()
-        }
-
-        private fun probe() {
-            if (closed || probing) return
-            probing = true
-            val epoch = lifecycle
-            val before = backend.cache()
-            worker.execute(
-                Runnable {
-                    var source: S? = null
-                    var failure: Exception? = null
-                    try {
-                        source = backend.probe()
-                    } catch (unavailable: Exception) {
-                        failure = unavailable
-                    }
-                    val resolved = source
-                    val error = failure
-                    main.execute(Runnable { probed(epoch, before, resolved, error) })
-                }
-            )
-        }
-
-        private fun probed(epoch: Long, before: Cache, source: S?, error: Exception?) {
-            probing = false
-            if (closed) return
-            try {
-                acceptProbe(epoch, before, source, error)
-            } finally {
-                reconcileIfIdle()
-            }
-        }
-
-        private fun acceptProbe(epoch: Long, before: Cache, source: S?, error: Exception?) {
-            if (epoch != lifecycle) {
-                if (awaitingProbe && !queryIssued) {
-                    awaitingProbe = false
-                    changes.scanFinished(clock.now())
-                    changes.requestNow(clock.now())
-                    scheduleScan()
-                }
-                if (foreground) reconcile()
+            val now = clock.now()
+            val explicit = manualPending || pageDemand
+            val delay = changes.nextDelayMillis(now)
+            if (closed || (!active() && !explicit) || delay < 0) {
+                cancelScan()
                 return
             }
-            val current = backend.cache()
-            if (
-                current.version != before.version &&
-                    !Objects.equals(current.source, before.source) &&
-                    (source == null || !Objects.equals(current.source, backend.source(source)))
-            ) {
-                // 后台读取期间已有来源换代：不绑定旧结果，保留一轮新的有界补偿。
-                awaitingProbe = false
-                if (!queryIssued) changes.scanFinished(clock.now())
-                changes.requestNow(clock.now())
+            val scheduledDelay =
+                if (explicit) delay else maxOf(delay, backend.automaticRetryDelayMillis())
+            val due = now + scheduledDelay
+            if (scanTask != null && scanDue == due) return
+            cancelScan()
+            scanDue = due
+            val revision = scanRevision
+            scanTask =
+                worker.schedule(
+                    Runnable { main.execute(Runnable { beginScan(revision) }) },
+                    scheduledDelay,
+                )
+        }
+
+        private fun beginScan(revision: Long) {
+            if (closed || revision != scanRevision) return
+            scanTask = null
+            val explicit = manualPending || pageDemand
+            if (!active() && !explicit) return
+            if (!explicit && backend.automaticRetryDelayMillis() > 0) {
                 scheduleScan()
                 return
             }
-            if (source == null) {
-                backend.unavailable(error)
-                sourceUnavailable = true
-                failedAt = clock.now()
-                failedSource = backend.cache().source
-                if (awaitingProbe) {
-                    awaitingProbe = false
-                    demand = demand && changes.hasPending()
-                    changes.scanFinished(clock.now())
-                    scheduleScan()
-                }
+            if (!changes.beginScan(clock.now())) {
+                scheduleScan()
                 return
             }
-            if (sourceUnavailable) {
-                // 相同来源恢复可读也构成恢复边界；列表自身失败仍沿原冷却处理。
-                sourceUnavailable = false
-                failedAt = -1
+            pageDemand = false
+            val forced = manualPending
+            manualPending = false
+            if (!forced && fresh(backend.cache())) {
+                changes.scanFinished(clock.now())
+                return
             }
-            backend.bind(source)
-            if (awaitingProbe) {
-                awaitingProbe = false
-                issueQuery(!demand)
-            } else if (foreground) {
-                val cache = backend.cache()
-                if (watched && !fresh(cache) && mayRetry(cache)) {
-                    changes.requestNow(clock.now())
-                    cancelScan()
-                    if (changes.beginScan(clock.now())) issueQuery(!demand) else scheduleScan()
-                } else runtimeDirty()
-            }
+            manualQuery = explicit
+            queryRevision++
+            issueQuery(automatic = !explicit)
         }
 
         private fun issueQuery(automatic: Boolean) {
-            if (automatic && !backend.autoQueryAllowed()) {
-                // 用户动作期间只保留已有快照；下次页面需求或补偿窗口再核对。
-                awaitingProbe = false
-                changes.scanFinished(clock.now())
-                return
-            }
-            if (automatic && !active()) {
-                // probe 在途时插件页已离开：本轮不查，保留一次待办到下次可见。
-                awaitingProbe = false
-                changes.scanFinished(clock.now())
-                changes.requestNow(clock.now())
-                return
-            }
-            queryIssued = true
             try {
                 backend.query(automatic)
             } catch (rejected: RuntimeException) {
@@ -866,31 +897,40 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
                         0
                     }
             }
-            // 心跳投影改变版本号但不能续租；时钟回拨也不能无限延长缓存。
             return clock.now() - freshObservedAt < freshFor
         }
 
         private fun schedulePeriodic() {
             if (closed || !active() || periodicTask != null) return
-            val epoch = lifecycle
+            val revision = periodicRevision
+            val delay =
+                if (fresh(backend.cache())) freshFor - (clock.now() - freshObservedAt)
+                else SNAPSHOT_TTL_MS
             periodicTask =
                 worker.schedule(
                     Runnable {
                         main.execute(
                             Runnable {
-                                if (!closed && active() && lifecycle == epoch) {
+                                if (!closed && active() && periodicRevision == revision) {
                                     periodicTask = null
-                                    reconcile()
+                                    requestLoad()
                                     schedulePeriodic()
                                 }
                             }
                         )
                     },
-                    SNAPSHOT_TTL_MS,
+                    delay.coerceAtLeast(1),
                 )
         }
 
+        private fun cancelPeriodic() {
+            periodicRevision++
+            periodicTask?.cancel()
+            periodicTask = null
+        }
+
         private fun cancelScan() {
+            scanRevision++
             scanTask?.cancel()
             scanTask = null
         }
@@ -899,19 +939,15 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
         internal fun close() {
             if (closed) return
             closed = true
-            lifecycle++
             backend.observing(false)
             cancelScan()
-            periodicTask?.cancel()
-            runtimeTask?.cancel()
-            runtimeExpiryTask?.cancel()
+            cancelPeriodic()
+            cancelRuntime()
+            cancelAutomatic()
             worker.close()
         }
 
         private companion object {
-            // 活动摘要最多有效 10 秒；到期只重读投影，不自行重排或查询目录。
-            private const val RUNTIME_EXPIRY_MS = 10_001L
-
             private const val RUNTIME_COALESCE_MS = 200L
         }
     }
@@ -935,20 +971,21 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
         }
     }
 
-    private class Background : Scheduler {
-        private val executor: ScheduledThreadPoolExecutor =
-            ScheduledThreadPoolExecutor(
+    private class Background(private val main: Handler) : Scheduler {
+        private val executor: ThreadPoolExecutor =
+            ThreadPoolExecutor(
                 1,
+                1,
+                30,
+                TimeUnit.SECONDS,
+                LinkedBlockingQueue(),
                 ThreadFactory { action ->
                     Thread(action, "plugin-management").apply { isDaemon = true }
                 },
             )
 
         init {
-            executor.removeOnCancelPolicy = true
-            executor.setKeepAliveTime(30, TimeUnit.SECONDS)
             executor.allowCoreThreadTimeOut(true)
-            executor.setExecuteExistingDelayedTasksAfterShutdownPolicy(false)
         }
 
         override fun execute(action: Runnable) {
@@ -956,8 +993,9 @@ class PluginManagementEngine(application: Application, repository: PluginReposit
         }
 
         override fun schedule(action: Runnable, delayMillis: Long): Cancellation {
-            val future = executor.schedule(action, delayMillis, TimeUnit.MILLISECONDS)
-            return Cancellation { future.cancel(false) }
+            // 调度定时器独立于来源 I/O，手动读取可以直接交给仓储。
+            main.postDelayed(action, delayMillis)
+            return Cancellation { main.removeCallbacks(action) }
         }
 
         override fun close() {

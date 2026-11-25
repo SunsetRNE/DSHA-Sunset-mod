@@ -1,11 +1,14 @@
 # AIDL 手工等价产物
 
 本项目的 AIDL 源只有一个 `app/src/main/aidl/com/deepseekharness/app/IShellService.aidl`
-（三个方法），这里存的是它的人工核对等价产物。`execVirtualScreen` 是独立事务，只接受
+（四个方法），这里存的是它的人工核对等价产物。`execVirtualScreen` 是独立事务，只接受
 当前已安装 DSHA APK 中的受管 `VirtualScreenCore --launch` 启动参数；通用 `exec` 不授予
 `app_process` 权限。AIDL 声明 ID 会加 `FIRST_CALL_TRANSACTION`（1）成为 Binder 事务码：
 `exec` 声明 ID 0、typed 启动声明 ID 1，`destroy` 声明 ID 16777113 映射到既有实际事务码
-16777114。人工 stub 按生成后的事务码保存，两个编译路径必须一致。
+16777114。Shizuku 13.1.5 的服务端以单向事务 16777115 销毁服务，对应 AIDL 的
+`destroyFromManager`（声明 ID 16777114）。旧 DSHA 的同步调用仍接收普通回复。
+这里保存 SDK build-tools 36 实际生成的 Java，首部替换为可移植说明，去掉生成时的本机参数路径。
+从 `package` 开始的源码和 SDK 输出相同。
 
 ## 什么时候需要
 

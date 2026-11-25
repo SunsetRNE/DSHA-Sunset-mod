@@ -3657,7 +3657,7 @@
     "zh": "打包设置文件、0.1.7 profile 配置和运行参数；原生 API Key 遵循备份密钥开关",
     "en": "Include settings files, 0.1.7 profile settings, and runtime arguments. Native API keys follow the backup key option.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupScope.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupScope.kt"
     ]
   },
   {
@@ -3665,7 +3665,7 @@
     "zh": "覆盖设置文件与 profile 配置，不改聊天记录和插件",
     "en": "Replace settings files and profile settings while keeping conversations and plugins.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupScope.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupScope.kt"
     ]
   },
   {
@@ -4039,8 +4039,8 @@
   },
   {
     "id": "x1970572",
-    "zh": "手机已 root 时可直接使用 su，无需 ADB 配对。首次执行请在 root 管理器中授权 DSHA；命令拦截档位可在下方选择，短信等原生闸门在三档都生效。",
-    "en": "On a rooted phone, use su directly without ADB pairing. Authorize DSHA in your root manager on first use. Choose the command interception mode below; native gates such as SMS reading apply in all three modes.",
+    "zh": "首次使用 su 时，请在 root 管理器中授权 DSHA。严格档禁止递归读取目录。受管短信查询需要单独授权，放宽和完全放宽档的 root 脚本可直接读取私有数据。",
+    "en": "Authorize DSHA in your root manager on first use. Strict mode blocks recursive directory reads. Managed SMS queries require separate consent. Root scripts in either relaxed mode can read private data directly.",
     "files": [
       "app/src/main/res/values/ui_refinement.xml"
     ]
@@ -9936,18 +9936,18 @@
   },
   {
     "id": "uiv5a003",
-    "zh": "严重风险：已完全放宽。助手和插件可用 root 执行任意命令，包括格式化、刷机、清除数据等不可逆操作，可能导致数据丢失或系统损坏。不用时请改回严格。",
-    "en": "Severe risk: fully relaxed. The assistant and plugins can run any root command, including irreversible ones such as formatting, flashing or wiping data. This may cause data loss or system damage. Switch back to strict when not needed.",
+    "zh": "严重风险：root 脚本可读取私有数据、清除文件或损坏系统。",
+    "en": "Severe risk: root scripts can read private data, erase files or damage the system.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceChannelsFragment.java"
     ]
   },
   {
     "id": "uiv5a004",
-    "zh": "高风险：已放宽。助手和插件可用 root 执行白名单以外的任意命令；仅拦截格式化、刷机、清除数据等不可逆操作。不用时请改回严格。",
-    "en": "High risk: relaxed. The assistant and plugins can run root commands beyond the allowlist; only irreversible operations such as formatting, flashing or wiping data are blocked. Switch back to strict when not needed.",
+    "zh": "高风险：root 脚本可读取私有数据。放宽档只拦截能识别的高风险命令。",
+    "en": "High risk: root scripts can read private data. Relaxed mode blocks only recognized high-risk commands.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
+      "app/src/main/java/com/deepseekharness/app/ui/DeviceChannelsFragment.java"
     ]
   },
   {
@@ -11333,6 +11333,7 @@
     "zh": "保留副本与旧环境",
     "en": "Retained copies and old environments",
     "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/StartupRecoveryActivity.java",
       "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java"
     ]
   },
@@ -16045,8 +16046,8 @@
   },
   {
     "id": "x2100203",
-    "zh": "实体屏助手可以绕过无障碍，直接抓取屏幕并在当前手机任务期间注入点击、滑动和按键，用于游戏等自绘界面。\n\n默认关闭、可随时关闭；动作还要求屏幕操作确认已允许目标应用，密码、支付和系统安全界面一律拒绝。实验阶段只保证 root 通道。",
-    "en": "The physical-screen assistant can bypass accessibility, capture the screen and inject taps, swipes and keys while a phone task is active — for games and other self-drawn UIs.\n\nOff by default and revocable at any time. Actions still need screen-control permission for the target app; password, payment and system-security screens are always refused. The experimental phase only guarantees the root channel.",
+    "zh": "开启后，当前手机任务可查询特权通道状态。Android 14 及以上通过已启用的无障碍服务读取已批准应用的窗口，点击和滑动使用该窗口的截图凭据。Android 11–13 可读取控件并执行节点操作。你可以随时关闭。",
+    "en": "During the current phone task, allow privileged channel status queries. On Android 14 or later, the enabled accessibility service can capture the approved app window. Taps and swipes use that window’s screenshot credential. On Android 11–13, read controls and use node actions. You can turn this off at any time.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java"
     ]
@@ -16874,6 +16875,279 @@
     "en": "Loader entry ownership is incomplete",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/PluginFragment.java"
+    ]
+  },
+  {
+    "id": "xA64023",
+    "zh": "在系统通知设置中允许 %s。",
+    "en": "Allow %s in system notification settings.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PermissionCards.java"
+    ]
+  },
+  {
+    "id": "xA64024",
+    "zh": "在「所有文件访问」中允许 %s。",
+    "en": "Allow %s under All files access.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PermissionCards.java"
+    ]
+  },
+  {
+    "id": "xA64025",
+    "zh": "在“显示在其他应用上层”中允许 %s。",
+    "en": "Allow %s under Display over other apps.",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PermissionCards.java"
+    ]
+  },
+  {
+    "id": "xA64026",
+    "zh": "旧版数据迁移需要核对",
+    "en": "Legacy data migration needs review",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "xA64027",
+    "zh": "已保留旧版数据副本，但找不到迁移完成回执。为避免重复导入，已暂停启动。可查看迁移记录和副本。",
+    "en": "Copies of the legacy data were retained, but the migration completion receipt is missing. Startup paused to avoid importing the data twice. You can review the migration record and copies.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "xA64028",
+    "zh": "检查旧版数据迁移",
+    "en": "Checking legacy data migration",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "xA64029",
+    "zh": "发现需要核对的旧版数据。",
+    "en": "Legacy data that needs review was found.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "xA64030",
+    "zh": "无法确认旧迁移记录与当前环境相符。",
+    "en": "The old migration record could not be matched to the current environment.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "xA64031",
+    "zh": "发现先前迁移的写入记录，需要核对结果。",
+    "en": "A write from an earlier migration needs review.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "xA64032",
+    "zh": "未能完成本次副本核验。",
+    "en": "The copy could not be verified this time.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "xA64033",
+    "zh": "无法确认迁移准备记录与当前数据相符。",
+    "en": "The migration preparation record could not be matched to the current data.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "xA64034",
+    "zh": "迁移所需的数据或恢复记录发生了变化。",
+    "en": "Data or recovery records used by the migration have changed.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "xA64035",
+    "zh": "核验所需的迁移记录或数据无法读取。",
+    "en": "The migration records or data needed for verification could not be read.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "xA64036",
+    "zh": "为保护原件，已暂停启动。可查看迁移记录和副本。",
+    "en": "Startup paused to protect the originals. You can review the migration record and copies.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/StartupRecoveryState.java"
+    ]
+  },
+  {
+    "id": "xA64037",
+    "zh": "无法确认这是本次新建的备份文件。请保留应用建议的文件名，并在可写位置新建文件。",
+    "en": "The new backup file could not be confirmed. Keep the suggested filename and create a new file in a writable location.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java"
+    ]
+  },
+  {
+    "id": "xA64038",
+    "zh": "无法确认本次安装检查的全部进程已退出，已保留环境保护。请查看维护记录。",
+    "en": "Could not confirm that all processes from this installation check have exited. Environment protection remains active. Check the maintenance log.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/util/InstallProcess.java"
+    ]
+  },
+  {
+    "id": "xA64039",
+    "zh": "回退已完成，但无法确认本次安装继续使用该运行时。请查看维护记录，或手动更新运行时。",
+    "en": "The rollback finished, but continued use of this runtime for the current installation could not be verified. Review the maintenance record or update the runtime manually.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/ExtractActivity.java"
+    ]
+  },
+  {
+    "id": "xA64040",
+    "zh": "当前工作台配置",
+    "en": "Current workbench configuration",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebSettingsDocument.java"
+    ]
+  },
+  {
+    "id": "xA64041",
+    "zh": "只读",
+    "en": "Read-only",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebSettingsDocument.java"
+    ]
+  },
+  {
+    "id": "xA64042",
+    "zh": "在应用内只读查看当前工作台的配置文件。",
+    "en": "View the current workbench configuration as read-only in this app.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebSettingsDocument.java"
+    ]
+  },
+  {
+    "id": "xA64043",
+    "zh": "当前工作台还没有配置文件。",
+    "en": "The current workbench does not have a configuration file yet.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebSettingsDocument.java"
+    ]
+  },
+  {
+    "id": "xA64044",
+    "zh": "中断的设置检查已结束，原件保留。可返回保留数据重新检查。",
+    "en": "The interrupted settings inspection was closed. Originals are retained. Return to Retained data to inspect again.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/core/EnvironmentMaintenance.java"
+    ]
+  },
+  {
+    "id": "xA64045",
+    "zh": "KEEPALIVE_SKIPPED: 自动恢复无线调试仅在系统用户中可用",
+    "en": "KEEPALIVE_SKIPPED: Only the system user can restore wireless debugging automatically",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/bridge/AdbBridge.java"
+    ]
+  },
+  {
+    "id": "xA64046",
+    "zh": "配对与 ADB 通道开关在设置 → 设备能力授权中管理。连接验证通过后，只有系统用户中的 DSHA 可获得开机自动恢复无线调试的权限。",
+    "en": "Manage pairing and the ADB channel in Settings → Device access. After connection verification, only DSHA in the system user can receive permission to restore wireless debugging automatically after boot.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/PermissionChannelCard.java"
+    ]
+  },
+  {
+    "id": "x375TimingCutoff",
+    "zh": "启动计时截止 · %s",
+    "en": "Startup timing ended · %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ]
+  },
+  {
+    "id": "x375TimingSummary",
+    "zh": "%s 行启动日志 → %s 个阶段 · 计时 %s 条归入明细",
+    "en": "%s startup lines → %s stages · %s timings in details",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ]
+  },
+  {
+    "id": "x375RuntimeLine",
+    "zh": "运行期 +%s · %s",
+    "en": "Runtime +%s · %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/LaunchLogPanel.java"
+    ]
+  },
+  {
+    "id": "x375SkillsSourcePage",
+    "zh": "第 %d 页",
+    "en": "Page %d",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java"
+    ]
+  },
+  {
+    "id": "x377RetainedOriginal",
+    "zh": "旧文档的原件已保留。打开「作品文件 → DSHA → save-recovery」，选择以下文件可重新导出：%s",
+    "en": "The original is preserved. In Work files → DSHA → save-recovery, select this file to export it again: %s",
+    "uiFormat": true,
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/transfer/SelectedDocumentSave.java"
+    ]
+  },
+  {
+    "id": "x377ReadOnlyWorkbenchTitle",
+    "zh": "当前工作台配置 · 只读",
+    "en": "Current workbench configuration · Read-only",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/WebSettingsDocument.java"
+    ]
+  },
+  {
+    "id": "x377InstallAckExited",
+    "zh": "发送启动确认失败。安装监督进程已退出（退出码 %d）。",
+    "en": "Could not send the start confirmation. The installation supervisor exited with code %d.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/runtime/IsolatedInstallProcess.java"
+    ],
+    "uiFormat": true
+  },
+  {
+    "id": "x377InstallAckUnknown",
+    "zh": "发送启动确认失败。安装监督进程的退出状态尚未确认。",
+    "en": "Could not send the start confirmation. The installation supervisor’s exit status is unknown.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/runtime/IsolatedInstallProcess.java"
+    ]
+  },
+  {
+    "id": "x377InstallArm64Notice",
+    "zh": "当前 Android 系统为 x86，此版本支持 ARM64 Android。可在设置中查看诊断。",
+    "en": "This Android system uses x86. This build supports ARM64 Android. Diagnostics are available in Settings.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/runtime/IsolatedInstallProcess.java"
     ]
   }
 ]

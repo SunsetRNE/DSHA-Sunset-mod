@@ -64,6 +64,7 @@ const scrollWindow = window as Window & {
   __dshaMobileScrollState?: WeakMap<HTMLElement, SavedScroll>
   /** Last known conversation offset, independent of the scroller's identity. */
   __dshaMobileLastScroll?: SavedScroll
+  __dshaMobileScrollRestore?: object
 }
 const scrollState = scrollWindow.__dshaMobileScrollState instanceof WeakMap
   ? scrollWindow.__dshaMobileScrollState
@@ -89,7 +90,10 @@ function conversationScrollers(): HTMLElement[] {
  * 「时不时跳到上文很久以前的内容」 is exactly that.
  */
 function rememberConversationScroll(): void {
-  for (const element of conversationScrollers()) {
+  delete scrollWindow.__dshaMobileScrollRestore
+  const elements = conversationScrollers()
+  if (elements.length > 0) delete scrollWindow.__dshaMobileLastScroll
+  for (const element of elements) {
     if (element.scrollTop > 0) {
       const saved = { top: element.scrollTop, savedAt: Date.now(), url: location.href }
       scrollState.set(element, saved)
@@ -99,13 +103,16 @@ function rememberConversationScroll(): void {
 }
 
 function restoreConversationScroll(): void {
+  const token = {}
+  scrollWindow.__dshaMobileScrollRestore = token
+  const isCurrent = () => scrollWindow.__dshaMobileScrollRestore === token
   // Same node (stylesheet-only swap): the cheap path.
   for (const element of conversationScrollers()) {
     const saved = scrollState.get(element)
     scrollState.delete(element)
     if (!saved || Date.now() - saved.savedAt > SWAP_RESTORE_MS || saved.url !== location.href) continue
     requestAnimationFrame(() => {
-      if (element.isConnected && saved.url === location.href &&
+      if (isCurrent() && element.isConnected && saved.url === location.href &&
         Date.now() - saved.savedAt <= SWAP_RESTORE_MS && element.scrollTop === 0)
         element.scrollTop = saved.top
     })
@@ -118,9 +125,10 @@ function restoreConversationScroll(): void {
   let tries = 0
   const attempt = (): void => {
     tries += 1
-    if (saved.url !== location.href || Date.now() - saved.savedAt > SWAP_RESTORE_MS) return
+    if (!isCurrent() || saved.url !== location.href || Date.now() - saved.savedAt > SWAP_RESTORE_MS) return
     const element = document.querySelector<HTMLElement>('[class*="scrollBody"]')
-    if (element !== null && element.scrollTop === 0 && element.scrollHeight >= saved.top + element.clientHeight) {
+    if (element !== null && element.scrollTop !== 0) return
+    if (element !== null && element.scrollHeight >= saved.top + element.clientHeight) {
       element.scrollTop = saved.top
       return
     }

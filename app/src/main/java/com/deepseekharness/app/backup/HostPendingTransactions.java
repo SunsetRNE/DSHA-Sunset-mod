@@ -1,12 +1,18 @@
 package com.deepseekharness.app.backup;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /** 启动只读取固定数量的小日志；不解析用户项目、不运行任何容器命令。 */
 public final class HostPendingTransactions {
+  static final String ROTATION_REQUIRED = "restore-bridge-rotation-required";
+  static final String ROTATION_COMPLETE = "restore-bridge-rotation-complete";
+
   private HostPendingTransactions() {}
+
+  static boolean rotationPending(BackupFileSystem fs, File operation) throws IOException {
+    return marker(fs, operation, ROTATION_REQUIRED) && !marker(fs, operation, ROTATION_COMPLETE);
+  }
 
   public static List<File> pending(BackupFileSystem fs, File files) throws IOException {
     HostOperationArchive.verifyCompleted(fs, files);
@@ -25,7 +31,7 @@ public final class HostPendingTransactions {
       boolean switching = marker(fs, directory, "switching"),
           finalized = marker(fs, directory, "finalized"),
           rolledBack = marker(fs, directory, "rolled-back");
-      if (switching && !finalized && !rolledBack) {
+      if (switching && !finalized && !rolledBack || rotationPending(fs, directory)) {
         if (!fs.stat(new File(directory, "plan.json")).type.equals("FILE"))
           throw new IOException("TRANSACTION_PLAN_MISSING");
         result.add(directory);

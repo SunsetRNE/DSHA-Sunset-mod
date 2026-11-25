@@ -38,6 +38,9 @@ release/*.sha256
 release/_data_backup/
 release/history/
 
+# Vendor originals may travel inside a complete application package. Gradle restores them locally.
+/app/src/main/jniLibs/arm64-v8a/libproroot*.so
+
 # build195 起 Java 编译依赖的固定输入：由 tools/ci-assets.py 按锁定 URL/SHA 还原，不入库
 app/libs/
 

@@ -43,6 +43,7 @@ public final class WebRecordedStopTest {
         interrupt,
         transientFailure,
         requireSavedBirth,
+        requireExactTrialProfile,
         transientDuringWait,
         mayEscalate,
         exitAfterQuit,
@@ -96,6 +97,10 @@ public final class WebRecordedStopTest {
 
     public boolean requireSavedBirth() {
       return requireSavedBirth;
+    }
+
+    public boolean requireExactTrialProfile() {
+      return requireExactTrialProfile;
     }
 
     public WebProcessManager.ProcessState inspect(int pid) throws IOException {
@@ -407,5 +412,40 @@ public final class WebRecordedStopTest {
     } finally {
       Thread.interrupted();
     }
+  }
+
+  @Test
+  public void settingsSignalsOnlyWhenDirectArgvAndSavedBirthStillMatch() {
+    Io io = new Io();
+    io.trial = io.requireExactTrialProfile = io.requireSavedBirth = io.exitAfterTerm = true;
+    String exact =
+        String.join(
+            "\u0000",
+            "/usr/local/bin/node",
+            "/usr/local/lib/node_modules/@deepseek-ai/dsh/lib/bin.js",
+            "--profile",
+            io.trialProfile(),
+            "--no-open",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "0");
+    io.current =
+        new WebProcessManager.ProcessState(
+            WebProcessManager.Kind.WEB,
+            birth(100),
+            exact + "\u0000" + "--port" + "\u0000" + "9999");
+    assertEquals(Code.TRIAL_IDENTITY_CHANGED, WebRecordedStop.run(io).code());
+    assertTrue(io.terms.isEmpty());
+
+    io.current = new WebProcessManager.ProcessState(WebProcessManager.Kind.WEB, birth(100), exact);
+    io.saved = null;
+    assertEquals(Code.TRIAL_IDENTITY_CHANGED, WebRecordedStop.run(io).code());
+    assertTrue(io.terms.isEmpty());
+
+    io.saved = "42 100";
+    assertNull(WebRecordedStop.run(io));
+    assertEquals(List.of(42), io.terms);
+    assertEquals(List.of("42"), io.retired);
   }
 }

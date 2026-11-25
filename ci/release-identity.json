@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "versionCode": 369,
-  "versionName": "0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1",
+  "versionCode": 377,
+  "versionName": "0.2.2-rc.5-20261125.1442-dsh0.2.2-rc.5",
   "packageName": "io.github.sunsetrne.dsha",
   "certificateSha256": "a4b0413c67fa46dd30dc7e2bce3ad56151ed8bfde2a3315fff685baf786b5d5d",
   "schemes": [

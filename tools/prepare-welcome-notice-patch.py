@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""从完整摘要锁定的官方 0.2.2-rc.1 模块生成首次说明受管补丁，不改 npm 原件。"""
+"""从完整摘要锁定的官方 0.2.2-rc.5 模块生成首次说明受管补丁，不改 npm 原件。"""
 import argparse
 import hashlib
 import json
@@ -9,8 +9,8 @@ from source_text import write_text, matches_text
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'app/src/main/assets'
 MODULE = '@deepseek-ai/dsh-client-ui-settings-models/lib/client.js'
-VERSION = '0.2.2-rc.1'
-SOURCE_SHA256 = 'e111ecefea8262e0426f528864b9681d818068042e93d053bcb0b6884b317278'
+VERSION = '0.2.2-rc.5'
+SOURCE_SHA256 = '74b45c32a08a6aa367be684bf89212e0a3b7a2c3de1cc95ccbfe82045533ae31'
 
 
 def generate(module, lock_path=None):
@@ -24,16 +24,18 @@ def generate(module, lock_path=None):
         raise ValueError('WELCOME_NOTICE_PACKAGE_VERSION_CHANGED')
     source = data.decode('utf8')
     patches = []
-    for anchor, template in [('function WelcomeNotice(props) {', 'WelcomeNotice.js'),
-                             ('var WelcomeNoticeStore = class {', 'WelcomeNoticeStore.js')]:
-        start = source.index('\t\t' + anchor)
-        end = source.index('\t\t//#endregion', start)
-        before = source[start:end]
-        after = ''.join('\t\t' + line + '\n' for line in (ROOT / 'tools/welcome-notice' / template).read_text(encoding='utf8').splitlines())
-        if source.count(before) != 1:
+    for anchor, next_declaration, template in [
+        ('function WelcomeNotice(props){', 'const WELCOME_NOTICE_SETTINGS_NAMESPACE=', 'WelcomeNotice.js'),
+        ('var WelcomeNoticeStore=class{', 'function createModelsOperations(ctx){', 'WelcomeNoticeStore.js'),
+    ]:
+        if source.count(anchor) != 1 or source.count(next_declaration) != 1:
             raise ValueError('WELCOME_NOTICE_ANCHOR_CHANGED')
+        start = source.index(anchor)
+        end = source.index(next_declaration, start)
+        before = source[start:end]
+        after = '\n' + (ROOT / 'tools/welcome-notice' / template).read_text(encoding='utf8')
         patches.append(dict(before=before, after=after))
-    anchor = 'const welcomeController = new WelcomeNoticeStore(ctx.configForms.get(WELCOME_NOTICE_SETTINGS_NAMESPACE));'
+    anchor = 'const welcomeController=new WelcomeNoticeStore(ctx.configForms.get(WELCOME_NOTICE_SETTINGS_NAMESPACE));'
     if source.count(anchor) != 1:
         raise ValueError('WELCOME_NOTICE_SHARED_MIRROR_ANCHOR_CHANGED')
     patches.append(dict(before=anchor, after=anchor.replace('WELCOME_NOTICE_SETTINGS_NAMESPACE));',
@@ -60,10 +62,10 @@ def generate(module, lock_path=None):
             'welcomeRetry': '重试保存'
         }
     }
-    for language, anchor in [('en', '\t\t\twelcomeContinue: "Continue",\n'), ('zh', '\t\t\twelcomeContinue: "继续",\n')]:
+    for language, anchor in [('en', 'welcomeContinue:`Continue`,'), ('zh', 'welcomeContinue:`继续`,')]:
         if source.count(anchor) != 1:
             raise ValueError('WELCOME_NOTICE_COPY_ANCHOR_CHANGED')
-        after = anchor + ''.join('\t\t\t' + key + ': ' + json.dumps(value, ensure_ascii=False) + ',\n' for key, value in copy[language].items())
+        after = anchor + '\n' + ''.join('  ' + key + ': ' + json.dumps(value, ensure_ascii=False) + ',\n' for key, value in copy[language].items())
         patches.append(dict(before=anchor, after=after))
     return json.dumps(dict(version=1, dshVersion=VERSION, module=MODULE,
                            sourceSha256=SOURCE_SHA256, packageIntegrity=locked['integrity'],
@@ -87,7 +89,7 @@ def main():
             raise ValueError('WELCOME_NOTICE_PATCH_STALE')
     else:
         write_text(target, expected, encoding='utf8')
-    print('PASS locked 0.2.2-rc.1 welcome notice patch' + (' matches generated source' if args.check else ' generated'))
+    print(f'PASS locked {VERSION} welcome notice patch' + (' matches generated source' if args.check else ' generated'))
 
 
 if __name__ == '__main__':

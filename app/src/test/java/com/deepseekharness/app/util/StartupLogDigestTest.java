@@ -139,7 +139,7 @@ public class StartupLogDigestTest {
   }
 
   @Test
-  public void runtimeErrorsAfterReadyAreProblems() {
+  public void runtimeErrorsAfterReadyStayVisibleInRawButDoNotChangeStartupStages() {
     StartupTrace trace = sample();
     trace.browserReady(1, 3000);
     trace.issue(1, 4000, "plugin-a", "crashed");
@@ -150,6 +150,12 @@ public class StartupLogDigestTest {
             StartupLogDigest.Outcome.READY,
             StartupLogDigest.endMs(s, StartupLogDigest.Outcome.READY));
     assertEquals(1, d.issueCount);
-    assertEquals(StartupLogDigest.State.WARN, d.stages.get(d.stages.size() - 1).state);
+    assertEquals(0, d.startupIssueCount);
+    assertEquals(d.lineCount - 1, d.startupLineCount);
+    assertEquals(StartupLogDigest.LineClass.WARN, d.lineClasses.get(d.lineClasses.size() - 1));
+    StartupLogDigest.Stage last = d.stages.get(d.stages.size() - 1);
+    assertEquals(StartupLogDigest.State.GOOD, last.state);
+    assertEquals(1, last.items.size());
+    assertEquals("BROWSER_READY", last.items.get(0).label);
   }
 }

@@ -14,6 +14,7 @@ import androidx.fragment.app.FragmentTransaction;
 import com.deepseekharness.app.R;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.function.LongFunction;
 
 /**
  * v5 动效统一入口。
@@ -29,6 +30,10 @@ public final class UiMotion {
 
   /** 正在运行的数值过渡；同一 TextView 再次计数时先取消旧的，避免两段动画互相覆盖文本。 */
   private static final Map<TextView, ValueAnimator> COUNTERS = new WeakHashMap<>();
+
+  private static final Map<TextView, TextColorTransition> TEXT_COLORS = new WeakHashMap<>();
+
+  private record TextColorTransition(int target, ValueAnimator animator) {}
 
   private UiMotion() {}
 
@@ -92,7 +97,10 @@ public final class UiMotion {
     if (view == null) return;
     CharSequence next = text == null ? "" : text;
     if (TextUtils.equals(view.getText(), next)) {
-      if (!animationsEnabled(view.getContext())) view.setAlpha(1f);
+      if (view.getAlpha() != 1f && !animationsEnabled(view.getContext())) {
+        view.animate().cancel();
+        view.setAlpha(1f);
+      }
       return;
     }
     view.animate().cancel();
@@ -110,7 +118,8 @@ public final class UiMotion {
     if (view == null) return;
     Integer from = parseCount(view.getText());
     if (!animationsEnabled(view.getContext()) || from == null || from == target) {
-      view.setText(String.valueOf(target));
+      cancelCounter(view);
+      setTextIfChanged(view, String.valueOf(target));
       return;
     }
     animateCounter(view, from, target, value -> String.valueOf(Math.round(value)));
@@ -121,7 +130,8 @@ public final class UiMotion {
     if (view == null) return;
     Float from = parseDecimal(view.getText());
     if (!animationsEnabled(view.getContext()) || from == null || from == target) {
-      view.setText(String.format(java.util.Locale.ROOT, "%.1f", target));
+      cancelCounter(view);
+      setTextIfChanged(view, String.format(java.util.Locale.ROOT, "%.1f", target));
       return;
     }
     animateCounter(
@@ -130,17 +140,15 @@ public final class UiMotion {
 
   private static void animateCounter(
       TextView view, float from, float target, java.util.function.Function<Float, String> render) {
-    COUNTERS.computeIfPresent(
-        view,
-        (ignored, running) -> {
-          running.cancel();
-          return null;
-        });
+    cancelCounter(view);
     ValueAnimator animator = ValueAnimator.ofFloat(from, target);
     animator.setDuration(200L);
     animator.setInterpolator(STANDARD);
     animator.addUpdateListener(
-        running -> view.setText(render.apply((Float) running.getAnimatedValue())));
+        running -> {
+          if (COUNTERS.get(view) == running)
+            setTextIfChanged(view, render.apply((Float) running.getAnimatedValue()));
+        });
     animator.addListener(
         new android.animation.AnimatorListenerAdapter() {
           @Override
@@ -150,6 +158,11 @@ public final class UiMotion {
         });
     COUNTERS.put(view, animator);
     animator.start();
+  }
+
+  private static void cancelCounter(TextView view) {
+    var previous = COUNTERS.remove(view);
+    if (previous != null) previous.cancel();
   }
 
   private static Integer parseCount(CharSequence text) {
@@ -195,38 +208,70 @@ public final class UiMotion {
   static void crossFadeTimerText(TextView view, CharSequence text) {
     if (view == null) return;
     CharSequence next = text == null ? "" : text;
-    if (skeleton(view.getText()).equals(skeleton(next))) {
-      view.animate().cancel();
+    CharSequence previous = view.getText();
+    if (!TextUtils.equals(previous, next) && sameTimerWording(previous, next)) {
+      if (view.getAlpha() != 1f) {
+        view.animate().cancel();
+        view.setAlpha(1f);
+      }
       view.setText(next);
-      view.setAlpha(1f);
       return;
     }
     crossFadeText(view, next);
   }
 
-  private static String skeleton(CharSequence text) {
-    String value = text == null ? "" : text.toString();
-    StringBuilder out = new StringBuilder(value.length());
-    for (int index = 0; index < value.length(); index++) {
-      char c = value.charAt(index);
-      out.append(Character.isDigit(c) ? '#' : c);
+  private static boolean sameTimerWording(CharSequence previous, CharSequence next) {
+    // Compare the words and separators, allowing digit runs to change width at 9 → 10.
+    int from = 0;
+    int to = 0;
+    while (from < previous.length() && to < next.length()) {
+      if (Character.isDigit(previous.charAt(from)) && Character.isDigit(next.charAt(to))) {
+        do {
+          from++;
+        } while (from < previous.length() && Character.isDigit(previous.charAt(from)));
+        do {
+          to++;
+        } while (to < next.length() && Character.isDigit(next.charAt(to)));
+      } else if (previous.charAt(from++) != next.charAt(to++)) {
+        return false;
+      }
     }
-    return out.toString();
+    return from == previous.length() && to == next.length();
+  }
+
+  static void setTextIfChanged(TextView view, CharSequence text) {
+    if (!TextUtils.equals(view.getText(), text)) view.setText(text);
   }
 
   /** 文字颜色 120ms 过渡（错误 / 正常状态切换）；系统关闭动画时直接落值。 */
   static void crossFadeTextColor(TextView view, int color) {
     if (view == null) return;
     int from = view.getCurrentTextColor();
-    if (from == color) return;
-    if (!animationsEnabled(view.getContext())) {
-      view.setTextColor(color);
+    TextColorTransition previous = TEXT_COLORS.get(view);
+    if (previous == null && from == color) return;
+    boolean animate = animationsEnabled(view.getContext());
+    if (animate && previous != null && previous.target() == color) return;
+    if (previous != null) previous.animator().cancel();
+    if (!animate || from == color) {
+      if (from != color) view.setTextColor(color);
       return;
     }
     ValueAnimator animator = ValueAnimator.ofArgb(from, color);
     animator.setDuration(120L);
     animator.setInterpolator(STANDARD);
-    animator.addUpdateListener(running -> view.setTextColor((int) running.getAnimatedValue()));
+    animator.addUpdateListener(
+        running -> {
+          int next = (int) running.getAnimatedValue();
+          if (view.getCurrentTextColor() != next) view.setTextColor(next);
+        });
+    animator.addListener(
+        new android.animation.AnimatorListenerAdapter() {
+          @Override
+          public void onAnimationEnd(android.animation.Animator animation) {
+            TEXT_COLORS.remove(view);
+          }
+        });
+    TEXT_COLORS.put(view, new TextColorTransition(color, animator));
     animator.start();
   }
 
@@ -309,30 +354,32 @@ public final class UiMotion {
     animator.start();
   }
 
-  /** 数值滚动（200ms）：同一 TextView 连点先取消旧动画；系统关闭动画时由调用方直接落值。 */
-  static void animateValue(
-      TextView view, float from, float to, java.util.function.Function<Float, String> render) {
+  /** Animate the fraction while keeping byte and count endpoints as exact longs. */
+  static void animateValue(TextView view, long from, long to, LongFunction<String> render) {
     if (view == null) return;
-    COUNTERS.computeIfPresent(
-        view,
-        (ignored, running) -> {
-          running.cancel();
-          return null;
-        });
-    ValueAnimator animator = ValueAnimator.ofFloat(from, to);
-    animator.setDuration(200L);
-    animator.setInterpolator(STANDARD);
-    animator.addUpdateListener(
-        running -> view.setText(render.apply((Float) running.getAnimatedValue())));
-    animator.addListener(
-        new android.animation.AnimatorListenerAdapter() {
-          @Override
-          public void onAnimationEnd(android.animation.Animator animation) {
-            if (COUNTERS.get(view) == animation) COUNTERS.remove(view);
-          }
-        });
-    COUNTERS.put(view, animator);
-    animator.start();
+    if (from == to || !animationsEnabled(view.getContext())) {
+      cancelCounter(view);
+      setTextIfChanged(view, render.apply(to));
+      return;
+    }
+    animateCounter(view, 0f, 1f, fraction -> render.apply(interpolateLong(from, to, fraction)));
+  }
+
+  private static long interpolateLong(long from, long to, float fraction) {
+    if (fraction <= 0f) return from;
+    if (fraction >= 1f) return to;
+    long lower = Math.min(from, to);
+    long upper = Math.max(from, to);
+    long span = upper - lower;
+    if (span >= 0) {
+      // Round the change so close values still retain their byte precision at large magnitudes.
+      long delta = to >= from ? span : -span;
+      long change = Math.round(delta * (double) fraction);
+      return from + (delta >= 0 ? Math.min(delta, change) : Math.max(delta, change));
+    }
+    // Opposite long extremes can exceed the range of a signed long delta.
+    long value = Math.round(from + ((double) to - from) * fraction);
+    return Math.max(lower, Math.min(upper, value));
   }
 
   /** 卡片圆角形变（120ms）：只改背景圆角，不动布局与文字；系统关闭动画时直接落位。 */
@@ -395,26 +442,30 @@ public final class UiMotion {
     if (view == null) return;
     view.setOnTouchListener(
         (target, event) -> {
-          if (!animationsEnabled(target.getContext()) || !target.isEnabled()) return false;
-          switch (event.getActionMasked()) {
-            case MotionEvent.ACTION_DOWN ->
-                target
-                    .animate()
-                    .scaleX(0.985f)
-                    .scaleY(0.985f)
-                    .setDuration(90L)
-                    .setInterpolator(STANDARD)
-                    .start();
-            case MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
-                target
-                    .animate()
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(140L)
-                    .setInterpolator(STANDARD)
-                    .start();
-            default -> {}
+          int action = event.getActionMasked();
+          if (action != MotionEvent.ACTION_DOWN
+              && action != MotionEvent.ACTION_UP
+              && action != MotionEvent.ACTION_CANCEL) return false;
+          if (!target.isEnabled() || !animationsEnabled(target.getContext())) {
+            if (action != MotionEvent.ACTION_DOWN
+                || target.getScaleX() != 1f
+                || target.getScaleY() != 1f) {
+              target.animate().cancel();
+              target.setScaleX(1f);
+              target.setScaleY(1f);
+            }
+            return false;
           }
+          boolean pressed = action == MotionEvent.ACTION_DOWN;
+          float scale = pressed ? 0.985f : 1f;
+          target
+              .animate()
+              .scaleX(scale)
+              .scaleY(scale)
+              .setStartDelay(0L)
+              .setDuration(pressed ? 90L : 140L)
+              .setInterpolator(STANDARD)
+              .start();
           return false;
         });
   }

@@ -73,10 +73,12 @@ class GhProvisionContract(unittest.TestCase):
         self.assertNotIn('gh-cli.tar.gz', deployment['packagedFiles'])
         self.assertEqual(deployment['sourceTransforms']['gh-cli.tar.gz'], 'gh-cli.bin')
         self.assertIn('gh-cli.bin', deployment['generatedFiles'])
+        self.assertIn('gh-cli.bin.sha256', deployment['generatedFiles'])
+        self.assertIn('gh-cli.tar.gz', deployment['recompressedArchives'])
         self.assertIn('gh-cli.tar.gz', module('ci-assets').NAMES)
         runtime_tools = (ROOT / 'app/src/main/java/com/deepseekharness/app/runtime/RuntimeTools.java') \
             .read_text(encoding='utf-8')
-        self.assertIn('context.getAssets().open("gh-cli.bin")', runtime_tools)
+        self.assertIn('RuntimeAssetFiles.openArchive(context, "gh-cli.bin", asset)', runtime_tools)
         layout = (ROOT / 'app/src/main/java/com/deepseekharness/app/util/ManagedRuntimeLayout.java') \
             .read_text(encoding='utf-8')
         self.assertIn('out.add("opt/gh/bin/gh")', layout)

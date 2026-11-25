@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="plugin_catalog_reading">Lecture des extensions…</string>
+    <string name="plugin_catalog_rechecking">Contrôle des extensions…</string>
+    <string name="plugin_catalog_cached">Liste précédente des extensions affichée</string>
+    <string name="plugin_catalog_configured">Selon les réglages · à vérifier</string>
+    <string name="plugin_catalog_failed">Échec de la vérification</string>
+    <string name="plugin_catalog_unconfirmed">Liste non confirmée</string>
+    <string name="plugin_catalog_verified">Liste vérifiée</string>
+    <string name="plugin_catalog_queued">Vérification en file</string>
+</resources>

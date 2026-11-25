@@ -1,9 +1,11 @@
 # DSH-A-Su · DSHA Sunset Mod
 
+Local DSHA build370 integrates Sunset commit `2cc4e646` and the local build308 changes. It uses the `dsh.android.client` application ID and its existing signing certificate. Both the main and recovery environments ship DSH `0.2.2-rc.5`. [Local build inputs](docs/fixed-build-inputs-local.md)
+
 > A third-party **Mod** of [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA) — not an official DSHA distribution.
 > Runs the complete [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) on Android: no root, no Termux, works right after install.
 
-## Status
+## Upstream Sunset release
 
 | Item | Value |
 |---|---|

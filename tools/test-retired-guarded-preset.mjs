@@ -30,6 +30,20 @@ await test('retirement host recipe exact source applies and ESM parses without e
 await test('whole official client with full-access and retirement chains parses without evaluation', async () => {
   client = patched('permission-full-access-patch.json'); new vm.Script(client);
 });
+function clientReaders() {
+  const exportPoint = 'exports.apply=apply;exports.inject=inject;';
+  assert.equal(client.split(exportPoint).length - 1, 1);
+  const source = client.replace(exportPoint, exportPoint +
+    'exports.readDefault=permissionDefaultOf;exports.selectDefault=PermissionPresetSettingsController.prototype.select;');
+  let exports;
+  const window = {
+    __ModuleLoader__: {
+      load({ factory }) { exports = factory(name => name === 'react/jsx-runtime' ? { jsx() {} } : {}); },
+    },
+  };
+  new vm.Script(source).runInNewContext({ window });
+  return exports;
+}
 function method(source, name) {
   const prefix = '\t\t' + name, indent = prefix.match(/^\t*/)[0];
   const start = source.indexOf(prefix); assert(start >= 0);
@@ -53,17 +67,13 @@ await test('actual host names/catalog hide old ID while preserving official choi
   assert.equal(JSON.stringify(sample.presets), before);
 });
 await test('actual client legacy-default read succeeds without offering the retired option', async () => {
-  const start = client.indexOf('function permissionDefaultOf('), end = client.indexOf('\n\t\t/** Controller deriving', start);
-  assert(start > 0 && end > start);
-  const read = new Function('displayPermissionPreset', 'return (' + client.slice(start, end) + ');')((_id, label) => label);
   const catalog = { defaultPreset: OLD, defaultOptions: [{ value: FULL, name: 'Full access' }] };
-  const result = read({ value: { defaultPreset: OLD } }, catalog);
-  assert.equal(result.currentValue, OLD); assert.deepEqual(result.options.map(option => option.id), [FULL]);
+  const result = clientReaders().readDefault({ value: { defaultPreset: OLD } }, catalog);
+  assert.equal(result.currentValue, OLD); assert.deepEqual(Array.from(result.options, option => option.id), [FULL]);
 });
 await test('actual stale settings selection rejects the retired ID before touching a store or Remote', async () => {
-  const select = new Function('return ({' + method(client, '\tasync select(preset)') + '}).select;')();
   let failures = 0;
-  await select.call({ fail(error) { assert.match(error.message, /仅兼容读取/); failures++; } }, OLD);
+  await clientReaders().selectDefault.call({ fail(error) { assert.match(error.message, /仅兼容读取/); failures++; } }, OLD);
   assert.equal(failures, 1);
 });
 await test('current/slash coordinator rejects retired ID before any context or command call', async () => {

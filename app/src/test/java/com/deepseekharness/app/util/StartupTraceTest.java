@@ -116,7 +116,7 @@ public class StartupTraceTest {
     assertTrue(snapshot.backendReady);
     assertEquals(2500, snapshot.backendReadyMs);
     assertTrue(snapshot.log.contains("BACKEND_AUTH_READY: 2.5s"));
-    assertTrue(snapshot.log.contains("STARTUP_AUTH_TIMING: nodeToAuthMs=2000"));
+    assertTrue(snapshot.log.contains("STARTUP_AUTH_TIMING: nodeToAuthMs=2000 startToAuthMs=2500"));
     // 鉴权后不再接受新的 Node 零点，也不能把最后一次启动时间倒推成更短耗时。
     trace.nodeLaunched(1, 9000);
     trace.backendReady(1, 9500);

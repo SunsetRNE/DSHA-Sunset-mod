@@ -138,7 +138,7 @@ public final class DataProtectionService extends Service {
             ? new Notification.Builder(this, CHANNEL)
             : new Notification.Builder(this);
     notification
-        .setSmallIcon(R.mipmap.ic_launcher)
+        .setSmallIcon(R.drawable.ic_dsha_mark)
         .setContentTitle(UiText.choose("DSHA 数据保护", "DSHA data protection"))
         .setContentText(text)
         .setOngoing(true)

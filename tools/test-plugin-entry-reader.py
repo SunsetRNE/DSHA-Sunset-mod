@@ -74,9 +74,10 @@ class EntryReaderTest(unittest.TestCase):
         directory = self.entry_bundle('- insert:\n    - id: parent\n      name: cordis:group\n      group: true\n      config:\n        - id: child\n          name: ./index.js\n')
         self.put('root/.dsh/profiles/web/cordis.patch.yml',
                  '- id: parent\n  disabled: true\n- id: child\n  disabled: true\n- id: child\n  disabled: false\n')
-        with self.real_entry_parser(), patch.object(self.manager, '_entry_read_node', wraps=self.manager._entry_read_node) as reader:
+        with self.real_entry_parser(), patch.object(subprocess, 'Popen', wraps=subprocess.Popen) as launch:
             item = self.items()['test-plugin']
-        self.assertEqual(1, reader.call_count, 'one parser serves the complete list')
+        self.assertEqual(1, launch.call_count, 'one Node child serves both complete projections')
+        self.assertEqual('unconstrained', item['compatibilityState'])
         self.assertEqual('', item['entryReadError'])
         self.assertTrue(item['selected']); self.assertTrue(item['installed'])
         self.assertEqual('profile', item['availability']); self.assertEqual('', item['readOnlyReason'])
@@ -87,6 +88,68 @@ class EntryReaderTest(unittest.TestCase):
         self.assertEqual('parent', entries['child']['parentId'])
         self.assertEqual(hashlib.sha256((directory / 'index.js').as_uri().encode()).hexdigest(), entries['child']['moduleHash'])
         self.assertNotIn('effectiveEnabled', entries['child'])
+
+
+    def test_batched_reader_keeps_independent_parser_results(self):
+        self.entry_bundle('- insert:\n    - id: child\n      name: ./index.js\n')
+        missing = self.root / 'absent' / 'package.json'
+        with patch.object(self.manager, '_entry_parser_anchor', return_value=str(missing)):
+            item = self.items()['test-plugin']
+        self.assertEqual('ENTRY_READER_UNAVAILABLE', item['entryReadError'])
+        self.assertEqual('unconstrained', item['compatibilityState'])
+
+        anchor = self.root / 'usr/local/lib/node_modules/@deepseek-ai/dsh/package.json'
+        anchor.unlink()
+        with self.real_entry_parser():
+            item = self.items()['test-plugin']
+        self.assertEqual('PLUGIN_COMPATIBILITY_CHECK_FAILED', item['compatibilityCode'])
+        self.assertEqual('', item['entryReadError'])
+        self.assertEqual(['child'], [entry['entryId'] for entry in item['entries']])
+
+
+    def test_read_only_child_inherits_the_bounded_guest_session(self):
+        self.entry_bundle('- insert:\n    - id: child\n      name: ./index.js\n')
+        with self.real_entry_parser(), patch.object(self.manager, 'READ_ONLY', True), \
+                patch.object(subprocess, 'Popen', wraps=subprocess.Popen) as launch:
+            item = self.items()['test-plugin']
+        self.assertEqual(1, launch.call_count)
+        self.assertFalse(launch.call_args.kwargs['start_new_session'])
+        self.assertEqual(['child'], [entry['entryId'] for entry in item['entries']])
+
+
+    def test_large_batch_keeps_independent_parser_limits(self):
+        self.entry_bundle('- insert:\n    - id: child\n      name: ./index.js\n')
+        large_text = '[]\n#' + 'x' * (768 * 1024)
+        for index in range(3):
+            self.entry_bundle(large_text, 'large-plugin-' + str(index))
+        with self.real_entry_parser(), patch.object(subprocess, 'Popen', wraps=subprocess.Popen) as launch:
+            rows = self.items()
+        self.assertEqual(2, launch.call_count)
+        self.assertEqual('unconstrained', rows['test-plugin']['compatibilityState'])
+        self.assertEqual(['child'], [entry['entryId'] for entry in rows['test-plugin']['entries']])
+        for index in range(3):
+            self.assertEqual('', rows['large-plugin-' + str(index)]['entryReadError'])
+
+
+    def test_batched_reader_preserves_settled_output_after_exact_child_exit(self):
+        self.entry_bundle('- insert:\n    - id: child\n      name: ./index.js\n')
+        source = self.manager._ENTRY_READER
+        failure_before_compatibility = source.replace('if (split !== -1) {',
+                                                      'if (split !== -1) process.exit(9);\nif (split !== -1) {', 1)
+        failure_before_entries = source.replace('const entryInput =', 'process.exit(9);\nconst entryInput =', 1)
+        with self.real_entry_parser(), patch.object(self.manager, '_ENTRY_READER', failure_before_compatibility), \
+                patch.object(subprocess, 'Popen', wraps=subprocess.Popen) as launch:
+            item = self.items()['test-plugin']
+        self.assertEqual(2, launch.call_count)
+        self.assertEqual('PLUGIN_COMPATIBILITY_CHECK_FAILED', item['compatibilityCode'])
+        self.assertEqual(['child'], [entry['entryId'] for entry in item['entries']])
+
+        with self.real_entry_parser(), patch.object(self.manager, '_ENTRY_READER', failure_before_entries), \
+                patch.object(subprocess, 'Popen', wraps=subprocess.Popen) as launch:
+            item = self.items()['test-plugin']
+        self.assertEqual(1, launch.call_count)
+        self.assertEqual('unconstrained', item['compatibilityState'])
+        self.assertEqual('ENTRY_READER_UNAVAILABLE', item['entryReadError'])
 
 
     def test_entry_projection_opaque_expression_never_executes_plugin_or_profile(self):
@@ -172,6 +235,72 @@ class EntryReaderTest(unittest.TestCase):
                     target.write_text('[]\n')
 
 
+    def test_discovery_rejects_a_manifest_replaced_during_path_resolution(self):
+        name = 'moving-plugin'
+        directory = self.plugin('root/.dsh/plugin-src', name)
+        manifest = directory / 'package.json'
+        replacement = self.root / 'same-bytes-replacement.json'
+        replacement.write_bytes(manifest.read_bytes())
+        realpath = os.path.realpath
+
+        def replaced(path, *args, **kwargs):
+            if Path(path) == directory and replacement.exists():
+                os.replace(replacement, manifest)
+            return realpath(path, *args, **kwargs)
+
+        with patch.object(os.path, 'realpath', side_effect=replaced), \
+                patch.object(self.manager, 'result') as result:
+            with self.assertRaisesRegex(ValueError, 'PLUGIN_DISCOVERY_CHANGED'):
+                self.manager.cmd_list()
+            result.assert_not_called()
+        self.assertFalse(replacement.exists())
+
+
+    @unittest.skipUnless(hasattr(os, 'mkfifo'), 'POSIX FIFO required')
+    def test_discovery_reads_bounded_regular_manifests_only(self):
+        normal = self.plugin('root/.dsh/plugin-src', 'regular-plugin')
+        fifo = normal.parent / 'fifo-plugin' / 'package.json'
+        fifo.parent.mkdir()
+        os.mkfifo(fifo)
+        oversized = normal.parent / 'oversized-plugin' / 'package.json'
+        oversized.parent.mkdir()
+        with oversized.open('wb') as stream:
+            stream.truncate(1024 * 1024 + 1)
+        original_open = os.open
+
+        def nonblocking(path, flags, *args, **kwargs):
+            if Path(path) == fifo:
+                self.assertTrue(flags & os.O_NONBLOCK)
+            return original_open(path, flags, *args, **kwargs)
+
+        with patch.object(os, 'open', side_effect=nonblocking):
+            found = self.builtin.discover_plugins()
+        self.assertEqual({'regular-plugin'}, set(found))
+
+
+    def test_read_only_list_cancels_even_after_its_last_revision_check(self):
+        key = 'e' * 32
+        cancel = self.root / ('root/.dsha-plugin-task-' + key + '.cancel')
+        read_revision = self.manager.list_state_revision
+        calls = []
+
+        def cancelled():
+            revision = read_revision()
+            calls.append(revision)
+            if len(calls) == 2:
+                cancel.touch()
+            return revision
+
+        with self.real_entry_parser(), patch.dict(os.environ, {'DSHA_PLUGIN_TASK': key}), \
+                patch.object(self.manager, 'READ_ONLY', True), \
+                patch.object(self.manager, 'list_state_revision', side_effect=cancelled), \
+                patch.object(self.manager, 'result') as result:
+            with self.assertRaises(self.manager.PluginCancelled):
+                self.manager.cmd_list()
+            result.assert_not_called()
+        self.assertEqual(2, len(calls))
+
+
     def test_entry_reader_does_not_inherit_preload_or_node_path_modules(self):
         anchor = self.put('isolated-parser/package.json', {'name': 'fixture-anchor'})
         boot = self.put('isolated-parser/node_modules/@deepseek-ai/dsh-app-boot/package.json',
@@ -210,7 +339,7 @@ class EntryReaderTest(unittest.TestCase):
         package_file = directory / 'package.json'
         package = json.loads(package_file.read_text()); package['dsh']['bundle']['patch'] = '../../outside.yml'
         package_file.write_text(json.dumps(package))
-        observations = self.manager._read_entry_projection([('test-plugin', str(directory), dict(package, description=''))])
+        observations, _, _ = self.manager._read_entry_projection([('test-plugin', str(directory), dict(package, description=''))])
         self.assertEqual('ENTRY_PATCH_PATH', observations['test-plugin']['entryReadError'])
         package['dsh']['bundle']['patch'] = 'cordis.patch.yml'; package_file.write_text(json.dumps(package))
         (directory / 'cordis.patch.yml').write_text('- insert:\n' + ''.join('    - id: entry%d\n      name: ./index.js\n' % i for i in range(2049)))

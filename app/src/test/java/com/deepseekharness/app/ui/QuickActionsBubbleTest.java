@@ -3,9 +3,12 @@ package com.deepseekharness.app.ui;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import android.app.Activity;
 import android.content.Context;
+import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 import androidx.appcompat.view.ContextThemeWrapper;
 import com.deepseekharness.app.DshaApp;
@@ -18,6 +21,7 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
@@ -91,5 +95,45 @@ public final class QuickActionsBubbleTest {
         View.GONE, root.findViewById(R.id.quick_action_divider_environment).getVisibility());
     assertEquals("下载记录", label(root, R.id.quick_action_downloads_label));
     assertEquals("关于 DSHA", label(root, R.id.quick_action_about_label));
+  }
+
+  @Test
+  public void launchPopupIsImmediatelyVisibleWithSystemMotionDisabled() throws Exception {
+    try (var controller = Robolectric.buildActivity(Activity.class).setup()) {
+      Activity activity = controller.get();
+      activity.setTheme(R.style.Theme_DeepseekHarness);
+      View anchor = new View(activity);
+      activity.setContentView(anchor);
+      Settings.Global.putFloat(
+          activity.getContentResolver(), Settings.Global.TRANSITION_ANIMATION_SCALE, 0f);
+      try {
+        QuickActionsBubble bubble =
+            QuickActionsBubble.show(
+                activity,
+                anchor,
+                true,
+                new QuickActionsBubble.Listener() {
+                  @Override
+                  public void onAction(QuickActions.Action action) {}
+
+                  @Override
+                  public void onDismissed() {}
+                });
+        try {
+          var field = QuickActionsBubble.class.getDeclaredField("window");
+          field.setAccessible(true);
+          var popup = (PopupWindow) field.get(bubble);
+          var card = popup.getContentView().findViewById(R.id.quick_actions_card);
+          assertEquals(1f, card.getAlpha(), 0.001f);
+          assertEquals(1f, card.getScaleX(), 0.001f);
+          assertEquals(0, popup.getAnimationStyle());
+        } finally {
+          bubble.dismiss();
+        }
+      } finally {
+        Settings.Global.putFloat(
+            activity.getContentResolver(), Settings.Global.TRANSITION_ANIMATION_SCALE, 1f);
+      }
+    }
   }
 }

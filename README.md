@@ -1,9 +1,11 @@
 # DSH-A-Su · DSHA Sunset Mod
 
+本地 DSHA **build370** 将 Sunset `main` 的 `2cc4e646` 与 build308 合并。应用沿用 `dsh.android.client`、E7E3 签名与 Android 11+ arm64 Standard；版本为 `0.2.1-rc.5-20261119.0400-dsh0.2.2-rc.5`。正式和独立应急环境均采用 DSH `0.2.2-rc.5`。本地构建显式选择 `-Pdsha.identity=upstream` 和经过验证的 Rust prebuilt。[本版变更说明](docs/releases/build370-changes.zh.md)
+
 > 基于 [DSH-APP/DSHA](https://github.com/DSH-APP/DSHA) 的第三方 **Mod 版本**，不是 DSHA 官方发行版。
 > 在 Android 手机上运行完整的 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)：免 ROOT、免 Termux，装完即用。
 
-## 当前状态
+## Sunset 上游发布状态
 
 | 项目 | 值 |
 |---|---|

@@ -29,6 +29,8 @@ const home = process.env.DSH_HOME || '/root/.dsh';
 const profile = process.env.DSHA_STARTUP_PROFILE || 'web';
 const directory = path.join(home, 'profiles', profile);
 const installation = process.env.DSHA_OBSERVER_INSTALL || '/usr/local/lib/node_modules/@deepseek-ai/dsh';
+const installAnchor = path.join(installation, 'package.json');
+const profileManifest = path.join(directory, 'package.json');
 const plugins = [];
 const moduleOwners = new Map();
 const installedBundles = [];
@@ -59,12 +61,12 @@ let yaml, yamlSchema;
 // T116：sharp（附件图片）若先于 node-pty 加载，pty.node 会注册成 sharp 的导出，终端随后抛
 // pty.fork is not a function。这里在插件加载前固定 node-pty；失败静默，不影响启动。
 try {
-  requireFrom(path.join(installation, 'package.json'))('node-pty');
+  requireFrom(installAnchor)('node-pty');
 } catch (_) { }
 function bundleEntries(patches, patchFile, output) {
   // 只解析普通数据；!!js 保留为不透明标记，绝不执行表达式或插件。
   if (!yaml) {
-    const anchor = requireFrom(path.join(installation, 'package.json'));
+    const anchor = requireFrom(installAnchor);
     const boot = anchor.resolve('@deepseek-ai/dsh-app-boot');
     yaml = requireFrom(boot)('js-yaml');
   }
@@ -110,8 +112,11 @@ function readJson(file) {
 function locate(name) {
   // 与锁定 dsh-app-boot.resolveBundleDir 的两个 anchor 及 Node 查找顺序一致。
   // 不能只列几个固定目录：全局安装、hoisted 依赖和 pnpm 链接都可能合法存在。
-  for (const anchor of [path.join(installation, 'package.json'), path.join(directory, 'package.json')]) {
+  const checked = new Set();
+  for (const anchor of [installAnchor, profileManifest]) {
     for (const root of requireFrom(anchor).resolve.paths(name) || []) {
+      if (checked.has(root)) continue;
+      checked.add(root);
       const candidate = path.join(root, name);
       if (fs.existsSync(path.join(candidate, 'package.json'))) return candidate;
     }
@@ -138,7 +143,7 @@ function effectiveVersion(bundle, pkg, inserted, fallback) {
   const pin = peers ? peers[canonical] : undefined;
   if (typeof pin !== 'string' || !EXACT_VERSION.test(pin)) return fallback;
   try {
-    const root = fs.realpathSync(locate(canonical));
+    const root = fs.realpathSync.native(locate(canonical));
     return readJson(path.join(root, 'package.json')).version === pin ? pin : fallback;
   } catch { return fallback; }
 }
@@ -150,7 +155,7 @@ function owner(text) {
 }
 try {
   emit('stage', '', '检查启动配置和插件清单');
-  const doc = readJson(path.join(directory, 'package.json'));
+  const doc = readJson(profileManifest);
   const bundles = doc.dsh?.profile?.bundles;
   if (!Array.isArray(bundles)) throw new Error('dsh.profile.bundles 必须是插件名称数组');
   if (bundles.length > 500) evidenceTruncated = true;
@@ -162,7 +167,7 @@ try {
       contentFingerprint: '', contentAlgorithm: '', contentReason: 'CONTENT_UNVERIFIED' };
     installedBundles.push(evidence);
     try {
-      const resolved = locate(name), root = fs.realpathSync(resolved);
+      const resolved = locate(name), root = fs.realpathSync.native(resolved);
       const pkg = readJson(path.join(root, 'package.json'));
       startupManifestBytes += Buffer.byteLength(JSON.stringify(pkg));
       if (startupManifestBytes <= 8 * 1024 * 1024) startupManifests.set(evidence, pkg);
@@ -175,14 +180,18 @@ try {
       if (!patches.length || patches.some(item => {
         if (typeof item !== 'string' || !item || path.isAbsolute(item)) return true;
         const target = path.resolve(root, item);
-        return !target.startsWith(root + path.sep) || !fs.existsSync(target)
-          || !fs.realpathSync(target).startsWith(root + path.sep) || !fs.statSync(target).isFile();
+        if (!target.startsWith(root + path.sep)) return true;
+        try {
+          const canonical = fs.realpathSync.native(target);
+          return !canonical.startsWith(root + path.sep) || !fs.statSync(canonical).isFile();
+        } catch (_) { return true; }
       })) throw new Error('缺少 dsh.bundle.patch 声明或补丁文件');
       const inserted = [];
       for (const patch of patches) {
         // 只读取 id/module 的普通标量，不执行 YAML 的 !!js 用户表达式。
         const patchFile = path.resolve(root, patch);
-        if (fs.existsSync(patchFile) && fs.statSync(patchFile).size <= 1024 * 1024) {
+        const patchStat = fs.statSync(patchFile, { throwIfNoEntry: false });
+        if (patchStat?.isFile() && patchStat.size <= 1024 * 1024) {
           const source = fs.readFileSync(patchFile, 'utf8');
           try { bundleEntries(source, path.resolve(resolved, patch), evidence); }
           catch (_) { evidence.ambiguous = true; }
@@ -232,12 +241,12 @@ try {
   const stored = staticJson(path.join(directory, 'compatibility.json'), true);
   // JSON.parse 不拒绝重复键；固定 YAML 的 JSON schema 仅检查普通数据，默认拒绝重复键。
   if (!yaml) {
-    const boot = requireFrom(path.join(installation, 'package.json')).resolve('@deepseek-ai/dsh-app-boot');
+    const boot = requireFrom(installAnchor).resolve('@deepseek-ai/dsh-app-boot');
     yaml = requireFrom(boot)('js-yaml');
   }
   yaml.load(stored.text, { schema: yaml.JSON_SCHEMA });
   const reports = checker({ manifests: current.map(bundle => startupManifests.get(bundle)), exemptions: stored.value,
-    anchors: [path.join(installation, 'package.json'), '/root/dsh-src/package.json'] });
+    anchors: [installAnchor, '/root/dsh-src/package.json'] });
   if (!Array.isArray(reports) || reports.length !== current.length) throw new Error('PREFLIGHT_CHECK_FAILED');
   for (let index = 0; index < current.length; index++) {
     const bundle = current[index], pkg = startupManifests.get(bundle), report = reports[index];
@@ -267,7 +276,7 @@ try {
     patchChain.reasonCode = 'PATCH_REGISTRY_INVALID';
   } else {
     let runtimeVersion = '';
-    try { runtimeVersion = staticJson(path.join(installation, 'package.json')).value.version; } catch {}
+    try { runtimeVersion = staticJson(installAnchor).value.version; } catch {}
     const required = ['plugin-inventory-entries-patch.json', 'plugin-manager-entries-patch.json',
       'plugin-inventory-management-patch.json', 'plugin-inventory-management-host-codec-patch.json',
       'plugin-inventory-management-remote-codec-patch.json', 'plugin-inventory-management-api-codec-patch.json',
@@ -309,7 +318,7 @@ function errorDetail(error) {
 }
 // 使用已锁定 Cordis 的实际加载边界；同一模块缓存只加载一次，不拦截每一次 Node 依赖解析。
 try {
-  const loaderModule = requireFrom(path.join(installation, 'package.json')).resolve('@deepseek-ai/cordis-plugin-loader');
+  const loaderModule = requireFrom(installAnchor).resolve('@deepseek-ai/cordis-plugin-loader');
   const { Entry } = require(loaderModule);
   const original = Entry.prototype.init;
   const required = new Set(['agent-loop','webserver','web-runtime','modules','connection','headless-runner','acp','sdk-jsonrpc-server']);

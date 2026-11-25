@@ -31,8 +31,6 @@ import org.robolectric.shadow.api.Shadow;
       AndroidBackupFileSystemReadTest.OwnedDescriptor.class
     })
 public final class AndroidBackupFileSystemReadTest {
-  // This shadow models the production arm64 ABI; host syscalls use os.O_DIRECTORY.
-  private static final int ARM64_O_DIRECTORY = 040000;
   // Exercise the final-open branch on Windows too, without inheriting its drive paths.
   private static final File LEAF =
       new File("/") {
@@ -67,8 +65,11 @@ public final class AndroidBackupFileSystemReadTest {
           "FIFO replacement must not block before fstat", (flags & OsConstants.O_NONBLOCK) != 0);
       assertTrue("Final links must remain forbidden", (flags & OsConstants.O_NOFOLLOW) != 0);
       if (directory) {
-        assertTrue(
-            "Directory reads must demand an arm64 directory", (flags & ARM64_O_DIRECTORY) != 0);
+        int directoryFlag = OsConstants.O_NOFOLLOW == 0100000 ? 040000 : 00200000;
+        assertEquals(
+            "Directory reads must demand the platform directory flag",
+            directoryFlag,
+            flags & (040000 | 00200000));
         if (type != OsConstants.S_IFDIR) throw new ErrnoException("open", OsConstants.ENOTDIR);
       }
       if (symlink) throw new ErrnoException("open", OsConstants.ELOOP);
@@ -183,6 +184,17 @@ public final class AndroidBackupFileSystemReadTest {
     fs.syncDirectory(LEAF);
     assertEquals(1, LeafOs.syncs);
     assertClosed();
+  }
+
+  @Test
+  public void directorySymlinkDoesNotReachFsync() {
+    LeafOs.directory = true;
+    LeafOs.type = OsConstants.S_IFDIR;
+    LeafOs.symlink = true;
+    IOException error = assertThrows(IOException.class, () -> fs.syncDirectory(LEAF));
+    assertEquals(OsConstants.ELOOP, ((ErrnoException) error.getCause()).errno);
+    assertEquals(0, LeafOs.syncs);
+    assertEquals(0, LeafOs.closes);
   }
 
   @Test

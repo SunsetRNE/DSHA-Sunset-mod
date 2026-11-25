@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="portable_password">백업 비밀번호</string>
+    <string name="portable_password_confirm">백업 비밀번호 확인</string>
+    <string name="portable_password_help">비밀번호를 따로 보관하세요. 새 기기에서 복원할 때 필요하며 DSHA에서는 비밀번호를 복구할 수 없습니다.</string>
+    <string name="portable_password_length">12~1024자를 입력하세요.</string>
+    <string name="portable_password_mismatch">비밀번호가 일치하지 않습니다.</string>
+    <string name="portable_export_summary">백업 비밀번호로 tar.gz를 보호하고 새 기기에서 복원할 수 있습니다.</string>
+    <string name="portable_included_secrets">선택한 데이터에는 채팅, 첨부 파일 및 문서에 저장된 인증 정보가 포함될 수 있습니다.</string>
+    <string name="portable_import_summary">백업을 선택하세요. 암호화된 백업에는 비밀번호가 필요합니다. 검증 후 복원 범위를 확인하세요.</string>
+    <string name="portable_password_restore_help">이 백업을 만들 때 사용한 비밀번호를 입력하세요.</string>
+    <string name="portable_rescue_diagnostics">암호화된 복구 파일에는 백업 데이터만 포함됩니다. 평문으로 내보내면 사용 가능한 진단 요약도 포함됩니다.</string>
+    <string name="portable_keep_password">이 복사본은 원래 비밀번호를 유지합니다. 새 기기에서 같은 비밀번호로 복원하세요.</string>
+    <string name="portable_plain_opt_in">호환성을 위해 평문으로 내보냅니다. 파일을 가진 사람은 채팅과 첨부 파일의 비밀을 포함한 모든 내용을 읽을 수 있습니다.</string>
+    <string name="portable_export_label">기기 이전용 백업 내보내기</string>
+    <string name="portable_automatic_help">앱을 삭제하면 자동 복사본과 기기 키가 제거됩니다. 기기 변경 또는 삭제 전에 직접 설정한 백업 비밀번호로 내보내고 앱 외부에 저장하세요.</string>
+    <string name="portable_retry_password">비밀번호 다시 입력</string>
+</resources>

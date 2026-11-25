@@ -28,6 +28,11 @@ final class WebSessionRecovery {
   interface Ports {
     StoredWebSession.Record read() throws Exception;
 
+    /** Legacy PID-only or unreadable encrypted record: observation only, with no auth or signals. */
+    default boolean unrecordedExitConfirmed() throws Exception {
+      return false;
+    }
+
     boolean current();
 
     boolean compatible(StoredWebSession.Record record) throws Exception;
@@ -82,7 +87,24 @@ final class WebSessionRecovery {
     int attempts = 0;
     try {
       // 保留只读现场装载；即使此前停止，也不让旧记录丢失停止证据。
-      var saved = ports.read();
+      StoredWebSession.Record saved;
+      try {
+        saved = ports.read();
+      } catch (InterruptedException interrupted) {
+        throw interrupted;
+      } catch (Exception unreadable) {
+        reportUnavailable(ports, stage, unreadable);
+        if (!ports.current()) return outcome(ports, Result.STALE, "STALE", attempts, stage);
+        if (Thread.currentThread().isInterrupted())
+          return outcome(ports, Result.UNKNOWN, "INTERRUPTED", attempts, stage);
+        stage = "LEGACY_EXIT_CHECK";
+        boolean exited = ports.unrecordedExitConfirmed();
+        if (!ports.current()) return outcome(ports, Result.STALE, "STALE", attempts, stage);
+        if (Thread.currentThread().isInterrupted())
+          return outcome(ports, Result.UNKNOWN, "INTERRUPTED", attempts, stage);
+        if (exited) return outcome(ports, Result.EXITED, "EXIT_CONFIRMED", attempts, stage);
+        return failure(ports, reason, attempts, stage);
+      }
       if (!ports.current()) return outcome(ports, Result.STALE, "STALE", attempts, stage);
       if (saved == null) return outcome(ports, Result.NONE, "NO_RECORD", attempts, stage);
       // 用户已停止优先于兼容性/鉴权：先独立确认退出，避免“停止哨兵”被当作版本不兼容。

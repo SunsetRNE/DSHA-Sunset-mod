@@ -9,6 +9,7 @@ import struct
 import tarfile
 import zipfile
 from recovery_apk_assets import archive_locations
+from rootfs_archive import open_rootfs_tar
 
 
 def deb_payload(raw):
@@ -128,7 +129,9 @@ def main():
         for asset, group in archives:
             if asset == 'dsh-runtime.bin' and 'assets/' + asset not in apk.namelist():
                 continue
-            with apk.open("assets/" + asset) as stream, tarfile.open(fileobj=stream, mode="r|gz") as archive:
+            with apk.open("assets/" + asset) as stream, (
+                    open_rootfs_tar(stream) if group in ('rootfs', 'recovery_rootfs', 'ubuntu_tools', 'python')
+                    else tarfile.open(fileobj=stream, mode="r|gz")) as archive:
                 for item in archive:
                     if not item.isfile():
                         continue

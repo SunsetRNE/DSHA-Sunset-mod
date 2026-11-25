@@ -3,6 +3,7 @@ package com.deepseekharness.app.runtime;
 import android.content.Context;
 import com.deepseekharness.app.util.ProcessTermination;
 import com.deepseekharness.app.util.RuntimeWorkPort;
+import com.deepseekharness.app.util.WebProcSel;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -52,7 +53,7 @@ final class TerminalRuntime {
     if (guestCommand == null || guestCommand.length == 0) {
       argv.add("/bin/bash");
       argv.add("-c");
-      argv.add("stty sane 2>/dev/null || stty echo icanon 2>/dev/null || true; exec /bin/bash -l");
+      argv.add(WebProcSel.INTERACTIVE_PTY_COMMAND);
     } else java.util.Collections.addAll(argv, guestCommand);
     ProcessBuilder probe = new ProcessBuilder("/system/bin/true");
     launcher.environment(probe, spec);

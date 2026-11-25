@@ -455,6 +455,9 @@ jobs:
               json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
           print(json.dumps(value, ensure_ascii=False, indent=2))
           PYCODE
+      - name: Prepare matching source for the unsigned variant
+        if: ${{ inputs.unsigned_only }}
+        run: python3 tools/proot_source_distribution.py --apk out/unsigned-handoff/*-unsigned.apk --write-source out/unsigned-handoff/dsha-proot-talloc-source.zip
       - name: Upload unsigned ${{ matrix.variant }} handoff
         if: ${{ inputs.unsigned_only }}
         id: upload_unsigned
@@ -592,6 +595,7 @@ jobs:
           python3 tools/verify-dsh-upgrade-apk.py "$apk" > out/apk-runtime-verification.txt
           python3 tools/verify-recovery-apk.py "$apk" > out/apk-recovery-verification.txt
           python3 tools/verify-third-party-apk.py "$apk" --output out/third-party-apk.json
+          python3 tools/proot_source_distribution.py --apk "$apk" --write-source out/dsha-proot-talloc-source.zip
           if [ -n "$UNSIGNED_DIR" ]; then
             # 未签名阶段已在无 Secrets 的编译节点跑过受管资产门禁；这里证明签名没有改动载荷
             # （除 META-INF/ 外每个成员的 CRC32 与大小一致），并把回执带进证据。
@@ -782,6 +786,7 @@ jobs:
                             'instrumentation-badging.txt', 'instrumentation-manifest.txt'])
           if os.environ['RUST_NATIVE_MODE'] == 'prebuilt':
               names.append('rust-native/rust-receipt.json')
+          names.append('dsha-proot-talloc-source.zip')
           Path('out/SHA256SUMS').write_text(''.join(
               hashlib.sha256((Path('out') / name).read_bytes()).hexdigest() + '  ' + name + '\n' for name in names),
               encoding='utf-8')
@@ -822,6 +827,7 @@ jobs:
             out/apk-runtime-verification.txt
             out/apk-recovery-verification.txt
             out/third-party-apk.json
+            out/dsha-proot-talloc-source.zip
             out/apk-managed-assets.txt
             out/rust-native-apk-*.json
             out/rust-native/rust-receipt.json

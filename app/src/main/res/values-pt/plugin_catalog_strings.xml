@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="plugin_catalog_reading">Lendo a lista de plugins…</string>
+    <string name="plugin_catalog_rechecking">Verificando plugins…</string>
+    <string name="plugin_catalog_cached">Exibindo a lista anterior de plugins</string>
+    <string name="plugin_catalog_configured">Da configuração · a verificar</string>
+    <string name="plugin_catalog_failed">Falha ao verificar lista</string>
+    <string name="plugin_catalog_unconfirmed">Lista não confirmada</string>
+    <string name="plugin_catalog_verified">Lista verificada</string>
+    <string name="plugin_catalog_queued">Verificação na fila</string>
+</resources>

@@ -1,9 +1,27 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-host-frontend-static/lib/index.js",
   "sourceSha256": "6bb17c239f48fc26d4cf990af3139e7b64ae9f06fc5249bce7b58a3130edaed4",
   "patches": [
+    {
+      "before": "import { readFile } from \"node:fs/promises\";",
+      "after": "import { open, readFile } from \"node:fs/promises\";"
+    },
+    {
+      "before": "const STATIC_MISS_CODES = new Set([",
+      "after": "/**\n* DSHA_STATIC_CACHE_V4: remember file identity and the upstream weak content\n* validator without retaining the response body. Opening the current path\n* preserves the normal access and missing-file checks on conditional requests.\n*/\nconst dshaStaticValidators = new Map();\nconst DSHA_STATIC_VALIDATOR_LIMIT = 192;\n// Avoid trusting a timestamp from the current filesystem tick.\nconst DSHA_STATIC_SETTLE_NS = 1000000000n;\nfunction dshaStableIdentity(file) {\n\tif (file.ino === 0n || file.ctimeNs <= 0n || file.mtimeNs <= 0n) return null;\n\tconst settledBefore = BigInt(Date.now()) * 1000000n - DSHA_STATIC_SETTLE_NS;\n\tif (file.ctimeNs >= settledBefore || file.mtimeNs >= settledBefore) return null;\n\treturn [file.dev, file.ino, file.size, file.mode, file.birthtimeNs, file.ctimeNs, file.mtimeNs].join(\":\");\n}\nfunction dshaRememberValidator(target, identity, etag) {\n\tdshaStaticValidators.delete(target);\n\tdshaStaticValidators.set(target, { identity, etag });\n\tif (dshaStaticValidators.size > DSHA_STATIC_VALIDATOR_LIMIT)\n\t\tdshaStaticValidators.delete(dshaStaticValidators.keys().next().value);\n}\nfunction dshaRevalidated(value, tag) {\n\tif (typeof value !== \"string\") return false;\n\tif (value.trim() === \"*\") return true;\n\tconst opaque = tag.replace(/^W\\//, \"\");\n\treturn (value.match(/(?:W\\/)?\"[^\"\\r\\n]*\"/g) ?? []).some((candidate) => candidate.replace(/^W\\//, \"\") === opaque);\n}\nasync function dshaReadStatic(target, request) {\n\tconst file = await open(target, \"r\");\n\ttry {\n\t\tconst metadata = await file.stat({ bigint: true });\n\t\tif (!metadata.isFile()) return null;\n\t\tconst identity = dshaStableIdentity(metadata);\n\t\tconst cached = dshaStaticValidators.get(target);\n\t\tconst condition = request.headers.get(\"if-none-match\");\n\t\tif (cached && identity === cached.identity) {\n\t\t\tif (request.method === \"HEAD\" || dshaRevalidated(condition, cached.etag)) {\n\t\t\t\tdshaRememberValidator(target, identity, cached.etag);\n\t\t\t\treturn { etag: cached.etag };\n\t\t\t}\n\t\t} else if (cached) dshaStaticValidators.delete(target);\n\n\t\tconst body = await file.readFile();\n\t\tconst etag = 'W/\"' + createHash(\"sha1\").update(body).digest(\"base64url\") + '\"';\n\t\tif (identity && (identity !== cached?.identity || etag !== cached.etag)\n\t\t\t&& identity === dshaStableIdentity(await file.stat({ bigint: true })))\n\t\t\tdshaRememberValidator(target, identity, etag);\n\t\treturn { body, etag };\n\t} finally {\n\t\tawait file.close();\n\t}\n}\nconst STATIC_MISS_CODES = new Set(["
+    },
+    {
+      "before": "\t\t\tbody = await readFile(target);\n\t\t\tconst cache = {\n\t\t\t\t\"cache-control\": \"no-cache\",\n\t\t\t\tetag: `W/\"${createHash(\"sha1\").update(body).digest(\"base64url\")}\"`\n\t\t\t};\n\t\t\tif (request.headers.get(\"if-none-match\") === cache.etag) return new Response(null, {",
+      "after": "\t\t\tconst asset = await dshaReadStatic(target, request);\n\t\t\tif (!asset) return new Response(null, { status: 404 });\n\t\t\tbody = asset.body;\n\t\t\tconst cache = { \"cache-control\": \"no-cache\", etag: asset.etag };\n\t\t\tif (dshaRevalidated(request.headers.get(\"if-none-match\"), cache.etag)) return new Response(null, {"
+    },
+    {
+      "before": "\t\t\theaders = { \"content-type\": HTML_MIME };",
+      "after": "\t\t\theaders = { \"content-type\": HTML_MIME, \"cache-control\": \"no-store\" };"
+    }
+  ],
+  "previousPatches": [
     {
       "before": "const STATIC_MISS_CODES = new Set([",
       "after": "/**\n* DSHA_STATIC_CACHE_V3: upstream (0.2.2) owns the content-hash weak ETag, 304 and HEAD.\n* DSHA only adds RFC 9110 If-None-Match list/wildcard matching (older WebViews merge\n* candidates) and an explicit no-store on the rendered index, whose inline boot\n* injection must never be reused from a WebView cache.\n*/\nfunction dshaRevalidated(value, tag) {\n\tif (typeof value !== \"string\") return false;\n\tif (value.trim() === \"*\") return true;\n\tconst opaque = tag.replace(/^W\\//, \"\");\n\treturn (value.match(/(?:W\\/)?\"[^\"\\r\\n]*\"/g) ?? []).some((candidate) => candidate.replace(/^W\\//, \"\") === opaque);\n}\nconst STATIC_MISS_CODES = new Set(["

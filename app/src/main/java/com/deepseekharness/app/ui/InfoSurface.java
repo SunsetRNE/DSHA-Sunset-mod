@@ -1,6 +1,5 @@
 package com.deepseekharness.app.ui;
 
-import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Canvas;
@@ -185,7 +184,7 @@ final class InfoSurface {
 
   private static void enter(View root, View card, int pivotX, boolean below) {
     root.setAlpha(1f);
-    if (!ValueAnimator.areAnimatorsEnabled()) return;
+    if (!UiMotion.animationsEnabled(root.getContext())) return;
     card.setPivotX(pivotX);
     card.setPivotY(below ? 0 : card.getHeight());
     root.setAlpha(0f);
@@ -196,9 +195,7 @@ final class InfoSurface {
         .scaleX(1f)
         .scaleY(1f)
         .setDuration(160)
-        .setInterpolator(
-            android.view.animation.AnimationUtils.loadInterpolator(
-                root.getContext(), R.interpolator.ui_standard))
+        .setInterpolator(UiMotion.standard())
         .start();
   }
 
@@ -349,7 +346,8 @@ final class InfoSurface {
       window.setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
       window.setGravity(Gravity.BOTTOM);
       window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-      window.setWindowAnimations(R.style.Animation_DSHA_Sheet);
+      window.setWindowAnimations(
+          UiMotion.animationsEnabled(context) ? R.style.Animation_DSHA_Sheet : 0);
     }
     dialog.show();
   }
@@ -373,7 +371,9 @@ final class InfoSurface {
             case MotionEvent.ACTION_CANCEL:
               if (e.getActionMasked() == MotionEvent.ACTION_UP
                   && sheet.getTranslationY() > threshold) dialog.cancel();
-              else sheet.animate().translationY(0).setDuration(160).start();
+              else if (UiMotion.animationsEnabled(sheet.getContext()))
+                sheet.animate().translationY(0).setDuration(160).start();
+              else sheet.setTranslationY(0);
               return true;
             default:
               return false;

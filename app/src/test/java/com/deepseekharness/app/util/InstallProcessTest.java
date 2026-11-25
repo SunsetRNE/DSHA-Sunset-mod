@@ -156,6 +156,68 @@ public class InstallProcessTest {
   }
 
   @Test
+  public void ownedForegroundResultStillClosesTheWholeSession() throws Exception {
+    FakeProcess process = new FakeProcess("first\n");
+    process.alive = false;
+    List<String> events = new ArrayList<>();
+    assertEquals(
+        0,
+        InstallProcess.readOwned(
+            process,
+            5000,
+            () -> false,
+            events::add,
+            () -> events.add("session-closed"),
+            () -> fail("known closure")));
+    assertEquals(List.of("first", "session-closed"), events);
+  }
+
+  @Test
+  public void cancellationDuringFinalSessionCloseIsPublishedOnlyAfterClose() {
+    FakeProcess process = new FakeProcess("");
+    process.alive = false;
+    AtomicBoolean cancelled = new AtomicBoolean();
+    AtomicBoolean closed = new AtomicBoolean();
+    assertThrows(
+        InstallTask.Cancelled.class,
+        () ->
+            InstallProcess.readOwned(
+                process,
+                5000,
+                cancelled::get,
+                line -> {},
+                () -> {
+                  cancelled.set(true);
+                  closed.set(true);
+                },
+                () -> fail("known closure")));
+    assertTrue(closed.get());
+  }
+
+  @Test
+  public void ownedClosureFailureKeepsTheOriginalCancellationAsSuppressed() {
+    FakeProcess process = new FakeProcess("");
+    AtomicBoolean retained = new AtomicBoolean();
+    IllegalStateException unknown = new IllegalStateException("unknown session members");
+    InstallProcess.OwnedExitFailure failure =
+        assertThrows(
+            InstallProcess.OwnedExitFailure.class,
+            () ->
+                InstallProcess.readOwned(
+                    process,
+                    5000,
+                    () -> true,
+                    line -> {},
+                    () -> {
+                      throw unknown;
+                    },
+                    () -> retained.set(true)));
+    assertTrue(retained.get());
+    assertSame(unknown, failure.getCause());
+    assertTrue(failure.getSuppressed()[0] instanceof InstallTask.Cancelled);
+  }
+
+  @Test
   public void utf8SplitAcrossSmallReadsKeepsLinesAndFinalTail() throws Exception {
     FakeProcess process = new FakeProcess("第一行\r\n第二行\n末尾😀");
     process.alive = false;

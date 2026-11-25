@@ -61,7 +61,7 @@
     <string name="ui134_recent_startups" formatted="false">"Cinq démarrages récents"</string>
     <string name="ui134_recent_startups_sub" formatted="false">"Étapes, erreurs réelles, codes"</string>
     <string name="ui134_results" formatted="false">"Résultats des contrôles"</string>
-    <string name="ui134_root_hint" formatted="false">"Sur un téléphone rooté, utilisez su directement sans appairage ADB. Autorisez DSHA dans le gestionnaire root lors de la première exécution. Choisissez ci-dessous le niveau d’interception des commandes ; les contrôles natifs comme la lecture des SMS s’appliquent dans les trois modes."</string>
+    <string name="ui134_root_hint" formatted="false">"Autorisez DSHA dans votre gestionnaire root à la première utilisation. Le mode strict bloque la lecture récursive des dossiers. Les requêtes SMS gérées nécessitent une autorisation distincte. Dans les deux modes assouplis, les scripts root peuvent lire directement les données privées."</string>
     <string name="ui134_screen_setup" formatted="false">"Configurer le contrôle de l’écran · Deux étapes"</string>
     <string name="ui134_shizuku_hint" formatted="false">"Démarrez Shizuku dans son gestionnaire, puis autorisez DSHA ici. Il faut généralement redémarrer le service après un redémarrage de l’appareil."</string>
     <string name="ui134_start_records" formatted="false">"Historique de démarrage"</string>
@@ -130,7 +130,7 @@
     <string name="ui2_meet" formatted="false">"Découvrir DSHA"</string>
     <string name="ui2_network_runtime" formatted="false">"Exécution et réseau"</string>
     <string name="ui2_offline_badge" formatted="false">"Installation hors ligne  ·  Sans root  ·  %1$s"</string>
-    <string name="ui2_online_notice" formatted="false">"Les modèles en ligne reçoivent les messages et pièces jointes que vous choisissez d’envoyer."</string>
+    <string name="ui2_online_notice" formatted="false">"Le modèle en ligne choisi peut recevoir les messages, les pièces jointes et les résultats des outils, comme du texte ou des captures d’écran."</string>
     <string name="ui2_overlay" formatted="false">"État flottant"</string>
     <string name="ui2_overlay_sub" formatted="false">"Contenu, opacité et durée d’affichage"</string>
     <string name="ui2_plugin_link" formatted="false">"Dépôt ou URL"</string>
@@ -187,7 +187,6 @@
     <string name="ui_adb_code_label" formatted="false">"Code d'association (6 chiffres)"</string>
     <string name="ui_adb_host_label" formatted="false">"Adresse (vide = détection auto)"</string>
     <string name="ui_adb_port_label" formatted="false">"Port (vide = détection auto)"</string>
-    <string name="ui_lan_unencrypted" formatted="false">"Le trafic réseau local n’est pas chiffré ; réseaux et appareils de confiance uniquement"</string>
     <string name="ui_language_title" formatted="false">"Langue"</string>
     <string name="ui_m0001" formatted="false">"Mettre à jour"</string>
     <string name="ui_m0002" formatted="false">"Enregistrer les réglages"</string>

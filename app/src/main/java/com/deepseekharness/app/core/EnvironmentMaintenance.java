@@ -93,10 +93,13 @@ public final class EnvironmentMaintenance {
           return proof;
         },
         () -> !RuntimeTasks.hasOtherTasks());
-    com.deepseekharness.app.backup.ManagedRuntimeTransaction.archiveCompleted(fs, files);
-    return com.deepseekharness.app.util.UiText.choose(
-        "兼容运行时已通过本轮隔离试运行并启用。对话、配置和项目保持原位。",
-        "The compatible runtime passed this isolated trial and is active. Conversations, configuration and projects stayed in place.");
+    String cleanup = trimRuntimeHistory(controller, fs, files);
+    EnvironmentAccess.rememberAcceptedRollback(controller);
+    String summary =
+        com.deepseekharness.app.util.UiText.choose(
+            "兼容运行时已通过本轮隔离试运行并启用。对话、配置和项目保持原位。",
+            "The compatible runtime passed this isolated trial and is active. Conversations, configuration and projects stayed in place.");
+    return summary + cleanup;
   }
 
   /** 同一 Ubuntu 基础环境只替换 APK 受管树，现有 .dsh 数据与工作区无需复制。 */
@@ -108,8 +111,12 @@ public final class EnvironmentMaintenance {
     File files = controller.context().getFilesDir().getCanonicalFile();
     if (MaintenanceCoordinator.pending(files))
       throw new IOException(com.deepseekharness.app.util.UiText.text("请先恢复中断的环境维护"));
-    requireSpace(files, 512L * 1024 * 1024);
     var fs = new com.deepseekharness.app.backup.AndroidBackupFileSystem();
+    var candidate = controller.proot().expectedRuntimeDescriptor();
+    File home = fs.child(files, com.deepseekharness.app.backup.ManagedRuntimeTransaction.HOME);
+    File targetVolume = fs.stat(home).type.equals("MISSING") ? files : home;
+    var volume = new android.os.StatFs(targetVolume.getAbsolutePath());
+    requireSpace(volume.getAvailableBytes(), candidate.stagingSpace(volume.getBlockSizeLong()));
     com.deepseekharness.app.backup.RuntimeDescriptor previous = null;
     java.util.Map<String, Object> previousHealth = null;
     try {
@@ -127,9 +134,8 @@ public final class EnvironmentMaintenance {
     boolean began = false;
     try {
       java.util.List<String> paths =
-          controller.proot().stageManagedRuntime(transaction.stage(), progress);
-      transaction.prepare(
-          paths, controller.proot().expectedRuntimeDescriptor(), previous, previousHealth, control);
+          controller.proot().stageManagedRuntime(transaction.stage(), progress, control);
+      transaction.prepare(paths, candidate, previous, previousHealth, control);
       began = true;
       progress.accept(com.deepseekharness.app.util.UiText.text("新版运行时准备完成，正在保留并切换受管文件…"));
       transaction.commit(
@@ -166,23 +172,30 @@ public final class EnvironmentMaintenance {
     }
     // 事务已提交、健康回执已写；此时注册才能通过 environmentReady 门禁。失败只降级。
     boolean registered = registerBuiltinAfterCommit(controller);
-    String cleanup = "";
-    try {
-      com.deepseekharness.app.backup.ManagedRuntimeTransaction.trimOlder(
-          fs,
-          files,
-          controller.proot().installedRuntimeDescriptor(),
-          controller.proot().runtimeHealth());
-    } catch (IOException error) {
-      cleanup =
-          com.deepseekharness.app.util.UiText.format(
-              "\n部分旧运行时待下次清理：%s", BackupManager.safeError(error));
-    }
+    String cleanup = trimRuntimeHistory(controller, fs, files);
     String summary =
         registered
             ? "dsh 与内置插件更新完成；Ubuntu、个人目录、会话、配置和第三方插件保持原位。"
             : "dsh 更新完成；内置插件注册未完成，将在下次启动按宽预算重试。Ubuntu、个人目录、会话、配置和第三方插件保持原位。";
     return com.deepseekharness.app.util.UiText.text(summary) + cleanup;
+  }
+
+  private static String trimRuntimeHistory(
+      HarnessController controller,
+      com.deepseekharness.app.backup.BackupFileSystem fs,
+      File files) {
+    try {
+      com.deepseekharness.app.backup.ManagedRuntimeTransaction.trimOlder(
+          fs,
+          files,
+          controller.proot().expectedRuntimeDescriptor(),
+          controller.proot().installedRuntimeDescriptor(),
+          controller.proot().runtimeHealth());
+      return "";
+    } catch (IOException | RuntimeException error) {
+      return com.deepseekharness.app.util.UiText.format(
+          "\n部分旧运行时待下次清理：%s", BackupManager.safeError(error));
+    }
   }
 
   static String rebuild(
@@ -376,11 +389,6 @@ public final class EnvironmentMaintenance {
     } finally {
       heartbeat.cancel();
     }
-  }
-
-  private static void requireSpace(File files, long required) throws IOException {
-    long available = files.getUsableSpace();
-    requireSpace(available, required);
   }
 
   private static void requireSpace(MaintenanceSpaceTrace.Sample sample) throws IOException {
@@ -656,8 +664,9 @@ public final class EnvironmentMaintenance {
           "中断的首次安装已在宿主侧恢复，原件和失败候选继续保留。",
           "Interrupted first installation recovered on the host; originals and failed candidates are retained.");
     }
-    com.deepseekharness.app.runtime.RuntimeTrial.recoverPending(
-        controller.context(), controller.proot());
+    boolean closedSettingsInspection =
+        com.deepseekharness.app.runtime.RuntimeTrial.recoverPending(
+            controller.context(), controller.proot());
     if (com.deepseekharness.app.backup.PluginInstallJournals.blocked(files))
       return PluginJournalRecovery.recover(controller);
     var environment =
@@ -718,6 +727,8 @@ public final class EnvironmentMaintenance {
               mapping,
               null)
           .recover();
+      com.deepseekharness.app.backup.NativeBackupJobs.finishRestoreRotation(
+          controller.context(), filesystem, host.get(0));
       return com.deepseekharness.app.util.UiText.choose(
           "宿主数据事务已恢复一致状态，原件保留。", "Host data transaction recovered; originals retained.");
     }
@@ -734,7 +745,13 @@ public final class EnvironmentMaintenance {
     MaintenanceTransaction pending =
         MaintenanceTransaction.pending(
             new com.deepseekharness.app.backup.AndroidBackupFileSystem(), files);
-    if (pending == null) return com.deepseekharness.app.util.UiText.text("没有未完成的环境维护。");
+    if (pending == null) {
+      if (closedSettingsInspection)
+        return com.deepseekharness.app.util.UiText.choose(
+            "中断的设置检查已结束，原件保留。可返回保留数据重新检查。",
+            "The interrupted settings inspection was closed. Originals are retained. Return to Retained data to inspect again.");
+      return com.deepseekharness.app.util.UiText.text("没有未完成的环境维护。");
+    }
     if (RuntimeTasks.hasOtherTasks())
       throw new IOException(
           com.deepseekharness.app.util.UiText.text("后台进程尚未退出，维护日志及新旧环境均保留。请等待进程退出后再恢复中断维护。"));

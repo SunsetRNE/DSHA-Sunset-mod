@@ -216,8 +216,9 @@ flowchart TD
 Shizuku UserService不持有应用授权记录，因此通用敏感读取拒绝；当前短信路径使用原生授权后的Root或ADB。
 Root读文件路径在[DeviceShellExecutor.validateRootReadPaths](../app/src/main/java/com/deepseekharness/app/DeviceShellExecutor.java)重新检查命令行路径及canonical路径；ADB侧的[validate_root_reads](../app/src/main/assets/device-shell-policy.py)执行对应检查，已识别的短信provider路径和递归祖先会被拒绝。
 
-**已知实现缺口（2026-10-22核查基准 `140c7ba`，尚未修复）**：递归READ派发后遇到的子链接目标没有逐项核验。上游Toybox的`grep -R`会跟随软链接，顶层路径通过检查不能证明其整个遍历范围安全。隔离检查确认生产Java策略接受该类READ，Python执行侧只核顶层路径后派发；未在手机上读取真实短信，也未证明某ROM可被实际利用。受管FILE适配器的NOFOLLOW实现不能替代这个READ缺口的修复。
-不能把“主调用链可对应源码”概括为“所有保护完整、问题均属文档层面”。修复需要限制相应读取选项或使用可验证的读取器，并增加执行侧反例回归；更新文档本身不算完成修复。
+在历史基准 `140c7ba`，递归读取只核验命令行指定的顶层路径，外部工具遍历时遇到的子链接没有逐项检查。build376 的严格档在执行前拒绝 `find`、`du`、递归 `grep` 和递归 `ls`。Java 计划解析和 ADB 的 Python 执行器各自执行这项限制。普通 `grep` 仍按文件读取，`ls -r` 仍可反向排序，受管的递归复制继续走专用 FILE 适配器。宿主回归使用模拟参数和假设备元数据，实际 ROM 的权限与行为仍需实机证据。
+
+放宽档和完全放宽档允许原始 root 脚本直接读取私有数据。单独的短信授权约束受管查询。普通 root 助手提交命令前会再次检查授权版本，等待 su 期间撤销授权会使旧请求失效。
 即使计划获准，Android/provider仍可能拒绝；短信正文和验证码不能进入公开诊断材料。
 
 ## 7. 无障碍：系统绑定与DSHA屏幕许可是两道门

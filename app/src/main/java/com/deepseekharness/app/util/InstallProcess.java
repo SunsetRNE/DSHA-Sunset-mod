@@ -20,13 +20,42 @@ public final class InstallProcess {
       Consumer<String> output,
       Consumer<Process> destroy)
       throws Exception {
-    InputStream input = process.getInputStream();
-    Lines lines = new Lines(output);
-    byte[] buffer = new byte[4096];
-    ProcessPipePoller poller = new ProcessPipePoller(process, buffer);
-    long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+    return read(process, timeoutMs, cancellable, cancelled, output, destroy, null, null);
+  }
+
+  /** Foreground command status only supplies an exit code. The owner must also close its session. */
+  public static int readOwned(
+      Process process,
+      long timeoutMs,
+      BooleanSupplier cancelled,
+      Consumer<String> output,
+      Runnable closeSession,
+      Runnable onUnconfirmed)
+      throws Exception {
+    int result =
+        read(process, timeoutMs, true, cancelled, output, null, closeSession, onUnconfirmed);
+    if (cancelled.getAsBoolean()) throw new InstallTask.Cancelled();
+    return result;
+  }
+
+  private static int read(
+      Process process,
+      long timeoutMs,
+      boolean cancellable,
+      BooleanSupplier cancelled,
+      Consumer<String> output,
+      Consumer<Process> destroy,
+      Runnable closeSession,
+      Runnable onUnconfirmed)
+      throws Exception {
+    InputStream input = null;
     Throwable original = null;
     try {
+      input = process.getInputStream();
+      Lines lines = new Lines(output);
+      byte[] buffer = new byte[4096];
+      ProcessPipePoller poller = new ProcessPipePoller(process, buffer);
+      long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
       process.getOutputStream().close();
       while (true) {
         ProcessPipePoller.Event event =
@@ -57,16 +86,21 @@ public final class InstallProcess {
       throw error;
     } finally {
       Throwable termination = null;
-      if (!ProcessTermination.exited(process)) {
-        try {
-          destroy.accept(process);
-        } catch (RuntimeException error) {
-          termination = error;
-        }
-      }
-      boolean reaped = ProcessTermination.awaitExit(process, 2000);
+      boolean reaped = false;
       try {
-        input.close();
+        if (closeSession != null) {
+          closeSession.run();
+          reaped = true;
+        } else {
+          if (!ProcessTermination.exited(process)) destroy.accept(process);
+          reaped = ProcessTermination.awaitExit(process, 2000);
+        }
+      } catch (RuntimeException error) {
+        termination = error;
+        if (closeSession == null) reaped = ProcessTermination.awaitExit(process, 2000);
+      }
+      try {
+        if (input != null) input.close();
       } catch (IOException ignored) {
       }
       try {
@@ -78,10 +112,23 @@ public final class InstallProcess {
       } catch (IOException ignored) {
       }
       if (!reaped) {
+        if (closeSession != null) {
+          onUnconfirmed.run();
+          throw new OwnedExitFailure(termination, original);
+        }
         CleanupFailure failure = new CleanupFailure(process, destroy, termination);
         if (original != null) failure.addSuppressed(original);
         throw failure;
       }
+    }
+  }
+
+  /** The durable guest record stays in place and blocks further maintenance until checked. */
+  public static final class OwnedExitFailure extends IOException {
+    public OwnedExitFailure(Throwable cleanup, Throwable original) {
+      super(
+          com.deepseekharness.app.util.UiText.text("无法确认本次安装检查的全部进程已退出，已保留环境保护。请查看维护记录。"), cleanup);
+      if (original != null) addSuppressed(original);
     }
   }
 

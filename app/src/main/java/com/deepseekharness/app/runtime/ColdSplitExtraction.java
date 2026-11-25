@@ -62,6 +62,20 @@ final class ColdSplitExtraction {
       BiConsumer<Long, Long> progress,
       Extractor extractor)
       throws IOException {
+    run(fs, base, operation, baseInput, runtimeInput, total, progress, extractor, extractor);
+  }
+
+  static void run(
+      BackupFileSystem fs,
+      File base,
+      File operation,
+      InputStream baseInput,
+      InputStream runtimeInput,
+      long total,
+      BiConsumer<Long, Long> progress,
+      Extractor baseExtractor,
+      Extractor runtimeExtractor)
+      throws IOException {
     new BackupControl(null).check();
     BackupFileSystem.Node baseIdentity = fs.stat(base), operationIdentity = fs.stat(operation);
     if (!baseIdentity.type.equals("DIRECTORY")
@@ -76,8 +90,8 @@ final class ColdSplitExtraction {
       throw new IOException("COLD_SPLIT_ROOT_SCOPE");
     AtomicLong read = new AtomicLong();
     CountDownLatch completed = new CountDownLatch(2);
-    Worker first = new Worker(base, baseInput, extractor, read, completed);
-    Worker second = new Worker(runtime, runtimeInput, extractor, read, completed);
+    Worker first = new Worker(base, baseInput, baseExtractor, read, completed);
+    Worker second = new Worker(runtime, runtimeInput, runtimeExtractor, read, completed);
     Throwable ownerFailure = null;
     boolean interrupted = Thread.currentThread().isInterrupted();
     try {

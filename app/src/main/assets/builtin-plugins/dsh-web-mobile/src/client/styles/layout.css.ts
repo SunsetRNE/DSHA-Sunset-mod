@@ -2715,6 +2715,8 @@ export const LAYOUT_CSS = `/* ---------- mobile-only layout (narrow viewport AND
     [data-mobile-nav="frame"][data-mobile-panel-exit]:not(:has([class*="panelRow"][aria-current="page"])) [class*="_centerCol"] > * > * {
       animation: none !important;
     }
+    /* The preference can change while the exit snapshot is still mounted. */
+    [data-mobile-nav="panel-ghost"] { display: none; }
   }
 
   /* ---------- DSHA 集成层：预设 chip 布局（宿主 @deepseek-ai/dsh-client-ui-agent-preset

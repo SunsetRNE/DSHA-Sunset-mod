@@ -5,8 +5,12 @@ import static org.junit.Assert.*;
 import com.deepseekharness.app.util.EnvironmentTaskGate;
 import com.deepseekharness.app.util.WebStartProtection;
 import java.io.File;
+import java.nio.file.Files;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -49,20 +53,54 @@ public final class WebLifecycleStartProtectionTest {
   public void close() throws Exception {
     if (f == null) return;
     f.state.startProtection.cancelAll();
-    // Release only admitted startup leases. Stop Futures deliberately remain unexecuted:
-    // a real guest, screen channel or user tree must never be touched by this fixture.
+    // Make admitted startup workers stale before draining them. Draining a current generation
+    // with its ticket revoked would record service loss and schedule plugin activation cleanup.
+    if (f.state.lifecycle.isStarting()) {
+      long stopped = f.state.lifecycle.beginStop();
+      f.state.lifecycle.finishStop(stopped);
+    }
+    // Stop Futures remain unexecuted so the fixture never touches a real guest or screen channel.
     for (Runnable work : f.pending.queued)
       if (!(work instanceof java.util.concurrent.Future<?>)) work.run();
     f.pending.queued.clear();
     f.close();
     assertFalse(EnvironmentTaskGate.isBusy());
+    assertFalse(EnvironmentTaskGate.hasSharedUse());
   }
 
   private WebStartProtection.Ticket ticket() {
-    var ticket = f.state.startProtection.begin();
+    return ticket(false);
+  }
+
+  private WebStartProtection.Ticket ticket(boolean waitForMaintenance) {
+    var ticket = f.state.startProtection.begin(waitForMaintenance);
     assertNotNull(ticket);
     assertTrue(f.state.startProtection.promote(ticket.id(), service, serviceCurrent::get));
     return ticket;
+  }
+
+  private final class WaitingStart implements AutoCloseable {
+    final CountDownLatch waiting = new CountDownLatch(1);
+    final FutureTask<Boolean> result;
+    final Thread worker;
+
+    WaitingStart(WebStartProtection.Ticket ticket) {
+      result =
+          new FutureTask<>(
+              () ->
+                  f.controller.startProtectedWeb(
+                      ticket, false, false, status -> waiting.countDown()));
+      worker = new Thread(result, "fixture-visible-start");
+      worker.setDaemon(true);
+      worker.start();
+    }
+
+    @Override
+    public void close() throws InterruptedException {
+      worker.interrupt();
+      worker.join(2000);
+      assertFalse(worker.isAlive());
+    }
   }
 
   /** Harness 门面之外的唯一控制器实例；只用于直接驱动恢复续接，不启动真实进程。 */
@@ -107,6 +145,109 @@ public final class WebLifecycleStartProtectionTest {
     assertFalse(f.controller.startProtectedWeb(ticket, false, false, null));
     assertEquals(0, f.boot.reads.get());
     assertTrue(f.pending.queued.isEmpty());
+  }
+
+  @Test
+  @Config(
+      instrumentedPackages = {"com.deepseekharness.app.backup"},
+      shadows =
+          com.deepseekharness.app.runtime.RuntimeToolsRegistryAndroidTest.HostFileSystem.class)
+  public void unclosedTrialRejectsManualAndBackgroundStartWithRecoveryNotice() throws Exception {
+    String id = "a1234567-1234-4234-8234-123456789abc";
+    var trial =
+        Files.createDirectories(f.app.getFilesDir().toPath().resolve("runtime-trials/" + id));
+    Files.writeString(trial.resolve("launched"), id);
+    assertTrue(EnvironmentAccess.runtimeLatest(f.controller));
+    assertTrue(com.deepseekharness.app.runtime.RuntimeTrial.hasPending(f.app));
+    String recovery = com.deepseekharness.app.util.UiText.text("上次环境维护未完成，请先到安装与修复页恢复中断维护");
+    var notice = new AtomicReference<String>();
+    assertFalse(f.controller.startWeb(notice::set));
+    assertEquals(recovery, notice.getAndSet(null));
+    assertFalse(
+        f.controller.startWebIfUnchanged(f.controller.getWebGeneration(), false, notice::set));
+    assertEquals(recovery, notice.get());
+    assertTrue(f.pending.queued.isEmpty());
+    assertFalse(Files.exists(trial.resolve("closed")));
+  }
+
+  @Test
+  public void visibleStartWaitsForTheExclusiveLeaseAndItsConfirmedMaintenanceStop()
+      throws Exception {
+    try (var maintenance = EnvironmentTaskGate.tryAcquire("fixture maintenance");
+        var start = new WaitingStart(ticket(true))) {
+      assertNotNull(maintenance);
+      assertTrue(start.waiting.await(2, TimeUnit.SECONDS));
+      assertNull("only one visible startup preparation", f.state.startProtection.begin(true));
+      assertEquals(0, f.boot.reads.get());
+      maintenance.run(
+          () -> {
+            f.controller.stopWebDuringMaintenance();
+            finishSyntheticStop(true);
+            return null;
+          });
+      assertFalse(start.result.isDone());
+      assertTrue(f.pending.queued.isEmpty());
+      assertEquals(0, f.boot.reads.get());
+      maintenance.close();
+
+      assertTrue(start.result.get(2, TimeUnit.SECONDS));
+      assertTrue(f.controller.isStarting());
+      assertEquals(1, f.pending.queued.size());
+      assertEquals(1, EnvironmentTaskGate.sharedCount());
+    }
+  }
+
+  @Test
+  public void userStopCancelsTheWaitingStartEvenWhileMaintenanceStillHoldsTheLease()
+      throws Exception {
+    try (var maintenance = EnvironmentTaskGate.tryAcquire("fixture maintenance");
+        var start = new WaitingStart(ticket(true))) {
+      assertNotNull(maintenance);
+      assertTrue(start.waiting.await(2, TimeUnit.SECONDS));
+      f.controller.stopWeb(message -> {});
+      assertFalse(start.result.get(2, TimeUnit.SECONDS));
+      assertTrue(EnvironmentTaskGate.isBusy());
+      assertTrue(f.controller.isUserStopped());
+      assertEquals(0, f.boot.reads.get());
+      assertEquals(1, f.pending.queued.size());
+    }
+  }
+
+  @Test
+  public void failedMaintenanceStopNeverContinuesAWaitingVisibleStart() throws Exception {
+    try (var maintenance = EnvironmentTaskGate.tryAcquire("fixture maintenance");
+        var start = new WaitingStart(ticket(true))) {
+      assertNotNull(maintenance);
+      assertTrue(start.waiting.await(2, TimeUnit.SECONDS));
+      maintenance.run(
+          () -> {
+            f.controller.stopWebDuringMaintenance();
+            finishSyntheticStop(false);
+            return null;
+          });
+      maintenance.close();
+
+      assertFalse(start.result.get(2, TimeUnit.SECONDS));
+      assertFalse(f.controller.isStarting());
+      assertEquals(0, f.boot.reads.get());
+      assertTrue(f.pending.queued.isEmpty());
+    }
+  }
+
+  @Test
+  public void waitingStartRechecksRuntimeReadinessAfterExclusiveRelease() throws Exception {
+    try (var maintenance = EnvironmentTaskGate.tryAcquire("fixture maintenance");
+        var start = new WaitingStart(ticket(true))) {
+      assertNotNull(maintenance);
+      assertTrue(start.waiting.await(2, TimeUnit.SECONDS));
+      f.boot.ready = false;
+      maintenance.close();
+
+      assertFalse(start.result.get(2, TimeUnit.SECONDS));
+      assertTrue(f.boot.reads.get() > 0);
+      assertTrue(f.pending.queued.isEmpty());
+      assertEquals(0, EnvironmentTaskGate.sharedCount());
+    }
   }
 
   @Test

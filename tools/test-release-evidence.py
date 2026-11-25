@@ -22,6 +22,12 @@ class ReleaseEvidenceTest(unittest.TestCase):
             self.assertFalse(gate.public_source_path(name))
         self.assertTrue(gate.public_source_path('docs/audits/build154/POLICY.md'))
 
+    def test_proroot_hashes_remain_in_receipts_but_binaries_stay_out_of_source_exports(self):
+        vendor = 'app/src/main/jniLibs/arm64-v8a/libproroot-runtime.so'
+        self.assertTrue(gate.public_source_path(vendor))
+        self.assertFalse(gate.export_source_change(vendor))
+        self.assertTrue(gate.export_source_change('app/src/main/jniLibs/arm64-v8a/libdsha-proroot-compat.so'))
+
     def setUp(self):
         self.apks=[{'flavor':'standard','versionCode':147,'sha256':'a'*64}]
         checks=['web-ready','existing-data-preserved','plugins-visible','recovery-ready','no-crash']

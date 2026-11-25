@@ -12,6 +12,8 @@ public final class EnvironmentUiFacts {
 
     boolean latest();
 
+    boolean acceptedRollback();
+
     boolean hostPending();
 
     boolean maintenanceBusy();
@@ -43,8 +45,8 @@ public final class EnvironmentUiFacts {
   /** 横幅继续复用纯投影；需要运行时维护时不再额外读取主入口的 live-owner 显示策略。 */
   public static Banner banner(Reader reader) {
     boolean runnable = reader.runnable();
-    boolean recovery =
-        RuntimeUpgradeState.maintenanceRequired(runnable, reader.latest()) || reader.blocksEntry();
+    boolean latest = reader.latest();
+    boolean recovery = !runnable || !latest && !reader.acceptedRollback() || reader.blocksEntry();
     return new Banner(runnable, recovery, reader.repairsPending());
   }
 

@@ -325,12 +325,29 @@ class PolicyTest(unittest.TestCase):
                 with self.assertRaises(policy.Blocked): self.execute(self.plan('READ', argv, []))
                 self.assertEqual([], self.sent)
 
-    def test_recursive_grep_without_input_files_checks_current_directory(self):
-        for argv in (['grep', '-R', '-e', 'x'], ['grep', '-Rf/data/local/tmp/patterns']):
-            self.sent.clear()
-            with self.assertRaises(policy.Blocked): self.execute(self.plan('READ', argv, []))
-            self.assertIn('/system/bin/readlink -f -- .', self.sent)
-            self.assertFalse(any(sent.startswith('/system/bin/grep ') for sent in self.sent))
+    def test_strict_recursive_reads_send_zero_commands_for_any_directory(self):
+        commands = (['grep', '-R', '-e', 'x'], ['grep', '-Rf/fixture/patterns'],
+                    ['grep', '-ir', 'sample', '/fixture'], ['ls', '-aR', '/fixture'],
+                    ['ls', '--recursive', '/fixture'], ['ls', '-w', '--', '/fixture'],
+                    ['find', '/fixture'], ['du', '-s', '/fixture'])
+        for argv in commands:
+            with self.subTest(argv=argv):
+                self.sent.clear()
+                with self.assertRaises(policy.Blocked): self.execute(self.plan('READ', argv, []))
+                self.assertEqual([], self.sent)
+
+    def test_nonrecursive_listing_sort_and_option_like_literals_keep_their_meaning(self):
+        for argv, paths in ((['ls', '-lar', '/fixture'], ['/fixture']),
+                            (['ls', '--color=never', '/fixture'], ['/fixture']),
+                            (['ls', '-lar'], ['.']), (['ls', '--', '-R'], ['-R']), (['ls', '-'], ['-']),
+                            (['grep', '-e', '-R', '/fixture'], ['/fixture']),
+                            (['grep', '--', 'sample', '-R'], ['-R'])):
+            with self.subTest(argv=argv):
+                self.sent.clear()
+                plan = self.plan('READ', argv, [])
+                self.assertEqual(paths, policy.root_read_paths(plan))
+                self.execute(plan)
+                self.assertEqual(['/system/bin/' + argv[0], *argv[1:]], shlex.split(self.sent[-1]))
 
     def test_grep_pattern_file_dash_is_canonical_checked_but_data_dash_is_stdin(self):
         self.realpaths['-'] = '/data/user/0/com.android.providers.telephony/databases/fixture.db'

@@ -1,0 +1,15 @@
+{
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-config-editor/lib/index.js",
+  "sourceSha256": "17e953c5ef913d368b288e3d64e952276ea08a46967bfdd430534b69b9d0c039",
+  "patches": [
+    {
+      "before": "/** Profile-owned configuration edits, serialized with Loader hot reload. */",
+      "after": "// DSHA_CONFIG_COMPOUND_DELETE_V1: a removed last member may leave no persisted parent row.\nfunction configPathValue(value, path) {\n\tfor (const key of path) {\n\t\tif (value === null || typeof value !== \"object\" || Array.isArray(value) || !Object.hasOwn(value, key)) return void 0;\n\t\tvalue = value[key];\n\t}\n\treturn value;\n}\nfunction composedFieldResetMatches(current, next, inherited, composed, fields) {\n\tconst expected = structuredClone(next);\n\tfor (const field of fields) {\n\t\tif (field.inherit !== true) continue;\n\t\tfor (let length = field.path.length - 1; length > 0; length--) {\n\t\t\tconst path = field.path.slice(0, length);\n\t\t\tconst prior = configPathValue(current, path);\n\t\t\tconst value = configPathValue(expected, path);\n\t\t\tif (prior === null || typeof prior !== \"object\" || Array.isArray(prior) || !Object.keys(prior).length\n\t\t\t\t|| value === null || typeof value !== \"object\" || Array.isArray(value) || Object.keys(value).length\n\t\t\t\t|| configPathValue(inherited, path) !== void 0 || configPathValue(composed, path) !== void 0\n\t\t\t\t|| fields.some(other => other.inherit !== true && hasPathPrefix(other.path, path))) continue;\n\t\t\tReflect.deleteProperty(configPathValue(expected, path.slice(0, -1)), path.at(-1));\n\t\t}\n\t}\n\treturn isDeepStrictEqual(composed, expected);\n}\n/** Profile-owned configuration edits, serialized with Loader hot reload. */"
+    },
+    {
+      "before": "\t\t\tif (!isDeepStrictEqual(flatten(composeEntries([patches])).find((row) => row.id === entry.options.id)?.config ?? {}, next)) throw new Error(`Configuration for \"${entry.options.id}\" is overridden by a home patch or command-line overlay`);",
+      "after": "\t\t\tconst composed = flatten(composeEntries([patches])).find((row) => row.id === entry.options.id)?.config ?? {};\n\t\t\tif (!isDeepStrictEqual(composed, next)) {\n\t\t\t\tif (!scoped || !composedFieldResetMatches(current, next, inherited, composed, edit)) {\n\t\t\t\t\tthrow new Error(`Configuration for \"${entry.options.id}\" is overridden by a home patch or command-line overlay`);\n\t\t\t\t}\n\t\t\t\tfiber.resolveConfig(composed);\n\t\t\t}"
+    }
+  ]
+}

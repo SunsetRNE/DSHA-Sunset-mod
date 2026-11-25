@@ -93,6 +93,32 @@ class RuntimeLinksTest(unittest.TestCase):
         self.assertEqual((self.shared / '@late/new-package').resolve(), late.resolve())
         self.assertEqual((user / 'owned').read_bytes(), b'keep')
 
+    def test_stamp_preserves_canonical_spelling_for_links_and_their_children(self):
+        bundled_scope = self.modules / '@fixture'
+        bundled_scope.mkdir()
+        shared_scope = self.shared / '@fixture'
+        shared_scope.symlink_to(bundled_scope, target_is_directory=True)
+        managed = self.root / 'root/dsha-app-integration'
+        target = self.root / 'managed-fixture'
+        target.mkdir()
+        (target / 'package.json').write_text('{"name":"dsh-app-integration"}')
+        (target / 'node_modules').symlink_to(self.modules, target_is_directory=True)
+        managed.symlink_to(target, target_is_directory=True)
+
+        stamp = {row[0]: row for row in self.module.runtime_links_stamp()}
+        for item in [shared_scope, managed, managed / 'package.json', managed / 'node_modules']:
+            node = item.lstat()
+            self.assertEqual(stamp[str(item)], [str(item), node.st_dev, node.st_ino,
+                node.st_mtime_ns, node.st_ctime_ns, node.st_size, str(item.resolve())])
+
+        replacement = self.root / 'replacement-scope'
+        replacement.mkdir()
+        shared_scope.unlink()
+        shared_scope.symlink_to(replacement, target_is_directory=True)
+        updated = {row[0]: row for row in self.module.runtime_links_stamp()}
+        self.assertEqual(updated[str(shared_scope)][-1], str(replacement))
+        self.assertNotEqual(stamp[str(shared_scope)], updated[str(shared_scope)])
+
     def test_runtime_parent_escaping_home_is_still_rejected(self):
         self.package('@escape/package')
         external = self.root / 'outside'

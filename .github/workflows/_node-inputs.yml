@@ -70,6 +70,8 @@ jobs:
           ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
       - uses: ./.github/actions/setup-toolchain
+      - name: Restore vendor originals locally for descriptor verification
+        run: python3 tools/proroot_distribution.py --upstream
       # 未显式给出时只认当前源码锁；不读取仓库变量。
       - name: Resolve fixed input pair
         id: resolve

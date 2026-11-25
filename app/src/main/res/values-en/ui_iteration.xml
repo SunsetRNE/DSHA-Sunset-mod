@@ -58,7 +58,7 @@
     <string name="ui2_ws2_1">Configure models and API keys in Web UI. Existing native credentials are retained.</string>
     <string name="ui2_w2_2">Device actions</string>
     <string name="ui2_ws2_2">Root, Shizuku, ADB and SMS have separate permissions.</string>
-    <string name="ui2_online_notice">Online models receive the messages and attachments you choose to send.</string>
+    <string name="ui2_online_notice">Your chosen online model may receive messages, attachments, and tool results such as screen text or screenshots.</string>
     <string name="ui2_meet">Discover DSHA</string>
     <string name="ui2_skip">Skip introduction</string>
     <string name="ui2_updates_sub">Stable and preview releases</string>

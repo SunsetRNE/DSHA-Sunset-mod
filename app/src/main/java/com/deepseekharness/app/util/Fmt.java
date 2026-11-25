@@ -16,6 +16,18 @@ public final class Fmt {
     return String.format(Locale.US, "%.2f GB", mb / 1024.0);
   }
 
+  /** 存储页统一用 IEC 单位；可用空间的增减都保留方向。 */
+  public static String binaryBytes(long bytes) {
+    String[] units = {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"};
+    double value = bytes;
+    int index = 0;
+    while (Math.abs(value) >= 1024 && index < units.length - 1) {
+      value /= 1024;
+      index++;
+    }
+    return index == 0 ? bytes + " B" : String.format(Locale.US, "%.2f %s", value, units[index]);
+  }
+
   public static String rate(double bps) {
     if (bps < 1024) return String.format(Locale.US, "%.0f B/s", bps);
     if (bps < 1024 * 1024) return String.format(Locale.US, "%.0f KB/s", bps / 1024.0);

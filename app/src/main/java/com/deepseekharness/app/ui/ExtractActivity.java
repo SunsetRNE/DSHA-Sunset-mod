@@ -15,7 +15,9 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.BackupTask;
+import com.deepseekharness.app.core.EnvironmentAccess;
 import com.deepseekharness.app.core.HarnessController;
+import com.deepseekharness.app.util.BackupTaskKinds;
 import com.deepseekharness.app.util.BackupTaskState;
 import com.deepseekharness.app.util.DeployStages;
 import com.deepseekharness.app.util.DeviceSupportReport;
@@ -40,6 +42,8 @@ public class ExtractActivity extends AppCompatActivity {
   private ExtractFooter footer;
   private long taskId;
   private boolean automaticEntry;
+  private boolean automaticAdmissionPending;
+  private boolean automaticAdmissionVisible;
   private boolean automaticDeclined;
   private boolean rebuildRequested;
   private String lastRender = "";
@@ -52,7 +56,7 @@ public class ExtractActivity extends AppCompatActivity {
   private BackupTaskState.Status cachedReadyStatus;
   private boolean cachedReadyBusy, cachedReadyPending;
   private long cachedReadyAt;
-  private boolean cachedInstalled, cachedCanUpdate, cachedLatest;
+  private boolean cachedInstalled, cachedCanUpdate, cachedLatest, cachedRollback;
   private DeviceSupportReport support;
 
   @Override
@@ -76,36 +80,61 @@ public class ExtractActivity extends AppCompatActivity {
             : saved.getLong("data_task_id", 0);
     automaticEntry = saved != null && saved.getBoolean("automatic_entry", false);
     automaticDeclined = saved != null && saved.getBoolean("automatic_declined", false);
-    if (task.maintenanceBusy()) taskId = task.snapshot().id;
-    else if (saved == null
-        && taskId == 0
-        && !task.pendingMaintenance()
-        && !getIntent().getBooleanExtra("review_only", false)) {
-      boolean force = getIntent().getBooleanExtra("force_extract", false);
-      if (!force
-          && controller.isEnvironmentReady()
-          && !com.deepseekharness.app.core.EnvironmentAccess.requiresMaintenanceBeforeStart(
-              controller)) {
-        proceed();
-        return;
-      }
-      if (!force) {
-        // 同一候选只自动尝试一次（attempted_identity 先记录再启动），逻辑与主界面共用。
-        RuntimeMaintenanceStarter.Auto started = RuntimeMaintenanceStarter.autoStart(this);
-        if (started == RuntimeMaintenanceStarter.Auto.STARTED) {
-          taskId = task.snapshot().id;
-          automaticEntry = true;
-        } else if (started == RuntimeMaintenanceStarter.Auto.DECLINED) automaticDeclined = true;
-      }
-    }
-    // 从受限主界面重新查看时也展示上次失败；自动重试判定已完成，不能因此阻止修复包升级。
-    BackupTaskState.Snapshot previous = task.snapshot();
-    if (taskId == 0
-        && (!controller.isEnvironmentReady()
-            || !com.deepseekharness.app.core.EnvironmentAccess.runtimeLatest(controller))
-        && (previous.status == BackupTaskState.Status.FAILED
-            || previous.status == BackupTaskState.Status.INTERRUPTED)) taskId = previous.id;
+    automaticAdmissionPending =
+        taskId == 0
+            && !getIntent().getBooleanExtra("review_only", false)
+            && !getIntent().getBooleanExtra("force_extract", false)
+            && (saved == null || saved.getBoolean("automatic_admission_pending", false));
+    automaticAdmissionVisible = saved == null;
     render();
+  }
+
+  private static boolean runningEnvironmentTask(BackupTaskState.Snapshot snapshot) {
+    return snapshot.busy() && DeployStages.environmentKind(snapshot.kind);
+  }
+
+  private void attachRunningEnvironmentTask(BackupTaskState.Snapshot snapshot) {
+    if (taskId == 0 && runningEnvironmentTask(snapshot)) {
+      taskId = snapshot.id;
+      automaticAdmissionPending = false;
+    }
+  }
+
+  /** The normal foreground entry may wait for a foreign lease without claiming its task. */
+  private boolean tryAutomaticAdmission(BackupTaskState.Snapshot before) {
+    if (!automaticAdmissionPending || !automaticAdmissionVisible || task.busy()) return false;
+    if (RuntimeMaintenanceStarter.needsRecovery(this)) {
+      automaticAdmissionPending = false;
+      return false;
+    }
+    if (controller.isEnvironmentReady()
+        && !EnvironmentAccess.requiresMaintenanceBeforeStart(controller)
+        && proceed(false)) {
+      automaticAdmissionPending = false;
+      return true;
+    }
+    RuntimeMaintenanceStarter.Auto result = RuntimeMaintenanceStarter.autoStart(this);
+    if (result == RuntimeMaintenanceStarter.Auto.BUSY) return false;
+    automaticAdmissionPending = false;
+    if (result == RuntimeMaintenanceStarter.Auto.STARTED) {
+      taskId = task.snapshot().id;
+      automaticEntry = true;
+    } else if (result == RuntimeMaintenanceStarter.Auto.DECLINED) {
+      automaticDeclined = true;
+      var after = task.snapshot();
+      if (after.id != before.id) taskId = after.id;
+    }
+    return false;
+  }
+
+  private void showPriorFailure(BackupTaskState.Snapshot previous, boolean runnable) {
+    // 从受限主界面重新查看时也展示上次失败；自动重试判定已完成，不能因此阻止修复包升级。
+    if (!automaticAdmissionPending
+        && taskId == 0
+        && DeployStages.environmentKind(previous.kind)
+        && (previous.status == BackupTaskState.Status.FAILED
+            || previous.status == BackupTaskState.Status.INTERRUPTED)
+        && (!runnable || !cachedLatest)) taskId = previous.id;
   }
 
   private void bindViews() {
@@ -141,17 +170,23 @@ public class ExtractActivity extends AppCompatActivity {
                   .show();
             });
     retry.setOnClickListener(
-        v ->
-            RuntimeMaintenanceStarter.confirmRetry(
-                this,
-                () -> {
-                  taskId = task.snapshot().id;
-                  automaticDeclined = false;
-                  cachedReady = null;
-                  render();
-                },
-                rebuildRequested));
-    enter.setOnClickListener(v -> proceed());
+        v -> {
+          automaticAdmissionPending = false;
+          RuntimeMaintenanceStarter.confirmRetry(
+              this,
+              () -> {
+                taskId = task.snapshot().id;
+                automaticDeclined = false;
+                cachedReady = null;
+                render();
+              },
+              rebuildRequested);
+        });
+    enter.setOnClickListener(
+        v -> {
+          automaticAdmissionPending = false;
+          proceed(true);
+        });
     // 只读救援导出：不停止写入、不进入受限主界面，也不写就绪标记；后端在维护待恢复时仍允许 rescue。
     rescue = findViewById(R.id.extract_rescue);
     rescue.setText(UiText.text("导出可读副本"));
@@ -191,15 +226,17 @@ public class ExtractActivity extends AppCompatActivity {
 
   private void render() {
     if (isFinishing() || isDestroyed()) return;
+    BackupTaskState.Snapshot before = task.snapshot();
+    attachRunningEnvironmentTask(before);
+    if (tryAutomaticAdmission(before)) return;
     BackupTaskState.Snapshot s = task.snapshot();
-    boolean busy = task.maintenanceBusy(),
+    boolean busy = runningEnvironmentTask(s),
+        waiting = automaticAdmissionPending && !busy,
         // 未关闭的隔离试运行现场也须先“恢复中断维护”（再次更新会以 TRIAL_RECOVERY_REQUIRED 拒绝）。
-        pending = task.pendingMaintenanceForUi() || RuntimeMaintenanceStarter.pendingTrial(this),
+        pending = RuntimeMaintenanceStarter.needsRecoveryForUi(this),
         executionBusy = task.busy();
-    // 环境可继续运行（兼容 + 健康回执）且已装运行时就是当前候选，才算真正无事可做；
-    // 只有前者的补丁级覆盖会把“进入主界面”错摆到主操作位。
     boolean runnable = environmentReady(s, busy, pending);
-    boolean ready = runnable && cachedLatest;
+    showPriorFailure(s, runnable);
     // 外部恢复成功后，旧失败快照不能继续当作本页当前任务；否则页面停在旧失败文案，
     // 用户必须再点一次重试才会看到“上一版运行时待更新”的标准状态。
     if (com.deepseekharness.app.util.RuntimeUpgradeState.clearStaleFailure(
@@ -212,6 +249,9 @@ public class ExtractActivity extends AppCompatActivity {
       taskId = 0;
       automaticDeclined = false;
     }
+    boolean mine = taskId != 0 && taskId == s.id;
+    boolean rollbackResult = !busy && !pending && runnable && successfulRollback(s, mine);
+    boolean ready = runnable && (cachedLatest || cachedRollback && (!mine || rollbackResult));
     com.deepseekharness.app.util.DshVersionPolicy.Status versionStatus =
         com.deepseekharness.app.core.EnvironmentAccess.runtimeVersionStatus(controller);
     String renderKey =
@@ -225,9 +265,13 @@ public class ExtractActivity extends AppCompatActivity {
             + ":"
             + executionBusy
             + ":"
+            + waiting
+            + ":"
             + pending
             + ":"
             + ready
+            + ":"
+            + rollbackResult
             + ":"
             + versionStatus
             + ":"
@@ -241,22 +285,22 @@ public class ExtractActivity extends AppCompatActivity {
     if (busy) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     // 维护进行中才显示忙状态；插件查询、终端等通用锁不冒充数据维护。
-    spinner.setVisibility(busy ? View.VISIBLE : View.GONE);
+    spinner.setVisibility(busy || waiting ? View.VISIBLE : View.GONE);
     progress.setVisibility(View.GONE);
     ((TextView) findViewById(R.id.extract_title)).setText(UiText.text("运行环境维护"));
-    boolean mine = taskId != 0 && taskId == s.id;
     DeployStages.Phase phase =
         busy
             ? DeployStages.Phase.RUNNING
             : pending
                 ? DeployStages.Phase.PENDING
                 : mine
-                    ? DeployStages.phase(s.status, false, false, ready)
+                    ? DeployStages.phase(s.status, false, false, ready || rollbackResult)
                     : DeployStages.Phase.IDLE;
     DeployStages.View view = DeployMonitor.stagesView(s, phase, cachedInstalled);
     boolean failed = mine && view.phase == DeployStages.Phase.FAILED;
-    boolean incomplete = mine && s.status == BackupTaskState.Status.SUCCEEDED && !ready && !busy;
-    renderHeader(s, view, busy, pending);
+    boolean incomplete =
+        mine && s.status == BackupTaskState.Status.SUCCEEDED && !ready && !busy && !rollbackResult;
+    renderHeader(s, view, busy, pending, waiting);
     renderStages(view);
     renderMessages(
         s,
@@ -264,9 +308,11 @@ public class ExtractActivity extends AppCompatActivity {
         failed,
         incomplete,
         pending,
+        rollbackResult,
+        ready,
         versionStatus,
         // 只有“已安装、兼容可用、但不是当前候选”才是补丁级陈旧；首次部署不走这段文案。
-        !busy && !pending && !failed && !incomplete && cachedInstalled && !ready);
+        !busy && !waiting && !pending && !failed && !incomplete && cachedInstalled && !ready);
     RuntimeMaintenanceStarter.Retry kind =
         pending
             ? RuntimeMaintenanceStarter.Retry.RECOVER
@@ -277,7 +323,7 @@ public class ExtractActivity extends AppCompatActivity {
                     : RuntimeMaintenanceStarter.Retry.REBUILD;
     com.deepseekharness.app.util.MaintenanceFooterPolicy.Model footerModel =
         com.deepseekharness.app.util.MaintenanceFooterPolicy.decide(
-            busy, pending, failed, incomplete, !busy && !pending && ready);
+            busy, pending, failed, incomplete, !executionBusy && !pending && ready);
     footer.render(
         footerModel, view, RuntimeMaintenanceStarter.retryLabel(kind, failed), !executionBusy);
     // 兑现说明里的“导出可读副本”：入口在说明上方；没有说明文字时也保留说明列显示入口。
@@ -285,20 +331,35 @@ public class ExtractActivity extends AppCompatActivity {
     rescue.setEnabled(!executionBusy);
     if (footerModel.rescue) findViewById(R.id.extract_focus).setVisibility(View.VISIBLE);
     if (com.deepseekharness.app.util.EnvironmentIdentity.mayAdvanceAfterMaintenance(
-        automaticEntry, mine, s.status == BackupTaskState.Status.SUCCEEDED, busy, pending, ready)) {
-      automaticEntry = false;
-      proceed();
-    }
+            automaticEntry,
+            mine,
+            s.status == BackupTaskState.Status.SUCCEEDED,
+            executionBusy,
+            pending,
+            ready)
+        && proceed(false)) automaticEntry = false;
+  }
+
+  private static boolean successfulRollback(BackupTaskState.Snapshot snapshot, boolean mine) {
+    return mine
+        && snapshot.status == BackupTaskState.Status.SUCCEEDED
+        && BackupTaskKinds.ROLLBACK.equals(snapshot.kind);
   }
 
   private void renderHeader(
-      BackupTaskState.Snapshot s, DeployStages.View view, boolean busy, boolean pending) {
+      BackupTaskState.Snapshot s,
+      DeployStages.View view,
+      boolean busy,
+      boolean pending,
+      boolean waiting) {
     String statusText =
         busy
             ? com.deepseekharness.app.util.UiStateText.render(s.kind)
             : pending
                 ? UiText.text("上次维护未完成，请先恢复原环境")
-                : view.visible() ? view.label() : UiText.text("环境维护");
+                : waiting
+                    ? UiText.text("正在执行环境任务")
+                    : view.visible() ? view.label() : UiText.text("环境维护");
     FadeSwap.text(status, statusText);
     OnboardingKit.Tone tone = OnboardingKit.tone(view.phase);
     pill.setVisibility(view.visible() ? View.VISIBLE : View.GONE);
@@ -361,6 +422,8 @@ public class ExtractActivity extends AppCompatActivity {
       boolean failed,
       boolean incomplete,
       boolean pending,
+      boolean rollbackResult,
+      boolean ready,
       com.deepseekharness.app.util.DshVersionPolicy.Status versionStatus,
       boolean staleRuntime) {
     String message;
@@ -387,6 +450,17 @@ public class ExtractActivity extends AppCompatActivity {
               "维护步骤已结束，但环境就绪检查未通过。已停止自动跳转，请查看原因或进入受限主界面。",
               "Maintenance ended, but readiness checks did not pass. Automatic navigation stopped. Review the reason or enter the limited interface.");
       warn = true;
+    } else if (rollbackResult) {
+      message = s.detail;
+      warn = !ready;
+      if (warn)
+        message =
+            String.join(
+                "\n\n",
+                message,
+                UiText.choose(
+                    "回退已完成，但无法确认本次安装继续使用该运行时。请查看维护记录，或手动更新运行时。",
+                    "The rollback finished, but continued use of this runtime for the current installation could not be verified. Review the maintenance record or update the runtime manually."));
     } else if (automaticDeclined) {
       message =
           UiText.choose(
@@ -425,8 +499,13 @@ public class ExtractActivity extends AppCompatActivity {
     // 页内不再内嵌维护记录：没有说明时整列隐藏，宽屏下阶段卡占满内容宽度。
     findViewById(R.id.extract_focus).setVisibility(message.isEmpty() ? View.GONE : View.VISIBLE);
     error.setText(message);
-    error.setBackgroundResource(warn ? R.drawable.bg_onb_hint_warn : R.drawable.bg_onb_hint_bad);
-    error.setTextColor(getColor(warn ? R.color.shell_warn : R.color.shell_bad));
+    if (rollbackResult && !warn) {
+      error.setBackgroundResource(R.drawable.bg_onb_hint_info);
+      error.setTextColor(getColor(R.color.shell_text));
+    } else {
+      error.setBackgroundResource(warn ? R.drawable.bg_onb_hint_warn : R.drawable.bg_onb_hint_bad);
+      error.setTextColor(getColor(warn ? R.color.shell_warn : R.color.shell_bad));
+    }
   }
 
   private String supportHint() {
@@ -456,7 +535,13 @@ public class ExtractActivity extends AppCompatActivity {
       cachedInstalled = controller.proot().isEnvironmentInstalled();
       cachedCanUpdate = controller.proot().canUpdateManagedRuntime();
       // 兼容且健康只说明旧树还能跑；补丁级覆盖还要看已装描述符是否就是当前候选。
-      cachedLatest = com.deepseekharness.app.core.EnvironmentAccess.runtimeLatest(controller);
+      cachedLatest = EnvironmentAccess.runtimeLatest(controller);
+      cachedRollback =
+          cachedReady
+              && !cachedLatest
+              && !busy
+              && !pending
+              && EnvironmentAccess.hasAcceptedRollback(controller);
       cachedReadyTaskId = snapshot.id;
       cachedReadyStatus = snapshot.status;
       cachedReadyBusy = busy;
@@ -466,13 +551,21 @@ public class ExtractActivity extends AppCompatActivity {
     return cachedReady;
   }
 
-  private void proceed() {
+  private boolean proceed(boolean explicit) {
+    if (!explicit && task.busy()) return false;
+    var snapshot = task.snapshot();
+    boolean mine = taskId != 0 && taskId == snapshot.id;
+    boolean active =
+        EnvironmentAccess.runtimeLatest(controller)
+            || (!mine || successfulRollback(snapshot, true))
+                && EnvironmentAccess.hasAcceptedRollback(controller);
     boolean limited =
         com.deepseekharness.app.util.RuntimeUpgradeState.limitedEntry(
             controller.isEnvironmentReady(),
-            com.deepseekharness.app.core.EnvironmentAccess.runtimeLatest(controller),
+            active,
             task.maintenanceBusy(),
-            task.pendingMaintenance());
+            RuntimeMaintenanceStarter.needsRecovery(this));
+    if (limited && !explicit) return false;
     if (limited)
       controller
           .config()
@@ -485,12 +578,14 @@ public class ExtractActivity extends AppCompatActivity {
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
     startActivity(intent);
     finish();
+    return true;
   }
 
   @Override
   protected void onSaveInstanceState(Bundle state) {
     state.putLong("data_task_id", taskId);
     state.putBoolean("automatic_entry", automaticEntry);
+    state.putBoolean("automatic_admission_pending", automaticAdmissionPending);
     state.putBoolean("automatic_declined", automaticDeclined);
     state.putBoolean("rebuild_requested", rebuildRequested);
     super.onSaveInstanceState(state);
@@ -499,6 +594,7 @@ public class ExtractActivity extends AppCompatActivity {
   @Override
   protected void onResume() {
     super.onResume();
+    automaticAdmissionVisible = true;
     cachedReady = null;
     // 从应急 DSH 的「恢复中断维护」返回时，外部恢复不会经过本页的 BackupTask；立即丢弃
     // 维护记录的 UI 缓存，避免恢复完成后仍沿用恢复前的结果把页面停在“中断维护”。
@@ -508,6 +604,7 @@ public class ExtractActivity extends AppCompatActivity {
 
   @Override
   protected void onPause() {
+    automaticAdmissionVisible = false;
     main.removeCallbacks(refresh);
     super.onPause();
   }

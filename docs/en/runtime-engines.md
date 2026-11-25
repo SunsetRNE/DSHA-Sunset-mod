@@ -75,19 +75,11 @@ The current proot uses Termux's ptrace path translation. `baseArgv()` passes `-L
 
 | Files / source | Known boundary |
 |---|---|
-| Standard `libproot.so`, `libprootloader.so`, `libprootloader32.so` | Termux proot / GPL-2.0. [Third-party notices](third-party-notices.md) retain the unresolved exact source revision of these original binaries; Standard is not claimed reproducible using the Low script. |
+| Standard PRoot executable, ARM64 and ARM EABI loaders, talloc | From build377 the executable and both loaders use Termux v5.1.107.91. talloc uses Samba 2.4.3. The [standalone recipe](../../tools/proot-source/README.md) uses NDK r26d. |
 | Historical Low compatibility libraries | Removed from the repository with the low source set in build209; only the three Standard proot native libraries ship |
 | NDK / owned session launcher | [Toolchain lock](../../ci/toolchain.lock.json): NDK `26.3.11579264`. [native-session/build.py](../../tools/native-session/build.py) builds the API23 ARM64 launcher with 4KiB common and 16KiB LOAD alignment. Alignment is not all-device 16KiB testing. |
 
-The source inspection recorded these Standard originals, identifying bytes without inventing provenance:
-
-```text
-libproot.so         cbde86eb01b58413f9e4673e182caca5440e8fc4af8482a0e23d0faa0846f721
-libprootloader.so   a2cbccfc776e23225b75e6700dd1990fcd505d2e973f5bfa19c76642d4e41c7d
-libprootloader32.so 4c649eb2dce258c9111231940fdbf0474bcf1cd6dd447ad9bdf2898b35a85554
-```
-
-[Termux proot](https://github.com/termux/proot) documents the upstream mechanism. A source tag and an actually distributed ELF are separate evidence; provenance gaps remain explicit.
+The recipe preserves the named-fd fix and builds both loaders with 16 KiB segment alignment. Releases attach `dsha-proot-talloc-source.zip` beside the APK. The [distribution lock](../../tools/proot-source.lock.json) identifies the APK members, license bytes and matching source. Earlier inherited binaries have no confirmed complete build recipe.
 
 ## 5. proroot, static_loader and compatibility shims
 

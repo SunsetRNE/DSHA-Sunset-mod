@@ -355,12 +355,14 @@ public final class WebFullscreenUi {
         activity instanceof PictureInPictureActivity host
             ? host.browserThemeColor()
             : activity.getColor(R.color.surface);
-    View content = activity.findViewById(android.R.id.content);
-    if (content != null) {
-      int left = content.getPaddingLeft(), top = content.getPaddingTop();
-      int right = content.getPaddingRight(), bottom = content.getPaddingBottom();
-      content.setBackgroundColor(color);
-      content.setPadding(left, top, right, bottom);
+    if (!(activity instanceof PictureInPictureActivity)) {
+      View content = activity.findViewById(android.R.id.content);
+      if (content != null) {
+        int left = content.getPaddingLeft(), top = content.getPaddingTop();
+        int right = content.getPaddingRight(), bottom = content.getPaddingBottom();
+        content.setBackgroundColor(color);
+        content.setPadding(left, top, right, bottom);
+      }
     }
     controller.setAppearanceLightStatusBars(
         androidx.core.graphics.ColorUtils.calculateLuminance(color) > 0.5);

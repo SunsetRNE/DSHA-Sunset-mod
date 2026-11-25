@@ -1,5 +1,7 @@
 # AGENTS.md
 
+> **本地 build370** 合并 Sunset `2cc4e646`，用 `upstream` 身份构建 DSHA / `dsh.android.client`，正式与应急 DSH 为 `0.2.2-rc.5`。工作台随此源码使用移动 UI 3.3.5；应用版本、架构与本地构建选择见 [README](README.md)。以下 build369 的版本、签名和 CI 记录属于 Sunset 的上游发布。
+
 
 > **当前发布**：`0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1` / build369 / `io.github.sunsetrne.dsha` / DSH-A-Su / 单一 Standard。
 > build369 已发布（tag `dsha-a-su-build369-20261116-080147` @ `82eb958d`）；正式 CI 43828110344 通过，七资产与三包签名/来源已独立复核；Standard 5338/0/0/0、7 夹具通过。本版设备验收待完成，历史设备回执不作本版通过证据。

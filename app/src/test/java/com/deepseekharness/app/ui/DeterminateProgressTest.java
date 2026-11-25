@@ -74,6 +74,20 @@ public final class DeterminateProgressTest {
   }
 
   @Test
+  public void determinateModeRestoresTheLastKnownPercentAfterIndeterminate() {
+    DeterminateProgress progress = new DeterminateProgress(context, DeterminateProgress.Mode.RING);
+    progress.setPercent(40);
+    progress.setIndeterminate();
+    assertEquals("", progress.valueText().toString());
+    progress.setPercent(40);
+    assertEquals("40%", progress.valueText().toString());
+    progress.reset();
+    assertEquals("", progress.valueText().toString());
+    progress.setPercent(0);
+    assertEquals("0%", progress.valueText().toString());
+  }
+
+  @Test
   public void cancelRunsOnceAndWaitsForTheTaskToStop() {
     final int[] invoked = {0};
     DeterminateProgress progress = new DeterminateProgress(context);

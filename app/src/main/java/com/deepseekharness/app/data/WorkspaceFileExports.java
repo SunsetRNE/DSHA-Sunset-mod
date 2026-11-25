@@ -2,14 +2,20 @@ package com.deepseekharness.app.data;
 
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ProviderInfo;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Process;
 import android.provider.DocumentsContract;
 import android.provider.OpenableColumns;
 import com.deepseekharness.app.backup.AndroidBackupFileSystem;
 import com.deepseekharness.app.backup.BackupControl;
 import com.deepseekharness.app.backup.BackupFileSystem;
 import com.deepseekharness.app.backup.DocumentStreams;
+import com.deepseekharness.app.transfer.SelectedDocumentSave;
 import com.deepseekharness.app.util.DocumentPaths;
 import com.deepseekharness.app.util.FileIntegrity;
 import com.deepseekharness.app.util.RuntimeWorkPort;
@@ -20,7 +26,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
 
-/** Plain selected-file export through the existing document provider and checked host file layer. */
+/**
+ * Plain selected-file export through the existing document provider and checked host file layer.
+ */
 public final class WorkspaceFileExports {
   private WorkspaceFileExports() {}
 
@@ -114,17 +122,78 @@ public final class WorkspaceFileExports {
       throw new IOException("WORKSPACE_EXPORT_VERIFY");
   }
 
-  /** The destination must be the new document returned by the system's create-document picker. */
+  static boolean isSaveDestination(Context context, Uri destination) {
+    if (destination == null || !ContentResolver.SCHEME_CONTENT.equals(destination.getScheme()))
+      return false;
+    String authority = destination.getEncodedAuthority();
+    if (authority == null || authority.isEmpty()) return false;
+    int userSeparator = authority.indexOf('@');
+    String provider = destination.getAuthority();
+    if (userSeparator >= 0) {
+      String user = authority.substring(0, userSeparator);
+      provider = authority.substring(userSeparator + 1);
+      if (!user.matches("0|[1-9][0-9]{0,9}") || !provider.matches("[A-Za-z0-9_.-]+")) return false;
+      try {
+        Integer.parseInt(user);
+      } catch (NumberFormatException malformedUser) {
+        return false;
+      }
+    }
+    String app = context.getPackageName();
+    if (provider.equals(app) || provider.startsWith(app + ".") || provider.contains("@"))
+      return false;
+    if (userSeparator < 0) return DocumentsContract.isDocumentUri(context, destination);
+
+    String path = destination.getEncodedPath();
+    if (path == null
+        || !path.matches("/document/[^/]+")
+        || destination.getEncodedQuery() != null
+        || destination.getEncodedFragment() != null) return false;
+    int grants = Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
+    if (context.checkUriPermission(destination, Process.myPid(), Process.myUid(), grants)
+        != PackageManager.PERMISSION_GRANTED) return false;
+
+    // PackageManager declares the provider without a user prefix. Keep the original URI
+    // for all permission checks and I/O so Android still resolves the destination's user.
+    Uri forClassification = destination.buildUpon().authority(provider).build();
+    boolean declaredDocument = DocumentsContract.isDocumentUri(context, forClassification);
+    ProviderInfo declaration =
+        context
+            .getPackageManager()
+            .resolveContentProvider(provider, PackageManager.MATCH_UNINSTALLED_PACKAGES);
+    return declaration != null
+        && declaration.exported
+        && declaration.grantUriPermissions
+        && "android.permission.MANAGE_DOCUMENTS".equals(declaration.readPermission)
+        && "android.permission.MANAGE_DOCUMENTS".equals(declaration.writePermission)
+        && (declaredDocument || isPlatformStorageProvider(provider, declaration));
+  }
+
+  private static boolean isPlatformStorageProvider(String authority, ProviderInfo provider) {
+    String platformPackage =
+        switch (authority) {
+          case "com.android.externalstorage.documents" -> "com.android.externalstorage";
+          case "com.android.providers.downloads.documents" -> "com.android.providers.downloads";
+          default -> null;
+        };
+    return platformPackage != null
+        && platformPackage.equals(provider.packageName)
+        && provider.applicationInfo != null
+        && (provider.applicationInfo.flags
+                & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP))
+            != 0;
+  }
+
+  /**
+   * Export to the document chosen in the system picker. The picker can return an existing document
+   * after overwrite confirmation, so failure must never delete that document.
+   */
   public static Result save(
       Context context, Source selected, Uri destination, BackupControl control) throws Exception {
-    if (destination == null
-        || !"content".equals(destination.getScheme())
-        || authority(context).equals(destination.getAuthority())
-        || !DocumentsContract.isDocumentUri(context, destination))
+    if (!isSaveDestination(context, destination))
       throw new IOException("WORKSPACE_EXPORT_DESTINATION");
     BackupFileSystem fs = new AndroidBackupFileSystem();
     File temporary = null;
-    boolean completed = false;
     try (RuntimeWorkPort.Work ignored = RuntimeWorkPort.begin("作品文件导出")) {
       control.check();
       Source actual = source(context, selected, control);
@@ -147,28 +216,25 @@ public final class WorkspaceFileExports {
       }
       source(context, actual, control);
       BackupFileSystem.Node staged = fs.stat(temporary);
-      try (InputStream in = fs.read(temporary, staged);
-          OutputStream out =
-              DocumentStreams.output(context.getContentResolver(), destination, control)) {
-        if (!expected.matches(copy(in, out, expected.size, control::check)))
-          throw new IOException("WORKSPACE_SOURCE_CHANGED");
-      }
-      try (InputStream in =
-          DocumentStreams.input(context.getContentResolver(), destination, control)) {
-        verify(in, expected, control::check);
-      }
-      control.check();
+      File sourceFile = temporary;
+      SelectedDocumentSave.write(
+          context,
+          destination,
+          () -> fs.read(sourceFile, staged),
+          expected.size,
+          expected.sha256,
+          control);
       String name = actual.name;
       try (Cursor cursor =
-          DocumentStreams.query(
+          DocumentStreams.optionalQuery(
               context.getContentResolver(),
               destination,
               new String[] {OpenableColumns.DISPLAY_NAME},
               control)) {
-        if (cursor.moveToFirst() && !cursor.isNull(0)) name = cursor.getString(0);
+        if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0)) name = cursor.getString(0);
+      } catch (IOException | RuntimeException unavailable) {
+        // The selected document has already been read back successfully.
       }
-      control.check();
-      completed = true;
       return new Result(destination, name, expected);
     } finally {
       if (temporary != null) {
@@ -179,16 +245,6 @@ public final class WorkspaceFileExports {
               "DSHA", "WORKSPACE_EXPORT_CACHE_CLEANUP:" + cleanup.getClass().getSimpleName());
         }
       }
-      if (!completed) removeCreatedDocument(context.getContentResolver(), destination);
-    }
-  }
-
-  private static void removeCreatedDocument(ContentResolver resolver, Uri document) {
-    try {
-      DocumentsContract.deleteDocument(resolver, document);
-    } catch (Exception cleanup) {
-      android.util.Log.w(
-          "DSHA", "WORKSPACE_EXPORT_PARTIAL_CLEANUP:" + cleanup.getClass().getSimpleName());
     }
   }
 }

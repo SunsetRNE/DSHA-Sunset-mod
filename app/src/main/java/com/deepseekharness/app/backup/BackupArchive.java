@@ -44,7 +44,8 @@ public final class BackupArchive {
     return digest(input, control, new byte[65536]);
   }
 
-  static String digest(InputStream input, BackupControl control, byte[] buffer) throws IOException {
+  public static String digest(InputStream input, BackupControl control, byte[] buffer)
+      throws IOException {
     MessageDigest digest = sha();
     long total = 0;
     int n;
@@ -236,6 +237,12 @@ public final class BackupArchive {
   /** Create an unencrypted copy only after the source's complete record/footer validation passes. */
   public static Map<String, Object> copyUnencrypted(
       InputStream source, OutputStream target, BackupControl control) throws IOException {
+    return copyWithProtection(source, target, control, false);
+  }
+
+  static Map<String, Object> copyWithProtection(
+      InputStream source, OutputStream target, BackupControl control, boolean protectedExport)
+      throws IOException {
     MessageDigest digest = sha();
     DigestOutputStream hashed = new DigestOutputStream(target, digest);
     DataOutputStream output = new DataOutputStream(hashed);
@@ -263,7 +270,7 @@ public final class BackupArchive {
             },
             control);
     Map<String, Object> manifest = new LinkedHashMap<>(original);
-    manifest.put("sensitivePolicy", "UNENCRYPTED");
+    manifest.put("sensitivePolicy", protectedExport ? "PASSWORD_ENCRYPTED" : "UNENCRYPTED");
     byte[] metadata = BackupJson.write(manifest, BackupLimits.MANIFEST);
     control.check();
     output.writeInt(-1);

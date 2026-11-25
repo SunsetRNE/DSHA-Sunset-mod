@@ -2,7 +2,9 @@
 """验证应急归档的路径边界及覆盖层证明，全部故障在宿主临时夹具中执行。"""
 import importlib.util
 import copy
+import gzip
 import io
+import lzma
 import tarfile
 import tempfile
 import unittest
@@ -105,6 +107,23 @@ class RecoveryAssetTests(unittest.TestCase):
         for name in ['/etc/passwd','../settings.yaml','root/../../data','root\\home','root//home']:
             with self.subTest(name=name),self.assertRaises(ValueError):module.safe_name(name)
         self.assertEqual(module.safe_name('./usr/bin/bash'),'usr/bin/bash')
+
+    def test_xz_rootfs_and_legacy_gzip_produce_the_same_proof_with_the_pinned_dsh_archive(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            legacy = root / 'legacy' / 'recovery-rootfs.bin'
+            xz = root / 'recovery-rootfs.bin'
+            dsh = root / 'recovery-dsh-runtime.bin'
+            legacy.parent.mkdir()
+            self.archive(legacy, [('usr/lib/recovery-fixture', 'rootfs files', None),
+                                  ('lib/recovery-fixture', '../usr/lib/recovery-fixture', True)])
+            xz.write_bytes(lzma.compress(gzip.decompress(legacy.read_bytes()), check=lzma.CHECK_CRC64, preset=3))
+            self.archive(dsh, [('usr/local/share/dsha/dsh-runtime.version', CURRENT_DSH, None)])
+            legacy_proof = module.describe((legacy, dsh))
+            self.assertEqual(legacy_proof, module.describe((xz, dsh)))
+            files, links = legacy_proof
+            self.assertEqual(2, len(files))
+            self.assertEqual([{'path': 'lib/recovery-fixture', 'target': 'usr/lib/recovery-fixture'}], links)
 
     def test_overlay_and_link_proof(self):
         with tempfile.TemporaryDirectory() as temp:

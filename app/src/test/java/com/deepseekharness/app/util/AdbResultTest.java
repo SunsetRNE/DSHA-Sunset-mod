@@ -16,6 +16,24 @@ public class AdbResultTest {
   }
 
   @Test
+  public void keepaliveStateIsSeparateFromPairingAndVerification() {
+    for (String result : new String[] {"KEEPALIVE_OK", "KEEPALIVE_WARN", "KEEPALIVE_SKIPPED"}) {
+      assertEquals(AdbResult.PairState.CONNECTED, AdbResult.pairState("CONNECT_OK\n" + result));
+      assertEquals(AdbResult.PairState.PAIRED, AdbResult.pairState("PAIR_OK\n" + result));
+      assertEquals(AdbResult.PairState.FAILED, AdbResult.pairState("PORT_UNREACHABLE\n" + result));
+    }
+  }
+
+  @Test
+  public void automaticWirelessDebuggingBelongsToTheSystemUserApp() {
+    assertTrue(AdbResult.isWirelessDebugKeepaliveOwner(10292));
+    assertFalse(AdbResult.isWirelessDebugKeepaliveOwner(99910292));
+    assertFalse(AdbResult.isWirelessDebugKeepaliveOwner(1010292));
+    assertFalse(AdbResult.isWirelessDebugKeepaliveOwner(2000));
+    assertFalse(AdbResult.isWirelessDebugKeepaliveOwner(-1));
+  }
+
+  @Test
   public void successfulShellRequiresIdentityAndFinalZeroExit() {
     assertTrue(AdbResult.shellReady("uid=2000(shell) gid=2000(shell)\n[EXIT=0]\n"));
     assertFalse(AdbResult.shellReady("uid=2000(shell)\n[EXIT=1]"));

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the narrow, hash-locked 0.2.2-rc.1 web-search header/preflight recipe."""
+"""Generate the narrow, hash-locked 0.2.2-rc.5 web-search header/preflight recipe."""
 import argparse
 import hashlib
 import json
@@ -7,12 +7,13 @@ from pathlib import Path
 from source_text import matches_text, write_text
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.2.2-rc.1'
+VERSION = '0.2.2-rc.5'
 MODULE = '@deepseek-ai/dsh-web-search-deepseek/lib/index.js'
-SOURCE_SHA = '6bde60f4f8a8bf807d588ae3630d7374358a417b241887716fda9deb67b79ea4'
+SOURCE_SHA = 'f7a40239f12e8185ce28bb1ee3411881d05592ccab70835da7d5f94a31601e42'
 ASSET = 'deepseek-web-search-headers-patch.json'
 
 HELPERS = r'''// DSHA_WEB_SEARCH_HEADERS_V1: validate without normalizing or disclosing a credential.
+class DshaSearchPreflightError extends WebError {}
 function dshaSearchPreflightError(field, source, category, index = null, codePoint = null) {
 	const diagnostic = {
 		phase: "local-preflight",
@@ -27,7 +28,7 @@ function dshaSearchPreflightError(field, source, category, index = null, codePoi
 	// Only fixed enums, field names and one offending character's numeric position.
 	// No value, credential reference, endpoint, exception or filesystem path is logged.
 	console.error("[deepseek-web-search] preflight rejected " + JSON.stringify(diagnostic));
-	return new WebError("DeepSeek web search stopped before HTTP dispatch; no request was sent. " + JSON.stringify(diagnostic) + ". Review the indicated credential/configuration source locally. Credentials were not changed and no alternate account or key was tried.", "WEB_PROVIDER_ERROR");
+	return new DshaSearchPreflightError("DeepSeek web search stopped before HTTP dispatch; no request was sent. " + JSON.stringify(diagnostic) + ". Review the indicated credential/configuration source locally. Credentials were not changed and no alternate account or key was tried.", "WEB_PROVIDER_ERROR");
 }
 function dshaCredentialOrigin(source) {
 	switch (source) {
@@ -129,10 +130,12 @@ def generate(modules):
     patch(before, after)
     patch('''\t\tif (token !== void 0 && token.length > 0) return {
 \t\t\tkind: "account",
-\t\t\theaders: { "x-dsh-auth-token": token }
+\t\t\theaders: { "x-dsh-auth-token": token },
+\t\t\t...rejectAccountToken === void 0 ? {} : { reject: () => rejectAccountToken(token) }
 \t\t};''', '''\t\tif (token !== void 0 && token !== "") return {
 \t\t\tkind: "account",
-\t\t\theaders: { "x-dsh-auth-token": dshaSearchHeader(token, "x-dsh-auth-token", "deepseek-account", "credential") }
+\t\t\theaders: { "x-dsh-auth-token": dshaSearchHeader(token, "x-dsh-auth-token", "deepseek-account", "credential") },
+\t\t\t...rejectAccountToken === void 0 ? {} : { reject: () => rejectAccountToken(token) }
 \t\t};''')
     patch('''\t\tconst apiKey = await this.apiKey(options, signal);
 \t\treturn {''', '''\t\tconst apiKey = await this.apiKey(options, signal);
@@ -143,7 +146,7 @@ def generate(modules):
     patch('if (options.apiKey !== void 0 && options.apiKey.length > 0) return options.apiKey;', 'if (options.apiKey !== void 0 && options.apiKey !== "") return options.apiKey;')
     patch('if (resolved !== void 0 && resolved.length > 0) return resolved;', 'if (resolved !== void 0 && resolved !== "") return resolved;')
     patch('throw new WebError(`DeepSeek search credential resolution failed: ${String(error)}`, "WEB_PROVIDER_ERROR", { cause: error });',
-          'throw new WebError("DeepSeek search credential resolution failed before HTTP dispatch; no request was sent. Review the credential service locally without sharing secret values.", "WEB_PROVIDER_ERROR");')
+          'if (error instanceof DshaSearchPreflightError) throw error;\n\t\tthrow new WebError("DeepSeek search credential resolution failed before HTTP dispatch; no request was sent. Review the credential service locally without sharing secret values.", "WEB_PROVIDER_ERROR");')
     patch('''\tconst literalApiKey = config.apiKey !== void 0 && config.apiKey.length > 0 ? config.apiKey : void 0;
 \treturn {''', '''\tconst literalApiKey = config.apiKey !== void 0 && config.apiKey.length > 0 ? config.apiKey : void 0;
 \t// Per-operation metadata only: the credential resolver still supplies the
@@ -151,16 +154,10 @@ def generate(modules):
 \tlet dshaApiKeySource;
 \treturn {
 \t\tdshaApiKeySource: () => dshaApiKeySource,''')
-    patch('''\t\t\tif (credentials !== void 0) return (await credentials.resolve(apiKeyEnv))?.value;
-\t\t\tconst ambient = launchEnvironmentOf(ctx).get(apiKeyEnv);
-\t\t\treturn ambient !== void 0 && ambient.value.length > 0 ? ambient.value : void 0;''', '''\t\t\tif (credentials !== void 0) {
-\t\t\t\tconst resolved = await credentials.resolve(apiKeyEnv);
-\t\t\t\tdshaApiKeySource = resolved?.source;
-\t\t\t\treturn resolved?.value;
-\t\t\t}
-\t\t\tconst ambient = launchEnvironmentOf(ctx).get(apiKeyEnv);
-\t\t\tdshaApiKeySource = ambient?.source;
-\t\t\treturn ambient !== void 0 && ambient.value.length > 0 ? ambient.value : void 0;''')
+    patch('resolveApiKey: () => resolveDeepSeekApiKey(ctx, apiKeyEnv),', '''resolveApiKey: () => resolveDeepSeekApiKey(ctx, apiKeyEnv, (value, source) => {
+\t\t\tdshaApiKeySource = source;
+\t\t\tdshaSearchHeader(value, "x-api-key", dshaCredentialOrigin(source), "credential");
+\t\t}),''')
     recipe = dict(version=1, dshVersion=VERSION, module=MODULE, sourceSha256=SOURCE_SHA,
                   packageIntegrity=locked['integrity'], patchedSha256=hashlib.sha256(source.encode('utf8')).hexdigest(),
                   purpose='Validate each search header without changing credentials or precedence; report only fixed source/category and offending index/code point; distinguish local construction from fetch invocation.',

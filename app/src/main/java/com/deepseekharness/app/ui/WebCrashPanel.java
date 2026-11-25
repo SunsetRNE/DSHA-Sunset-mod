@@ -13,6 +13,7 @@ import android.widget.TextView;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.util.UiText;
 import com.deepseekharness.app.util.WebCrashReport;
+import java.util.List;
 import java.util.function.IntFunction;
 
 /**
@@ -44,8 +45,11 @@ final class WebCrashPanel {
   private Mode mode;
   private WebCrashReport.Kind kind;
   private WebCrashReport.Spec spec;
+  private String titleOverride, detailOverride;
   private String technical = "";
+  private List<WebCrashReport.Row> rows = List.of();
   private boolean detailsOpen;
+  private boolean browserAvailable;
 
   /** 上一次渲染的状态行内容键；相同就不重建列表（避免错误态反复 show 时闪动）。 */
   private String renderedRows = "";
@@ -65,23 +69,55 @@ final class WebCrashPanel {
     click(R.id.web_error_secondary, () -> act(spec == null ? null : spec.secondary));
     click(R.id.web_error_details_row, this::toggleDetails);
     click(R.id.web_error_copy, this::copyDetails);
+    refreshLanguage();
+    root.addOnLayoutChangeListener(
+        (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+          if (right - left != oldRight - oldLeft) applyWidth(right - left);
+        });
+  }
+
+  void refreshLanguage() {
+    View back = find.apply(R.id.web_error_back);
+    if (back != null) back.setContentDescription(UiText.text("返回"));
+    boolean diagnostics = kind == WebCrashReport.Kind.PAGE_BLANK;
     TextView label = text(R.id.web_error_state_label);
     if (label != null) label.setText(UiText.choose("当前状态", "Current state"));
     TextView more = text(R.id.web_error_more_label);
     if (more != null) more.setText(UiText.text("更多操作"));
     TextView detailsTitle = text(R.id.web_error_details_title);
-    if (detailsTitle != null) detailsTitle.setText(UiText.choose("技术详情", "Technical details"));
+    if (detailsTitle != null)
+      detailsTitle.setText(
+          diagnostics
+              ? UiText.choose("诊断摘要", "Diagnostic summary")
+              : UiText.choose("技术详情", "Technical details"));
     TextView detailsSub = text(R.id.web_error_details_sub);
     if (detailsSub != null) {
       detailsSub.setText(UiText.choose("入口、退出码、发生时间与内核版本", "Source, exit code, time and engine"));
       detailsSub.setVisibility(View.VISIBLE);
     }
     TextView copy = text(R.id.web_error_copy);
-    if (copy != null) copy.setText(UiText.choose("复制详情", "Copy details"));
-    root.addOnLayoutChangeListener(
-        (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
-          if (right - left != oldRight - oldLeft) applyWidth(right - left);
-        });
+    if (copy != null)
+      copy.setText(
+          diagnostics
+              ? UiText.choose("复制诊断", "Copy diagnostics")
+              : UiText.choose("复制详情", "Copy details"));
+    localize(R.id.web_error_browser_sub, "服务未就绪，暂不可用", "Unavailable until the service is ready");
+    localize(R.id.web_error_logs_title, "下载错误日志", "Download error logs");
+    localize(R.id.web_error_browser_title, "在系统浏览器中打开", "Open in browser");
+    localize(
+        R.id.web_error_recovery_title, "返回启动页处理插件 / 安全启动", "Back to Start: plugins / safe start");
+    refreshDetailsState();
+    if (kind == null) return;
+
+    String[] copyText = copy(kind);
+    if (title != null)
+      UiMotion.crossFadeText(title, titleOverride != null ? titleOverride : copyText[0]);
+    if (detail != null)
+      UiMotion.crossFadeText(
+          detail, detailOverride != null ? UiText.raw(detailOverride) : copyText[1]);
+    UiMotion.crossFadeText(text(R.id.web_retry), actionLabel(spec.primary));
+    UiMotion.crossFadeText(text(R.id.web_error_secondary), actionLabel(spec.secondary));
+    renderRows(rows);
   }
 
   /**
@@ -99,58 +135,57 @@ final class WebCrashPanel {
       boolean browserAvailable) {
     this.kind = kind;
     spec = WebCrashReport.spec(kind);
-    technical = technicalText == null ? "" : technicalText;
-    boolean diagnostics = kind == WebCrashReport.Kind.PAGE_BLANK;
-    TextView copyLabel = text(R.id.web_error_copy);
-    if (copyLabel != null)
-      copyLabel.setText(
-          diagnostics
-              ? UiText.choose("复制诊断", "Copy diagnostics")
-              : UiText.choose("复制详情", "Copy details"));
-    TextView detailsHead = text(R.id.web_error_details_title);
-    if (detailsHead != null)
-      detailsHead.setText(
-          diagnostics
-              ? UiText.choose("诊断摘要", "Diagnostic summary")
-              : UiText.choose("技术详情", "Technical details"));
-    String[] copy = copy(kind);
     boolean useOverride =
         kind == WebCrashReport.Kind.GENERIC || kind == WebCrashReport.Kind.INVALID_ADDRESS;
-    if (title != null)
-      UiMotion.crossFadeText(title, useOverride && titleOverride != null ? titleOverride : copy[0]);
-    if (detail != null)
-      UiMotion.crossFadeText(
-          detail, UiText.raw(useOverride && detailOverride != null ? detailOverride : copy[1]));
+    this.titleOverride = useOverride ? titleOverride : null;
+    this.detailOverride = useOverride ? detailOverride : null;
+    technical = technicalText == null ? "" : technicalText;
+    rows = WebCrashReport.rows(kind, facts == null ? new WebCrashReport.Facts() : facts);
+    this.browserAvailable = browserAvailable;
+    // 局部空白时默认展开诊断摘要，便于直接复制。
+    if (kind == WebCrashReport.Kind.PAGE_BLANK) detailsOpen = true;
+    render(true);
+  }
+
+  /** Rebind the same fault to freshly themed native views without replaying the fault. */
+  WebCrashPanel restyled(View replacement) {
+    WebCrashPanel result =
+        new WebCrashPanel(
+            replacement,
+            replacement.findViewById(R.id.web_error_title),
+            replacement.findViewById(R.id.web_error_detail),
+            replacement::findViewById,
+            listener);
+    if (kind == null) return result;
+    result.kind = kind;
+    result.spec = spec;
+    result.titleOverride = titleOverride;
+    result.detailOverride = detailOverride;
+    result.technical = technical;
+    result.rows = rows;
+    result.detailsOpen = detailsOpen;
+    result.browserAvailable = browserAvailable;
+    result.renderedIcon = renderedIcon;
+    result.render(false);
+    return result;
+  }
+
+  private void render(boolean animate) {
+    refreshLanguage();
     tone(spec.tone, icon(kind));
-    Button primary = (Button) find.apply(R.id.web_retry);
-    if (primary != null) {
-      UiMotion.crossFadeText(primary, actionLabel(spec.primary));
-      primary.setEnabled(spec.primary != WebCrashReport.Action.WAIT);
-    }
-    Button secondary = (Button) find.apply(R.id.web_error_secondary);
-    if (secondary != null) UiMotion.crossFadeText(secondary, actionLabel(spec.secondary));
-    renderRows(WebCrashReport.rows(kind, facts == null ? new WebCrashReport.Facts() : facts));
+    TextView primary = text(R.id.web_retry);
+    if (primary != null) primary.setEnabled(spec.primary != WebCrashReport.Action.WAIT);
     TextView tech = text(R.id.web_error_details_text);
     if (tech != null) UiMotion.crossFadeText(tech, UiText.raw(technical));
-    // 局部空白现场需要把复制诊断放在一层可见位置：默认展开摘要，而不是藏在「技术详情」里。
-    if (diagnostics) {
-      detailsOpen = true;
-      visible(R.id.web_error_details_box, true);
-      View chevron = find.apply(R.id.web_error_details_chevron);
-      if (chevron != null) chevron.setRotation(90f);
-      View row = find.apply(R.id.web_error_details_row);
-      if (row != null) row.setStateDescription(UiText.choose("已展开", "Expanded"));
-    }
+    visible(R.id.web_error_details_box, detailsOpen);
+    View chevron = find.apply(R.id.web_error_details_chevron);
+    if (chevron != null) chevron.setRotation(detailsOpen ? 90f : 0f);
     boolean browserUsable = browserAvailable && !spec.serviceDown;
     View browser = find.apply(R.id.web_error_browser);
     if (browser != null) {
       browser.setEnabled(browserUsable);
       browser.setAlpha(browserUsable ? 1f : 0.5f);
-      TextView sub = text(R.id.web_error_browser_sub);
-      if (sub != null) {
-        sub.setText(UiText.choose("服务未就绪，暂不可用", "Unavailable until the service is ready"));
-        sub.setVisibility(browserUsable ? View.GONE : View.VISIBLE);
-      }
+      visible(R.id.web_error_browser_sub, !browserUsable);
     }
     visible(R.id.web_error_browser, !isAction(WebCrashReport.Action.BROWSER));
     visible(R.id.web_error_logs, !isAction(WebCrashReport.Action.LOGS));
@@ -164,7 +199,7 @@ final class WebCrashPanel {
     // 覆盖 WebView 前给 180ms 淡入 + 轻微上移，避免错误面板硬切覆盖页面（审计 F-01）。
     boolean wasHidden = root.getVisibility() != View.VISIBLE;
     root.setVisibility(View.VISIBLE);
-    if (wasHidden) UiMotion.reveal(root);
+    if (animate && wasHidden) UiMotion.reveal(root);
   }
 
   WebCrashReport.Kind kind() {
@@ -189,6 +224,10 @@ final class WebCrashPanel {
     visible(R.id.web_error_details_box, detailsOpen);
     View chevron = find.apply(R.id.web_error_details_chevron);
     if (chevron != null) chevron.animate().rotation(detailsOpen ? 90f : 0f).setDuration(160);
+    refreshDetailsState();
+  }
+
+  private void refreshDetailsState() {
     View row = find.apply(R.id.web_error_details_row);
     if (row != null)
       row.setStateDescription(
@@ -242,12 +281,12 @@ final class WebCrashPanel {
     }
   }
 
-  private void renderRows(java.util.List<WebCrashReport.Row> rows) {
+  private void renderRows(List<WebCrashReport.Row> rows) {
     View host = find.apply(R.id.web_error_state);
     if (!(host instanceof LinearLayout)) return;
     LinearLayout list = (LinearLayout) host;
     // 行内容没变就保留原视图：错误态可能被连续 show（鉴权刷新重试），整表重建会闪。
-    String rowsKey = rows.toString();
+    String rowsKey = UiText.language() + rows;
     if (rowsKey.equals(renderedRows)) return;
     renderedRows = rowsKey;
     list.removeAllViews();
@@ -411,6 +450,11 @@ final class WebCrashPanel {
   private TextView text(int id) {
     View view = find.apply(id);
     return view instanceof TextView ? (TextView) view : null;
+  }
+
+  private void localize(int id, String chinese, String english) {
+    TextView view = text(id);
+    if (view != null) view.setText(UiText.choose(chinese, english));
   }
 
   private int dp(int value) {

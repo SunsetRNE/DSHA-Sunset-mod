@@ -224,7 +224,7 @@ public final class PermissionPanelTest {
 
   @Test
   public void accessibilityStepsUseTheSystemServiceLabel() {
-    String label = app.getString(R.string.accessibility_service_label);
+    String label = app.getString(R.string.app_name);
     String step =
         AccessibilitySetupActivity.withServiceName(
             app, UiText.choose("请打开系统设置 → 无障碍 →「%s」。", "Open Settings → Accessibility → “%s”."));

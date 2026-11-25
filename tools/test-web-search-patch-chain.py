@@ -111,8 +111,11 @@ def main():
     chains, _ = runtime_stable_patches.load_chains(assets, json.loads((ROOT / 'tools/dsh-runtime/package.json').read_text(encoding='utf8'))['dependencies']['@deepseek-ai/dsh'])
     chain = chains.get(MODULE, [])
     assert any(name == ASSET for name, _, _ in chain), 'WEB_SEARCH_RECIPE_MUST_BE_REGISTERED'
-    pointer = json.loads((ROOT / 'app/build/test-runtimes/current.json').read_text(encoding='utf8'))
-    canonical = (Path(pointer['raw']) / 'node_modules' / MODULE).read_bytes()
+    selected_raw = os.environ.get('DSHA_TEST_RUNTIME')
+    if not selected_raw:
+        pointer = json.loads((ROOT / 'app/build/test-runtimes/current.json').read_text(encoding='utf8'))
+        selected_raw = pointer['raw']
+    canonical = (Path(selected_raw) / 'node_modules' / MODULE).read_bytes()
     assert sha(canonical) == recipe['sourceSha256'], 'LOCKED_SEARCH_MODULE_IDENTITY'
     expected = runtime_stable_patches.apply(canonical, chain)
     assert sha(expected) == recipe['patchedSha256'], 'FINAL_SEARCH_MODULE_IDENTITY'

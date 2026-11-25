@@ -164,13 +164,11 @@ public final class AutomaticBackupActivity extends AppCompatActivity {
     settings.addView(timingHint);
     TextView localHint =
         page.text(
-            t(
-                "自动副本与本机密钥在卸载时会清除。换机或卸载前，请导出无需密码的 tar.gz 并保存到应用外。",
-                "Local copies and their device key are removed when the app is uninstalled. Export a tar.gz without a password and save it outside the app before moving or uninstalling."),
+            getString(com.deepseekharness.app.R.string.portable_automatic_help),
             11,
             R.color.text_muted);
     localHint.setPadding(0, page.dp(10), 0, 0);
-    // 行内只留卸载会清除；换机前导出无密码备份的做法收进 ⓘ。
+    // 行内只留卸载会清除；换机前导出可移机备份的做法收进 ⓘ。
     InfoHint.attach(localHint, t("本机副本 · 保留最近 3 份", "Local copies · latest 3 kept"));
     settings.addView(localHint);
     state = page.text("", 12, R.color.text_secondary);
@@ -190,11 +188,12 @@ public final class AutomaticBackupActivity extends AppCompatActivity {
             state.setText(t("请先打开自动备份", "Enable automatic backups first"));
             return;
           }
-          AutomaticBackups.request(this, true);
           state.setText(
-              t(
-                  "已安排，稍后查看结果",
-                  "Scheduled. DSH and terminals must be stopped. Refresh shortly to view the result."));
+              AutomaticBackups.requestNow(this)
+                  ? t(
+                      "已安排，稍后查看结果",
+                      "Scheduled. DSH and terminals must be stopped. Refresh shortly to view the result.")
+                  : UiText.text("系统未接受备份任务，请稍后再试"));
         });
     page.button(page.footer, t("刷新备份记录", "Refresh backup records"), false, this::refresh);
     setContentView(page.root);
@@ -242,7 +241,7 @@ public final class AutomaticBackupActivity extends AppCompatActivity {
         });
     sheet.button(
         sheet.footer,
-        t("导出无密码备份", "Export backup without a password"),
+        getString(com.deepseekharness.app.R.string.portable_export_label),
         false,
         () -> {
           if (drawer[0] != null) drawer[0].dismiss();
@@ -330,7 +329,8 @@ public final class AutomaticBackupActivity extends AppCompatActivity {
                                       () -> openCopy("auto_restore_id", copy.id)),
                                   SwipeAction.Action.of(
                                       t("导出", "Export"),
-                                      t("导出无密码备份", "Export backup without a password"),
+                                      getString(
+                                          com.deepseekharness.app.R.string.portable_export_label),
                                       R.drawable.ic_ui_export,
                                       () -> openCopy("auto_export_id", copy.id))));
                           // F1：备份记录列表首次出现前 8 条错峰，刷新重排不重放。

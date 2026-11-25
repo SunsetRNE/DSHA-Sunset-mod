@@ -1,5 +1,6 @@
 package com.deepseekharness.app.runtime;
 
+import com.deepseekharness.app.backup.BackupArchive;
 import com.deepseekharness.app.backup.BackupFileSystem;
 import com.deepseekharness.app.backup.BackupJson;
 import com.deepseekharness.app.util.Constants;
@@ -9,7 +10,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -25,6 +25,7 @@ final class Rc1MigrationCache {
   static final class Reuse {
     enum Status {
       REUSABLE_HISTORY,
+      HANDOFF_UNVERIFIED,
       NEW_INPUT,
       ABSENT,
       UNAVAILABLE
@@ -68,6 +69,19 @@ final class Rc1MigrationCache {
       return of(Status.ABSENT, null);
     }
 
+    static Reuse handoffUnverified(String generation) {
+      return new Reuse(
+          Status.HANDOFF_UNVERIFIED,
+          generation,
+          "MIGRATION_HISTORY_HANDOFF_UNVERIFIED",
+          "unknown",
+          null,
+          null,
+          null,
+          null,
+          Map.of());
+    }
+
     static Reuse newInput(Map<String, String> inputs) {
       return new Reuse(Status.NEW_INPUT, null, null, "unknown", null, null, null, null, inputs);
     }
@@ -99,14 +113,23 @@ final class Rc1MigrationCache {
   private Rc1MigrationCache() {}
 
   static Reuse reuse(BackupFileSystem fs, File files, File home) {
+    return inspect(fs, files, home, null);
+  }
+
+  static Reuse prepare(BackupFileSystem fs, File files, File home, String startupId) {
+    return inspect(fs, files, home, startupId == null ? "" : startupId);
+  }
+
+  private static Reuse inspect(BackupFileSystem fs, File files, File home, String startupId) {
     try {
-      return detect(fs, files, home);
+      return detect(fs, files, home, startupId);
     } catch (IOException | RuntimeException unavailable) {
       return Reuse.unavailable("MIGRATION_REUSE_UNREADABLE");
     }
   }
 
-  private static Reuse detect(BackupFileSystem fs, File files, File home) throws IOException {
+  private static Reuse detect(BackupFileSystem fs, File files, File home, String startupId)
+      throws IOException {
     String prefix = files.getAbsolutePath() + File.separator;
     if (!home.getAbsolutePath().startsWith(prefix))
       return Reuse.unavailable("MIGRATION_REUSE_HOME_AUTHORITY");
@@ -192,14 +215,25 @@ final class Rc1MigrationCache {
       ledgerDigest =
           digest(ledgerDigestMaterial(generation, settingsSha256, evidence.state, ledger));
     }
-    return Reuse.history(
-        generation,
-        settingsImportStatus,
-        settingsSha256,
-        (String) prepared.get("inputDigest"),
-        ledgerDigest,
-        (String) prepared.get("dshVersion"),
-        inputs);
+    Reuse history =
+        Reuse.history(
+            generation,
+            settingsImportStatus,
+            settingsSha256,
+            (String) prepared.get("inputDigest"),
+            ledgerDigest,
+            (String) prepared.get("dshVersion"),
+            inputs);
+    if (startupId != null) {
+      // This detection is the pre-write proof. The handoff still requires a
+      // fresh proof after atomic publication and exact readback of this startup.
+      try {
+        publishHistory(fs, files, home, state, current, history, startupId);
+      } catch (IOException | RuntimeException unverified) {
+        return Reuse.handoffUnverified(generation);
+      }
+    }
+    return history;
   }
 
   private static boolean completedGeneration(BackupFileSystem fs, File state) throws IOException {
@@ -256,13 +290,26 @@ final class Rc1MigrationCache {
   static void bindHistory(
       BackupFileSystem fs, File files, File home, Reuse expected, String startupId)
       throws IOException {
-    if (startupId == null || startupId.isEmpty() || startupId.length() > 128)
-      throw new IOException("MIGRATION_STARTUP_ID_INVALID");
     File state = fs.child(files, "rc1-migration-state");
     Map<String, Object> current = json(fs, state, "current.json");
     if (!sameHistory(expected, reuse(fs, files, home))
-        || !expected.generation.equals(current.get("generation"))
-        || !current.equals(json(fs, state, "current.json")))
+        || !expected.generation.equals(current.get("generation")))
+      throw new IOException("MIGRATION_HISTORY_CHANGED");
+    publishHistory(fs, files, home, state, current, expected, startupId);
+  }
+
+  private static void publishHistory(
+      BackupFileSystem fs,
+      File files,
+      File home,
+      File state,
+      Map<String, Object> current,
+      Reuse expected,
+      String startupId)
+      throws IOException {
+    if (startupId == null || startupId.isEmpty() || startupId.length() > 128)
+      throw new IOException("MIGRATION_STARTUP_ID_INVALID");
+    if (!current.equals(json(fs, state, "current.json")))
       throw new IOException("MIGRATION_HISTORY_CHANGED");
     Map<String, Object> proof = new LinkedHashMap<>();
     proof.put("generation", expected.generation);
@@ -368,26 +415,10 @@ final class Rc1MigrationCache {
   }
 
   private static String digest(String material) {
-    try {
-      byte[] digest =
-          java.security.MessageDigest.getInstance("SHA-256")
-              .digest(material.getBytes(StandardCharsets.UTF_8));
-      StringBuilder value = new StringBuilder();
-      for (byte b : digest) value.append(String.format(Locale.ROOT, "%02x", b & 255));
-      return value.toString();
-    } catch (java.security.NoSuchAlgorithmException error) {
-      throw new IllegalStateException(error);
-    }
+    return hash(material.getBytes(StandardCharsets.UTF_8));
   }
 
   private static String hash(byte[] bytes) {
-    try {
-      byte[] digest = java.security.MessageDigest.getInstance("SHA-256").digest(bytes);
-      StringBuilder value = new StringBuilder();
-      for (byte b : digest) value.append(String.format(Locale.ROOT, "%02x", b & 255));
-      return value.toString();
-    } catch (java.security.NoSuchAlgorithmException error) {
-      throw new IllegalStateException(error);
-    }
+    return BackupArchive.hex(BackupArchive.sha().digest(bytes));
   }
 }

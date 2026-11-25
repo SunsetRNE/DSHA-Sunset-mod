@@ -26,6 +26,6 @@ final class LanRequestOrigin {
         && !sites.get(0).equalsIgnoreCase("same-origin")
         && !sites.get(0).equalsIgnoreCase("none")) return false;
     if (origins.isEmpty()) return !websocket;
-    return ("http://" + expectedHost).equals(origins.get(0));
+    return ("https://" + expectedHost).equals(origins.get(0));
   }
 }

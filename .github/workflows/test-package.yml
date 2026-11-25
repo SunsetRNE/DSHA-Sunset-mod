@@ -178,6 +178,7 @@ jobs:
           python3 tools/verify-dsh-upgrade-apk.py "$apk" > out/apk-runtime-verification.txt
           python3 tools/verify-recovery-apk.py "$apk" > out/apk-recovery-verification.txt
           python3 tools/verify-third-party-apk.py "$apk" --output out/third-party-apk.json
+          python3 tools/proot_source_distribution.py --apk "$apk" --write-source out/dsha-proot-talloc-source.zip
           python3 tools/verify-apk-managed-assets.py "$apk" > out/apk-managed-assets.txt
           printf 'apk=%s\ncert=%s\npackage=%s\n' "$apk" "$cert" "$package" >> "$GITHUB_OUTPUT"
       - name: Remove test private key
@@ -226,6 +227,7 @@ jobs:
           }
           Path('out/build-info.json').write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
           names = [apk.name, 'build-info.json', 'test-cert.pem']
+          names.append('dsha-proot-talloc-source.zip')
           Path('out/SHA256SUMS').write_text(''.join(
               hashlib.sha256((Path('out') / name).read_bytes()).hexdigest() + '  ' + name + '\n' for name in names),
               encoding='utf-8')
@@ -254,6 +256,7 @@ jobs:
             out/apk-runtime-verification.txt
             out/apk-recovery-verification.txt
             out/third-party-apk.json
+            out/dsha-proot-talloc-source.zip
             out/apk-managed-assets.txt
           if-no-files-found: error
           retention-days: 14

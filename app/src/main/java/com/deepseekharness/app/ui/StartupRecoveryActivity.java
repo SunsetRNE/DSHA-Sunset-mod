@@ -151,7 +151,8 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
   }
 
   private static Failure failure(StartupHistoryStore.Entry entry) {
-    return StartupRecoveryState.classify(entry.reason, entry.zhLog, entry.backendReadyMs >= 0);
+    return StartupRecoveryState.classify(
+        entry.reason, entry.zhLog, entry.backendReadyMs >= 0, entry.failureCode);
   }
 
   private boolean pending() {
@@ -194,14 +195,19 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
     in.environmentReady = environmentReady;
     in.starting = controller.isStarting();
     in.running = controller.isWebRunning();
+    ConfigStore config = controller.config();
+    String storedCode = config.getWebFailureCode();
     StartupHistoryStore.Entry entry = latest();
-    if (entry != null) {
+    // The recovery flag and prefs are available before the final history write reaches disk.
+    if (Rc1MigrationResult.isReviewCode(storedCode))
+      in.storedFailure =
+          StartupRecoveryState.classify(config.getWebFailureReason(), "", false, storedCode);
+    else if (entry != null) {
       in.latest = outcome(entry);
       if (in.latest == Outcome.FAILED || in.latest == Outcome.LOST_AFTER_READY)
         in.latestFailure = failure(entry);
-    } else if (!controller.config().getWebFailureReason().isEmpty())
-      in.storedFailure =
-          StartupRecoveryState.classify(controller.config().getWebFailureReason(), "", false);
+    } else if (!config.getWebFailureReason().isEmpty())
+      in.storedFailure = StartupRecoveryState.classify(config.getWebFailureReason(), "", false);
     failure[0] = in.latestFailure != null ? in.latestFailure : in.storedFailure;
     return StartupRecoveryState.page(in);
   }
@@ -248,10 +254,12 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
   private String meta(Kind kind, StartupHistoryStore.Entry entry, String stage) {
     List<String> parts = new ArrayList<>();
     if (kind == Kind.STARTING && !stage.isEmpty()) parts.add(t("当前阶段：", "Current stage: ") + stage);
-    else if (kind.tone == Tone.BAD && entry != null) {
+    else if (kind == Kind.MIGRATION_REVIEW || kind.tone == Tone.BAD && entry != null) {
       if (controller.config().isStartupRecoveryRequested())
         parts.add(t("启动失败后自动打开", "Opened automatically after a failed start"));
-      if (!entry.stage.isEmpty()) parts.add(t("失败阶段：", "Failed stage: ") + entry.stage);
+      String failedStage =
+          kind == Kind.MIGRATION_REVIEW ? StartupRecoveryState.migrationReviewStage() : entry.stage;
+      if (!failedStage.isEmpty()) parts.add(t("失败阶段：", "Failed stage: ") + failedStage);
     } else if (kind == Kind.IDLE || kind == Kind.STOPPED || kind == Kind.RUNNING) {
       for (StartupHistoryStore.Entry e : model.attempts) {
         Outcome o = outcome(e);
@@ -270,7 +278,10 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
   private void renderStatus(
       Kind kind, Failure failure, boolean taskBusy, JSONObject healthy, String stage) {
     String subject = failure == null ? "" : failure.subject;
-    String detail = StartupRecoveryState.detail(kind);
+    String detail =
+        kind == Kind.MIGRATION_REVIEW && failure != null
+            ? StartupRecoveryState.migrationReviewDetail(failure.code)
+            : StartupRecoveryState.detail(kind);
     if (kind == Kind.FAILED && failure != null && !failure.raw.isEmpty())
       detail += "\n" + StartupText.render(failure.raw);
     String code = kind.code;
@@ -307,11 +318,13 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
     layout.recovery.removeAllViews();
     List<Act> recovery = new ArrayList<>();
     if (kind == Kind.PENDING) recovery.add(recover());
-    if (kind != Kind.IDLE && kind != Kind.STOPPED) recovery.add(retry());
-    else recovery.add(start());
-    recovery.add(safe());
-    recovery.add(newConfiguration());
-    recovery.add(restoreLatest(healthy));
+    if (kind != Kind.MIGRATION_REVIEW) {
+      if (kind != Kind.IDLE && kind != Kind.STOPPED) recovery.add(retry());
+      else recovery.add(start());
+      recovery.add(safe());
+      recovery.add(newConfiguration());
+      recovery.add(restoreLatest(healthy));
+    }
     recovery.add(
         new Act(
             t("启动独立应急 DSH", "Start independent emergency DSH"),
@@ -379,6 +392,8 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
         return removable(subject) ? List.of(uninstall(subject), safe()) : List.of(safe(), logs());
       case REGISTER:
         return List.of(retry(), logs());
+      case MIGRATION_REVIEW:
+        return List.of(retainedData(), logs());
       case PAGE:
       case FAILED:
         return List.of(safe(), logs());
@@ -496,6 +511,15 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
         "",
         null,
         () -> startActivity(DiagnosticActivity.downloadLogs(this)));
+  }
+
+  private Act retainedData() {
+    return new Act(
+        t("保留副本与旧环境", "Retained copies and old environments"),
+        R.drawable.ic_recovery_database,
+        "",
+        null,
+        () -> startActivity(new Intent(this, RetainedDataActivity.class)));
   }
 
   private Act hostBackup() {
@@ -742,8 +766,14 @@ public final class StartupRecoveryActivity extends AppCompatActivity {
       body.append("\n")
           .append(failure.kind.code)
           .append(failure.code.isEmpty() ? "" : " · " + failure.code);
-    if (!entry.stage.isEmpty()) body.append("\n\n").append(entry.stage);
-    if (!entry.reason.isEmpty()) body.append("\n\n").append(StartupText.render(entry.reason));
+    String stage =
+        failure != null && failure.kind == Kind.MIGRATION_REVIEW
+            ? StartupRecoveryState.migrationReviewStage()
+            : entry.stage;
+    if (!stage.isEmpty()) body.append("\n\n").append(stage);
+    if (failure != null && failure.kind == Kind.MIGRATION_REVIEW)
+      body.append("\n\n").append(StartupRecoveryState.migrationReviewDetail(failure.code));
+    else if (!entry.reason.isEmpty()) body.append("\n\n").append(StartupText.render(entry.reason));
     body.append("\n\n").append(entry.log);
     text.setText(body.toString());
     scroll.addView(text);

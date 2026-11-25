@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="portable_password">備份密碼</string>
+    <string name="portable_password_confirm">再次輸入備份密碼</string>
+    <string name="portable_password_help">請單獨保管密碼。換機還原時需要此密碼，DSHA 無法找回。</string>
+    <string name="portable_password_length">請輸入 12 至 1024 個字元。</string>
+    <string name="portable_password_mismatch">兩次輸入的密碼不同。</string>
+    <string name="portable_export_summary">用備份密碼保護 tar.gz 檔案，可在新裝置上還原。</string>
+    <string name="portable_included_secrets">備份範圍可能包含聊天、附件和檔案中儲存的憑證。</string>
+    <string name="portable_import_summary">請選擇備份檔案。加密備份需要密碼，驗證後由你確認還原範圍。</string>
+    <string name="portable_password_restore_help">請輸入建立這份備份時使用的密碼。</string>
+    <string name="portable_rescue_diagnostics">加密救援匯出只包含備份資料。選擇明文匯出時會附上可用的診斷摘要。</string>
+    <string name="portable_keep_password">副本將使用原密碼重新匯出。在新裝置上輸入原密碼即可還原。</string>
+    <string name="portable_plain_opt_in">為相容性匯出明文。取得檔案的人能讀取所有備份內容，包括聊天與附件內的秘密。</string>
+    <string name="portable_export_label">匯出可移機備份</string>
+    <string name="portable_automatic_help">解除安裝會清除自動副本與本機金鑰。換機或解除安裝前，請用自己的備份密碼匯出並儲存至應用程式外。</string>
+    <string name="portable_retry_password">重新輸入密碼</string>
+</resources>

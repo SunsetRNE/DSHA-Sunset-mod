@@ -87,6 +87,113 @@ public class HostOperationArchiveTest {
   }
 
   @Test
+  public void interruptedSessionDropsOnlyDerivedSlotsAndRetainsInputsAndRollback()
+      throws Exception {
+    File files = temp.newFolder(), root = HostOperationArchive.reserve(fs, files);
+    String id = UUID.randomUUID().toString();
+    File operation = terminalAt(root, id);
+    Map<String, Object> record =
+        BackupJson.read(fs.small(fs.child(operation, "operation.json"), 16384), 16384);
+    record.put("busy", true);
+    record.put("stage", "AUTHENTICATING");
+    fs.atomic(operation, "operation.json", BackupJson.write(record, 16384));
+    List<String> scratch =
+        List.of(
+            "capture",
+            "snapshot.dshdata",
+            "restore.dshdata",
+            "transport.dshbak",
+            "export.tar.gz",
+            "export-verified.dshbak",
+            "reexport-authenticated.dshdata",
+            "reexport-plain.dshbak");
+    for (String name : scratch) fs.atomic(operation, name, "synthetic".getBytes());
+    for (String name : List.of("input.archive", "portable.dshbak", "unrecognized"))
+      fs.atomic(operation, name, "original".getBytes());
+    for (String name : List.of("previous", "failed", "candidate", "legacy-payload", "payload")) {
+      File sub = fs.child(operation, name);
+      fs.directory(sub);
+      fs.atomic(sub, "0", "synthetic".getBytes());
+    }
+    TransactionMarkers.write(fs, operation, "switching", "MARKER");
+    HostOperationArchive.clearInterruptedCopies(fs, root, id);
+    for (String name : scratch) assertEquals("FILE", fs.stat(fs.child(operation, name)).type);
+    TransactionMarkers.write(fs, operation, "rolled-back", "MARKER");
+    HostOperationArchive.clearInterruptedCopies(fs, root, id);
+    for (String name : scratch) assertEquals("MISSING", fs.stat(fs.child(operation, name)).type);
+    for (String name : List.of("legacy-payload", "payload"))
+      assertEquals("MISSING", fs.stat(fs.child(operation, name)).type);
+    for (String name :
+        List.of(
+            "input.archive",
+            "portable.dshbak",
+            "unrecognized",
+            "previous/0",
+            "failed/0",
+            "candidate/0")) assertEquals("FILE", fs.stat(fs.child(operation, name)).type);
+  }
+
+  @Test
+  public void rotationMarkersPublishWholeBytesAndPreserveAnExistingMarker() throws Exception {
+    File files = temp.newFolder(), root = HostOperationArchive.reserve(fs, files);
+    File operation = terminalAt(root, UUID.randomUUID().toString());
+    for (String name :
+        List.of(
+            HostPendingTransactions.ROTATION_REQUIRED, HostPendingTransactions.ROTATION_COMPLETE)) {
+      var partial =
+          new JvmBackupFileSystem() {
+            @Override
+            public OutputStream create(File file) throws IOException {
+              OutputStream out = super.create(file);
+              if (!file.getName().startsWith(name + ".tmp-")) return out;
+              return new FilterOutputStream(out) {
+                @Override
+                public void write(byte[] b, int offset, int count) throws IOException {
+                  out.write(b, offset, Math.min(count, 2));
+                  throw new IOException("SYNTHETIC_SHORT_WRITE");
+                }
+              };
+            }
+          };
+      assertThrows(
+          IOException.class,
+          () -> TransactionMarkers.writeAtomic(partial, operation, name, "MARKER"));
+      assertFalse(TransactionMarkers.read(fs, operation, name, "MARKER"));
+      TransactionMarkers.writeAtomic(fs, operation, name, "MARKER");
+      File marker = fs.child(operation, name);
+      var original = fs.stat(marker);
+      TransactionMarkers.writeAtomic(partial, operation, name, "MARKER");
+      assertTrue(original.same(fs.stat(marker)));
+      assertTrue(TransactionMarkers.read(fs, operation, name, "MARKER"));
+      fs.atomic(operation, name, "unknown original".getBytes());
+      assertThrows(
+          IOException.class,
+          () -> TransactionMarkers.writeAtomic(partial, operation, name, "MARKER"));
+      assertEquals("unknown original", new String(fs.small(marker, 256)));
+    }
+  }
+
+  @Test
+  public void committedOrRolledBackRestoreRemainsPendingUntilRotationIsAcknowledged()
+      throws Exception {
+    for (String outcome : List.of("finalized", "rolled-back")) {
+      File files = temp.newFolder(), root = HostOperationArchive.reserve(fs, files);
+      String id = UUID.randomUUID().toString();
+      File operation = terminalAt(root, id);
+      fs.atomic(operation, "plan.json", BackupJson.write(Map.of("version", 1L, "id", id), 1024));
+      TransactionMarkers.write(fs, operation, HostPendingTransactions.ROTATION_REQUIRED, "MARKER");
+      assertEquals(List.of(operation), HostPendingTransactions.pending(fs, files));
+      TransactionMarkers.write(fs, operation, "switching", "MARKER");
+      TransactionMarkers.write(fs, operation, outcome, "MARKER");
+      assertFalse(HostOperationArchive.isTerminal(fs, operation, id));
+      assertEquals(List.of(operation), HostPendingTransactions.pending(fs, files));
+      TransactionMarkers.write(fs, operation, HostPendingTransactions.ROTATION_COMPLETE, "MARKER");
+      assertTrue(HostPendingTransactions.pending(fs, files).isEmpty());
+      assertTrue(HostOperationArchive.isTerminal(fs, operation, id));
+    }
+  }
+
+  @Test
   public void missingOperationRootHasNoHistoryRoots() throws Exception {
     File missing = new File(temp.newFolder(), "host-backup-operations");
     assertTrue(HostOperationArchive.roots(fs, missing).isEmpty());

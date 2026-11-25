@@ -231,13 +231,13 @@ final class LaunchLogPanel {
         text = (s.stage == null ? "" : s.stage) + " · " + seconds(s.elapsedMs);
         break;
       case READY:
-        tone = digest.issueCount > 0 ? R.color.shell_warn : R.color.shell_good;
+        tone = digest.startupIssueCount > 0 ? R.color.shell_warn : R.color.shell_good;
         text =
-            digest.issueCount > 0
+            digest.startupIssueCount > 0
                 ? UiText.format(
                     UiText.choose("已就绪 · 用时 %s · %s 项提示", "Ready · %s · %s notices"),
                     seconds(end),
-                    digest.issueCount)
+                    digest.startupIssueCount)
                 : UiText.format(UiText.choose("已就绪 · 用时 %s", "Ready · %s"), seconds(end));
         break;
       case FAILED:
@@ -320,8 +320,9 @@ final class LaunchLogPanel {
       text =
           UiText.format(
               UiText.choose(
-                  "%s 行原文 → %s 个阶段 · 计时 %s 条归入明细", "%s lines → %s stages · %s timings in details"),
-              digest.lineCount,
+                  "%s 行启动日志 → %s 个阶段 · 计时 %s 条归入明细",
+                  "%s startup lines → %s stages · %s timings in details"),
+              digest.startupLineCount,
               digest.stages.size(),
               digest.timingCount);
     }
@@ -438,10 +439,12 @@ final class LaunchLogPanel {
     overview.removeAllViews();
     runningDuration = null;
     if (digest.stages.isEmpty()) {
-      overview.addView(
-          empty(
-              UiText.choose(
-                  "还没有日志。点按「启动」后这里按阶段显示。", "No log yet. Stages appear here after you start.")));
+      String message =
+          snapshot.browserReady
+              ? cutoffLabel(snapshot.browserReadyMs)
+              : UiText.choose(
+                  "还没有日志。点按「启动」后这里按阶段显示。", "No log yet. Stages appear here after you start.");
+      overview.addView(empty(message));
       return;
     }
     long total = Math.max(1, StartupLogDigest.endMs(snapshot, outcome));
@@ -673,13 +676,20 @@ final class LaunchLogPanel {
     int indent = Math.round(paint.measureText(repeat(' ', slotChars + 1)));
     int available = raw.getWidth() - raw.getPaddingLeft() - raw.getPaddingRight() - indent;
     int shown = 0;
+    long cutoff = snapshot.elapsedMs;
+    boolean cutoffPending = snapshot.browserReady || snapshot.ended;
+    String runtimeLine = UiText.choose("运行期 +%s · %s", "Runtime +%s · %s");
     for (int i = 0; i < entries.size(); i++) {
+      StartupTrace.Entry entry = entries.get(i);
+      if (cutoffPending && (entry.runtimeMs >= 0 || entry.atMs > cutoff)) {
+        appendCutoff(text, cutoff);
+        cutoffPending = false;
+      }
       StartupLogDigest.LineClass cls = digest.lineClasses.get(i);
       if (filter == Filter.NO_TIMING && cls == StartupLogDigest.LineClass.TIMING) continue;
       if (filter == Filter.ISSUES
           && cls != StartupLogDigest.LineClass.WARN
           && cls != StartupLogDigest.LineClass.BAD) continue;
-      StartupTrace.Entry entry = entries.get(i);
       if (text.length() > 0) text.append('\n');
       int start = text.length();
       rawOffsets[i] = start;
@@ -692,6 +702,7 @@ final class LaunchLogPanel {
           bodyStart,
           Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
       String body = rawBody(entry);
+      if (entry.runtimeMs >= 0) body = UiText.format(runtimeLine, seconds(entry.runtimeMs), body);
       CharSequence shownBody =
           !wrap && available > 0
               ? TextUtils.ellipsize(
@@ -718,14 +729,36 @@ final class LaunchLogPanel {
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
       shown++;
     }
-    if (shown == 0)
+    if (cutoffPending) appendCutoff(text, cutoff);
+    if (shown == 0) {
+      if (text.length() > 0) text.append('\n');
       text.append(
           filter == Filter.ISSUES
               ? UiText.choose("没有失败或跳过的行。", "No failed or skipped lines.")
               : UiText.choose("还没有日志。", "No log yet."));
+    }
     if (!note.isEmpty()) text.append("\n\n").append(note);
     raw.setText(text);
     raw.setHorizontallyScrolling(false);
+  }
+
+  /** 截止标记来自本次启动的里程碑，旧行被轮换后也能显示。它不属于复制或导出的原文。 */
+  private void appendCutoff(SpannableStringBuilder text, long cutoffMs) {
+    if (text.length() > 0) text.append('\n');
+    int start = text.length();
+    text.append(cutoffLabel(cutoffMs));
+    text.setSpan(
+        new ForegroundColorSpan(color(R.color.shell_text_muted)),
+        start,
+        text.length(),
+        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    text.setSpan(
+        new StyleSpan(Typeface.BOLD), start, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+  }
+
+  private static String cutoffLabel(long cutoffMs) {
+    return UiText.format(
+        UiText.choose("启动计时截止 · %s", "Startup timing ended · %s"), seconds(cutoffMs));
   }
 
   /** 原始正文：阶段行用与原文一致的完整句子，其余去掉时间前缀。 */

@@ -3,15 +3,19 @@ package com.deepseekharness.app;
 import static org.junit.Assert.*;
 
 import android.app.Application;
+import android.content.ContentResolver;
 import android.content.pm.ProviderInfo;
 import android.database.Cursor;
 import android.os.CancellationSignal;
 import android.os.OperationCanceledException;
+import android.provider.DocumentsContract;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
 import android.system.StructStat;
 import com.deepseekharness.app.backup.BackupFileSystem;
+import com.deepseekharness.app.backup.DocumentStreams;
+import com.deepseekharness.app.backup.BackupControl;
 import com.deepseekharness.app.backup.JvmBackupFileSystem;
 import com.deepseekharness.app.core.RuntimeTasks;
 import java.io.File;
@@ -29,6 +33,7 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
+import org.robolectric.shadows.ShadowContentResolver;
 
 /** Real provider queries and isolated disk snapshots; host links are explicit fixture facts. */
 @RunWith(DocumentRowsSnapshotTest.NoApkRunner.class)
@@ -79,6 +84,7 @@ public final class DshaDocumentsProviderTest {
     final File base;
     final Map<String, String> links = new HashMap<>();
     Runnable read = () -> {};
+    int childQueries;
 
     Provider(File base) {
       this.base = base;
@@ -98,6 +104,13 @@ public final class DshaDocumentsProviderTest {
     protected String link(File file) throws IOException {
       read.run();
       return links.get(file.getPath());
+    }
+
+    @Override
+    public Cursor queryChildDocuments(String id, String[] projection, String sort)
+        throws FileNotFoundException {
+      childQueries++;
+      return super.queryChildDocuments(id, projection, sort);
     }
   }
 
@@ -131,6 +144,119 @@ public final class DshaDocumentsProviderTest {
       assertTrue(cursor.moveToLast());
       assertEquals("file-299.txt", cursor.getString(0));
       assertTrue(cursor.getNotificationUri().toString().endsWith("/document/root/children"));
+    }
+    assertFalse(RuntimeTasks.isBusy());
+  }
+
+  @Test
+  public void workspacePagesReuseTheEnumerationUntilTheDirectoryChanges() throws Exception {
+    Provider provider = provider();
+    String authority = "io.github.sunsetrne.dsha.documents";
+    ShadowContentResolver.registerProviderInternal(authority, provider);
+    ContentResolver resolver = RuntimeEnvironment.getApplication().getContentResolver();
+    for (int n = 0; n < 401; n++)
+      file(provider, String.format(java.util.Locale.ROOT, "%03d.txt", n));
+    int[] fileReads = {0};
+    provider.read = () -> fileReads[0]++;
+    long started = System.nanoTime();
+    long first = 0;
+    for (int offset : new int[] {0, 200, 400, 200, 0}) {
+      try (Cursor cursor =
+          DocumentStreams.query(
+              resolver,
+              DocumentsContract.buildChildDocumentsUri(authority, "root"),
+              null,
+              new BackupControl(null))) {
+        checkPage(cursor, offset);
+        if (provider.childQueries == 1) first = System.nanoTime() - started;
+      }
+    }
+    assertEquals(5, provider.childQueries);
+    System.out.println(
+        "workspace original pages=5 queries="
+            + provider.childQueries
+            + " pathChecks="
+            + fileReads[0]
+            + " firstNs="
+            + first
+            + " completeNs="
+            + (System.nanoTime() - started));
+    int repeatedReads = fileReads[0];
+    fileReads[0] = 0;
+    provider.childQueries = 0;
+    started = System.nanoTime();
+    try (DshaDocumentsProvider.WorkspaceListing listing =
+        DshaDocumentsProvider.WorkspaceListing.open(
+            resolver, authority, "root", null, new BackupControl(null))) {
+      first = 0;
+      for (int offset : new int[] {0, 200, 400, 200, 0}) {
+        assertTrue(listing.current("root"));
+        checkPage(listing.cursor, offset);
+        if (first == 0) first = System.nanoTime() - started;
+      }
+      assertEquals(1, provider.childQueries);
+      System.out.println(
+          "workspace reused pages=5 queries="
+              + provider.childQueries
+              + " pathChecks="
+              + fileReads[0]
+              + " firstNs="
+              + first
+              + " completeNs="
+              + (System.nanoTime() - started));
+      assertTrue(fileReads[0] * 3 < repeatedReads);
+      assertFalse(listing.current("elsewhere"));
+      long originalMtime = provider.base.lastModified();
+      file(provider, "new.txt");
+      assertTrue(provider.base.setLastModified(originalMtime + 3000));
+      assertFalse(listing.current("root"));
+    }
+    try (DshaDocumentsProvider.WorkspaceListing fresh =
+        DshaDocumentsProvider.WorkspaceListing.open(
+            resolver, authority, "root", null, new BackupControl(null))) {
+      assertEquals(402, fresh.cursor.getCount());
+      assertTrue(fresh.cursor.moveToLast());
+      assertEquals("new.txt", fresh.cursor.getString(2));
+    }
+    assertFalse(RuntimeTasks.isBusy());
+  }
+
+  private static void checkPage(Cursor cursor, int offset) {
+    cursor.moveToPosition(offset - 1);
+    int visited = 0;
+    while (visited < 200 && cursor.moveToNext()) {
+      String expected = String.format(java.util.Locale.ROOT, "%03d.txt", offset + visited);
+      assertEquals(expected, cursor.getString(0));
+      assertEquals(expected, cursor.getString(2));
+      assertEquals(7, cursor.getLong(5));
+      visited++;
+    }
+    assertEquals(Math.min(200, 401 - offset), visited);
+    assertEquals(offset + visited < 401, cursor.moveToNext());
+  }
+
+  @Test
+  public void workspaceListingSeesInPlaceWritesAndLaterPageCancellation() throws Exception {
+    Provider provider = provider();
+    String authority = "io.github.sunsetrne.dsha.documents";
+    ShadowContentResolver.registerProviderInternal(authority, provider);
+    file(provider, "work.txt");
+    ContentResolver resolver = RuntimeEnvironment.getApplication().getContentResolver();
+    BackupControl first = new BackupControl(null);
+    try (DshaDocumentsProvider.WorkspaceListing listing =
+        DshaDocumentsProvider.WorkspaceListing.open(resolver, authority, "root", null, first)) {
+      assertTrue(listing.current("root"));
+      Files.writeString(new File(provider.base, "work.txt").toPath(), "larger fixture");
+      long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+      while (listing.current("root") && System.nanoTime() < deadline) Thread.sleep(10);
+      assertFalse(listing.current("root"));
+      BackupControl later = new BackupControl(null);
+      try (AutoCloseable linked = listing.cancelWith(later)) {
+        later.cancel();
+        assertTrue(first.isCancelled());
+        assertFalse(listing.current("root"));
+        assertThrows(OperationCanceledException.class, listing.cursor::moveToFirst);
+      }
     }
     assertFalse(RuntimeTasks.isBusy());
   }

@@ -344,10 +344,10 @@ export function createPanelExit(layout: unknown): PanelExit {
    * panelLeavingOwner and for the frame marker one function up.
    */
   function freezePanel(panel: HTMLElement): HTMLElement {
-    finishGhost()
     const ghost = document.createElement('div')
     ghost.dataset.mobileNav = PANEL_GHOST_VALUE
     ghost.setAttribute('aria-hidden', 'true')
+    ghost.setAttribute('inert', '')
     ghost.append(panel.cloneNode(true))
     document.body.append(ghost)
     return ghost
@@ -360,10 +360,14 @@ export function createPanelExit(layout: unknown): PanelExit {
     panelLeavingOwner = owner
     // The marker goes on BEFORE the swap: the incoming conversation must carry its
     // reveal from its first style resolution (no full-opacity frame).
-    const frame = getFrame()
-    if (frame !== null) frame.setAttribute(PANEL_EXIT_ATTR, '')
-    const panel = panelElement()
-    ghost = panel === null ? null : freezePanel(panel)
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+    finishGhost()
+    if (!reduceMotion) {
+      const frame = getFrame()
+      if (frame !== null) frame.setAttribute(PANEL_EXIT_ATTR, '')
+      const panel = panelElement()
+      ghost = panel === null ? null : freezePanel(panel)
+    }
     // Commit on this very tick — the whole point of the snapshot is that the
     // remount no longer waits for any animation to finish.
     // 2026-10-13：selectPanel 由**宿主**实现，可能抛。它排在本行的上面（冻结全屏快照）
@@ -377,7 +381,8 @@ export function createPanelExit(layout: unknown): PanelExit {
       // this handler returns, and by then the animation objects exist.
       settleRaf = requestAnimationFrame(() => {
         settleRaf = 0
-        armExit(0)
+        if (reduceMotion) finishMain()
+      else armExit(0)
       })
       if (ghost !== null) {
         const owned = ghost
@@ -385,8 +390,8 @@ export function createPanelExit(layout: unknown): PanelExit {
           if (event.animationName === 'dsh-web-mobile-panel-ghost-out') finishGhost()
         }
         owned.addEventListener('animationend', ghostEnd, true)
-        // Fallback: reduced-motion kills the animation, and a layer left behind
-        // would cover the whole screen — never rely on animationend alone.
+        // Fallback: settings can change mid-animation, or the browser
+        // may skip animationend if the layer is detached.
         ghostTimer = window.setTimeout(finishGhost, PANEL_GHOST_MS + 120)
       }
     }

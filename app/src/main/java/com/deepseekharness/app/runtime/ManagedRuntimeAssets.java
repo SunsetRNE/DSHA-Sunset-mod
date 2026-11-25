@@ -2,10 +2,13 @@ package com.deepseekharness.app.runtime;
 
 import android.content.Context;
 import com.deepseekharness.app.backup.AndroidBackupFileSystem;
+import com.deepseekharness.app.backup.BackupArchive;
+import com.deepseekharness.app.backup.BackupFileSystem;
 import com.deepseekharness.app.backup.BackupControl;
 import com.deepseekharness.app.backup.BackupJson;
 import com.deepseekharness.app.backup.BackupTree;
 import com.deepseekharness.app.backup.RuntimeDescriptor;
+import com.deepseekharness.app.backup.LegacyTarReader;
 import com.deepseekharness.app.util.Compat;
 import com.deepseekharness.app.util.ManagedRuntimeLayout;
 import com.deepseekharness.app.util.ManagedRuntimePaths;
@@ -166,28 +169,103 @@ final class ManagedRuntimeAssets {
     return ManagedRuntimePaths.enumerate(rootfs, rootfs, ALIAS_VIEW);
   }
 
-  List<String> stage(File stage, Consumer<String> progress) throws IOException {
+  List<String> stage(File stage, Consumer<String> progress, BackupControl control)
+      throws IOException {
     preparation.invalidate();
     File root = new File(stage, "linux/ubuntu");
     if (!root.mkdirs()) throw new IOException(UiText.text("无法建立独立运行时暂存目录"));
     final String prefix = ManagedRuntimeLayout.DSH;
     progress.accept(UiText.text("正在解压新版 dsh（保留现有 Ubuntu 与个人目录）…"));
-    try (ZipFile apk = new ZipFile(context.getPackageCodePath())) {
+    try (ZipFile apk = new ZipFile(context.getPackageCodePath());
+        var extraction = new AndroidTrustedAssetFileSystem(root)) {
+      var rootIdentity = extraction.stat(root);
       boolean split = apk.getEntry("assets/offline-rootfs.layout") != null;
       ZipEntry bundle = split ? apk.getEntry("assets/dsh-runtime.bin") : legacyArchive.find(apk);
       if (bundle == null) throw new IOException(UiText.text("APK 没有内置运行时"));
-      try (InputStream input = apk.getInputStream(bundle)) {
-        TarGzipExtractor.extractSelected(
-            input,
-            root,
-            0,
-            name ->
-                name.equals(prefix)
-                    || name.startsWith(prefix + "/")
-                    || ManagedRuntimeLayout.alias(name)
-                    || name.equals("usr/local/share/dsha/dsh-runtime.version"));
+      try {
+        try (InputStream input = apk.getInputStream(bundle)) {
+          TarGzipExtractor.extractSelected(
+              input,
+              root,
+              0,
+              name ->
+                  name.equals(prefix)
+                      || name.startsWith(prefix + "/")
+                      || ManagedRuntimeLayout.alias(name)
+                      || name.equals("usr/local/share/dsha/dsh-runtime.version"),
+              extraction,
+              control);
+        }
+        control.check();
+        return finishStage(stage, root, progress);
+      } catch (IOException | RuntimeException failure) {
+        try {
+          control.check();
+          if (split && !extraction.writtenFiles().isEmpty()) {
+            // 旧式合并包及跨进程暂存没有相同的逐文件出生证明，保留原件。
+            Object inputs = expectedDescriptor().json().get("inputs");
+            try (InputStream source = apk.getInputStream(bundle)) {
+              if (!(inputs instanceof Map<?, ?> hashes)
+                  || !BackupArchive.digest(source, control).equals(hashes.get("dsh-runtime.bin")))
+                throw new IOException("RUNTIME_STAGE_ARCHIVE_CHANGED");
+            }
+            try (InputStream source = apk.getInputStream(bundle)) {
+              reclaimStagedFiles(
+                  new AndroidBackupFileSystem(),
+                  root,
+                  rootIdentity,
+                  extraction.writtenFiles(),
+                  source,
+                  control);
+            }
+          }
+        } catch (IOException | RuntimeException retained) {
+          failure.addSuppressed(retained);
+        }
+        throw failure;
       }
     }
+  }
+
+  /** 本轮已创建 inode、内容与签名归档逐项一致才回收，未确认的路径保留。 */
+  static void reclaimStagedFiles(
+      BackupFileSystem fs,
+      File root,
+      BackupFileSystem.Node identity,
+      Map<String, BackupFileSystem.Node> written,
+      InputStream source,
+      BackupControl control)
+      throws IOException {
+    byte[] buffer = new byte[65536];
+    LegacyTarReader.readTrustedAssets(
+        source,
+        (member, body) -> {
+          var owned = written.get(member.path);
+          if (owned == null
+              || !member.type.equals("FILE")
+              || !owned.type.equals("FILE")
+              || owned.size != member.size
+              || owned.device != identity.device) return;
+          var current = fs.stat(root);
+          if (!current.type.equals("DIRECTORY")
+              || current.device != identity.device
+              || !current.key.equals(identity.key))
+            throw new IOException("RUNTIME_STAGE_ROOT_CHANGED");
+          File target = fs.child(root, member.path);
+          var node = fs.stat(target);
+          if (node.links != 1 || !owned.same(node)) return;
+          String expected = BackupArchive.digest(body, control, buffer);
+          try (InputStream existing = fs.read(target, owned)) {
+            if (!expected.equals(BackupArchive.digest(existing, control, buffer))) return;
+          }
+          control.check();
+          fs.deleteChecked(target, owned);
+        },
+        control);
+  }
+
+  private List<String> finishStage(File stage, File root, Consumer<String> progress)
+      throws IOException {
     progress.accept(UiText.text("正在准备新版内置插件和界面适配…"));
     RuntimeTools.stage(context, root);
     RuntimeTools.prepareBuiltinDependencies(root);

@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import android.content.ContentResolver;
 import android.os.Looper;
 import android.provider.Settings;
+import android.view.MotionEvent;
 import android.widget.TextView;
 import com.deepseekharness.app.DshaApp;
 import java.time.Duration;
@@ -146,6 +147,67 @@ public final class UiMotionTest {
     assertEquals(0f, view.getAlpha(), 0.001f);
     Shadow.<ShadowLooper>extract(Looper.getMainLooper()).idleFor(Duration.ofMillis(300));
     assertEquals(1f, view.getAlpha(), 0.001f);
+  }
+
+  @Test
+  public void timerTextAvoidsRepeatedWritesAndDoesNotFadeAtDigitBoundary() {
+    CountingTextView view = new CountingTextView();
+    view.setText("已用 9 秒");
+    int before = view.writes;
+    for (int index = 0; index < 30; index++) UiMotion.crossFadeTimerText(view, "已用 9 秒");
+    UiMotion.crossFadeTimerText(view, "已用 10 秒");
+    assertEquals("已用 10 秒", view.getText().toString());
+    assertEquals("text writes across 31 refreshes", 1, view.writes - before);
+    assertEquals(1f, view.getAlpha(), 0.001f);
+  }
+
+  @Test
+  public void smallCounterOnlyWritesWhenTheRenderedValueChanges() {
+    CountingTextView view = new CountingTextView();
+    view.setText("0");
+    int before = view.writes;
+    UiMotion.animateCounter(view, 1);
+    ShadowLooper.shadowMainLooper().idleFor(Duration.ofMillis(300));
+    assertEquals("1", view.getText().toString());
+    assertEquals("text writes across a 0→1 animation", 1, view.writes - before);
+  }
+
+  @Test
+  public void disabledMotionOnReleaseCancelsAnAlreadyShrunkButton() {
+    TextView view = view("运行");
+    view.setClickable(true);
+    UiMotion.pressScale(view);
+    sendTouch(view, MotionEvent.ACTION_DOWN);
+    ShadowLooper.shadowMainLooper().idleFor(Duration.ofMillis(120));
+    assertEquals(0.985f, view.getScaleX(), 0.001f);
+    // The transition scale can change while a button is held.
+    Settings.Global.putFloat(resolver, Settings.Global.TRANSITION_ANIMATION_SCALE, 0f);
+    sendTouch(view, MotionEvent.ACTION_CANCEL);
+    assertEquals(1f, view.getScaleX(), 0.001f);
+    assertEquals(1f, view.getScaleY(), 0.001f);
+  }
+
+  private static void sendTouch(TextView view, int action) {
+    MotionEvent event = MotionEvent.obtain(0L, 0L, action, 5f, 5f, 0);
+    try {
+      view.dispatchTouchEvent(event);
+    } finally {
+      event.recycle();
+    }
+  }
+
+  private static final class CountingTextView extends TextView {
+    int writes;
+
+    CountingTextView() {
+      super(RuntimeEnvironment.getApplication());
+    }
+
+    @Override
+    public void setText(CharSequence text, BufferType type) {
+      super.setText(text, type);
+      writes++;
+    }
   }
 
   @Test

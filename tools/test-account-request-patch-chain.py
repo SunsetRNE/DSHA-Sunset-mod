@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile production Java patch admission for account recipes and actual 2100 upgrade."""
+"""Compile production Java patch admission for account recipes and optional historical 2100 upgrade."""
 import argparse
 import hashlib
 import io
@@ -42,9 +42,15 @@ public final class AccountRequestChainFixture {
     for(String id:Files.readAllLines(root.resolve("modules.txt"))) {
       Path module=root.resolve(id);String expected=Files.readString(module.resolve("expected.js"));
       var chain=chain(module.resolve("chain"));
-      for(String input:List.of("canonical.js","expected.js","old-2100.js")) {
+      for(String input:List.of("canonical.js","expected.js","prior.js")) {
         String value=ManagedPatchChain.apply(Files.readString(module.resolve(input)),chain,()->{throw new AssertionError(input+" unexpectedly used canonical restore");});
         require(value.equals(expected),input+" differs");
+      }
+      if(Files.exists(module.resolve("old-2100.js"))) {
+        String historical=Files.readString(module.resolve("old-2100.js"));
+        int[] rebuilds={0};
+        String rebuilt=ManagedPatchChain.apply(historical,chain,()->{rebuilds[0]++;return expected;});
+        require(rebuilt.equals(expected)&&rebuilds[0]==1,"historical module must use the current canonical archive");
       }
       String fromArchive=ManagedPatchChain.apply("incomplete previous managed module",chain,()->expected);
       require(fromArchive.equals(expected),"new managed canonical rebuild differs");
@@ -56,7 +62,7 @@ public final class AccountRequestChainFixture {
         String exact=Files.readString(module.resolve("apk.js"));require(exact.equals(expected),"exact new APK archive differs");
         require(ManagedPatchChain.apply(exact,chain,()->{throw new AssertionError("exact APK restore");}).equals(expected),"exact APK repeat differs");
       }
-      System.out.println("PASS_ACCOUNT_CHAIN fresh/repeat/actual-2100-upgrade/canonical/failclosed "+Files.readString(module.resolve("name.txt")));
+      System.out.println("PASS_ACCOUNT_CHAIN fresh/repeat/current-prior/canonical/failclosed "+Files.readString(module.resolve("name.txt")));
     }
   }
 }
@@ -95,7 +101,7 @@ def write_chain(folder, chain):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--jdk', type=Path)
-    parser.add_argument('--old-apk', type=Path, help='read-only exact retained 2100 standard APK; otherwise use hash-pinned prior-chain modules')
+    parser.add_argument('--old-apk', type=Path, help='optional read-only exact retained 2100 Standard APK')
     parser.add_argument('--apk', type=Path, help='read-only exact new APK for final archive validation')
     args = parser.parse_args()
     if __debug__ is False:
@@ -103,11 +109,15 @@ def main():
     if args.old_apk:
         assert sha(args.old_apk.read_bytes()) == OLD_APK_SHA, 'OLD_2100_APK_IDENTITY'
     assets = ROOT / 'app/src/main/assets'
-    chains, _ = runtime_stable_patches.load_chains(assets, '0.2.1-rc.2')
+    version = json.loads((assets / 'runtime-patches.json').read_text(encoding='utf8'))['dshVersion']
+    chains, _ = runtime_stable_patches.load_chains(assets, version)
     registered = {name for rows in chains.values() for name, _, _ in rows}
     assert NAMES <= registered, 'ACCOUNT_RECIPES_MUST_BE_REGISTERED'
-    pointer = json.loads((ROOT / 'app/build/test-runtimes/current.json').read_text(encoding='utf8'))
-    raw = Path(pointer['raw']) / 'node_modules'
+    selected_raw = os.environ.get('DSHA_TEST_RUNTIME')
+    if not selected_raw:
+        pointer = json.loads((ROOT / 'app/build/test-runtimes/current.json').read_text(encoding='utf8'))
+        selected_raw = pointer['raw']
+    raw = Path(selected_raw) / 'node_modules'
     owned = Path(tempfile.mkdtemp(prefix='account-java-chain-', dir=ROOT / 'app/build'))
     old = archive(args.old_apk) if args.old_apk else None
     new = archive(args.apk) if args.apk else None
@@ -126,15 +136,20 @@ def main():
                     assert sha(canonical) == recipe['sourceSha256'], 'UNKNOWN_OFFICIAL_SOURCE'
             expected = runtime_stable_patches.apply(canonical, chain)
             prior_chain = [row for row in chain if row[0] not in NAMES]
-            old_bytes = module_bytes(old, module) if old else runtime_stable_patches.apply(canonical, prior_chain)
-            assert sha(old_bytes) == OLD_MODULE_SHA[module], 'PINNED_2100_MODULE_IDENTITY'
-            assert old_bytes == runtime_stable_patches.apply(canonical, prior_chain), 'ACTUAL_2100_NOT_PRIOR_CANONICAL: ' + module
-            for filename, data in [('canonical.js', canonical), ('old-2100.js', old_bytes), ('expected.js', expected), ('name.txt', module.encode())]:
+            prior = runtime_stable_patches.apply(canonical, prior_chain)
+            for filename, data in [('canonical.js', canonical), ('prior.js', prior), ('expected.js', expected), ('name.txt', module.encode())]:
                 (directory / filename).write_bytes(data)
+            old_sha = None
+            if old:
+                historical_module = module.replace('dsh-deepseek-account/lib', 'dsh-deepseek-account-platform/lib')
+                old_bytes = module_bytes(old, historical_module)
+                old_sha = sha(old_bytes)
+                assert old_sha == OLD_MODULE_SHA[historical_module], 'PINNED_2100_MODULE_IDENTITY'
+                (directory / 'old-2100.js').write_bytes(old_bytes)
             write_chain(directory / 'chain', chain)
             if new:
                 (directory / 'apk.js').write_bytes(module_bytes(new, module))
-            records.append(dict(module=module, sourceSha256=sha(canonical), old2100Sha256=sha(old_bytes), currentSha256=sha(expected), recipes=[name for name, _, _ in chain]))
+            records.append(dict(module=module, sourceSha256=sha(canonical), old2100Sha256=old_sha, currentPriorSha256=sha(prior), currentSha256=sha(expected), recipes=[name for name, _, _ in chain]))
     finally:
         if old:
             old.close()
@@ -159,7 +174,7 @@ def main():
     (owned / 'java.log').write_bytes(ran.stdout + ran.stderr)
     result = dict(status='PASS' if ran.returncode == 0 else 'FAIL', exitCode=ran.returncode, modules=records,
                   old2100ApkSha256=OLD_APK_SHA if args.old_apk else None,
-                  historicalInput='actual retained 2100 APK' if args.old_apk else 'reconstructed prior chain matched to module hashes from exact 2100 APK',
+                  historicalInput='actual retained 2100 APK' if args.old_apk else None,
                   apkSha256=sha(args.apk.read_bytes()) if args.apk else None,
                   productionAlgorithmSha256={name: sha((production / name).read_bytes()) for name in ['ManagedPatchChain.java', 'ExactTextPatch.java']},
                   deviceValidation=False, output=str(owned))

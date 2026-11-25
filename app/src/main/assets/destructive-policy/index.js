@@ -119,6 +119,7 @@ export function captureExecution(runtime, exec, tool) {
 function check(record, exec) {
   if (exec.signal?.aborted) consentFailure('DSHA_EXECUTION_CANCELLED', 'Execution cancellation arrived.', exec.signal.reason);
   if (!record || record.exec !== exec || exec.name !== record.name || exec.arguments !== record.arguments || exec.token !== record.token || exec.callId !== record.callId || exec.agent !== record.agent || exec.agent?.session !== record.session) fail('Execution identity changed or cancellation arrived.');
+  if (record.patchArguments !== undefined && encoded(exec.arguments) !== record.patchArguments) fail('Patch arguments changed during approval.');
   if (record.session?.header?.cwd !== record.headerCwd) fail('Session header workdir changed.');
   if (exec.agent?.ctx !== record.agentCtx || record.session?.header !== record.header) fail('Agent scope or session header identity changed.');
   if (!runtimes.has(record.runtime) || serviceIdentity(record.ctx.get('tools')) !== record.runtime) fail('Mandatory tools service identity changed.');
@@ -155,6 +156,14 @@ export async function prepareOperation(runtime, exec) {
   // Native consent supplies an exemption for potentially destructive operations.
   // Read tools and transport tools keep their own permission gates; an unrelated
   // unavailable native bridge must not prevent reading or asking the user.
+  if (exec.name === 'apply_patch') {
+    record.patchArguments = encoded(exec.arguments);
+    record.facts = encoded([record.name, record.cwd, record.patchArguments]);
+    record.analysis = { requiresApproval: true };
+    await captureConsent(record, exec);
+    if (!exempt(record)) await approve(record, exec, 'DSHA file patch. Review the proposed changes and allow this call once.', record.facts);
+    return;
+  }
   if (exec.name !== 'bash') {
     if (['write','edit','str_replace_editor'].includes(exec.name)) await captureConsent(record, exec);
     else record.requiresConsent = false;
@@ -214,6 +223,12 @@ export function verifyDispatch(runtime, exec, tool) {
 }
 export function preparedEnvironment(exec) { const record=executions.get(exec); check(record,exec); if (!record.dispatched || !record.environment) fail('No approved actual Bash environment.'); return record.environment; }
 export function verifyBashRequest(exec, workdir) { const record=executions.get(exec); check(record,exec); const normalize=value=>typeof value==='string'?posix.normalize(value):value; if (!record.dispatched || normalize(workdir)!==normalize(record.actualWorkdir)) fail('Actual Bash workdir differs from approved facts.'); }
+export async function verifyPatchOperation(exec) {
+  const record = executions.get(exec);
+  check(record, exec);
+  if (!record.dispatched || record.name !== 'apply_patch' || record.patchArguments === undefined) fail('Unprepared file patch.');
+  await checkConsent(record, exec);
+}
 /** Runs after actual FS resolution/observation intent, preserving the backend CAS contract. */
 export async function guardIntent(ctx, exec, target, intent, operation) {
   const record=executions.get(exec); check(record,exec);

@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-app-boot/lib/index.js",
+  "sourceSha256": "a8d2138bb274bd982079df14a615f6c0d5d7589c9faeae81973128a72293b6de",
+  "purpose": "Apply the upstream telemetry opt-out at the final DSHA profile composition step. Local feedback remains an ordinary durable session event.",
+  "patches": [
+    {
+      "before": "const telemetryPatch = resolveTelemetryPatch(context.telemetryDisabledEnv, composeEntries([patches]).some((row) => row.id === TELEMETRY_ROW_ID));",
+      "after": "// DSHA stores feedback locally. Apply the documented hard opt-out after all profile overlays.\n\tconst telemetryPatch = resolveTelemetryPatch(\"1\", composeEntries([patches]).some((row) => row.id === TELEMETRY_ROW_ID));"
+    }
+  ]
+}

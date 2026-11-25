@@ -2,6 +2,7 @@
 """本地稳定性验收：保留新鲜报告，传播失败，不发布、不上传、不覆盖正式安装。"""
 import argparse
 import datetime
+from fnmatch import fnmatchcase
 import hashlib
 import json
 import os
@@ -18,6 +19,7 @@ from release_acceptance import requirements as acceptance_requirements, validate
 from release_names import apk_delivery_path, delivery_receipt_path, source_directory, release_staging_directory
 from release_layout import checked_path, source_snapshot_path
 from git_guard import git_output
+from proroot_distribution import VENDOR_SOURCE_GLOB
 
 ROOT=Path(__file__).resolve().parents[1]
 CERT=json.loads((ROOT/'ci/release-identity.json').read_text(encoding='utf-8'))['certificateSha256']
@@ -45,6 +47,12 @@ def public_source_path(name):
     """Keep private device evidence and unredacted historical originals out of exports."""
     parts=name.replace('\\','/').split('/')
     return 'private-device-audits' not in parts and 'history' not in parts
+
+
+def export_source_change(name):
+    # The build receipt still records these input hashes. The vendor permits
+    # redistribution of the actual binaries only inside complete applications.
+    return public_source_path(name) and not fnmatchcase(name, VENDOR_SOURCE_GLOB)
 
 
 def validate_device_evidence(proof, apks):
@@ -336,14 +344,15 @@ def main():
         report['sourceSnapshot']={'path':str(source_file),'sha256':digest(source_file)}
         patch_file=report_dir/'workspace.patch';patch_file.write_bytes(git_output([
             'diff','--binary','--','.',':(exclude)tools/history/**',
-            ':(exclude)docs/history/**',':(exclude)tools/**/private-device-audits/**'],cwd=ROOT))
+            ':(exclude)docs/history/**',':(exclude)tools/**/private-device-audits/**',
+            ':(exclude)' + VENDOR_SOURCE_GLOB],cwd=ROOT))
         report['patch']={'path':str(patch_file),'sha256':digest(patch_file)}
         changed=set(git_output(['diff','--name-only','-z'],cwd=ROOT).decode().split('\0')+git_output(['ls-files','--others','--exclude-standard','-z'],cwd=ROOT).decode().split('\0'))-{''}
         snapshot=report_dir/'source-changes.zip'
         with zipfile.ZipFile(snapshot,'x',zipfile.ZIP_DEFLATED) as archive:
             for name in sorted(changed):
                 path=ROOT/name
-                if path.is_file() and public_source_path(name) and (name in final_source or name.startswith('docs/') or name in ('README.md','README.en.md','BUILD.md','AGENTS.md','CHANGELOG.md','THIRD_PARTY_NOTICES.md')):
+                if path.is_file() and export_source_change(name) and (name in final_source or name.startswith('docs/') or name in ('README.md','README.en.md','BUILD.md','AGENTS.md','CHANGELOG.md','THIRD_PARTY_NOTICES.md')):
                     archive.write(path,name)
         report['sourceChanges']={'path':str(snapshot),'sha256':digest(snapshot),'scope':'Changed public source and redacted current documentation; private device audits and historical originals are excluded; offline binary assets remain in the workspace and are identified by hashes'}
         if args.deliver:

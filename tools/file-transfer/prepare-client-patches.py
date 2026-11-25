@@ -10,15 +10,15 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools'))
 from source_text import write_text, matches_text
 
-VERSION = '0.2.2-rc.1'
+VERSION = '0.2.2-rc.5'
 MODULES = {
     'file-deliverables-patch.json': ('@deepseek-ai/dsh-client-ui-deliverables/lib/client.js',
-        '0aa3fc762aa1debf106a67dccfbb7a640f40de0c774a2b091a8ddc6730257da5'),
+        'aa7a30171ad0ba3b5c49df3d42e9bf6e5530a3b94c96d7a3c269dbc3278919c9'),
     # 0.2.2-rc.1: images use the upstream context menu (long press = contextmenu in
     # Android WebView). DSHA adds one "save to gallery" item to the upstream image
     # menu instead of competing pointer handlers on the attachment button.
     'file-image-actions-patch.json': ('@deepseek-ai/dsh-client-ui-file-actions/lib/client.js',
-        '437f70ba26ff1a11efc0aeb547e3a799948f55e8cabef69839dbc481e96ed40d'),
+        '07282fee83c22e8d87112799680afe73f1203ed5910730e89b22d83c4ea2d9d3'),
 }
 
 
@@ -47,18 +47,17 @@ def generate(module_root, lock_path=None):
             # Official PresentedFile has only path/description. Do not invent a
             # directory kind, infer from display strings, or decode action URLs.
             for slot in ['deliverables.file.actions', 'deliverables.review.file.actions']:
-                anchor = 'renderSlot("' + slot + '", {\n'
+                anchor = 'renderSlot(`' + slot + '`,{'
                 replace(anchor, anchor + '\t\t\t\t\t\t\t\t/* DSHA_FILE_DELIVERABLES_RC2_V1: exact owner coordinates. */\n'
                         + '\t\t\t\t\t\t\t\tsessionId,\n\t\t\t\t\t\t\t\tabsolutePath: file.path,\n')
-            before = 'host !== null && host !== "error" && !host.available && (0, react_jsx_runtime.jsx)("span", {'
-            replace(before, 'host !== null && host !== "error" && !host.available && typeof window.DSHA?.downloadArtifact !== "function" && (0, react_jsx_runtime.jsx)("span", {')
-            before = 'host === "error" && (0, react_jsx_runtime.jsxs)("div", {'
-            replace(before, 'host === "error" && typeof window.DSHA?.downloadArtifact !== "function" && (0, react_jsx_runtime.jsxs)("div", {')
+            condition = 'typeof window.DSHA?.downloadArtifact !== "function"'
+            for anchor in (
+                'host!==null&&host!==`error`&&!host.available&&(0,react_jsx_runtime.jsx)(`span`,{',
+                'host===`error`&&(0,react_jsx_runtime.jsxs)(`div`,{',
+            ):
+                replace(anchor, anchor.replace('&&(0,', '&&' + condition + '&&(0,', 1))
         else:
-            before = '''\t\t\t\t\treturn [
-\t\t\t\t\t\t{
-\t\t\t\t\t\t\tid: "copy",
-\t\t\t\t\t\t\ticon: { key: "file-actions.copy" },'''
+            before = 'return[{id:`copy`,icon:{key:`file-actions.copy`},'
             after = '''\t\t\t\t\treturn [
 \t\t\t\t\t\t// DSHA_IMAGE_GALLERY_MENU_V1: Android only. The native bridge saves the
 \t\t\t\t\t\t// original same-origin Blob to the system gallery; browsers keep upstream rows.
@@ -71,9 +70,7 @@ def generate(module_root, lock_path=None):
 \t\t\t\t\t\t\t\tif (!window.DSHAFileTransfer?.imageMenu(source.url, source.name)) throw new Error("Gallery save unavailable");
 \t\t\t\t\t\t\t}
 \t\t\t\t\t\t}] : [],
-\t\t\t\t\t\t{
-\t\t\t\t\t\t\tid: "copy",
-\t\t\t\t\t\t\ticon: { key: "file-actions.copy" },'''
+\t\t\t\t\t\t{id:`copy`,icon:{key:`file-actions.copy`},'''
             replace(before, after)
         results[asset] = json.dumps(dict(version=1, dshVersion=VERSION, module=module,
             sourceSha256=digest, packageIntegrity=locked['integrity'], patches=patches), ensure_ascii=False, indent=2) + '\n'
@@ -93,7 +90,7 @@ def main():
                 raise ValueError('FILE_ACTIONS_RECIPE_STALE: ' + asset)
         else:
             write_text(destination, expected, encoding='utf8')
-        print('PASS locked rc5 file actions recipe: ' + asset)
+        print('PASS locked file actions recipe: ' + asset)
 
 
 if __name__ == '__main__':

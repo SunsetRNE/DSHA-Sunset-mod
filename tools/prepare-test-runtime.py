@@ -64,7 +64,7 @@ def prepare(args):
     # Use the archive's exact complete per-module chain. Later recipes can
     # alter an earlier after form, so never validate partially applied text.
     chains, _ = builder.load_chains(ASSETS, version)
-    targets = set(builder.PATCHES) | set(chains) | {
+    targets = set(builder.PATCHES) | set(builder.WEB_BRAND_INPUTS) | set(chains) | {
         builder.COMBO_MODULE, builder.DEEPSEEK_MESSAGES_MODULE,
         builder.CONVERSATION_MATERIALIZED_MODULE, builder.RC1_SETTINGS_MODULE,
         builder.STORAGE_JSON_MODULE, builder.WORKSPACE_DIRECTORY_MODULE,
@@ -74,7 +74,7 @@ def prepare(args):
         source=io_path(raw/'node_modules'/module_target)
         physical=io_path(modules/module_target)
         if not source.is_file() or not physical.is_file():
-            if module_target in chains:raise ValueError('OVERLAY_MODULE_MISSING:'+module_target)
+            if module_target in chains or module_target in builder.WEB_BRAND_INPUTS:raise ValueError('OVERLAY_MODULE_MISSING:'+module_target)
             continue
         canonical=source.read_bytes()
         prepared=builder.patched_content(Path(module_target), canonical)

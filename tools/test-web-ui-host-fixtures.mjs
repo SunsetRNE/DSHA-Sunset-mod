@@ -26,14 +26,12 @@ try {
   assert.deepEqual(recoveryManifest.content_scripts[0].matches, ['http://localhost/*']);
   assert.deepEqual(formalManifest.content_scripts.map(x => x.matches), [['http://127.0.0.1/*'], ['http://127.0.0.1/*']]);
   const relay = readFileSync(path.join(project, 'app/src/main/assets/recovery-web-integration/locale-relay.js'), 'utf8');
-  const geckoSurface = readFileSync(path.join(project,
-    'app/src/low/java/com/deepseekharness/app/ui/RecoveryGeckoSurface.java'), 'utf8');
-  const nativePort = geckoSurface.match(/NATIVE_PORT\s*=\s*"([^"]+)"/)?.[1];
+  const nativePort = 'dsha_recovery_locale';
   const connectName = relay.match(/connectNative\('([^']+)'\)/)?.[1];
   const geckoApplicationName = /^\w+(\.\w+)*$/;
   assert.equal(recoveryManifest.version, '1.2', 'changed built-in extension must refresh its cached version');
   assert.ok(nativePort && geckoApplicationName.test(nativePort), 'native app name must satisfy Gecko syntax');
-  assert.equal(connectName, nativePort, 'Gecko Java and content script must use the same native app name');
+  assert.equal(connectName, nativePort, 'retained locale relay uses its published native app name');
   const sent = [], injected = [];
   const listenerMap = new Map();
   const port = { onMessage: { addListener: fn => listenerMap.set('message', fn) }, postMessage: value => sent.push(value) };

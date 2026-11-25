@@ -339,4 +339,115 @@ public class TrialSupportTest {
       if (process.isAlive()) process.destroy();
     }
   }
+
+  private static TrialGuestCleanup.Io settingsStopFixture() {
+    return new TrialGuestCleanup.Io() {
+      public String stop() {
+        return "";
+      }
+
+      public String force() {
+        throw new AssertionError("no guest force for confirmed stop");
+      }
+
+      public boolean launcherExited() {
+        return true;
+      }
+
+      public void awaitLauncher(long millis) {}
+
+      public void destroyLauncher() {
+        throw new AssertionError("already exited");
+      }
+
+      public void diagnostic(String detail) {
+        throw new AssertionError(detail);
+      }
+    };
+  }
+
+  @Test
+  public void settingsFailureKeepsPrimaryAndLateWatcherClosesRealPrivateRecord() throws Exception {
+    File records = temporary.newFolder("runtime-trials");
+    File operation = new File(records, java.util.UUID.randomUUID().toString());
+    Files.createDirectories(new File(operation, "payload").toPath());
+    var fs = new JvmBackupFileSystem();
+    Launcher launcher = new Launcher("synthetic guest text".getBytes(StandardCharsets.UTF_8));
+    launcher.exited = true;
+    AtomicBoolean guestGone = new AtomicBoolean();
+    AtomicReference<Process> retained = new AtomicReference<>();
+    var work =
+        new com.deepseekharness.app.util.RuntimeWorkPort.Work() {
+          public void retainUntilExit(Process value) {
+            retained.set(value);
+          }
+
+          public void close() {
+            fail("cleanup has to be observed first");
+          }
+        };
+    IOException primary = new IOException("SETTINGS_VALIDATION_FAILED");
+    SettingsTrialCleanup.finish(
+        fs,
+        operation,
+        launcher,
+        work,
+        primary,
+        null,
+        settingsStopFixture(),
+        tracked -> guestGone.get());
+    assertEquals("SETTINGS_VALIDATION_FAILED", BackupErrorCode.from(primary));
+    assertEquals(
+        "SETTINGS_TRIAL_PROCESS_UNCONFIRMED", BackupErrorCode.from(primary.getSuppressed()[0]));
+    assertFalse(new File(operation, "closed").exists());
+    assertTrue(new File(operation, "payload").exists());
+    assertThrows(IllegalThreadStateException.class, () -> retained.get().exitValue());
+    String recorded = Files.readString(new File(operation, "failure.json").toPath());
+    assertTrue(recorded.contains("SETTINGS_VALIDATION_FAILED"));
+    assertTrue(recorded.contains("SETTINGS_TRIAL_PROCESS_UNCONFIRMED"));
+    assertFalse(recorded.contains("synthetic guest text"));
+    guestGone.set(true);
+    assertEquals(7, retained.get().exitValue());
+    assertEquals(operation.getName(), Files.readString(new File(operation, "closed").toPath()));
+    assertFalse(new File(operation, "payload").exists());
+    assertEquals(7, retained.get().exitValue());
+  }
+
+  @Test
+  public void settingsAlreadyExitedCompletesAndMissingHandleCannotCloseLaunchedRecord()
+      throws Exception {
+    File operation = temporary.newFolder(java.util.UUID.randomUUID().toString());
+    Files.createDirectories(new File(operation, "payload").toPath());
+    var fs = new JvmBackupFileSystem();
+    Launcher launcher = new Launcher();
+    launcher.exited = true;
+    AtomicInteger releases = new AtomicInteger();
+    var work =
+        new com.deepseekharness.app.util.RuntimeWorkPort.Work() {
+          public void retainUntilExit(Process value) {
+            fail("should not create a watcher");
+          }
+
+          public void close() {
+            releases.incrementAndGet();
+          }
+        };
+    SettingsTrialCleanup.finish(
+        fs, operation, launcher, work, null, null, settingsStopFixture(), tracked -> true);
+    assertTrue(new File(operation, "closed").isFile());
+    assertFalse(new File(operation, "payload").exists());
+    assertFalse(new File(operation, "failure.json").exists());
+    assertEquals(1, releases.get());
+
+    File incomplete = temporary.newFolder(java.util.UUID.randomUUID().toString());
+    Files.createDirectories(new File(incomplete, "payload").toPath());
+    Files.writeString(new File(incomplete, "launched").toPath(), incomplete.getName());
+    IOException original = new IOException("TRIAL_RUNTIME_UNAVAILABLE");
+    SettingsTrialCleanup.finish(fs, incomplete, null, work, original, null, null, null);
+    assertFalse(new File(incomplete, "closed").exists());
+    assertTrue(new File(incomplete, "payload").exists());
+    assertEquals(
+        "SETTINGS_TRIAL_PROCESS_UNCONFIRMED", BackupErrorCode.from(original.getSuppressed()[0]));
+    assertEquals(2, releases.get());
+  }
 }

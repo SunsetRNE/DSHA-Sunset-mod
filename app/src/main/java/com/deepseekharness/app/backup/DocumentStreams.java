@@ -123,6 +123,18 @@ public final class DocumentStreams {
 
   public static OutputStream output(ContentResolver resolver, Uri uri, BackupControl control)
       throws IOException {
+    return output(resolver, uri, control, false);
+  }
+
+  /** Replace a selected document; callers verify its full contents after closing the stream. */
+  public static OutputStream replacementOutput(
+      ContentResolver resolver, Uri uri, BackupControl control) throws IOException {
+    return output(resolver, uri, control, true);
+  }
+
+  private static OutputStream output(
+      ContentResolver resolver, Uri uri, BackupControl control, boolean replace)
+      throws IOException {
     CancellationSignal signal = new CancellationSignal();
     AutoCloseable opening = onCancel(control, signal::cancel);
     AssetFileDescriptor descriptor = null;
@@ -130,7 +142,19 @@ public final class DocumentStreams {
     AutoCloseable writing = null;
     try {
       control.check();
-      descriptor = resolver.openAssetFileDescriptor(uri, "w", signal);
+      if (replace) {
+        try {
+          descriptor = resolver.openAssetFileDescriptor(uri, "wt", signal);
+        } catch (FileNotFoundException
+            | IllegalArgumentException
+            | UnsupportedOperationException rejected) {
+          // Some providers accept only basic write mode. Retry an open only, never a copy.
+          control.check();
+          descriptor = resolver.openAssetFileDescriptor(uri, "w", signal);
+        }
+      } else {
+        descriptor = resolver.openAssetFileDescriptor(uri, "w", signal);
+      }
       if (descriptor == null) throw new IOException("SAF_WRITE_FAILED");
       stream = descriptor.createOutputStream();
       OutputStream owned = stream;
@@ -223,7 +247,7 @@ public final class DocumentStreams {
       // query's CancellationSignal. Preserve it for our same-process provider call only.
       try (AutoCloseable scope =
           com.deepseekharness.app.DshaDocumentsProvider.withQueryCancellation(signal)) {
-        cursor = resolver.query(uri, columns, null, null, null, signal);
+        cursor = resolver.query(uri, columns, android.os.Bundle.EMPTY, signal);
       } catch (IOException | RuntimeException error) {
         throw error;
       } catch (Exception error) {

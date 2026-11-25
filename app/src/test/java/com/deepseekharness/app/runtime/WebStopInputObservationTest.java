@@ -117,4 +117,20 @@ public final class WebStopInputObservationTest {
               }
             }));
   }
+
+  @Test
+  public void settingsIntentLongerThanPidRecordIsRecheckedAtItsExactOriginalLength()
+      throws Exception {
+    var in = inputs();
+    File intent = new File(in[0], "intent.json");
+    byte[] bytes =
+        ("synthetic profile intent " + "a".repeat(240)).getBytes(StandardCharsets.US_ASCII);
+    Files.write(intent.toPath(), bytes);
+    var trace = capture(in[0], in[1], in[2]);
+    trace.rememberInput(intent, fs.stat(intent), bytes);
+    assertTrue(trace.verifyInputs(fs));
+    Files.writeString(
+        intent.toPath(), "z", StandardCharsets.US_ASCII, java.nio.file.StandardOpenOption.APPEND);
+    assertFalse(trace.verifyInputs(fs));
+  }
 }

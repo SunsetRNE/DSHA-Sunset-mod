@@ -379,8 +379,15 @@ public final class TestPackageFeedbackExporter {
         new File(files, "last-startup-failure.log"),
         files,
         FILE_TAIL_BYTES);
-    for (String name :
-        List.of("diagnostic-events.txt", "diagnostic-events.1.txt", "cold-install-diagnostics.txt"))
+    String events = "diagnostic-events.txt";
+    try {
+      String tail = DiagnosticLog.readExportTail(context);
+      if (tail.isEmpty()) capture.addBytes(events, events, null);
+      else capture.addText(events, events, tail);
+    } catch (IOException | RuntimeException unavailable) {
+      capture.fail(events, unavailable.getClass().getSimpleName());
+    }
+    for (String name : List.of("diagnostic-events.1.txt", "cold-install-diagnostics.txt"))
       capture.addFile(name, name, new File(files, name), files, FILE_TAIL_BYTES);
     addRecentFiles(
         capture,

@@ -17,9 +17,14 @@ RESTORED_SETTINGS_IMPORTED_FOR_RETRY = True
 # 协议回执版本（DSHA_RC1_MIGRATION= 的 wire 版本），与私有业务记录 version=2、
 # v5 用户归档格式互相独立。旧 v2 业务记录只能作为历史事实读取。
 RESULT_VERSION = 3
+CURRENT_RECHECK_VERSION = '0.2.2-rc.5'
+GENERATION_ID = re.compile(r'[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}')
 MAX_FILES = 100000
 MAX_BYTES = 8 * 1024 * 1024 * 1024
 SECTION_STATES = ('verified', 'pending', 'writing', 'unknown', 'conflict')
+PROFILE_INPUT_NAMES = ('package.json', 'compatibility.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'cordis.patch.yml')
+V4_LOG_NAMES = ('session.v4.jsonl', 'session.v4.jsonl.zstd')
+EMPTY_SHA256 = hashlib.sha256(b'').hexdigest()
 
 
 class MigrationSourceError(ValueError):
@@ -238,11 +243,12 @@ class Resolver:
                     followed = True; break
             if not followed: return Path(path), links
         raise ValueError('LINK_LOOP')
-    def files(self, path, skip=()):
+    def files(self, path, skip=(), unlinked=False):
         count = 0; ancestors = set()
         def visit(logical):
             nonlocal count
             actual, links = self.resolve(logical)
+            if unlinked and links: raise ValueError('RC5_RECHECK_LINK')
             node = os.lstat(actual)
             if stat.S_ISDIR(node.st_mode):
                 identity = (node.st_dev, node.st_ino)
@@ -311,18 +317,25 @@ def snapshot_row(folder, dsh, logical, actual, links, kind, ordinal):
                 mapping=str(actual), sourceIdentity=[str(before.st_dev),str(before.st_ino)], type='file')
 
 
-def inventory(dsh, resolver):
+def inventory(dsh, resolver, current_layout_only=False):
     inputs = [(dsh/name, 'settings', ()) for name in ('settings.yaml','settings.yaml.imported')]
     inputs += [(dsh/'profiles','profile', ('node_modules','.pnpm-store','.cache')), (dsh/'.agent-presets','preset', ('node_modules','.pnpm-store','.cache')), (dsh/'sessions','session', ())]
     entries = []; total = 0
     for source, kind, skip in inputs:
-        for logical, actual, links in resolver.files(source, skip):
-            if kind == 'profile' and logical.name not in ('package.json','compatibility.json','pnpm-lock.yaml','pnpm-workspace.yaml','cordis.patch.yml'): continue
-            before = require_regular(logical, actual, 'inventory')
+        for logical, actual, links in resolver.files(source, skip, unlinked=current_layout_only):
+            if kind == 'profile' and logical.name not in PROFILE_INPUT_NAMES: continue
+            before = os.lstat(actual) if current_layout_only else require_regular(logical, actual, 'inventory')
+            if current_layout_only and (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1):
+                raise ValueError('RC5_RECHECK_LINK')
             total += before.st_size
             if len(entries) >= MAX_FILES: raise ValueError('MIGRATION_FILE_LIMIT')
             if total > MAX_BYTES: raise ValueError('MIGRATION_BYTE_LIMIT')
-            sha = digest(actual); after = os.stat(actual)
+            # A read-only layout check classifies active files. A live profile or
+            # V4 log can change without invalidating its independent old copy.
+            sha = None if current_layout_only else digest(actual)
+            if current_layout_only and kind == 'session' and logical.name == 'session.lock' and before.st_size == 0:
+                sha = EMPTY_SHA256
+            after = os.lstat(actual) if current_layout_only else os.stat(actual)
             identity = lambda node: [str(node.st_dev), str(node.st_ino), node.st_size, node.st_mtime_ns, node.st_ctime_ns]
             if identity(before) != identity(after): raise ValueError('SOURCE_CHANGED_DURING_INVENTORY')
             entries.append(dict(path=logical.relative_to(dsh).as_posix(), mapping=str(actual), kind=kind, links=links, size=before.st_size, sha256=sha, identity=identity(before)))
@@ -341,6 +354,268 @@ def reusable_rows(folder, doc, entries):
         if source.is_file() and not source.is_symlink() and source.stat().st_size == entry['size'] and digest(source) == entry['sha256']:
             reusable[row['path']] = row
     return reusable
+
+
+def snapshot_issue(folder, row, independent=False):
+    name = row.get('snapshot') if isinstance(row, dict) else None
+    if not isinstance(name, str) or not re.fullmatch(r'snapshots/[0-9]+(?:-[a-f0-9]{32})?', name):
+        return 'SNAPSHOT_PATH_INVALID'
+    snapshot = folder/name
+    if snapshot.parent.is_symlink():
+        return 'SNAPSHOT_MISSING'
+    try:
+        before = os.lstat(snapshot)
+    except FileNotFoundError:
+        return 'SNAPSHOT_MISSING'
+    if not stat.S_ISREG(before.st_mode) or (independent and before.st_nlink != 1):
+        return 'SNAPSHOT_MISSING'
+    size = row.get('size')
+    identity = lambda value: (value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns, value.st_ctime_ns, value.st_nlink)
+    flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0) | getattr(os, 'O_BINARY', 0)
+    with os.fdopen(os.open(snapshot, flags), 'rb') as stream:
+        if (identity(before) != identity(os.fstat(stream.fileno())) or
+                (isinstance(size, int) and before.st_size != size)):
+            return 'SNAPSHOT_CHANGED'
+        found = hashlib.sha256()
+        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+            found.update(chunk)
+        if (found.hexdigest() != row.get('sha256') or identity(before) != identity(os.fstat(stream.fileno()))
+                or identity(before) != identity(os.lstat(snapshot))):
+            return 'SNAPSHOT_CHANGED'
+    return None
+
+
+def absent(path):
+    try:
+        os.lstat(path)
+    except FileNotFoundError:
+        return True
+    return False
+
+
+def current_only_sources(dsh, rows):
+    if not isinstance(rows, list):
+        return False
+    seen = set()
+    v4 = {}
+    leases = set()
+    for row in rows:
+        path = row.get('path') if isinstance(row, dict) else None
+        if (not isinstance(path, str) or '\\' in path or path in seen
+                or row.get('links') != [] or row.get('mapping') != str(dsh/path)):
+            return False
+        parts = path.split('/')
+        if len(parts) < 2 or any(part in ('', '.', '..') for part in parts):
+            return False
+        seen.add(path)
+        if row.get('kind') == 'profile' and parts[0] == 'profiles' and parts[-1] in PROFILE_INPUT_NAMES:
+            continue
+        if row.get('kind') != 'session' or parts[0] != 'sessions':
+            return False
+        parent = tuple(parts[:-1])
+        if parts[-1] in V4_LOG_NAMES:
+            v4[parent] = v4.get(parent, 0) + 1
+            continue
+        # rc5 POSIX session lease: an empty regular file in the upstream
+        # project/session layout, beside exactly one current log, owns no data.
+        if (parts[-1] != 'session.lock' or len(parts) != 4
+                or not (parts[1] == '_no-cwd' or re.fullmatch(r'--[A-Za-z0-9._~\-]+--', parts[1]))
+                or not re.fullmatch(r'(?:[A-Za-z0-9._-]|~[0-9A-F]{4})+', parts[2])
+                or type(row.get('size')) is not int or row['size'] != 0 or row.get('sha256') != EMPTY_SHA256):
+            return False
+        leases.add(parent)
+    return all(v4.get(parent) == 1 for parent in leases)
+
+
+def independent_snapshots(folder, rows):
+    snapshots = set()
+    for row in rows:
+        snapshot = row.get('snapshot')
+        if (not isinstance(snapshot, str) or snapshot in snapshots or type(row.get('size')) is not int
+                or snapshot_issue(folder, row, independent=True)):
+            return False
+        snapshots.add(snapshot)
+    return True
+
+
+def committed_receipt(receipt, generation):
+    return (isinstance(receipt, dict) and receipt.get('version') == 2
+            and receipt.get('generation') == generation and receipt.get('status') == 'committed'
+            and all(receipt.get(key) is True for key in ('sourcePreserved', 'settingsImported', 'protectionComplete')))
+
+
+def generation_record(folder, name):
+    path = folder/name
+    try:
+        if path.is_file() and not path.is_symlink():
+            return read_json(path)
+    except (OSError, ValueError, UnicodeError):
+        pass
+    return None
+
+
+def native_restore_changed(dsh, current, stamp):
+    restore_sha = stamp['inputs'].get('restore')
+    old_inputs = current.get('inputs')
+    old_root = current.get('dataRoot')
+    if (not isinstance(old_inputs, dict) or not isinstance(old_root, dict) or not restore_sha
+            or restore_sha == old_inputs.get('restore') or old_root == stamp['dataRoot']):
+        return False
+    path = dsh/'.dsha-rc1-restore-generation'
+    try:
+        if not stat.S_ISREG(os.lstat(path).st_mode):
+            return False
+        flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0) | getattr(os, 'O_BINARY', 0)
+        with os.fdopen(os.open(path, flags), 'rb') as stream:
+            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                return False
+            marker = stream.read(37)
+        return bool(GENERATION_ID.fullmatch(marker.decode('ascii')) and hashlib.sha256(marker).hexdigest() == restore_sha)
+    except (OSError, UnicodeError):
+        return False
+
+
+def known_current_mirror(dsh, folder, generation):
+    # Native restore retains the prior guest mirror locally. It is evidence only if
+    # both copied records equal a fully committed, current-only host generation.
+    mirror = dsh/'.dsha-rc1-migration'
+    current_mirror = mirror/'prepare.json'
+    if (mirror.is_symlink() or not absent(mirror/'legacy-agent-presets')
+            or current_mirror.is_symlink() or not current_mirror.is_file()
+            or digest(current_mirror) != digest(folder/'prepare.json')):
+        return False
+    old_prepare, old_receipt = folder/'legacy-prepare.json', folder/'legacy-receipt.json'
+    public_receipt = mirror/'receipt.json'
+    if all(absent(path) for path in (old_prepare, old_receipt, public_receipt)):
+        return True
+    if any(path.is_symlink() or not path.is_file() for path in (old_prepare, old_receipt, public_receipt)):
+        return False
+    old = read_json(old_prepare)
+    prior = old.get('generation') if isinstance(old, dict) else None
+    if not isinstance(prior, str) or prior == generation or not GENERATION_ID.fullmatch(prior):
+        return False
+    authority = folder.parent/prior
+    if authority.is_symlink() or not authority.is_dir() or not absent(authority/'settings-result.json'):
+        return False
+    for copied, path in ((old_prepare, authority/'prepare.json'), (old_receipt, authority/'receipt.json')):
+        if path.is_symlink() or not path.is_file() or digest(copied) != digest(path):
+            return False
+    receipt = read_json(old_receipt)
+    rows = old.get('sources')
+    if not (old.get('version') == 2 and old.get('dshVersion') == CURRENT_RECHECK_VERSION
+            and old.get('dshHome') == str(dsh)
+            and old.get('protectionComplete') is True and old.get('status') == 'prepared'
+            and old.get('presets') == [] and old.get('snapshotInventory') == []
+            and current_only_sources(dsh, rows)
+            and digest(public_receipt) == digest(old_receipt)
+            and committed_receipt(receipt, prior) and receipt.get('dshVersion') == CURRENT_RECHECK_VERSION
+            and receipt.get('settingsStatus') == 'verified'):
+        return False
+    if receipt.get('sessionsStatus') == 'no-legacy-input':
+        return True
+    # R10 counted the retained empty lease as a legacy session. Accept only
+    # that known record shape with its own independent prior copies verified.
+    return (receipt.get('sessionsStatus') == 'preserved-awaiting-runtime-open'
+            and receipt.get('sessionCompatibilityVerified') is False
+            and any(row['path'].endswith('/session.lock') for row in rows)
+            and independent_snapshots(authority, rows))
+
+
+def verified_native_empty_reset(dsh, folder, prepared, stamp, proof):
+    """The app proved its old reset journal. Bind it to the same imported inode and empty answer."""
+    match = re.fullmatch(r'([0-9]{1,20}):([0-9]{1,20}):([0-9]{1,20}):([0-9]{1,20}):([a-f0-9-]{36})',
+                         proof or '')
+    if not match or not GENERATION_ID.fullmatch(match[5]):
+        return False
+    empty = hashlib.sha256(b'{}\n').hexdigest()
+    inputs = stamp.get('inputs', {})
+    if ('settings.yaml' in inputs or inputs.get('settings.yaml.imported') != empty
+            or prepared.get('inputs', {}).get('settings.yaml') != empty
+            or 'settings.yaml.imported' in prepared.get('inputs', {})
+            or type(prepared.get('createdAt')) is not int
+            or prepared['createdAt'] < int(match[4]) // 1_000_000_000):
+        return False
+    rows = prepared.get('sources')
+    if not isinstance(rows, list) or not all(isinstance(row, dict) for row in rows):
+        return False
+    sources = [row for row in rows if row.get('kind') == 'settings']
+    if len(sources) != 1:
+        return False
+    source = sources[0]
+    if (source.get('path') != 'settings.yaml' or source.get('sha256') != empty
+            or source.get('size') != 3 or source.get('links') != [] or source.get('type') != 'file'
+            or source.get('mapping') != str(dsh/'settings.yaml')
+            or source.get('sourceIdentity') != [match[1], match[2]]):
+        return False
+    try:
+        node = os.lstat(dsh/'settings.yaml.imported')
+        if (not stat.S_ISREG(node.st_mode) or node.st_nlink != 1 or node.st_size != 3
+                or [str(node.st_dev), str(node.st_ino), str(node.st_mtime_ns // 1_000_000_000)] != list(match.groups()[:3])):
+            return False
+        ledger_path = folder/'settings-result.json'
+        ledger_meta = os.lstat(ledger_path)
+        if not stat.S_ISREG(ledger_meta.st_mode) or ledger_meta.st_nlink != 1:
+            return False
+        ledger = read_json(ledger_path)
+        return (isinstance(ledger, dict) and ledger.get('version') == 2
+                and ledger.get('generation') == prepared.get('generation')
+                and ledger.get('startupId') == prepared.get('startupId')
+                and ledger.get('sourceSha256') == empty and ledger.get('status') == 'verified'
+                and ledger.get('expectedSections') == [] and ledger.get('sections') == {})
+    except (OSError, ValueError, UnicodeError):
+        return False
+
+
+def readonly_current_recheck(dsh, state, folder, current, prepared, stamp, resolver, active_version,
+                             native_reset_proof=''):
+    """Complete neither historical execution nor a settings write. Prove this boot needs neither."""
+    if active_version != CURRENT_RECHECK_VERSION or prepared.get('dshVersion') != CURRENT_RECHECK_VERSION:
+        return 'LEGACY_COMPLETION_RECEIPT_MISSING'
+    visible_settings = 'settings.yaml' in stamp['inputs'] or 'settings.yaml.imported' in stamp['inputs']
+    reset = visible_settings and verified_native_empty_reset(dsh, folder, prepared, stamp, native_reset_proof)
+    if visible_settings and not reset:
+        if ('settings.yaml' not in stamp['inputs']
+                and stamp['inputs'].get('settings.yaml.imported') == hashlib.sha256(b'{}\n').hexdigest()):
+            return 'RC5_NATIVE_RESET_PROOF_INVALID' if native_reset_proof else 'RC5_NATIVE_RESET_PROOF_MISSING'
+        return 'RC5_RECHECK_LEGACY_INPUTS'
+    generation = current['generation']
+    if (folder.parent.is_symlink() or folder.is_symlink() or prepared.get('version') != 2
+            or prepared.get('generation') != generation or current.get('dshHome') != str(dsh)
+            or prepared.get('dshHome') != str(dsh) or not same_input(prepared, stamp)
+            or prepared.get('presets') != [] or prepared.get('snapshotInventory') != []):
+        return 'RC5_RECHECK_PREPARE_UNVERIFIED'
+    rows = prepared.get('sources')
+    current_rows = lambda items: [row for row in items if row.get('kind') != 'settings'] if reset else items
+    if not current_only_sources(dsh, current_rows(rows)):
+        return 'RC5_RECHECK_LEGACY_INPUTS'
+    try:
+        must_be_absent = ('receipt.json', 'reuse.json') if reset else ('settings-result.json', 'receipt.json', 'reuse.json')
+        if not all(absent(folder/name) for name in must_be_absent):
+            return 'RC5_RECHECK_WRITE_EVIDENCE'
+        if any((dsh/name).is_symlink() for name in ('profiles', '.agent-presets', 'sessions', '.dsha-rc1-restore-generation')):
+            return 'RC5_RECHECK_INPUT_CHANGED'
+        pending = state/'pending.json'
+        expected_pending_stamp = ({'dataRoot': prepared['dataRoot'], 'inputs': prepared['inputs']}
+                                  if reset else stamp)
+        if (pending.is_symlink() or not pending.is_file()
+                or read_json(pending) != dict(generation=generation, inputDigest=prepared.get('inputDigest'),
+                                              **expected_pending_stamp)):
+            return 'RC5_RECHECK_PREPARE_UNVERIFIED'
+        if not known_current_mirror(dsh, folder, generation):
+            return 'RC5_RECHECK_LEGACY_RECORD'
+        entries, _ = inventory(dsh, resolver, current_layout_only=True)
+        if not current_only_sources(dsh, current_rows(entries)):
+            return 'RC5_RECHECK_LEGACY_INPUTS'
+        if not independent_snapshots(folder, rows):
+            return 'RC5_RECHECK_SNAPSHOT_UNVERIFIED'
+        if (quick(dsh, resolver) != stamp or runtime_version(dsh.parent) != active_version
+                or not all(absent(folder/name) for name in must_be_absent)
+                or (reset and not verified_native_empty_reset(dsh, folder, prepared, stamp, native_reset_proof))
+                or not known_current_mirror(dsh, folder, generation)):
+            return 'RC5_RECHECK_INPUT_CHANGED'
+    except (OSError, ValueError, UnicodeError):
+        return 'RC5_RECHECK_UNAVAILABLE'
+    return None
 
 
 def inert_directory(root, path):
@@ -420,7 +695,7 @@ def host_state(root, state):
     return 'missing-current' if completed else 'absent'
 
 
-def prepare(root, state_root=None, startup_id='manual', approved=()):
+def prepare(root, state_root=None, startup_id='manual', approved=(), native_reset_proof=''):
     global _STARTUP_ID; _STARTUP_ID = startup_id
     dsh = Path(os.path.abspath(os.path.join(root, '.dsh'))); state = state_path(root, state_root)
     if not dsh.exists():
@@ -432,6 +707,9 @@ def prepare(root, state_root=None, startup_id='manual', approved=()):
     state.mkdir(parents=True, exist_ok=True)
     if state.is_symlink(): raise ValueError('STATE_ROOT_LINK')
     current = None
+    if (state/'current.json').is_symlink():
+        emit('prepare', 'unknown', reason='HOST_STATE_INVALID', executionState='NOT_SENT')
+        return 1
     if (state/'current.json').is_file():
         try: current = read_json(state/'current.json')
         except (OSError, ValueError, UnicodeError):
@@ -446,14 +724,28 @@ def prepare(root, state_root=None, startup_id='manual', approved=()):
         if prior != 'absent':
             emit('prepare', 'unknown', reason='HOST_STATE_MISSING', executionState='NOT_SENT')
             return 1
-    if current and same_input(current, stamp):
+    if current:
+        same_generation = same_input(current, stamp)
         folder = state/'generations'/current['generation']
-        prepared = None
-        try:
-            if (folder/'prepare.json').is_file() and not (folder/'prepare.json').is_symlink():
-                prepared = read_json(folder/'prepare.json')
-        except (OSError, ValueError, UnicodeError):
-            prepared = None
+        if folder.parent.is_symlink() or folder.is_symlink():
+            emit('prepare', 'unknown', reason='HOST_STATE_INVALID', executionState='NOT_SENT')
+            return 1
+        prepared = generation_record(folder, 'prepare.json')
+        receipt = generation_record(folder, 'receipt.json')
+        if not same_generation and not native_restore_changed(dsh, current, stamp):
+            # A new settings fingerprint is insufficient to grant a new write
+            # ticket while the prior generation's outcome is unresolved.
+            if (not committed_receipt(receipt, current['generation']) or not isinstance(prepared, dict)
+                    or not same_input(prepared, current)
+                    or ledger_state(folder, prepared, checkpoint=reuse_checkpoint(folder))[0] not in ('verified', 'not-required')):
+                current['startupId'] = startup_id
+                current['startupContext'] = startup_context(current['generation'], startup_id, None, None, 'history-only')
+                write_json(state/'current.json', current)
+                emit('prepare', 'pending', reason='RC5_RECHECK_INPUT_CHANGED', generation=current['generation'],
+                     verificationScope='historical', executionState='NOT_SENT', runtimeDshVersion=active_version,
+                     continuation='旧代完成情况未确认，保留变化后的输入；不自动补导入')
+                return 0
+    if current and same_generation:
         if not isinstance(prepared, dict):
             emit('prepare', 'unknown', reason='REUSE_RECORD_UNAVAILABLE', generation=current['generation'], executionState='NOT_SENT')
             return 1
@@ -467,25 +759,30 @@ def prepare(root, state_root=None, startup_id='manual', approved=()):
             current['startupContext'] = startup_context(current['generation'], startup_id,
                 prepared.get('inputDigest'), sha, 'history-only')
             write_json(state/'current.json', current)
-            receipt = None
-            try:
-                if (folder/'receipt.json').is_file() and not (folder/'receipt.json').is_symlink():
-                    receipt = read_json(folder/'receipt.json')
-            except (OSError, ValueError, UnicodeError):
-                receipt = None
-            committed = (isinstance(receipt, dict) and receipt.get('version') == 2
-                         and receipt.get('generation') == current['generation']
-                         and receipt.get('status') == 'committed'
-                         and all(receipt.get(key) is True for key in
-                                 ('sourcePreserved', 'settingsImported', 'protectionComplete')))
             # protectionComplete 只证明内容副本已建立，不能代替完成回执。
-            if not committed:
+            if not committed_receipt(receipt, current['generation']):
+                reason = readonly_current_recheck(dsh, state, folder, current, prepared, stamp, resolver,
+                                                 active_version, native_reset_proof)
+                if reason is None:
+                    # Allow this startup from fresh readback. The persisted context
+                    # remains history-only and ordinary finalize still owns the receipt.
+                    current['startupContext']['readOnlyRecheck'] = True
+                    write_json(state/'current.json', current)
+                    emit('prepare', 'prepared', generation=current['generation'], protectionComplete=True,
+                         verificationScope='current', contentCopyStatus='verified',
+                         settingsImportStatus='not-required', executionState='COMPLETED',
+                         dshVersion=active_version, runtimeDshVersion=active_version,
+                         reason=('RC5_NATIVE_EMPTY_RESET_REVERIFIED_READ_ONLY' if
+                                 'settings.yaml.imported' in stamp['inputs'] else
+                                 'RC5_CURRENT_INPUTS_REVERIFIED_READ_ONLY'),
+                         continuation='现有副本已读回，未派发设置导入')
+                    return 0
                 emit('prepare', 'pending', generation=current['generation'], cached=True,
                      verificationScope='historical', contentCopyStatus='verified',
                      settingsImportStatus=import_status(settings_state, 'historical'),
                      executionState='NOT_SENT', dshVersion=prepared.get('dshVersion'),
                      runtimeDshVersion=active_version,
-                     reason=settings_reason or 'LEGACY_COMPLETION_RECEIPT_MISSING',
+                     reason=settings_reason or reason,
                      continuation='旧代尚未提交完成回执，保留现场；不自动补导入')
                 return 0
             if settings_state not in ('verified', 'not-required'):
@@ -593,7 +890,8 @@ def prepare(root, state_root=None, startup_id='manual', approved=()):
         doc.update(status='prepared',protectionComplete=True); write_json(folder/'prepare.json',doc)
         sha = settings_sha256(doc)
         current = dict(version=2,generation=generation,startupId=startup_id,dshHome=str(dsh),
-                       startupContext=startup_context(generation, startup_id, fingerprint, sha, 'write-allowed'),
+                       startupContext=startup_context(generation, startup_id, fingerprint, sha,
+                                                      'write-allowed' if sha else 'history-only'),
                        **stamp)
         write_json(state/'current.json',current)
         # 公开的兼容索引只供只读清单，不作为控制依据。
@@ -652,7 +950,7 @@ def publish_reuse(folder, prepared, current, receipt, active_version, evidence):
     return None
 
 
-def finalize(root, state_root=None, startup_id='manual', approved=()):
+def finalize(root, state_root=None, startup_id='manual', approved=(), native_reset_proof=''):
     global _STARTUP_ID; _STARTUP_ID = startup_id
     dsh=Path(os.path.abspath(os.path.join(root,'.dsh'))); state=state_path(root,state_root)
     if not (state/'current.json').is_file():
@@ -672,11 +970,8 @@ def finalize(root, state_root=None, startup_id='manual', approved=()):
         emit('finalize', 'unknown', reason='STALE_STARTUP_BINDING', generation=current['generation'], executionState='COMPLETED'); return 1
     warnings=[]
     # 完成代次普通重启不反复哈希历史。首次 finalize 或 pending 明确迁移才核验。
-    try: old=read_json(folder/'receipt.json') if (folder/'receipt.json').is_file() else {}
-    except (OSError, ValueError, UnicodeError): old={}
-    if (isinstance(old, dict) and old.get('status')=='committed' and old.get('version')==2
-            and old.get('generation')==current['generation']
-            and all(old.get(key) is True for key in ('sourcePreserved','settingsImported','protectionComplete'))):
+    old = generation_record(folder, 'receipt.json')
+    if committed_receipt(old, current['generation']):
         # 先按旧 checkpoint 读账本状态，再发布新 checkpoint：同一次调用里 publish_reuse
         # 写下的期望集合不能反过来证明本次账本已完成（自证）。
         evidence = ledger_evidence(folder, doc, reuse_checkpoint(folder))
@@ -691,9 +986,22 @@ def finalize(root, state_root=None, startup_id='manual', approved=()):
              continuation='保留数据 → rc1 迁移记录（历史作用域）', **extra)
         return 0
     resolver=Resolver(dsh,approved); preserved=True
-    for row in doc['sources']:
-        snapshot=folder/row['snapshot']
-        if not snapshot.is_file() or snapshot.is_symlink() or digest(snapshot)!=row['sha256']:
+    context = current.get('startupContext')
+    readonly_recheck = isinstance(context, dict) and context.get('readOnlyRecheck') is True
+    if readonly_recheck:
+        try:
+            stamp = quick(dsh, resolver)
+            no_write_to_finish = (context.get('mode') == 'history-only' and same_input(current, stamp)
+                and readonly_current_recheck(dsh, state, folder, current, doc, stamp, resolver, active_version,
+                                             native_reset_proof) is None)
+        except (OSError, ValueError, UnicodeError):
+            no_write_to_finish = False
+        if not no_write_to_finish:
+            emit('finalize', 'unknown', reason='RC5_RECHECK_SCOPE_CHANGED', generation=current['generation'],
+                 executionState='NOT_SENT')
+            return 1
+    for row in (() if readonly_recheck else doc['sources']):
+        if snapshot_issue(folder, row):
             preserved=False; warnings.append('SNAPSHOT_CHANGED:'+row['path']); continue
         try:
             logical=dsh/row['path']
@@ -724,7 +1032,8 @@ def finalize(root, state_root=None, startup_id='manual', approved=()):
     if settings_state not in ('verified','not-required') and settings_state != 'pending' and settings_reason:
         if settings_reason not in warnings: warnings.append(settings_reason)
     imported = settings_state in ('verified','not-required')
-    old_sessions=[row for row in doc['sessions'] if not re.search(r'session\.v4\.',row['path'])]
+    old_sessions = [] if readonly_recheck or current_only_sources(dsh, doc['sources']) else [
+        row for row in doc['sessions'] if not re.search(r'session\.v4\.', row['path'])]
     status='failed' if not preserved else ('pending' if not imported else 'committed')
     receipt=dict(version=2,dshVersion=doc.get('dshVersion'),runtimeDshVersion=active_version,generation=current['generation'],startupId=startup_id,status=status,sourcePreserved=preserved,protectionComplete=preserved,settingsImported=imported,settingsStatus='verified' if imported else settings_state,settingsScope=settings_scope,verificationScope='current',sourceObjectIdentity='unknown',sessionsStatus='preserved-awaiting-runtime-open' if old_sessions else 'no-legacy-input',sessionCompatibilityVerified=False if old_sessions else None,presets=len(doc['presets']),sessions=len(doc['sessions']),warnings=warnings,verifiedAt=int(time.time()))
     write_json(folder/'receipt.json',receipt); write_json(dsh/'.dsha-rc1-migration/receipt.json',receipt)
@@ -756,15 +1065,12 @@ def verify_existing(root, state_root=None, startup_id='manual', approved=()):
         emit('verify-existing', 'unknown', reason='PREPARE_RECORD_UNAVAILABLE', generation=generation, executionState='COMPLETED'); return 1
     warnings=[]; verified=0; failed=0; unknown=0
     for row in doc.get('sources', []):
-        name = row.get('snapshot') if isinstance(row, dict) else None
-        if not isinstance(name, str) or not re.fullmatch(r'snapshots/[0-9]+(?:-[a-f0-9]{32})?', name):
-            failed += 1; warnings.append('SNAPSHOT_PATH_INVALID'); continue
-        snapshot=folder/name
         try:
-            if not snapshot.is_file() or snapshot.is_symlink():
-                failed += 1; warnings.append('SNAPSHOT_MISSING:'+str(row.get('path'))); continue
-            if digest(snapshot)!=row.get('sha256'):
-                failed += 1; warnings.append('SNAPSHOT_CHANGED:'+str(row.get('path'))); continue
+            issue = snapshot_issue(folder, row)
+            if issue:
+                failed += 1
+                warnings.append(issue if issue == 'SNAPSHOT_PATH_INVALID' else issue+':'+str(row.get('path')))
+                continue
             verified += 1
         except OSError:
             unknown += 1; warnings.append('SNAPSHOT_UNREADABLE:'+str(row.get('path')))
@@ -786,9 +1092,10 @@ def verify_existing(root, state_root=None, startup_id='manual', approved=()):
 
 
 def main():
-    parser=argparse.ArgumentParser(); parser.add_argument('command',choices=('prepare','finalize','verify-existing')); parser.add_argument('--root',default='/root'); parser.add_argument('--state-root',default='/run/dsha-rc1-state'); parser.add_argument('--startup-id',required=True); parser.add_argument('--approved-root',action='append',default=[]); args=parser.parse_args()
+    parser=argparse.ArgumentParser(); parser.add_argument('command',choices=('prepare','finalize','verify-existing')); parser.add_argument('--root',default='/root'); parser.add_argument('--state-root',default='/run/dsha-rc1-state'); parser.add_argument('--startup-id',required=True); parser.add_argument('--approved-root',action='append',default=[]); parser.add_argument('--native-reset-proof',default=''); args=parser.parse_args()
     handlers={'prepare':prepare,'finalize':finalize,'verify-existing':verify_existing}
-    try: return handlers[args.command](args.root,args.state_root,args.startup_id,args.approved_root)
+    kwargs = {} if args.command == 'verify-existing' else {'native_reset_proof': args.native_reset_proof}
+    try: return handlers[args.command](args.root,args.state_root,args.startup_id,args.approved_root,**kwargs)
     except Exception as error:
         emit(args.command, 'unknown', reason=str(error) if isinstance(error,ValueError) else type(error).__name__, operation=getattr(error,'operation',args.command), path=getattr(error,'logical',None), contentCopyStatus='unknown'); return 1
 

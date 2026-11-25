@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="plugin_catalog_reading">Чтение списка плагинов…</string>
+    <string name="plugin_catalog_rechecking">Проверка плагинов…</string>
+    <string name="plugin_catalog_cached">Показан предыдущий список плагинов</string>
+    <string name="plugin_catalog_configured">Из настроек · ожидает проверки</string>
+    <string name="plugin_catalog_failed">Сбой проверки списка</string>
+    <string name="plugin_catalog_unconfirmed">Список не подтверждён</string>
+    <string name="plugin_catalog_verified">Список проверен</string>
+    <string name="plugin_catalog_queued">Проверка в очереди</string>
+</resources>

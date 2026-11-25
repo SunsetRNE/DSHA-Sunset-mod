@@ -52,6 +52,9 @@ final class DocumentRowsSnapshot implements AutoCloseable {
       database.execSQL(
           "CREATE TABLE documents (document_id TEXT, mime_type TEXT, _display_name TEXT,"
               + " last_modified INTEGER, flags INTEGER, _size INTEGER)");
+      // A cursor-window refill can execute SELECT again. Keep the directory order on disk.
+      database.execSQL(
+          "CREATE INDEX document_name_order ON documents(_display_name COLLATE NOCASE, _display_name)");
       database.beginTransaction();
       transaction = true;
       insert = database.compileStatement("INSERT INTO documents VALUES (?, ?, ?, ?, ?, ?)");

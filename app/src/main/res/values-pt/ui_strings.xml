@@ -61,7 +61,7 @@
     <string name="ui134_recent_startups" formatted="false">"Últimos 5 inícios"</string>
     <string name="ui134_recent_startups_sub" formatted="false">"Etapas, erros e códigos"</string>
     <string name="ui134_results" formatted="false">"Resultados dos testes"</string>
-    <string name="ui134_root_hint" formatted="false">"Num telefone com root, use su diretamente sem emparelhamento ADB. Autorize o DSHA no gestor de root na primeira execução. Escolha abaixo o nível de interceptação de comandos; as proteções nativas, como a leitura de SMS, aplicam-se aos três níveis."</string>
+    <string name="ui134_root_hint" formatted="false">"Autorize o DSHA no gestor de root na primeira utilização. O modo estrito bloqueia a leitura recursiva de diretórios. As consultas de SMS geridas exigem autorização separada. Em ambos os modos permissivos, os scripts de root podem ler dados privados diretamente."</string>
     <string name="ui134_screen_setup" formatted="false">"Configurar controle da tela · Dois passos"</string>
     <string name="ui134_shizuku_hint" formatted="false">"Inicie o Shizuku no respetivo gerenciador e autorize o DSHA aqui. Normalmente é necessário reiniciar o serviço após reiniciar o dispositivo."</string>
     <string name="ui134_start_records" formatted="false">"Logs de inicialização"</string>
@@ -130,7 +130,7 @@
     <string name="ui2_meet" formatted="false">"Descobrir DSHA"</string>
     <string name="ui2_network_runtime" formatted="false">"Execução e rede"</string>
     <string name="ui2_offline_badge" formatted="false">"Configuração offline  ·  Sem root  ·  %1$s"</string>
-    <string name="ui2_online_notice" formatted="false">"Os modelos online recebem as mensagens e os anexos que escolher enviar."</string>
+    <string name="ui2_online_notice" formatted="false">"O modelo online escolhido pode receber mensagens, anexos e resultados de ferramentas, como texto do ecrã ou capturas de ecrã."</string>
     <string name="ui2_overlay" formatted="false">"Estado flutuante"</string>
     <string name="ui2_overlay_sub" formatted="false">"Conteúdo, opacidade e tempo de exibição"</string>
     <string name="ui2_plugin_link" formatted="false">"Repositório ou URL"</string>
@@ -187,7 +187,6 @@
     <string name="ui_adb_code_label" formatted="false">"Código de pareamento (6 dígitos)"</string>
     <string name="ui_adb_host_label" formatted="false">"Endereço (vazio = descoberta)"</string>
     <string name="ui_adb_port_label" formatted="false">"Porta (vazio = descoberta)"</string>
-    <string name="ui_lan_unencrypted" formatted="false">"O tráfego da rede local não é encriptado; apenas redes e dispositivos de confiança"</string>
     <string name="ui_language_title" formatted="false">"Idioma"</string>
     <string name="ui_m0001" formatted="false">"Baixar atualização"</string>
     <string name="ui_m0002" formatted="false">"Salvar configurações"</string>

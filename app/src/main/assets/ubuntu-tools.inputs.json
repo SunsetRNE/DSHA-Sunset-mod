@@ -1,9 +1,10 @@
 {
   "inputs": {
-    "tools/prepare-ubuntu-tools.py": "2ec9c413b5ee397dbfe0791aa438be6f0681fb5dbcb73657993c8bcc572ffaa9",
+    "tools/prepare-ubuntu-tools.py": "fdd76531d87b728d10c7aff2dd676e12cedb21856952078888025a81f829f250",
+    "tools/rootfs_archive.py": "d4bfc4c6aee4d2911b1a017df2b94eecdb701a12d0d804fbda842fb1db751534",
     "tools/ubuntu-tools/packages.lock.json": "5f75c41bb6a543143e4a05d78fc13f0abf54367c1f4454526a9266e119299c1e"
   },
-  "archive_sha256": "44eeebf82768323fd110be7ed07dffb4d07f369019451b6dfb2cfe5ccc84f052",
+  "archive_sha256": "0027c09c3a63493571dbe32a291ab83229c6c4f816e7285f849cabf8a15245f0",
   "installed_bytes": 95276032,
   "base_status_sha256": "922b9fd7d5e42e68a9eca63234466bd64a15d8c878eb8efa8e531810b69689c2",
   "packages": 28,

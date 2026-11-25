@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-sidebar/lib/client.js",
+  "sourceSha256": "4fa43eb1a1166a5cae250a9e77a8c5bae4dc08a19daeb9ac6704dbe1fd617061",
+  "patches": [
+    {
+      "before": "{fallback:(0,react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.FishLogo,{size:24})",
+      "after": "{fallback:(0,react_jsx_runtime.jsx)(`img`,{\"data-dsha-mark\":true,src:`./favicon.svg?dsha-brand=1`,width:24,height:24,alt:``})"
+    },
+    {
+      "before": "fallback:buildVersion===void 0?(0,react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.FishLogo,{size:24})",
+      "after": "fallback:buildVersion===void 0?(0,react_jsx_runtime.jsx)(`img`,{\"data-dsha-mark\":true,src:`./favicon.svg?dsha-brand=1`,width:24,height:24,alt:``})"
+    },
+    {
+      "before": "onClick:copyVersion(buildVersion),children:(0,react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.FishLogo,{size:24})",
+      "after": "onClick:copyVersion(buildVersion),children:(0,react_jsx_runtime.jsx)(`img`,{\"data-dsha-mark\":true,src:`./favicon.svg?dsha-brand=1`,width:24,height:24,alt:``})"
+    },
+    {
+      "before": "className:SidebarRoot_module_css_default.fallbackBrandName,children:t(`brand.localBuild`)",
+      "after": "className:SidebarRoot_module_css_default.fallbackBrandName,children:`DSHA`"
+    },
+    {
+      "before": "className:SidebarRoot_module_css_default.localBuildTitle,children:t(`brand.localBuild`)",
+      "after": "className:SidebarRoot_module_css_default.localBuildTitle,children:`DSHA`"
+    }
+  ]
+}

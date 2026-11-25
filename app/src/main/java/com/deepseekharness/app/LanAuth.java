@@ -1,67 +1,83 @@
 package com.deepseekharness.app;
 
-import com.deepseekharness.app.util.Query;
-
 /**
  * Small, Android-free LAN credential and request-line helpers.
  *
  * <p>The LAN credential is deliberately separate from the dsh BrowserAuth
- * cookie and from the 3090 bridge token. Only an exact {@code token} query
- * parameter or the DSHA LAN cookie is accepted; arbitrary headers are not
- * credentials for this proxy.</p>
+ * cookie and from the 3090 bridge token. A password bootstraps an individual browser session.
+ * Requests require its port-specific cookie and the browser's cached origin credential. A WSS
+ * upgrade may instead prove its origin with a one-time ticket obtained over authenticated HTTPS.</p>
  */
 final class LanAuth {
 
-  static final int AUTH_DENY = 0;
-  static final int AUTH_OK = 1;
-  static final int AUTH_OK_SET_COOKIE = 2;
-
-  /** Cookie owned by the DSHA LAN proxy, never by dsh itself. */
-  static final String COOKIE_NAME = "dsha_lan";
-
   private LanAuth() {}
 
-  /** Return the credential source for one complete request header. */
-  static int tokenOk(String head, String token) {
-    if (head == null || token == null || token.isEmpty()) return AUTH_DENY;
-    // A freshly copied link also cleans its query credential when this browser
-    // already has the current cookie. Otherwise the sensitive URL stays visible.
-    String query = queryToken(head);
-    if (query != null && constantTimeEquals(token, query)) return AUTH_OK_SET_COOKIE;
-    String cookie = null;
-    for (String line : head.split("\\r?\\n")) {
-      int colon = line.indexOf(':');
-      if (colon <= 0) continue;
-      String name = line.substring(0, colon).trim();
-      String value = line.substring(colon + 1).trim();
-      if (!name.equalsIgnoreCase("Cookie")) continue;
-      for (String part : value.split(";")) {
-        String p = part.trim();
-        String prefix = COOKIE_NAME + "=";
-        if (p.startsWith(prefix)) {
-          cookie = p.substring(prefix.length()).trim();
-          break;
-        }
-      }
-    }
-    if (cookie != null && constantTimeEquals(token, cookie)) return AUTH_OK;
-    return AUTH_DENY;
-  }
-
-  /** Session cookies, never query parameters, authorize ordinary proxy requests. */
-  static boolean sessionOk(String head, String session) {
-    if (head == null || session == null || session.isEmpty()) return false;
+  /** Ordinary requests present a single session cookie. Duplicate credentials are ambiguous. */
+  static String sessionCookie(String head, int port) {
+    if (head == null) return null;
+    String prefix = com.deepseekharness.app.util.LanTokenState.cookieName(port) + "=";
+    String session = null;
     for (String line : head.split("\\r?\\n")) {
       int colon = line.indexOf(':');
       if (colon <= 0 || !line.substring(0, colon).trim().equalsIgnoreCase("Cookie")) continue;
       for (String part : line.substring(colon + 1).split(";")) {
         String cookie = part.trim();
-        String prefix = COOKIE_NAME + "=";
-        if (cookie.startsWith(prefix)
-            && constantTimeEquals(session, cookie.substring(prefix.length()).trim())) return true;
+        if (cookie.startsWith(prefix)) {
+          if (session != null) return null;
+          session = cookie.substring(prefix.length()).trim();
+        }
       }
     }
-    return false;
+    return session;
+  }
+
+  /** The browser caches Basic for this origin. Keep only a per-run keyed tag of the verified
+   * credential; routine HTTP and WSS requests do not repeat the password KDF. */
+  static final class OriginProof {
+    private final javax.crypto.spec.SecretKeySpec key;
+    private volatile byte[] verified;
+
+    OriginProof() {
+      byte[] secret = new byte[32];
+      new java.security.SecureRandom().nextBytes(secret);
+      key = new javax.crypto.spec.SecretKeySpec(secret, "HmacSHA256");
+      java.util.Arrays.fill(secret, (byte) 0);
+    }
+
+    boolean matches(java.util.List<String> fields) {
+      byte[] expected = verified;
+      byte[] presented = expected == null ? null : tag(fields);
+      return presented != null && java.security.MessageDigest.isEqual(expected, presented);
+    }
+
+    /** Caller must first verify this exact request with the configured password. */
+    boolean remember(java.util.List<String> fields) {
+      byte[] tag = tag(fields);
+      if (tag == null) return false;
+      verified = tag;
+      return true;
+    }
+
+    private byte[] tag(java.util.List<String> fields) {
+      if (fields.size() != 1) return null;
+      String header = fields.get(0);
+      if (header.length() > 1024 || !header.regionMatches(true, 0, "Basic ", 0, 6)) return null;
+      byte[] decoded;
+      try {
+        decoded = java.util.Base64.getDecoder().decode(header.substring(6).trim());
+      } catch (IllegalArgumentException malformed) {
+        return null;
+      }
+      try {
+        var mac = javax.crypto.Mac.getInstance("HmacSHA256");
+        mac.init(key);
+        return mac.doFinal(decoded);
+      } catch (java.security.GeneralSecurityException unavailable) {
+        throw new IllegalStateException("LAN_ORIGIN_PROOF", unavailable);
+      } finally {
+        java.util.Arrays.fill(decoded, (byte) 0);
+      }
+    }
   }
 
   /** Basic is only a bootstrap on a safe navigation, never a write authorization. */
@@ -85,12 +101,15 @@ final class LanAuth {
         || authorization.length() > 1024) return false;
     try {
       String decoded =
-          new String(
-              java.util.Base64.getDecoder().decode(authorization.substring(6).trim()),
-              java.nio.charset.StandardCharsets.UTF_8);
+          java.nio.charset.StandardCharsets.UTF_8
+              .newDecoder()
+              .decode(
+                  java.nio.ByteBuffer.wrap(
+                      java.util.Base64.getDecoder().decode(authorization.substring(6).trim())))
+              .toString();
       if (!decoded.startsWith("dsha:")) return false;
       return com.deepseekharness.app.util.LanPassword.verify(decoded.substring(5), verifier);
-    } catch (IllegalArgumentException invalid) {
+    } catch (IllegalArgumentException | java.nio.charset.CharacterCodingException invalid) {
       return false;
     }
   }
@@ -108,6 +127,29 @@ final class LanAuth {
     return stripTokenFromUrl(target);
   }
 
+  /** Local backend redirects stay on the external HTTPS origin. Keep external HTTPS OAuth flows. */
+  static String browserLocation(String value, int backendPort) {
+    if (value.isEmpty() || value.startsWith("//") || value.indexOf('\\') >= 0) return "/";
+    try {
+      java.net.URI uri = new java.net.URI(value);
+      if (!uri.isAbsolute()) return stripTokenFromUrl(value);
+      if (uri.getHost() == null || uri.getRawUserInfo() != null) return "/";
+      if ("https".equalsIgnoreCase(uri.getScheme())) return stripTokenFromUrl(value);
+      if (!"http".equalsIgnoreCase(uri.getScheme())
+          || uri.getPort() != backendPort
+          || !("127.0.0.1".equals(uri.getHost()) || "localhost".equalsIgnoreCase(uri.getHost())))
+        return "/";
+      String path = uri.getRawPath();
+      if (path == null || path.isEmpty()) path = "/";
+      if (path.startsWith("//")) return "/";
+      if (uri.getRawQuery() != null) path += "?" + uri.getRawQuery();
+      if (uri.getRawFragment() != null) path += "#" + uri.getRawFragment();
+      return stripTokenFromUrl(path);
+    } catch (java.net.URISyntaxException invalid) {
+      return "/";
+    }
+  }
+
   private static boolean containsControlOrSpace(String target) {
     // 逐字符检查保留相同规则，也支持 API 23。
     for (int i = 0; i < target.length(); i++) {
@@ -115,42 +157,6 @@ final class LanAuth {
       if (value <= 32 || value == 127) return true;
     }
     return false;
-  }
-
-  static com.deepseekharness.app.util.LanFailureResponse.Reason denialReason(
-      String head, String token) {
-    var missing = com.deepseekharness.app.util.LanFailureResponse.Reason.TOKEN_MISSING;
-    if (token == null || token.isEmpty())
-      return com.deepseekharness.app.util.LanFailureResponse.Reason.TOKEN_UNAVAILABLE;
-    if (queryToken(head) != null)
-      return com.deepseekharness.app.util.LanFailureResponse.Reason.TOKEN_INVALID;
-    if (head != null)
-      for (String line : head.split("\\r?\\n")) {
-        int colon = line.indexOf(':');
-        if (colon <= 0 || !line.substring(0, colon).trim().equalsIgnoreCase("Cookie")) continue;
-        for (String part : line.substring(colon + 1).split(";"))
-          if (part.trim().startsWith(COOKIE_NAME + "="))
-            return com.deepseekharness.app.util.LanFailureResponse.Reason.TOKEN_INVALID;
-      }
-    return missing;
-  }
-
-  /** Read only the request target, never Referer or another header. */
-  static String queryToken(String head) {
-    if (head == null) return null;
-    int nl = head.indexOf('\n');
-    String line = nl >= 0 ? head.substring(0, nl) : head;
-    int first = line.indexOf(' ');
-    if (first < 0) return null;
-    int second = line.indexOf(' ', first + 1);
-    String target = second > first ? line.substring(first + 1, second) : line.substring(first + 1);
-    return queryTokenFromTarget(target);
-  }
-
-  /** Read an exact, undecoded {@code token=} parameter with a name boundary. */
-  static String queryTokenFromTarget(String target) {
-    String raw = Query.raw(Query.of(target), "token");
-    return raw == null ? null : raw.trim();
   }
 
   /** Remove only the LAN query credential while preserving HTTP version. */

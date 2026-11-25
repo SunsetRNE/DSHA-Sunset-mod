@@ -46,6 +46,8 @@ const sources = JSON.parse(build);
 // Full-chain dependency exports (notably readPluginEntries) must agree with the
 // manager. Build a private overlay; never patch the certified raw fixture.
 const packages = new Set(Object.keys(sources.dependencies).map(name => name.startsWith('@') ? name.split('/').slice(0, 2).join('/') : name.split('/')[0]));
+const rawModules = path.join(runtime, 'node_modules');
+const sourceDigests = new Map(Object.keys(sources.dependencies).map(name => [name, sha(path.join(rawModules, name))]));
 const modules = path.join(out, 'node_modules'); fs.mkdirSync(modules);
 for (const entry of fs.readdirSync(path.join(runtime, 'node_modules'), { withFileTypes: true })) {
     if (entry.name.startsWith('@')) {
@@ -55,9 +57,19 @@ for (const entry of fs.readdirSync(path.join(runtime, 'node_modules'), { withFil
             if (packages.has(key)) fs.cpSync(source, target, { recursive: true });
             else fs.symlinkSync(source, target, process.platform === 'win32' ? 'junction' : 'dir');
         }
-    } else if (entry.isDirectory()) fs.symlinkSync(path.join(runtime, 'node_modules', entry.name), path.join(modules, entry.name), process.platform === 'win32' ? 'junction' : 'dir');
+    } else if (entry.isDirectory()) {
+        const source = path.join(rawModules, entry.name), target = path.join(modules, entry.name);
+        if (packages.has(entry.name)) fs.cpSync(source, target, { recursive: true });
+        else fs.symlinkSync(source, target, process.platform === 'win32' ? 'junction' : 'dir');
+    }
 }
-for (const [name, source] of Object.entries(sources.dependencies)) fs.writeFileSync(path.join(modules, name), source);
+const physicalOverlay = fs.realpathSync(modules);
+for (const [name, source] of Object.entries(sources.dependencies)) {
+    const file = path.join(modules, name);
+    assert.equal(path.relative(physicalOverlay, fs.realpathSync(file)), path.normalize(name), 'overlay must own ' + name);
+    assert.equal(fs.statSync(file).nlink, 1, 'overlay file must not be hard-linked: ' + name);
+    fs.writeFileSync(file, source);
+}
 for (const name of ['before', 'after']) fs.writeFileSync(path.join(out, name + '.mjs'), sources[name] + '\nexport { namedSpecManifest, viewProfilePackage, runProfilePnpm };\n');
 const after = await import(pathToFileURL(path.join(out, 'after.mjs')));
 const privateHome = path.join(out, 'home'); fs.mkdirSync(privateHome);
@@ -106,11 +118,15 @@ try {
     });
     await check('real official registry inspection keeps view first and honors executable-prefix arguments', async () => {
         const dir = profile('positive-query');
-        const view = await after.viewProfilePackage(dir, 'dsha-registry-fixture', { command: process.execPath, args: [cli], env, timeoutMs: 15000, registry: 'https://registry.npmjs.org/' });
+        const fields = ['name', 'version', 'description', 'dsh'];
+        const view = await after.viewProfilePackage(dir, 'dsha-registry-fixture', {
+            command: process.execPath, args: [cli], env, timeoutMs: 15000, registry: 'https://registry.npmjs.org/', fields
+        });
         fs.writeFileSync(path.join(out, 'positive-query.json'), JSON.stringify(view, null, 2));
         assert.equal(view.exitCode, 0, JSON.stringify(view)); assert.equal(JSON.parse(view.stdout).name, 'dsha-registry-fixture');
         const args = JSON.parse(fs.readFileSync(spyLog, 'utf8').trim().split('\n').at(-1));
-        assert.equal(args[0], 'view'); assert(args.includes('--registry=https://registry.npmjs.org/'));
+        assert.deepEqual(args.slice(0, 2 + fields.length), ['view', 'dsha-registry-fixture', ...fields]);
+        assert(args.includes('--registry=https://registry.npmjs.org/'));
     });
     const registryPackage = path.join(out, 'registry-package'); fs.mkdirSync(registryPackage);
     const metadata = { name: 'dsha-registry-fixture', version: '1.0.0', main: 'index.js',
@@ -182,10 +198,13 @@ try {
         assert(fs.readFileSync(path.join(dir, 'pnpm-lock.yaml'), 'utf8').includes(commit));
         fs.writeFileSync(path.join(out, 'git-fixed-source.json'), JSON.stringify({ commit, spec, npmCli, npmVersion: execFileSync(process.execPath, [npmCli, '--version'], { encoding: 'utf8', windowsHide: true }).trim() }, null, 2));
     });
+    for (const [name, expected] of sourceDigests)
+        assert.equal(sha(path.join(rawModules, name)), expected, 'raw runtime changed: ' + name);
     const result = { status: 'PASS', checks, output: out, runtime, productionModule: moduleName,
         canonicalSha256: sha(path.join(runtime, 'node_modules', moduleName)),
         patchedSha256: createHash('sha256').update(sources.after).digest('hex'), pnpmVersion: '10.34.5', pnpmArchiveSha256: sha(packed),
         recipeSha256: sha(path.join(root, 'app/src/main/assets/plugin-pnpm-argv-patch.json')),
+        rawPatchedSourcesUnchanged: sourceDigests.size,
         scope: 'isolated host only; no production profile, phone, real marketplace activation or Android/proot claim' };
     fs.writeFileSync(path.join(out, 'result.json'), JSON.stringify(result, null, 2) + '\n');
     console.log(JSON.stringify(result));

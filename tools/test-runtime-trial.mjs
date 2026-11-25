@@ -69,7 +69,6 @@ try{
  });
  await test('android_health_gate_requires_fresh_process_reopen',async()=>{
   const host=await fs.readFile(path.join(repository,'app/src/main/java/com/deepseekharness/app/runtime/RuntimeTrial.java'),'utf8');
-  const bootstrap=await fs.readFile(path.join(repository,'app/src/main/java/com/deepseekharness/app/runtime/ProotBootstrap.java'),'utf8');
   const receipt=await fs.readFile(path.join(repository,'app/src/main/java/com/deepseekharness/app/backup/RuntimeDescriptor.java'),'utf8');
   const plugin=await fs.readFile(path.join(repository,'app/src/main/assets/runtime-trial-plugin.js'),'utf8');
   const builder=await fs.readFile(path.join(repository,'tools/build-dsh-runtime.py'),'utf8');

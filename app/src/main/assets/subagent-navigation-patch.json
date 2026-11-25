@@ -1,24 +1,24 @@
 {
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-client-ui-subagent/lib/client.js",
   "patches": [
     {
-      "before": "onClick: openTitle === void 0 ? () => {",
-      "after": "\"data-dsha-lineage-trigger\": true,\n                        onClick: openTitle === void 0 ? () => {"
+      "before": "onClick:openTitle===void 0?()=>{",
+      "after": "\"data-dsha-lineage-trigger\":true,onClick:openTitle===void 0?()=>{"
     },
     {
-      "before": "const scheduleHoverOpen = () => {",
-      "after": "const scheduleHoverOpen = () => {\n                if (window.matchMedia(\"(pointer: coarse)\").matches) return;"
+      "before": "const scheduleHoverOpen=()=>{",
+      "after": "const scheduleHoverOpen = () => {\n                if (window.matchMedia(\"(pointer: coarse)\").matches) return;\n"
     },
     {
-      "before": "const scheduleHoverClose = () => {",
-      "after": "const scheduleHoverClose = () => {\n                if (window.matchMedia(\"(pointer: coarse)\").matches) return;"
+      "before": "const scheduleHoverClose=()=>{",
+      "after": "const scheduleHoverClose = () => {\n                if (window.matchMedia(\"(pointer: coarse)\").matches) return;\n"
     },
     {
-      "before": "className: SubagentHeaderLineage_module_css_default.menu,",
-      "after": "className: SubagentHeaderLineage_module_css_default.menu + \" dsha-lineage-menu\","
+      "before": "className:SubagentHeaderLineage_module_css_default.menu,",
+      "after": "className: SubagentHeaderLineage_module_css_default.menu + \" dsha-lineage-menu\",\n"
     }
   ],
-  "sourceSha256": "2ed50b153fcd3333194f423851867172e2ce13fb8b2f8dd23082cca8d66b4b99",
-  "packageIntegrity": "sha512-tg9bsNiGB7VFxvYdui3Gec7qL4vRvtRdyFGTZRvMOH8CMaybJdWM2IAjrVq1GbjLwArjuxYLBbps4WrcsLL0PA=="
+  "sourceSha256": "2930a2c5636f84faea27c0a768d5451169ef9576b4e94d88671134eda81f89a4",
+  "packageIntegrity": "sha512-+bkdx7kPYkBTWtrImW8FN3k6omoAWMJUkP9fpKg/vrvMR/uW62fTPxoEWb3TRmIxnNMvrxvNtp4Olpgq/zzFPg=="
 }

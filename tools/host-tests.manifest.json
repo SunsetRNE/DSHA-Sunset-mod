@@ -2,12 +2,101 @@
   "schema": 1,
   "tests": [
     {
+      "path": "tools/test-rust-host-jvm-sources.py",
+      "stage": "fast",
+      "reason": "Verify mixed Java/Kotlin Rust bridge discovery and exact compiler closure pins; reject missing, duplicate, linked, foreign-version and corrupted compiler inputs without building or loading JNI.",
+      "args": [],
+      "timeoutSeconds": 120,
+      "requires": ["python39"],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-dsh-rc5-browser-regressions.mjs",
+      "stage": "runtime",
+      "reason": "Check raw and installed conversation bundles for historical tool identity, interrupted cards, immutable retained records and valid UI actions.",
+      "args": [],
+      "timeoutSeconds": 180,
+      "requires": ["node24", "raw", "managed"],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-dsh-rc5-proof-cancellation.mjs",
+      "stage": "runtime",
+      "reason": "Exercise cancellation before dispatch and with two active plugin proof reads, original reasons, settlement and queue drainage.",
+      "args": [],
+      "timeoutSeconds": 120,
+      "requires": ["node24", "raw"],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-dsh-data-compat-guards.mjs",
+      "stage": "support",
+      "platform": ["linux"],
+      "reason": "Verify that data compatibility checks reject unsafe paths, unchecked Python assertions, and incomplete child processes before reporting a result.",
+      "args": [],
+      "timeoutSeconds": 60,
+      "requires": ["node24", "python39"],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-dsh-rc5-data-compat.mjs",
+      "stage": "support",
+      "reason": "Run the data and profile compatibility matrix using two explicit, digest-verified runtime archives in isolated roots.",
+      "args": [],
+      "timeoutSeconds": 1800,
+      "requires": ["node24", "python39"],
+      "environment": {}
+    },
+    {
+      "path": "tools/test-config-field-dict-deletion.mjs",
+      "stage": "support",
+      "reason": "Exercise compound dictionary removal, sibling retention and protected overrides using explicitly selected deployed DSH modules and private settings fixtures.",
+      "args": [],
+      "timeoutSeconds": 300,
+      "requires": ["node24"],
+      "environment": {},
+      "cli": "<deployed node_modules directory> <new evidence directory>"
+    },
+    {
+      "path": "tools/test-model-provider-delete.mjs",
+      "stage": "support",
+      "reason": "Exercise provider removal and preservation of shared credentials with synthetic transport replies against an explicitly selected deployed client module.",
+      "args": [],
+      "timeoutSeconds": 120,
+      "requires": ["node24"],
+      "environment": {},
+      "cli": "<deployed dsh-client-ui-settings-models/lib/client.js>"
+    },
+    {
+      "path": "tools/test-subagent-pool-field-scope.mjs",
+      "stage": "support",
+      "reason": "Exercise field-scoped model-pool saves, inherited and explicit values, revision conflicts, and writer refusal with the deployed settings client.",
+      "args": [],
+      "timeoutSeconds": 120,
+      "requires": ["node24"],
+      "environment": {},
+      "cli": "<deployed dsh-client-ui-settings-subagent/lib/client.js>"
+    },
+    {
+      "path": "tools/test-dsh-rc5-stream-regressions.mjs",
+      "stage": "runtime",
+      "reason": "Compare locked raw and managed watchdog and SSE reader cancellation using ReadableStream and AbortController, including the original reason and upstream body cancellation.",
+      "args": [],
+      "timeoutSeconds": 120,
+      "requires": ["node24", "raw"],
+      "environment": {}
+    },
+    {
       "path": "tools/test-plugin-s3b-oracle.py",
       "stage": "fast",
       "reason": "Run 59 isolated legacy Python migrate/register cases and compare frozen S3b facts and outcomes; never load plugins or use production profiles, JVM, Node or package managers.",
-      "args": ["--check"],
+      "args": [
+        "--check"
+      ],
       "timeoutSeconds": 120,
-      "requires": ["python39"],
+      "requires": [
+        "python39"
+      ],
       "environment": {}
     },
     {
@@ -16,8 +105,14 @@
       "reason": "Run separately after compiling the real Kotlin PluginLockFixture and pass --kotlin-classpath; exercise the actual Python flock/PID backend and pinned Node atomic-write module. Support registration does not imply default CI execution.",
       "args": [],
       "timeoutSeconds": 180,
-      "requires": ["python39", "node24", "jdk17"],
-      "platform": ["linux"],
+      "requires": [
+        "python39",
+        "node24",
+        "jdk17"
+      ],
+      "platform": [
+        "linux"
+      ],
       "environment": {}
     },
     {
@@ -26,7 +121,9 @@
       "reason": "Execute CI version discovery through the real shared Android convention, paired Java targets, missing wiring and duplicate owner negative controls, and the exact setup-toolchain CLI.",
       "args": [],
       "timeoutSeconds": 60,
-      "requires": ["python39"],
+      "requires": [
+        "python39"
+      ],
       "environment": {}
     },
     {
@@ -35,7 +132,9 @@
       "reason": "Execute logical-to-physical source mapping, real Java/Kotlin/module moves and duplicate/link/undeclared-source negative controls; compare the current single-app source, launcher and format inventories with the original algorithms.",
       "args": [],
       "timeoutSeconds": 120,
-      "requires": ["python39"],
+      "requires": [
+        "python39"
+      ],
       "environment": {}
     },
     {
@@ -44,7 +143,9 @@
       "reason": "Execute fresh all-module JUnit identity conservation and missing task/XML/Kotlin, duplicate, skipped, stale, zero-test and historical CI import negative controls without claiming synthetic fixtures are production full runs.",
       "args": [],
       "timeoutSeconds": 180,
-      "requires": ["python39"],
+      "requires": [
+        "python39"
+      ],
       "environment": {}
     },
     {
@@ -53,7 +154,9 @@
       "reason": "Guard shared application/library/JVM build and test contracts, actual-setting hooks and all-module CI enumeration; validate generated external compile/test fixtures without creating empty product modules.",
       "args": [],
       "timeoutSeconds": 120,
-      "requires": ["python39"],
+      "requires": [
+        "python39"
+      ],
       "environment": {}
     },
     {
@@ -116,12 +219,15 @@
       "stage": "runtime",
       "requires": [
         "python39",
-        "node24"
+        "node24",
+        "current_archive"
       ],
       "args": [],
       "timeoutSeconds": 120,
-      "environment": {},
-      "reason": "Execute bundled rc3 HTTP body and web-fetch output functions after the signed patch chain, including UTF-16 surrogate boundaries, metadata, caps, idempotence, and changed-anchor rejection."
+      "environment": {
+        "DSHA_RUNTIME_ARCHIVE": "{runtimeArchive}"
+      },
+      "reason": "Execute the current exact bundled HTTP body and web-fetch output functions after the signed patch chain, including UTF-16 surrogate boundaries, metadata, caps, idempotence, and changed-anchor rejection."
     },
     {
       "path": "tools/test-vscreen-help.py",
@@ -319,12 +425,25 @@
     {
       "path": "tools/test-launch-target-client.mjs",
       "stage": "fast",
-      "reason": "启动目标网页端：设置导航独立面板与插件详情卡片共用组件和路由，文案说明禁用插件不改启动目标；不连接设备或桥",
+      "reason": "启动目标网页端：设置导航独立面板与插件详情卡片共用组件和路由，核对本机主页动作的十语字典；不连接设备或桥",
       "args": [],
       "requires": [
         "node24"
       ],
       "timeoutSeconds": 60
+    },
+    {
+      "path": "tools/test-launch-target-browser.mjs",
+      "stage": "runtime",
+      "reason": "锁定的网页前端验证返回 DSHA 主页的可见性、当前文档绑定、点击和键盘、十语、大字与旋转，模拟 WebView 消息",
+      "args": [],
+      "requires": [
+        "node24",
+        "raw",
+        "browser",
+        "browser_react"
+      ],
+      "timeoutSeconds": 120
     },
     {
       "path": "tools/test-runtime-trial-readdir.mjs",
@@ -630,6 +749,21 @@
       ],
       "environment": {},
       "cli": "no positional arguments; see explicit environment/requirements"
+    },
+    {
+      "path": "tools/test-chat-viewport-performance.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "browser"
+      ],
+      "args": [],
+      "timeoutSeconds": 900,
+      "environment": {
+        "DSHA_CHAT_VIEWPORT_OUTPUT": "app/build/host-evidence/chat-viewport.json"
+      },
+      "reason": "Actual locked ChatViewport/ChatReading, full-history anchor semantics, detach/reattach and preserved scrolling policy in browser."
     },
     {
       "path": "tools/test-ci-package.py",
@@ -1278,6 +1412,17 @@
       "cli": "no positional arguments; see explicit environment/requirements"
     },
     {
+      "path": "tools/test-apk-size.py",
+      "stage": "fast",
+      "requires": [
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 60,
+      "environment": {},
+      "reason": "Read-only APK size and exact-SHA duplicate audit; synthetic ZIP CRC collision, shared rescue mapping and size limit negative controls."
+    },
+    {
       "path": "tools/test-recovery-apk-assets.py",
       "stage": "runtime",
       "reason": "Current source/verified runtime host fixture; explicit dependencies and sandbox HOME; no Android device operations",
@@ -1859,11 +2004,12 @@
     {
       "path": "tools/test-bridge-files.py",
       "stage": "runtime",
-      "reason": "Current bridge/file policy JVM behaviors with explicit descriptor fixture and locked JUnit/Gson; no Android/FUSE process",
+      "reason": "Current bridge/file policy JVM behaviors with compiled Kotlin capability types, an explicit descriptor fixture, and locked JVM libraries; no Android/FUSE process",
       "requires": [
         "python39",
         "jdk17",
-        "toolchains"
+        "toolchains",
+        "debug_classes"
       ],
       "environment": {},
       "timeoutSeconds": 300,
@@ -1871,7 +2017,9 @@
         "--jdk",
         "{jdk}",
         "--gradle-home",
-        "{gradleHome}"
+        "{gradleHome}",
+        "--flavor",
+        "{flavor}"
       ]
     },
     {
@@ -2043,6 +2191,23 @@
       ],
       "environment": {},
       "cli": "no positional arguments; see explicit environment/requirements"
+    },
+    {
+      "path": "tools/test-session-status-scale.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "args": [
+        "--runtime",
+        "{raw}",
+        "--output",
+        "app/build/host-evidence/session-status.json"
+      ],
+      "timeoutSeconds": 300,
+      "environment": {},
+      "reason": "Actual rc5 UiSession status projection and immutable snapshots across scaled status updates; no persistence changes."
     },
     {
       "path": "tools/test-skill-import.mjs",
@@ -2578,9 +2743,9 @@
       "cli": "No arguments; uses the verified current raw/managed test-runtime fixture and controlled official Auto review LLM response"
     },
     {
-      "path": "tools/test-fs-read-hint.mjs",
+      "path": "tools/test-fs-observation-policy.mjs",
       "stage": "runtime",
-      "reason": "dsh-fs-read-hint regression over the real rc.5 ToolRuntime and fs tools in a temporary app/build directory; no Android device operations",
+      "reason": "Native DSH read-before-edit policy exercised with the real rc.5 executor and filesystem tools in a temporary app/build directory",
       "args": [],
       "timeoutSeconds": 900,
       "requires": [
@@ -2639,9 +2804,23 @@
       "cli": "no arguments; hand-built fixture repository root and ZIP APKs"
     },
     {
+      "path": "tools/test-shell-integration-management.mjs",
+      "stage": "runtime",
+      "reason": "Replays the production patch chain against proven upstream DSH and checks package, component and preset projections plus direct read and mutation routes in a synthetic profile.",
+      "args": [],
+      "timeoutSeconds": 900,
+      "requires": [
+        "node24",
+        "python39",
+        "raw"
+      ],
+      "environment": {},
+      "cli": "No arguments; uses the verified current raw runtime and emits a before-and-after JSON receipt."
+    },
+    {
       "path": "tools/test-signed-builtin-web-intent.mjs",
       "stage": "runtime",
-      "reason": "Actual seven signed-wrapper Host OFF/ON and repeated native registration, manual/unknown/safe marker priority, profile isolation and serialized concurrent Native OFF; no device operations",
+      "reason": "Actual signed-wrapper Host OFF/ON and repeated native registration, shell integration ownership, manual/unknown/safe marker priority, profile isolation and serialized concurrent Native OFF; no device operations",
       "args": [],
       "timeoutSeconds": 900,
       "requires": [
@@ -2836,6 +3015,32 @@
       "cli": "No positional arguments; verified raw runtime, native Host and real browser React. Negative-control overrides are not enabled by default."
     },
     {
+      "path": "tools/test-directory-prefix.mjs",
+      "stage": "runtime",
+      "reason": "Exact local and workspace filesystem modules over a real directory, checking a bounded prefix, foreign providers, native observation, cancellation and teardown.",
+      "args": [],
+      "timeoutSeconds": 300,
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "environment": {},
+      "cli": "No positional arguments; exact locked raw runtime and isolated host files."
+    },
+    {
+      "path": "tools/test-file-read-rejection.mjs",
+      "stage": "runtime",
+      "reason": "Exact directory and text-page client read handlers settle transport rejections behind the active request fence.",
+      "args": [],
+      "timeoutSeconds": 60,
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "environment": {},
+      "cli": "No positional arguments; exact locked raw runtime and simulated transport results."
+    },
+    {
       "path": "tools/test-directory-picker-service-host.mjs",
       "stage": "runtime",
       "reason": "Actual locked Host, explicitly disabled Workspace registry, directory browse/create and same-profile cold reopen and named-class compatibility; no Android/model/user data or corruption acceptance.",
@@ -2967,6 +3172,20 @@
       "cli": "No arguments; complete byte-proven raw fixture, private isolated services and HTTP; no phone/model/user data."
     },
     {
+      "path": "tools/test-temporary-plugin-remove.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "native_host"
+      ],
+      "args": [],
+      "timeoutSeconds": 120,
+      "environment": {},
+      "reason": "Pinned dynamic Cordis host and UI removal with real fibers: approval cancellation, activation cleanup, retryable failures and stale inventory negative controls.",
+      "cli": "Optional --browser runs real clicks with the pinned frontend. --output PATH retains a separate receipt."
+    },
+    {
       "path": "tools/test-plugin-management-patch-chain.py",
       "stage": "runtime",
       "requires": [
@@ -3036,7 +3255,7 @@
     },
     {
       "path": "tools/test-account-request-patch-chain.py",
-      "stage": "history",
+      "stage": "runtime",
       "requires": [
         "python39",
         "jdk17",
@@ -3045,7 +3264,7 @@
       "args": [],
       "timeoutSeconds": 120,
       "environment": {},
-      "reason": "Exact historical rc2 2100-to191 account-chain regression with original SHA pins. Current rc5 account modules and the actual build212 -> build213 generation boundary are covered by test-build193-patch-chain.py; do not synthesize old account modules from changed rc5 official source."
+      "reason": "Current account modules exercise the Java production patch chain from fresh, repeat, and prior-overlay states and verify fail-closed canonical recovery. Historical 2100 bytes and exact APK checks are optional and explicitly hash-pinned."
     },
     {
       "path": "tools/test-native-ime-hero.mjs",
@@ -3524,6 +3743,107 @@
       "environment": {},
       "timeoutSeconds": 60,
       "reason": "Executes the production observer in an isolated VM with real fixed compatibility checker, temporary manifests and injected YAML/Loader ports; verifies startup-only metadata, patch declarations and unverified preflight without claiming real Cordis Loader execution."
+    },
+    {
+      "path": "tools/test-startup-resolution.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "args": [],
+      "timeoutSeconds": 180,
+      "environment": {},
+      "reason": "Actual rc5 construction over real directories and junctions/symlinks; fresh successor alias changes and exact patch rejection."
+    },
+    {
+      "path": "tools/test-workspace-change-feed.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "python39"
+      ],
+      "args": [],
+      "timeoutSeconds": 180,
+      "environment": {},
+      "reason": "Verifies the exact locked workspace change feed against real file metadata with injected watcher events, bounded coalescing, cancellation and failure propagation."
+    },
+    {
+      "path": "tools/test-openai-sse-patch.py",
+      "stage": "runtime",
+      "requires": [
+        "python39",
+        "node24",
+        "raw"
+      ],
+      "args": [
+        "--raw",
+        "{raw}",
+        "--output",
+        "app/build/host-evidence/sdk.json",
+        "--require-registered"
+      ],
+      "timeoutSeconds": 300,
+      "environment": {},
+      "reason": "Both locked SDK ESM/CJS modules, exact registered recipe chain, SDK SSE compatibility, anchor drift and idempotence."
+    },
+    {
+      "path": "tools/test-openai-sse-patch.mjs",
+      "stage": "support",
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "args": [
+        "{raw}",
+        "app/build/host-evidence/sdk.json"
+      ],
+      "timeoutSeconds": 300,
+      "environment": {},
+      "reason": "SDK parser fixture called by test-openai-sse-patch.py; both actual ESM/CJS SDK implementations, no network."
+    },
+    {
+      "path": "tools/test-sse-file-integration.mjs",
+      "stage": "runtime",
+      "requires": [
+        "node24",
+        "raw",
+        "native_host"
+      ],
+      "args": [],
+      "timeoutSeconds": 900,
+      "environment": {
+        "DSHA_SSE_CANDIDATE": "1",
+        "DSHA_SSE_INTEGRATION_OUTPUT": "{fixture}"
+      },
+      "reason": "Actual PiAiAdapter, OpenAI SDK and SandboxFileSystem through private HTTP/gzip byte relay; canonical tool result round-trip, no external API or device."
+    },
+    {
+      "path": "tools/test-literal-loopback-online.mjs",
+      "stage": "runtime",
+      "args": [],
+      "timeoutSeconds": 120,
+      "requires": [
+        "node24",
+        "raw"
+      ],
+      "environment": {},
+      "reason": "Self-contained actual official browser module bound by exact source SHA and npm lock; numeric loopback, remote and custom transport boundaries; no whole-runtime proof claimed"
+    },
+    {
+      "path": "tools/test-literal-loopback-online-browser.mjs",
+      "stage": "runtime",
+      "args": [],
+      "timeoutSeconds": 300,
+      "requires": [
+        "node24",
+        "managed",
+        "browser",
+        "current_archive"
+      ],
+      "environment": {},
+      "reason": "Real DSH server/client offline positive and negative trial cases on current managed bytes; production ready/home/nonce/POST gates retained"
     }
   ]
 }

@@ -177,6 +177,7 @@ jobs:
           mkdir -p out
           apk="out/dsha-prod-unsigned-${GITHUB_SHA:0:8}.apk"
           cp "${candidates[0]}" "$apk"
+          python3 tools/proot_source_distribution.py --apk "$apk" --write-source out/dsha-proot-talloc-source.zip
           "$aapt2" dump badging "$apk" > out/apk-badging.txt
           package=$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" out/apk-badging.txt)
           expected=$(python3 tools/release-identity.py --identity "$RELEASE_IDENTITY" --field packageName)
@@ -225,6 +226,7 @@ jobs:
           }
           Path('out/build-info.json').write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
           names = [apk.name, 'build-info.json']
+          names.append('dsha-proot-talloc-source.zip')
           Path('out/SHA256SUMS').write_text(''.join(
               hashlib.sha256((Path('out') / name).read_bytes()).hexdigest() + '  ' + name + '\n' for name in names),
               encoding='utf-8')
@@ -246,6 +248,7 @@ jobs:
           path: |
             out/SHA256SUMS
             out/build-info.json
+            out/dsha-proot-talloc-source.zip
             out/apk-badging.txt
             out/apk-unsigned-check.txt
           if-no-files-found: error

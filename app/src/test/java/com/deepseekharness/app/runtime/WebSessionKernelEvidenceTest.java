@@ -113,6 +113,41 @@ public final class WebSessionKernelEvidenceTest {
   }
 
   @Test
+  public void legacyAbsenceScanAllowsOnlyExactOrdinaryTerminalLaunchers() throws Exception {
+    class TerminalKernel extends Kernel {
+      String command;
+
+      @Override
+      ProcessState inspect(int pid) {
+        var birth = WebPidIdentity.parse("42 (proot) S 1 1 1 " + "0 ".repeat(15) + "123 0 0", pid);
+        return new ProcessState(Kind.OTHER, birth, command);
+      }
+    }
+    var kernel = new TerminalKernel();
+    String noWeb =
+        "stty sane 2>/dev/null || stty echo icanon 2>/dev/null || true; exec /bin/bash -l";
+    kernel.command =
+        "/data/app/demo/lib/libproot.so\0-0\0--rootfs=/data/user/0/demo/files/linux/ubuntu\0"
+            + "--cwd=/root\0-b\0/dev\0/bin/bash\0-c\0"
+            + noWeb
+            + "\0";
+    assertTrue(kernel.confirmNoUntrackedWebLaunchers());
+    kernel.command =
+        "/data/app/demo/lib/libproroot.so\0--static-loader\0-r\0/private/linux/ubuntu\0"
+            + "-0\0-w\0/root\0--link2symlink\0/bin/bash\0";
+    assertTrue(kernel.confirmNoUntrackedWebLaunchers());
+    kernel.command =
+        "/data/app/demo/lib/libproroot-bridge.so\0/data/app/demo/lib/libproroot-linker.so\0"
+            + "--argv0\0bash\0--preload\0/data/app/demo/lib/libproroot-runtime.so\0"
+            + "/private/linux/ubuntu/bin/bash\0-l\0";
+    assertTrue(kernel.confirmNoUntrackedWebLaunchers());
+    kernel.command = kernel.command.replace("-l\0", "-c\0exec dsh web\0");
+    assertFalse(kernel.confirmNoUntrackedWebLaunchers());
+    kernel.command = "/data/app/demo/lib/libproot.so\0/bin/bash\0-c\0start-web\0/bin/bash\0";
+    assertFalse(kernel.confirmNoUntrackedWebLaunchers());
+  }
+
+  @Test
   public void pidReusedByOtherUidProvesOriginalExitedWithoutReadingIt() throws Exception {
     // 覆盖安装后旧启动器 PID 被其它应用复用：内容不可读，但属主已变，原进程必然已退出。
     Kernel kernel = new Kernel();

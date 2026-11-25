@@ -6,6 +6,8 @@ from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+import zipfile
+from proroot_distribution import LICENSE_NAME, prepare_inputs, vendor_pins, verify_apk
 
 spec = importlib.util.spec_from_file_location('third_party_notices',
                                              Path(__file__).with_name('check-third-party-notices.py'))
@@ -14,6 +16,62 @@ spec.loader.exec_module(gate)
 
 
 class ThirdPartyNoticesTest(unittest.TestCase):
+    def test_vendor_inputs_restore_offline_and_retry_without_the_apk(self):
+        originals = gate.ROOT / 'app/src/main/jniLibs/arm64-v8a'
+        notice = gate.ROOT / 'app/src/main/assets/licenses' / LICENSE_NAME
+        target = self.root / 'checkout'
+        with zipfile.ZipFile(self.archive, 'w') as apk:
+            for name in vendor_pins():
+                apk.write(originals/name, 'lib/arm64-v8a/' + name)
+            apk.write(notice, 'assets/licenses/' + LICENSE_NAME)
+        self.assertEqual(5, prepare_inputs(target, apk_path=self.archive))
+        self.assertEqual(0, prepare_inputs(target))
+        (target/'libproroot.so').write_bytes(b'partial')
+        with self.assertRaisesRegex(ValueError, 'Missing or changed'):
+            prepare_inputs(target)
+        self.assertEqual(1, prepare_inputs(target, apk_path=self.archive))
+        self.assertEqual((originals/'libproroot.so').read_bytes(), (target/'libproroot.so').read_bytes())
+
+    def test_invalid_vendor_source_keeps_existing_inputs(self):
+        originals = gate.ROOT / 'app/src/main/jniLibs/arm64-v8a'
+        notice = gate.ROOT / 'app/src/main/assets/licenses' / LICENSE_NAME
+        target = self.root / 'checkout'
+        target.mkdir()
+        existing = target/'libproroot.so'
+        existing.write_bytes(b'existing')
+        with zipfile.ZipFile(self.archive, 'w') as apk:
+            for name in vendor_pins():
+                apk.write(originals/name, 'lib/arm64-v8a/' + name)
+            apk.writestr('assets/licenses/' + LICENSE_NAME, notice.read_bytes()[:-1])
+        with self.assertRaisesRegex(ValueError, 'APK_PROROOT_BYTES'):
+            prepare_inputs(target, apk_path=self.archive)
+        self.assertEqual([existing], list(target.iterdir()))
+        self.assertEqual(b'existing', existing.read_bytes())
+
+    def test_proroot_final_apk_requires_exact_five_originals_and_full_notice(self):
+        files = {'lib/arm64-v8a/' + path.name: path.read_bytes()
+                 for path in (gate.ROOT / 'app/src/main/jniLibs/arm64-v8a').glob('libproroot*.so')}
+        license_member = 'assets/licenses/' + LICENSE_NAME
+        files[license_member] = (gate.ROOT / 'app/src/main/assets/licenses' / LICENSE_NAME).read_bytes()
+
+        def verify(entries):
+            data = io.BytesIO()
+            with zipfile.ZipFile(data, 'w') as archive:
+                for name, contents in entries.items():
+                    archive.writestr(name, contents)
+            with zipfile.ZipFile(data) as archive:
+                return verify_apk(archive)
+
+        self.assertEqual(6, len(verify(files)))
+        for name in files:
+            with self.subTest(name=name):
+                with self.assertRaisesRegex(ValueError, 'APK_PROROOT_BYTES'):
+                    verify({**files, name: files[name][:-1]})
+                with self.assertRaisesRegex(ValueError, 'APK_PROROOT_MEMBERS'):
+                    verify({key: content for key, content in files.items() if key != name})
+        with self.assertRaisesRegex(ValueError, 'APK_PROROOT_MEMBERS'):
+            verify({**files, 'lib/x86/libproroot.so': b'extra member'})
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

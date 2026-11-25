@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-llm-deepseek/lib/index.js",
   "patches": [
     {

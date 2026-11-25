@@ -32,6 +32,7 @@ public final class OneClickBackup extends AndroidViewModel {
   private final Handler main = new Handler(Looper.getMainLooper());
   private final AtomicBoolean preparing = new AtomicBoolean();
   private volatile BackupControl preparation;
+  private char[] directoryPassword;
   private volatile NativeBackupJobs jobs;
   private volatile NativeBackupJobs.State job;
   private volatile String issue = "", destination = "";
@@ -68,9 +69,11 @@ public final class OneClickBackup extends AndroidViewModel {
     executor.execute(action);
   }
 
-  public boolean start() {
+  public synchronized boolean start(char[] suppliedPassword) {
+    if (!PortableBackupCrypto.validPassword(suppliedPassword)) return false;
     if (directoryNeeded || job != null && job.busy || !preparing.compareAndSet(false, true))
       return false;
+    char[] password = suppliedPassword.clone();
     issue = "";
     destination = "";
     cancelRequested = false;
@@ -93,17 +96,23 @@ public final class OneClickBackup extends AndroidViewModel {
                       && grant.isReadPermission()
                       && grant.isWritePermission()) granted = true;
               if (!granted) {
-                directoryNeeded = true;
-                directoryClaimed = false;
+                synchronized (this) {
+                  control.check();
+                  if (cleared) throw new java.io.InterruptedIOException();
+                  directoryPassword = password == null ? null : password.clone();
+                  directoryNeeded = true;
+                  directoryClaimed = false;
+                }
                 return;
               }
             }
-            submit(tree, control);
+            submit(tree, control, password);
           } catch (Exception error) {
             android.util.Log.w(
                 "DshaBackup", BackupFailureDiagnostic.describe("ONE_CLICK_PREPARING", error));
             issue = BackupErrorCode.from(error);
           } finally {
+            if (password != null) java.util.Arrays.fill(password, (char) 0);
             preparing.set(false);
             render();
           }
@@ -118,16 +127,22 @@ public final class OneClickBackup extends AndroidViewModel {
     return true;
   }
 
-  public void directoryResult(Uri tree) {
+  public synchronized void directoryResult(Uri tree) {
     if (!directoryNeeded) return;
     directoryNeeded = false;
     directoryClaimed = false;
+    char[] password = directoryPassword;
+    directoryPassword = null;
     if (tree == null) {
+      if (password != null) java.util.Arrays.fill(password, (char) 0);
       issue = "CANCELLED";
       render();
       return;
     }
-    if (!preparing.compareAndSet(false, true)) return;
+    if (!preparing.compareAndSet(false, true)) {
+      if (password != null) java.util.Arrays.fill(password, (char) 0);
+      return;
+    }
     preparation = new BackupControl(null);
     render();
     worker(
@@ -149,19 +164,20 @@ public final class OneClickBackup extends AndroidViewModel {
                 .edit()
                 .putString(TREE, tree.toString())
                 .commit()) throw new IOException("SAF_PERMISSION_NOT_RETAINED");
-            submit(tree, control);
+            submit(tree, control, password);
           } catch (Exception error) {
             android.util.Log.w(
                 "DshaBackup", BackupFailureDiagnostic.describe("ONE_CLICK_DIRECTORY", error));
             issue = BackupErrorCode.from(error);
           } finally {
+            if (password != null) java.util.Arrays.fill(password, (char) 0);
             preparing.set(false);
             render();
           }
         });
   }
 
-  private void submit(Uri tree, BackupControl control) throws IOException {
+  private void submit(Uri tree, BackupControl control, char[] password) throws IOException {
     control.check();
     if (exporter != null) {
       job = exporter.submit(tree, control);
@@ -179,9 +195,7 @@ public final class OneClickBackup extends AndroidViewModel {
     NativeBackupJobs owner = NativeBackupJobs.get(context);
     jobs = owner;
     synchronized (owner) {
-      if (!(tree == null
-          ? owner.exportToDownloads(selection, false)
-          : owner.exportToDirectory(selection, tree)))
+      if (!owner.exportOneClick(selection, password, tree))
         throw new IOException("BACKUP_TASK_BUSY_OR_PENDING");
       NativeBackupJobs.State started = owner.state();
       job = started;
@@ -206,7 +220,13 @@ public final class OneClickBackup extends AndroidViewModel {
     return selected;
   }
 
-  public void cancel() {
+  private synchronized void clearDirectoryPassword() {
+    if (directoryPassword != null) java.util.Arrays.fill(directoryPassword, (char) 0);
+    directoryPassword = null;
+  }
+
+  public synchronized void cancel() {
+    clearDirectoryPassword();
     cancelRequested = true;
     directoryNeeded = false;
     directoryClaimed = false;
@@ -339,6 +359,7 @@ public final class OneClickBackup extends AndroidViewModel {
   @Override
   protected void onCleared() {
     cleared = true;
+    clearDirectoryPassword();
     var owner = jobs;
     if (owner != null) owner.changes().removeObserver(observer);
   }

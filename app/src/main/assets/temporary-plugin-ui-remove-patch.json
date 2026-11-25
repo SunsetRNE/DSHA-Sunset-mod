@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-cordis/lib/client.js",
+  "sourceSha256": "2de0e6f09d0e34b847ac3ae29cbbb59c657396c07cfcd8f373cbed580fbd052e",
+  "packageIntegrity": "sha512-fvDn01tW4fNfENyu2afMM/vr4NJKg+uADCr5BYq4j240wIMpqhzC6UnZkMxRXWE5bVxlRsn6+aaiiqcEruC+qw==",
+  "targetSha256": "ba09d43308d0ea67d411750e4c6785ff70ddb14fb5f19d22f225fb6f021a4b97",
+  "reason": "Preserve explicit dynamic plugin removal through asynchronous activation and stale inventory responses. Retain failed cleanup evidence; never replay activation or change persistent plugin packages.",
+  "patches": [
+    {
+      "before": "retire:pluginId=>{const removed",
+      "after": "retire:pluginId=>{\n    // DSHA_TEMPORARY_PLUGIN_UI_REMOVE_V1: an inventory read issued\n    // before the acknowledged removal cannot restore its old row.\n    generation += 1;\n    inFlight = void 0;\n    const removed"
+    },
+    {
+      "before": "awaiting===void 0&&listed!==void 0&&(0,react_jsx_runtime.jsx)(RowAction,{label:t(`action.remove`),",
+      "after": "/* Explicit removal also cancels a pending approval. */ listed!==void 0&&(0,react_jsx_runtime.jsx)(RowAction,{label:t(`action.remove`),"
+    },
+    {
+      "before": "\"data-cordis-remove\":pluginId,disabled:busy,",
+      "after": "\"data-cordis-remove\":pluginId,disabled:pending.has(pluginId),"
+    }
+  ]
+}

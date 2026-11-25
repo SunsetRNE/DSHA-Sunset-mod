@@ -35,9 +35,6 @@ public final class PluginSortAudit extends Instrumentation {
     boolean safeModeActive() {
       return false;
     }
-
-    @Override
-    void syncInstalledState() {}
   }
 
   private volatile FragmentSessionTestActivity page;

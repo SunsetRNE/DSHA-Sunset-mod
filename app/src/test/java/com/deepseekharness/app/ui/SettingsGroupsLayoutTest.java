@@ -2,19 +2,28 @@ package com.deepseekharness.app.ui;
 
 import static org.junit.Assert.*;
 
+import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import androidx.fragment.app.FragmentActivity;
+import com.deepseekharness.app.BuildConfig;
 import com.deepseekharness.app.DshaApp;
 import com.deepseekharness.app.R;
+import com.deepseekharness.app.core.ConfigStore;
+import com.deepseekharness.app.util.UiLanguagePreference;
 import com.deepseekharness.app.util.UiText;
 import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
@@ -32,6 +41,19 @@ public final class SettingsGroupsLayoutTest {
   public static final class App extends DshaApp {
     @Override
     public void onCreate() {}
+  }
+
+  public static final class ObservedSettings extends SettingsFragment {
+    private int languageWrites;
+    private int themeWrites;
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle state) {
+      View root = super.onCreateView(inflater, container, state);
+      observeWrites(root.findViewById(R.id.settings_language), () -> languageWrites++);
+      observeWrites(root.findViewById(R.id.settings_theme_sub), () -> themeWrites++);
+      return root;
+    }
   }
 
   private ContextThemeWrapper context;
@@ -86,6 +108,118 @@ public final class SettingsGroupsLayoutTest {
   }
 
   @Test
+  public void stickyHeaderDrawsAndReceivesTouchesAboveFollowingBody() {
+    ScrollView scroll = inflateSettings();
+    GroupedList list = install(scroll, new GroupedList.Memory());
+    TextView header = scroll.findViewById(R.id.settings_section_experience);
+    View body = scroll.findViewById(R.id.settings_group_experience);
+    scroll.measure(
+        View.MeasureSpec.makeMeasureSpec(320, View.MeasureSpec.EXACTLY),
+        View.MeasureSpec.makeMeasureSpec(240, View.MeasureSpec.EXACTLY));
+    scroll.layout(0, 0, 320, 240);
+    float restingZ = header.getZ();
+
+    scroll.scrollTo(0, body.getTop() + 20);
+    list.refresh();
+    assertTrue("header overlaps its body while pinned", header.getY() >= body.getTop());
+    assertTrue("pinned header must be above its following body", header.getZ() > body.getZ());
+
+    list.toggle("experience");
+    assertEquals(restingZ, header.getZ(), 0f);
+  }
+
+  @Test
+  public void powerRowTitlesToggleTheSameMutuallyExclusiveControls() {
+    DshaApp app = (DshaApp) RuntimeEnvironment.getApplication();
+    app.getApplicationInfo().nativeLibraryDir = app.getCacheDir().getAbsolutePath();
+    try (var controller = Robolectric.buildActivity(FragmentActivity.class)) {
+      FragmentActivity host = controller.get();
+      host.setTheme(R.style.Theme_DeepseekHarness);
+      controller.setup();
+      ConfigStore config = new ConfigStore(host);
+      config.setEcoMode(false);
+      config.setKeepScreenOn(false);
+      SettingsFragment settings = new SettingsFragment();
+      host.getSupportFragmentManager()
+          .beginTransaction()
+          .add(android.R.id.content, settings)
+          .commitNow();
+      View root = settings.requireView();
+
+      root.findViewById(R.id.settings_keep_screen_on).performClick();
+      assertTrue(config.isKeepScreenOn());
+      assertFalse(config.isEcoMode());
+
+      root.findViewById(R.id.settings_power).performClick();
+      assertFalse(config.isKeepScreenOn());
+      assertTrue(config.isEcoMode());
+
+      root.findViewById(R.id.settings_power).performClick();
+      assertFalse(config.isKeepScreenOn());
+      assertFalse(config.isEcoMode());
+    }
+  }
+
+  @Test
+  @Config(qualifiers = "w1360dp-h900dp-land")
+  public void resumeOnlyWritesAppearanceSummariesWhenValuesChange() {
+    RuntimeEnvironment.getApplication().getApplicationInfo().nativeLibraryDir =
+        RuntimeEnvironment.getApplication().getCacheDir().getAbsolutePath();
+    try (var controller = Robolectric.buildActivity(FragmentActivity.class)) {
+      FragmentActivity host = controller.get();
+      host.setTheme(R.style.Theme_DeepseekHarness);
+      controller.setup();
+      ConfigStore config = new ConfigStore(host);
+      config.setUiLanguage("zh");
+      config.setUiPalette("standard");
+      ObservedSettings settings = new ObservedSettings();
+      host.getSupportFragmentManager()
+          .beginTransaction()
+          .add(android.R.id.content, settings)
+          .commitNow();
+      assertTrue(settings.isTwoPane());
+      assertEquals("首次恢复保留已显示的语言摘要", 0, settings.languageWrites);
+      assertEquals("首次恢复保留已显示的主题摘要", 0, settings.themeWrites);
+
+      controller.pause();
+      config.setUiLanguage("en");
+      config.setUiPalette("sakura");
+      controller.resume();
+      TextView language = settings.requireView().findViewById(R.id.settings_language);
+      TextView theme = settings.requireView().findViewById(R.id.settings_theme_sub);
+      assertEquals(UiLanguagePreference.nativeName("en"), language.getText().toString());
+      assertTrue(theme.getText().toString().endsWith(ThemeActivity.paletteName("sakura")));
+      assertEquals(1, settings.languageWrites);
+      assertEquals(1, settings.themeWrites);
+
+      controller.pause().resume();
+      assertEquals(1, settings.languageWrites);
+      assertEquals(1, settings.themeWrites);
+    }
+  }
+
+  @Test
+  public void technicalSummaryDisplaysThePackagedVersion() throws Exception {
+    RuntimeEnvironment.getApplication().getApplicationInfo().nativeLibraryDir =
+        RuntimeEnvironment.getApplication().getCacheDir().getAbsolutePath();
+    try (var controller = Robolectric.buildActivity(FragmentActivity.class)) {
+      FragmentActivity host = controller.get();
+      host.setTheme(R.style.Theme_DeepseekHarness);
+      controller.setup();
+      SettingsFragment settings = new SettingsFragment();
+      host.getSupportFragmentManager()
+          .beginTransaction()
+          .add(android.R.id.content, settings)
+          .commitNow();
+      String installed =
+          host.getPackageManager().getPackageInfo(host.getPackageName(), 0).versionName;
+      assertEquals(BuildConfig.VERSION_NAME, installed);
+      TextView summary = settings.requireView().findViewById(R.id.settings_ver);
+      assertEquals(UiText.format("技术说明 · DSHA v%s", installed), summary.getText().toString());
+    }
+  }
+
+  @Test
   public void compactWidthWithLargeFontHasNoHorizontalOverflow() {
     RuntimeEnvironment.setFontScale(1.3f);
     ScrollView scroll = inflateSettings();
@@ -114,6 +248,22 @@ public final class SettingsGroupsLayoutTest {
   private ScrollView inflateSettings() {
     View view = LayoutInflater.from(context).inflate(R.layout.fragment_settings, null, false);
     return (ScrollView) view;
+  }
+
+  private static void observeWrites(TextView view, Runnable count) {
+    view.addTextChangedListener(
+        new TextWatcher() {
+          @Override
+          public void beforeTextChanged(CharSequence text, int start, int count, int after) {}
+
+          @Override
+          public void onTextChanged(CharSequence text, int start, int before, int count) {}
+
+          @Override
+          public void afterTextChanged(Editable text) {
+            count.run();
+          }
+        });
   }
 
   private GroupedList install(ScrollView scroll, GroupedList.Memory memory) {

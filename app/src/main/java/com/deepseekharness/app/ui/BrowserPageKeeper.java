@@ -1,8 +1,12 @@
 package com.deepseekharness.app.ui;
 
+import android.app.ActivityManager;
 import android.content.ComponentCallbacks2;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 
 import com.deepseekharness.app.core.HarnessController;
@@ -32,12 +36,15 @@ public final class BrowserPageKeeper implements ComponentCallbacks2 {
   public static final String REASON_INIT_FAILED = "init-failed";
   public static final String REASON_FALLBACK = "fallback";
   public static final String REASON_TRIM = "trim";
+  public static final String REASON_MEMORY_PRESSURE = "memory-pressure";
   public static final String REASON_TASK_REMOVED = "task-removed";
   public static final String REASON_EMPTY = "empty";
 
   interface Clock {
     long now();
   }
+
+  static final long DETACHED_PRESSURE_GRACE_MS = 30_000;
 
   private static BrowserPageKeeper instance;
 
@@ -63,10 +70,12 @@ public final class BrowserPageKeeper implements ComponentCallbacks2 {
 
   private final Context context;
   private final Clock clock;
+  private final Handler mainHandler = new Handler(Looper.getMainLooper());
   private WebPreviewActivity.Retained page;
   private java.lang.ref.WeakReference<WebPreviewActivity> owner =
       new java.lang.ref.WeakReference<>(null);
-  private long detachedAt;
+  private long detachedAt = -1;
+  private Runnable pendingPressureCheck;
   private String detachedReason = "";
   private String retiredReason = "";
   private int attaches;
@@ -89,16 +98,16 @@ public final class BrowserPageKeeper implements ComponentCallbacks2 {
 
   /** Activity 借阅应用级唯一页面；没有页面时新建一个空壳，页面创建仍由 Activity 完成。 */
   public synchronized WebPreviewActivity.Retained acquire(WebPreviewActivity activity) {
-    boolean adopted = page != null;
-    boolean wasDetached = adopted && detachedAt > 0;
+    boolean wasDetached = hasDetachedPage();
     String resumedFrom = detachedReason;
+    cancelPressureCheckLocked();
     if (page == null) page = new WebPreviewActivity.Retained();
     if (page.view != null && page.view.getParent() instanceof android.view.ViewGroup parent)
       parent.removeView(page.view);
     page.keeper = this;
     page.owner = new java.lang.ref.WeakReference<>(activity);
     owner = new java.lang.ref.WeakReference<>(activity);
-    detachedAt = 0;
+    detachedAt = -1;
     detachedReason = "";
     if (wasDetached) {
       attaches++;
@@ -124,6 +133,7 @@ public final class BrowserPageKeeper implements ComponentCallbacks2 {
     detachedReason = com.deepseekharness.app.util.WebPageDiagnosticText.reasonCode(reason);
     WebPageDiagnostics.keepAlive(context, "DETACH", reason, generationOf(page), page.ready);
     detaches++;
+    schedulePressureCheckLocked();
     return true;
   }
 
@@ -149,14 +159,57 @@ public final class BrowserPageKeeper implements ComponentCallbacks2 {
   }
 
   /** 仅摘挂状态响应系统内存压力；可见页面交给系统/错误面板，不在这里静默销毁。 */
+  @SuppressWarnings("deprecation") // Some devices and older Android still send the old levels.
   public synchronized boolean trimMemory(int level) {
+    if (!hasDetachedPage()) return false;
     boolean pressure =
         level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW
             || level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL
             || level == ComponentCallbacks2.TRIM_MEMORY_COMPLETE;
-    if (!pressure || page == null || owner.get() != null) return false;
-    retireLocked(REASON_TRIM);
-    return true;
+    if (pressure) {
+      retireLocked(REASON_TRIM);
+      return true;
+    }
+    if (level == TRIM_MEMORY_UI_HIDDEN || level == TRIM_MEMORY_BACKGROUND) {
+      schedulePressureCheckLocked();
+    }
+    return false;
+  }
+
+  private void schedulePressureCheckLocked() {
+    // Android 14+ stopped delivering the old pressure levels. Take one delayed snapshot per
+    // detach or new trim signal, leaving short Activity handoffs and healthy pages alone.
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+        || pendingPressureCheck != null) return;
+    pendingPressureCheck =
+        new Runnable() {
+          @Override
+          public void run() {
+            checkDetachedPressure(this);
+          }
+        };
+    mainHandler.postDelayed(pendingPressureCheck, DETACHED_PRESSURE_GRACE_MS);
+  }
+
+  private synchronized void checkDetachedPressure(Runnable check) {
+    if (check != pendingPressureCheck) return;
+    pendingPressureCheck = null;
+    if (!hasDetachedPage()) return;
+    ActivityManager.MemoryInfo memory = new ActivityManager.MemoryInfo();
+    try {
+      ActivityManager manager = context.getSystemService(ActivityManager.class);
+      if (manager == null) return;
+      manager.getMemoryInfo(memory);
+    } catch (RuntimeException unavailable) {
+      return;
+    }
+    if (memory.lowMemory) retireLocked(REASON_MEMORY_PRESSURE);
+  }
+
+  private void cancelPressureCheckLocked() {
+    if (pendingPressureCheck == null) return;
+    mainHandler.removeCallbacks(pendingPressureCheck);
+    pendingPressureCheck = null;
   }
 
   /** 任务被系统移除：进程通常也会结束，但不能依赖进程死亡来释放页面。 */
@@ -200,11 +253,11 @@ public final class BrowserPageKeeper implements ComponentCallbacks2 {
   }
 
   public synchronized boolean hasDetachedPage() {
-    return page != null && page.view != null && owner.get() == null;
+    return detachedAt >= 0 && page != null && page.view != null && owner.get() == null;
   }
 
   public synchronized long detachedAt() {
-    return detachedAt;
+    return Math.max(0, detachedAt);
   }
 
   public synchronized String lastDetachedReason() {
@@ -233,6 +286,7 @@ public final class BrowserPageKeeper implements ComponentCallbacks2 {
   }
 
   @Override
+  @SuppressWarnings("deprecation") // Framework callback still used on older Android.
   public void onLowMemory() {
     trimMemory(ComponentCallbacks2.TRIM_MEMORY_COMPLETE);
   }
@@ -282,8 +336,9 @@ public final class BrowserPageKeeper implements ComponentCallbacks2 {
     WebPreviewActivity.Retained retiring = page;
     long generation = generationOf(retiring);
     boolean ready = retiring != null && retiring.ready;
+    cancelPressureCheckLocked();
     page = null;
-    detachedAt = 0;
+    detachedAt = -1;
     detachedReason = "";
     retiredReason = com.deepseekharness.app.util.WebPageDiagnosticText.reasonCode(reason);
     retires++;

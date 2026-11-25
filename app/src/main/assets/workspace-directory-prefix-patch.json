@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-api-workspace-files/lib/index.js",
+  "sourceSha256": "6d9795e9e5a89c18e4e036e01d257ba8e6efb7ed9f7cf5cd9142ada174e0c319",
+  "packageIntegrity": "sha512-/malF5gbJVPTtXQ4DthP7RBPxpfSc6myUZMxeD+BKVPTFANGdRonL6dGx4wnq1pyNgwpclZZppgsYnHg+53UWw==",
+  "reason": "Request maxEntries+1 through the optional provider prefix capability, preserving confinement, configured prefix ordering and the existing truncated UI flag; unknown providers retain their full listDir behavior.",
+  "patches": [
+    {
+      "before": "\t\t\tconst children = await this.ctx.fs.listDir(target, signal);",
+      "after": "\t\t\t// DSHA_WORKSPACE_DIRECTORY_PREFIX_V1: one extra entry preserves the existing truncation flag.\n\t\t\t// Other providers keep their complete API; never parse opaque target identities here.\n\t\t\tconst fs = this.ctx.fs;\n\t\t\tconst children = typeof fs.dshaListDirPrefix === \"function\"\n\t\t\t\t? await fs.dshaListDirPrefix(target, this.config.maxEntries + 1, signal)\n\t\t\t\t: await fs.listDir(target, signal);"
+    }
+  ]
+}

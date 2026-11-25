@@ -2,10 +2,13 @@ package com.deepseekharness.app.ui;
 
 import static org.junit.Assert.*;
 
+import android.app.ActivityManager;
 import android.content.ComponentCallbacks2;
+import android.os.Looper;
 import android.webkit.WebView;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.util.PreviewPageSession;
+import java.time.Duration;
 import java.util.List;
 import org.junit.After;
 import org.junit.Before;
@@ -17,6 +20,8 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.LooperMode;
 import org.robolectric.shadow.api.Shadow;
+import org.robolectric.shadows.ShadowActivityManager;
+import org.robolectric.shadows.ShadowLooper;
 
 /** K1+K2：应用级 keeper 的单页所有权、摘挂、trim、任务移除与运行时身份变化语义。 */
 @RunWith(RobolectricTestRunner.class)
@@ -148,6 +153,83 @@ public final class BrowserPageKeeperTest {
   }
 
   @Test
+  @Config(sdk = 33)
+  public void android13KeepsDetachedPageUntilAnExplicitPressureCallback() {
+    setLowMemory(true);
+    assertTrue(keeper.detach(first, BrowserPageKeeper.REASON_SYSTEM));
+    keeper.onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN);
+    keeper.onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_BACKGROUND);
+    advancePressureClock(BrowserPageKeeper.DETACHED_PRESSURE_GRACE_MS * 2);
+    assertSame(page, keeper.page().view);
+
+    keeper.onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL);
+    assertEquals(1, page.destroyed);
+    assertEquals(BrowserPageKeeper.REASON_TRIM, keeper.lastRetiredReason());
+  }
+
+  @Test
+  public void android14HiddenAndBackgroundSignalsLeaveTheActivityOwnedPageAlone() {
+    setLowMemory(true);
+    keeper.onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN);
+    keeper.onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_BACKGROUND);
+    keeper.onLowMemory();
+    advancePressureClock(BrowserPageKeeper.DETACHED_PRESSURE_GRACE_MS * 2);
+    assertTrue(keeper.owns(first));
+    assertEquals(0, page.destroyed);
+  }
+
+  @Test
+  public void android14ChecksPressureAfterTheDetachGraceWithoutDependingOnACallback() {
+    setLowMemory(true);
+    assertTrue(keeper.detach(first, BrowserPageKeeper.REASON_SYSTEM));
+    advancePressureClock(BrowserPageKeeper.DETACHED_PRESSURE_GRACE_MS - 1);
+    assertEquals(0, page.destroyed);
+
+    advancePressureClock(1);
+    assertNull(keeper.page());
+    assertEquals(1, page.destroyed);
+    assertEquals(BrowserPageKeeper.REASON_MEMORY_PRESSURE, keeper.lastRetiredReason());
+  }
+
+  @Test
+  public void android14HealthyDetachedPageIsRetainedAndNewBackgroundSignalRechecks() {
+    setLowMemory(false);
+    assertTrue(keeper.detach(first, BrowserPageKeeper.REASON_SYSTEM));
+    keeper.onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN);
+    advancePressureClock(BrowserPageKeeper.DETACHED_PRESSURE_GRACE_MS);
+    assertSame(page, keeper.page().view);
+
+    setLowMemory(true);
+    advancePressureClock(BrowserPageKeeper.DETACHED_PRESSURE_GRACE_MS * 5);
+    assertEquals(0, page.destroyed);
+
+    keeper.onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_BACKGROUND);
+    assertSame(page, keeper.page().view);
+    advancePressureClock(BrowserPageKeeper.DETACHED_PRESSURE_GRACE_MS);
+    assertEquals(1, page.destroyed);
+    assertEquals(BrowserPageKeeper.REASON_MEMORY_PRESSURE, keeper.lastRetiredReason());
+  }
+
+  @Test
+  public void android14PreviousDetachCheckCannotRetireAReattachedOrNewlyDetachedPage() {
+    setLowMemory(true);
+    assertTrue(keeper.detach(first, BrowserPageKeeper.REASON_SYSTEM));
+    long halfGrace = BrowserPageKeeper.DETACHED_PRESSURE_GRACE_MS / 2;
+    advancePressureClock(halfGrace);
+    assertSame(retained, keeper.acquire(second));
+    assertTrue(keeper.detach(second, BrowserPageKeeper.REASON_SYSTEM));
+    advancePressureClock(halfGrace);
+    assertEquals(0, page.destroyed);
+    assertEquals(1, page.navigations);
+    assertSame(retained, keeper.acquire(first));
+
+    advancePressureClock(halfGrace);
+    assertTrue(keeper.owns(first));
+    assertEquals(0, page.destroyed);
+    assertEquals(1, page.navigations);
+  }
+
+  @Test
   public void taskRemovalRetiresThePage() {
     assertTrue(keeper.detach(first, BrowserPageKeeper.REASON_SYSTEM));
     assertTrue(keeper.onTaskRemoved());
@@ -221,6 +303,18 @@ public final class BrowserPageKeeperTest {
     assertTrue(BrowserPageKeeper.hasKeptPage());
     keeper.retire("test-cleanup");
     assertFalse(BrowserPageKeeper.hasKeptPage());
+  }
+
+  private static void setLowMemory(boolean lowMemory) {
+    ActivityManager manager =
+        RuntimeEnvironment.getApplication().getSystemService(ActivityManager.class);
+    ActivityManager.MemoryInfo memory = new ActivityManager.MemoryInfo();
+    memory.lowMemory = lowMemory;
+    Shadow.<ShadowActivityManager>extract(manager).setMemoryInfo(memory);
+  }
+
+  private static void advancePressureClock(long millis) {
+    Shadow.<ShadowLooper>extract(Looper.getMainLooper()).idleFor(Duration.ofMillis(millis));
   }
 
   private static void runRuntimeListeners() {

@@ -109,9 +109,13 @@ jobs:
         if: inputs.mode == 'differential'
         run: |
           set -eu
+          python3 tools/test-rust-host-jvm-sources.py
+          python3 tools/rust/prepare-kotlin-host.py --dir out/kotlin-host
+          python3 tools/rust/prepare-kotlin-host.py --dir out/kotlin-host --check
           python3 tools/rust/build.py --host --expect-lock --out out/rust-host \
             --receipt out/rust-host/receipt.json
           python3 tools/rust/host-jvm-differential.py \
+            --kotlin-libs out/kotlin-host \
             --lib out/rust-host/libdsha_rs.so --report out/rust-differential.json
       - name: Upload native artifact and receipt
         if: inputs.mode == 'native'

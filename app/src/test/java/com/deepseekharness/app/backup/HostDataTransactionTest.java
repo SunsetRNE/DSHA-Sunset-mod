@@ -174,6 +174,7 @@ public class HostDataTransactionTest {
             HostDataTransactionTest.class,
             HostDataTransaction.class,
             com.google.gson.stream.JsonReader.class,
+            kotlin.Unit.class,
             org.junit.Assert.class))
       locations.add(
           new File(type.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath());

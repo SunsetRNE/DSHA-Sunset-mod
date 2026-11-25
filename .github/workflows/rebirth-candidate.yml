@@ -236,6 +236,7 @@ jobs:
           mkdir -p out
           apk="out/dsha-rebirth-NOT_FOR_INSTALLATION-${GITHUB_SHA:0:8}.apk"
           cp "${candidates[0]}" "$apk"
+          python3 tools/proot_source_distribution.py --apk "$apk" --write-source out/dsha-proot-talloc-source.zip
           # 证书已固定；--allow-unsigned 只放行“仍确实未签名”的中间产物，交付前必须由
           # sign-candidate 签名。已签名 APK 或身份/清单违规仍然失败。
           set +e
@@ -280,6 +281,7 @@ jobs:
           Path('out/build-info.json').write_text(
               json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
           names = [apk.name, 'build-info.json', 'rebirth-candidate.json']
+          names.append('dsha-proot-talloc-source.zip')
           Path('out/SHA256SUMS').write_text(''.join(
               hashlib.sha256((Path('out') / name).read_bytes()).hexdigest() + '  ' + name + '\n'
               for name in names), encoding='utf-8')
@@ -402,6 +404,7 @@ jobs:
             --receipt out/signed/receipt.json
           signed="out/signed/dsha-rebirth-${short}.apk"
           test -s "$signed"
+          python3 tools/proot_source_distribution.py --apk "$signed" --write-source out/signed/dsha-proot-talloc-source.zip
           # 签名模式把回执写在 apk-signing.json；按任务约定再固定一份 receipt.json 名字。
           cp out/signed/apk-signing.json out/signed/receipt.json
           printf 'SIGNED_APK=%s\n' "$signed" >> "$GITHUB_ENV"
@@ -468,6 +471,7 @@ jobs:
           for name in names:
               if not (Path('out/signed') / name).is_file():
                   raise SystemExit('REBIRTH_SIGNED_EVIDENCE_MISSING: ' + name)
+          names.append('dsha-proot-talloc-source.zip')
           Path('out/signed/SHA256SUMS').write_text(''.join(
               digest(Path('out/signed') / name) + '  ' + name + '\n' for name in names), encoding='utf-8')
           print(json.dumps(value, ensure_ascii=False, indent=2))

@@ -61,14 +61,13 @@ final class FirstRunWebStart {
                     } catch (java.io.IOException | RuntimeException failure) {
                       protectionFailure(app, null, failure);
                     } finally {
-                      HarnessService.finishVisibleStart(app, ticket);
+                      if (!ticket.isDeferred()) HarnessService.finishVisibleStart(app, ticket);
                     }
                   }),
           () -> {
             // Installation itself stops the old runtime. This is the user's one setup request;
             // the generation fence still rejects it if a later explicit Stop wins.
-            if (!controller.startProtectedWeb(ticket, false, false, null))
-              HarnessService.finishVisibleStart(app, ticket);
+            controller.startProtectedWeb(ticket, false, false, null);
           });
     } catch (RuntimeException rejected) {
       HarnessService.finishVisibleStart(app, ticket);
@@ -87,7 +86,7 @@ final class FirstRunWebStart {
     com.deepseekharness.app.util.WebStartProtection.Ticket ticket;
     try {
       // This call is synchronous in the visible click's main-thread frame.
-      ticket = HarnessService.prepareVisibleStart(activity);
+      ticket = HarnessService.prepareVisibleStart(activity, !recover);
     } catch (java.io.IOException unavailable) {
       protectionFailure(app, status, unavailable);
       return false;

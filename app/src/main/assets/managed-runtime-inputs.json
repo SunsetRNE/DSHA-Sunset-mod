@@ -115,12 +115,12 @@
     {
       "asset": "device-shell-policy.py",
       "target": "root/.dsh/device-shell-policy.py",
-      "executable": false
+      "executable": true
     },
     {
       "asset": "adb-shell.py",
       "target": "root/.dsh/adb-shell.py",
-      "executable": false
+      "executable": true
     },
     {
       "asset": "dsha-device-shell.sh",
@@ -492,21 +492,6 @@
       "executable": false
     },
     {
-      "asset": "builtin-plugins/dsh-fs-read-hint/package.json",
-      "target": "root/dsha-fs-read-hint/package.json",
-      "executable": false
-    },
-    {
-      "asset": "builtin-plugins/dsh-fs-read-hint/cordis.patch.yml",
-      "target": "root/dsha-fs-read-hint/cordis.patch.yml",
-      "executable": false
-    },
-    {
-      "asset": "builtin-plugins/dsh-fs-read-hint/lib/index.js",
-      "target": "root/dsha-fs-read-hint/lib/index.js",
-      "executable": false
-    },
-    {
       "asset": "builtin-plugins/dsh-fs-search-scope/package.json",
       "target": "root/dsha-fs-search-scope/package.json",
       "executable": false
@@ -519,6 +504,36 @@
     {
       "asset": "builtin-plugins/dsh-fs-search-scope/lib/index.js",
       "target": "root/dsha-fs-search-scope/lib/index.js",
+      "executable": false
+    },
+    {
+      "asset": "web-brand/apple-touch-icon.png",
+      "target": "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-web-frontend/dist/apple-touch-icon.png",
+      "executable": false
+    },
+    {
+      "asset": "web-brand/favicon-dark.svg",
+      "target": "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-web-frontend/dist/favicon-dark.svg",
+      "executable": false
+    },
+    {
+      "asset": "web-brand/favicon.svg",
+      "target": "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-web-frontend/dist/favicon.svg",
+      "executable": false
+    },
+    {
+      "asset": "web-brand/icon-192.png",
+      "target": "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-web-frontend/dist/icon-192.png",
+      "executable": false
+    },
+    {
+      "asset": "web-brand/icon-512.png",
+      "target": "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-web-frontend/dist/icon-512.png",
+      "executable": false
+    },
+    {
+      "asset": "web-brand/icon-maskable-512.png",
+      "target": "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-web-frontend/dist/icon-maskable-512.png",
       "executable": false
     }
   ],
@@ -547,6 +562,14 @@
     "queue-dock-patch.json",
     "pnpm-runtime.bin",
     "profile-settings-review.js",
+    "config-field-include-patch.json",
+    "config-field-boot-patch.json",
+    "config-field-editor-patch.json",
+    "config-field-compound-delete-patch.json",
+    "config-field-settings-patch.json",
+    "model-provider-delete-patch.json",
+    "provider-retry-mode-inheritance-patch.json",
+    "subagent-model-selection-fields-patch.json",
     "rc1-settings-migration-patch.json",
     "runtime-trial-entry.js",
     "runtime-trial-page.js",
@@ -563,6 +586,17 @@
     "frontend-static-cache-patch.json",
     "guard-bash-patch.json",
     "guard-editor-patch.json",
+    "local-feedback-policy-patch.json",
+    "api-provider-auth-policy-patch.json",
+    "web-default-brand-patch.json",
+    "web-brand-entry-patch.json",
+    "web-brand-manifest-patch.json",
+    "web-brand-title-patch.json",
+    "web-brand-sidebar-patch.json",
+    "web-brand-run-indicator-patch.json",
+    "web-brand-viewer-patch.json",
+    "lan-mux-authorization-patch.json",
+    "lan-mux-client-patch.json",
     "guard-fs-patch.json",
     "guard-tools-patch.json",
     "guard-tools-pipeline-patch.json",
@@ -577,6 +611,7 @@
     "tool-dispatch-validation-patch.json",
     "tool-dispatch-validation-pipeline-patch.json",
     "tool-history-display-patch.json",
+    "tool-history-projection-identity-patch.json",
     "tool-messages-history-patch.json",
     "tool-stream-identity-patch.json",
     "welcome-notice-patch.json",
@@ -588,6 +623,7 @@
     "web-integration/language.js",
     "web-integration/permission-full-access.js",
     "web-integration/session-interaction.js",
+    "lan-settings-upstream-contract-0.2.2-rc.5.json",
     "lan-settings-upstream-contract.json",
     "deepseek-account-client-diagnostic-patch.json",
     "deepseek-account-requests-patch.json",
@@ -595,6 +631,8 @@
     "directory-picker-service-patch.json",
     "config-editor-lock-order-patch.json",
     "plugin-manager-pending-patch.json",
+    "plugin-manager-web-update-rollback-patch.json",
+    "plugin-manager-web-update-status-patch.json",
     "agent-preset-pending-patch.json",
     "plugin-inventory-entries-patch.json",
     "plugin-manager-entries-patch.json",
@@ -603,6 +641,9 @@
     "plugin-inventory-management-remote-codec-patch.json",
     "plugin-inventory-management-api-codec-patch.json",
     "plugin-manager-management-probe-patch.json",
+    "plugin-inventory-shell-integrations-patch.json",
+    "plugin-manager-shell-integrations-patch.json",
+    "shell-integration-policy.js",
     "plugin-bundle-proof-workers-patch.json",
     "deepseek-web-search-headers-patch.json",
     "file-upload-capacity-patch.json",
@@ -612,7 +653,22 @@
     "user-only-skill-approval-patch.json",
     "first-connect-indicator-patch.json",
     "plugin-pnpm-argv-patch.json",
-    "external-tool-proof.json"
+    "external-tool-proof.json",
+    "startup-resolution-patch.json",
+    "workspace-change-feed-bounded-patch.json",
+    "local-directory-prefix-patch.json",
+    "local-directory-watch-patch.json",
+    "workspace-directory-prefix-patch.json",
+    "files-list-rejection-patch.json",
+    "text-page-rejection-patch.json",
+    "openai-sse-esm-patch.json",
+    "openai-sse-cjs-patch.json",
+    "literal-loopback-online-patch.json",
+    "temporary-plugin-host-remove-patch.json",
+    "temporary-plugin-ui-remove-patch.json",
+    "chat-render-performance-patch.json",
+    "chat-viewport-performance-patch.json",
+    "session-status-scale-patch.json"
   ],
   "assetTrees": [
     "web-integration",
@@ -634,10 +690,10 @@
   ],
   "launcherSources": [
     "util/ComposeGate.java",
-    "util/RustArchiveCodec.java",
-    "util/RustBackends.java",
-    "util/RustGzipInputStream.java",
-    "util/RustGzipOutputStream.java",
+    "util/RustArchiveCodec.kt",
+    "util/RustBackends.kt",
+    "util/RustGzipInputStream.kt",
+    "util/RustGzipOutputStream.kt",
     "util/RustNative.java",
     "util/IsolatedCommand.java",
     "util/OverlayPlacement.java",
@@ -659,10 +715,13 @@
     "util/GuestCommandOutcome.java",
     "backup/HostMaintenancePending.java",
     "core/RuntimeTasks.java",
+    "util/PluginMutationTickets.java",
     "core/PluginRepository.java",
     "core/PluginTask.java",
     "core/PluginActivationHooks.java",
     "core/MaintenanceCoordinator.java",
+    "core/EnvironmentAccess.java",
+    "core/EnvironmentMaintenance.java",
     "core/ConfigStore.java",
     "core/HarnessController.java",
     "core/TerminalSessionOwner.kt",
@@ -681,12 +740,12 @@
     "util/Ids.java",
     "util/GuestPaths.java",
     "util/GuestRegularFile.java",
-    "util/BackupScopes.java",
+    "util/BackupScopes.kt",
     "util/NpmPackageName.java",
     "util/BuiltinPluginRegistry.java",
     "util/CredentialPathRules.java",
     "util/CredentialPaths.java",
-    "util/BackupTaskKinds.java",
+    "util/BackupTaskKinds.kt",
     "util/ManagedPatchChain.java",
     "util/DiagnosticFailures.java",
     "util/BundledRootfsAsset.java",
@@ -702,6 +761,7 @@
     "HttpShellService.java",
     "DshaAccessibilityService.java",
     "bridge/AdbBridge.java",
+    "util/AdbResult.java",
     "bridge/BridgeImageDecoder.java",
     "util/SensitiveData.java",
     "recovery/RecoveryStoragePlan.java",
@@ -718,11 +778,13 @@
     "util/ProcStat.java",
     "util/DiagnosticReport.java",
     "util/StorageCategoryLabels.java",
-    "util/ScheduledBackupOwner.java",
+    "util/ScheduledBackupOwner.kt",
     "util/FileKind.java",
     "util/NotificationIds.java",
     "util/RuntimeTrialOutputPolicy.java",
     "util/InstallProbe.java",
+    "util/InstallProcess.java",
+    "util/InstallTask.java",
     "util/BridgeRoutes.java",
     "util/ProcessPipePoller.java",
     "util/ApplicationOwner.java",
@@ -742,6 +804,7 @@
     "util/SensitiveAppPolicy.java",
     "util/VirtualScreenRequestFence.java",
     "util/CoalescingPoller.java",
+    "BootReceiver.java",
     "DeviceBridgeService.java",
     "DeviceShellExecutor.java",
     "ShellService.java",
@@ -765,6 +828,7 @@
     "util/RootShellCandidates.java",
     "DeviceFileCore.java",
     "bridge/AndroidDeviceFiles.java",
+    "util/LinuxOpenFlags.java",
     "bridge/AppDeviceActions.java",
     "util/DeviceFileOperations.java",
     "util/LanTokenState.java",
@@ -827,6 +891,10 @@
     "core/WebSessionRecovery.java",
     "util/WebSessionProof.java",
     "data/KeyVault.java",
+    "AndroidLanIdentity.java",
+    "LanTlsIdentity.java",
+    "LanWebSocketProtocols.java",
+    "LanFiniteResponse.java",
     "LanProxyService.java",
     "LanAuth.java",
     "util/SocketDispatch.java",
@@ -876,6 +944,7 @@
     "tools/proroot-compat/stack-sysconf.c",
     "tools/proroot-compat/build.py",
     "tools/proroot-compat/abi.lock.json",
+    "tools/proroot_distribution.py",
     "tools/proroot-compat/linker-entry.c",
     "tools/prepare-welcome-notice-patch.py",
     "tools/welcome-notice/WelcomeNotice.js",
@@ -898,6 +967,12 @@
     "tools/i18n/web-translations/la.json",
     "tools/i18n/web-translations/zh-Hant.json",
     "ci/source-layout.json",
-    "tools/source_layout.py"
+    "tools/source_layout.py",
+    "tools/prepare-openai-sse-patch.py",
+    "tools/prepare-literal-loopback-online-patch.py",
+    "tools/prepare-temporary-plugin-remove-patch.py",
+    "tools/prepare-chat-render-performance-patch.py",
+    "tools/prepare-chat-viewport-performance-patch.py",
+    "tools/prepare-session-status-scale-patch.py"
   ]
 }

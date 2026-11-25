@@ -70,8 +70,11 @@ final class RecoveryToolchain {
       try (ZipFile apk = new ZipFile(context.getPackageCodePath())) {
         var entry = BundledRootfsAsset.find(apk);
         if (entry == null) throw new IOException(UiText.text("APK 缺少独立恢复所需的基础文件"));
-        try (InputStream input = apk.getInputStream(entry)) {
-          TarGzipExtractor.extractSelected(input, root, 0, RootfsBootstrap::recoveryAsset);
+        try (InputStream input = apk.getInputStream(entry);
+            InputStream metadata = context.getAssets().open(BundledRootfsAsset.SHA256);
+            InputStream decoded =
+                BundledRootfsAsset.decode(input, BundledRootfsAsset.readSha256(metadata))) {
+          TarGzipExtractor.extractSelected(decoded, root, 0, RootfsBootstrap::recoveryAsset);
         }
       }
       RootfsInstaller.python(context, root);

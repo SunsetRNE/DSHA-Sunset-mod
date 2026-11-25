@@ -114,14 +114,13 @@ public final class NativeConfigurationReset implements HostDataTransaction.Targe
     fs.syncDirectory(owned);
     File candidate = new File(owned, "candidate");
     fs.directory(candidate);
-    try (OutputStream out = fs.create(new File(candidate, "settings"))) {
-      out.write("{}\n".getBytes(StandardCharsets.UTF_8));
-    }
     try (OutputStream out = fs.create(new File(candidate, "environment"))) {
       out.write(environment);
     }
     HostDataTransaction transaction = new HostDataTransaction(fs, owned, reset, settings, fault);
-    transaction.prepare(roots, before, settings.current(), control);
+    // Absence is the default. Keep an existing YAML seed in the transaction's
+    // previous tree rather than making a fresh legacy import input on every reset.
+    transaction.prepare(roots, before, settings.current(), control, Set.of("settings"));
     try {
       transaction.commit(control);
     } catch (IOException failure) {

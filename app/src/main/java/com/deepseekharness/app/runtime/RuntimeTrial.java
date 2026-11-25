@@ -64,9 +64,30 @@ public final class RuntimeTrial {
       throw new IOException("TRIAL_REQUIRES_MAINTENANCE");
     checks.verify();
     control.check();
+    RuntimeDescriptor installed = proot.installedRuntimeDescriptor();
+    if (installed == null) throw new IOException("RUNTIME_DESCRIPTOR_MISSING");
+    LaunchInputs inputs;
+    String inputStage = "bind-private-root";
+    try {
+      File root = RuntimeAssetFiles.root(context, proot.getRootfsDir());
+      inputStage = "read-selected-inputs";
+      inputs = launchInputs(new AndroidBackupFileSystem(), root, installed);
+    } catch (IOException failure) {
+      // Input checks precede the guest and its per-trial failure receipt.
+      com.deepseekharness.app.core.DiagnosticLog.record(
+          context,
+          "TRIAL_INPUTS_FAILED",
+          "stage="
+              + inputStage
+              + " runtimeId="
+              + installed.id()
+              + " code="
+              + BackupErrorCode.from(failure));
+      throw failure;
+    }
     String requested = proot.runtime().id();
     try {
-      return verifyOnce(context, proot, control, requested, browserProbe);
+      return verifyOnce(context, proot, control, installed, inputs, requested, browserProbe);
     } catch (TrialExit error) {
       // verifyOnce 的 finally 已核验 guest 全部退出并解除本轮工作锁；未确认退出会以另一异常阻止此处。
       if (!error.closed
@@ -74,7 +95,8 @@ public final class RuntimeTrial {
               requested, false, error.hadAuth, false, !control.isCancelled(), error.code)
           || RuntimeWorkPort.hasOtherTasks()) throw error;
       control.report("TRIAL_COMPATIBILITY_RETRY", 0, 0);
-      Map<String, Object> proof = verifyOnce(context, proot, control, "proot", browserProbe);
+      Map<String, Object> proof =
+          verifyOnce(context, proot, control, installed, inputs, "proot", browserProbe);
       proof.put("fallbackFrom", requested);
       proof.put("fallbackExitCode", (long) error.code);
       return proof;
@@ -85,11 +107,11 @@ public final class RuntimeTrial {
       Context context,
       ProotBootstrap proot,
       BackupControl control,
+      RuntimeDescriptor expected,
+      LaunchInputs inputs,
       String runtimeMode,
       BrowserProbe browserProbe)
       throws IOException {
-    RuntimeDescriptor expected = proot.installedRuntimeDescriptor();
-    if (expected == null) throw new IOException("RUNTIME_DESCRIPTOR_MISSING");
     BackupFileSystem fs = new AndroidBackupFileSystem();
     File files = context.getFilesDir().getCanonicalFile(), records = fs.child(files, HOME);
     if (fs.stat(records).type.equals("MISSING")) fs.directory(records);
@@ -183,13 +205,7 @@ public final class RuntimeTrial {
               + "; export BROWSER=true; export DSH_CONFIRM=1; unset DEEPSEEK_API_KEY; cd "
               + ShellQuote.arg(guest)
               + "; "
-              + "export DSHA_TRIAL_DSH_VERSION="
-              + ShellQuote.arg(Constants.DSH_VERSION)
-              + "; export DSHA_TRIAL_PNPM_VERSION="
-              + ShellQuote.arg(com.deepseekharness.app.BuildConfig.BUNDLED_PNPM_VERSION)
-              + "; export DSHA_TRIAL_BUILTIN_ENTRIES="
-              + ShellQuote.arg(builtinEntries())
-              + "; "
+              + inputs.exports()
               + TrialSupport.identityPrefix()
               + "set -e; curl --version; git --version; id -Gn; "
               + "python3 -B -c 'import ssl,sqlite3,readline,tarfile,zipfile; ssl.create_default_context(); assert sqlite3.sqlite_version'; "
@@ -297,6 +313,8 @@ public final class RuntimeTrial {
       }
       proof = new LinkedHashMap<>();
       proof.put("runtimeId", expected.id());
+      proof.put("dshVersion", inputs.dshVersion());
+      proof.put("pnpmVersion", inputs.pnpmVersion());
       proof.put("nonce", nonce);
       proof.put("port", (long) port);
       proof.put("confirmedAt", System.currentTimeMillis());
@@ -447,14 +465,61 @@ public final class RuntimeTrial {
     }
   }
 
-  private static String builtinEntries() throws IOException {
-    List<String> entries = new ArrayList<>();
-    for (String name : BuiltinPluginRegistry.SIGNED)
-      entries.add(
-          BuiltinPluginRegistry.guestDirectory(name)
-              + "/"
-              + BuiltinPluginRegistry.entrypoint(name));
-    return new String(BackupJson.write(Map.of("entries", entries), 16384), StandardCharsets.UTF_8);
+  record LaunchInputs(String dshVersion, String pnpmVersion, String builtinEntries) {
+    String exports() {
+      return "export DSHA_TRIAL_DSH_VERSION="
+          + ShellQuote.arg(dshVersion)
+          + "; export DSHA_TRIAL_PNPM_VERSION="
+          + ShellQuote.arg(pnpmVersion)
+          + "; export DSHA_TRIAL_BUILTIN_ENTRIES="
+          + ShellQuote.arg(builtinEntries)
+          + "; ";
+    }
+  }
+
+  // 事务先核验并切换受管树。试运行仍在 guest 中独立核对实际版本与入口。
+  static LaunchInputs launchInputs(BackupFileSystem fs, File root, RuntimeDescriptor installed)
+      throws IOException {
+    String pnpm =
+        new String(
+                fs.small(fs.child(root, "root/.dsha-pnpm-version"), 128), StandardCharsets.US_ASCII)
+            .trim();
+    if (!pnpm.matches("[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][A-Za-z0-9._+-]+)?"))
+      throw new IOException("TRIAL_PNPM_VERSION_INVALID");
+    Map<?, ?> signedInputs = (Map<?, ?>) installed.json().get("inputs");
+    String registryName = "builtin-plugins.json";
+    byte[] registry = fs.small(fs.child(root, "root/.dsh/" + registryName), 64 * 1024);
+    if (!BackupArchive.hex(BackupArchive.sha().digest(registry))
+        .equals(signedInputs.get(registryName)))
+      throw new IOException("TRIAL_BUILTIN_REGISTRY_DIGEST");
+    Map<String, Object> value = BackupJson.read(registry, 64 * 1024);
+    if (BackupJson.number(value, "schema") != 1
+        || !(value.get("plugins") instanceof List<?> plugins)
+        || plugins.isEmpty()
+        || plugins.size() > 128) throw new IOException("TRIAL_BUILTIN_REGISTRY");
+    Set<String> entries = new LinkedHashSet<>();
+    for (Object item : plugins) {
+      if (!(item instanceof Map<?, ?> plugin)
+          || !(plugin.get("name") instanceof String name)
+          || !name.matches("[a-z0-9][a-z0-9-]{0,79}")
+          || !(plugin.get("guestDirectory") instanceof String directory)
+          || !directory.matches("/root/dsha-[a-z0-9][a-z0-9-]{0,79}")
+          || !(plugin.get("entrypoint") instanceof String entry)
+          || !entry.matches(
+              "(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*\\.(?:js|mjs|cjs)")
+          || !ManagedRuntimeLayout.allowed(ManagedRuntimeLayout.ROOT + directory.substring(1))
+          || !entries.add(directory + "/" + entry)) throw new IOException("TRIAL_BUILTIN_REGISTRY");
+      String asset =
+          name.equals("dsh-app-integration") ? "app-integration" : "builtin-plugins/" + name;
+      if (!signedInputs.containsKey(asset + "/" + entry))
+        throw new IOException("TRIAL_BUILTIN_ENTRY_UNDECLARED");
+    }
+    return new LaunchInputs(
+        installed.dshVersion(),
+        pnpm,
+        new String(
+            BackupJson.write(Map.of("entries", new ArrayList<>(entries)), 16384),
+            StandardCharsets.UTF_8));
   }
 
   private static void report(BackupControl control, long started, String phase) throws IOException {
@@ -580,6 +645,13 @@ public final class RuntimeTrial {
     }
   }
 
+  /** Small read-only closure check for keeping an explicitly selected runtime. */
+  public static boolean hasPending(Context context) throws IOException {
+    BackupFileSystem fs = new AndroidBackupFileSystem();
+    File home = fs.child(context.getFilesDir().getCanonicalFile(), HOME);
+    return RuntimeTrialRecords.hasPending(fs, home);
+  }
+
   /** 优先显示仍阻断维护的试运行失败；读取小型宿主记录绝不意味着放行或清理现场。 */
   public static String latestFailure(Context context) {
     try {
@@ -591,8 +663,13 @@ public final class RuntimeTrial {
       byte[] bytes = diagnostic.failure();
       Map<String, Object> value = BackupJson.read(bytes, 64 * 1024);
       String mode = BackupJson.string(value, "runtimeMode");
-      String error = BackupJson.string(value, "error"), output = BackupJson.string(value, "output");
-      Object exit = value.get("exitCode");
+      String error = BackupJson.string(value, "error");
+      Object runtimeId = value.get("runtimeId");
+      Object output =
+          runtimeId instanceof String && ((String) runtimeId).matches("[a-f0-9]{64}")
+              ? value.get("output")
+              : null;
+      Object exit = value.get("exitCode"), cleanup = value.get("cleanupCode");
       return SensitiveData.redact(
           "trialRecord="
               + diagnostic.recordId()
@@ -612,16 +689,19 @@ public final class RuntimeTrial {
               + (error.isEmpty() ? "unknown" : error)
               + "\nexitCode="
               + (exit == null ? "unknown" : String.valueOf(exit))
-              + (output.isEmpty() ? "" : "\n" + output));
+              + (cleanup instanceof String && ((String) cleanup).matches("[A-Z_0-9]{2,100}")
+                  ? "\ncleanupCode=" + cleanup
+                  : "")
+              + (output instanceof String && !((String) output).isEmpty() ? "\n" + output : ""));
     } catch (Exception error) {
       return "TRIAL_DIAGNOSTIC_UNAVAILABLE: " + BackupErrorCode.from(error);
     }
   }
 
-  public static void recoverPending(Context context, ProotBootstrap proot) throws IOException {
+  public static boolean recoverPending(Context context, ProotBootstrap proot) throws IOException {
     BackupFileSystem fs = new AndroidBackupFileSystem();
     File home = fs.child(context.getFilesDir().getCanonicalFile(), HOME);
-    TrialRecovery.recover(
+    return TrialRecovery.recover(
         fs,
         home,
         new TrialRecovery.Stopper() {
@@ -645,6 +725,17 @@ public final class RuntimeTrial {
             importIo.confirmNoRelated(nonce, "/root/.dsha-runtime-trial-" + nonce, payload);
           }
 
+          public void confirmSettings(File payload, boolean hasPidEvidence) throws IOException {
+            WebProcessManager manager = new WebProcessManager(proot, payload);
+            if (hasPidEvidence) {
+              String detail =
+                  TrialGuestCleanup.stop(SettingsTrialCleanup.guestCleanup(manager, null));
+              if (!detail.isEmpty() || !manager.observeStopped(false))
+                throw new IOException(SettingsTrialCleanup.PROCESS_UNCONFIRMED);
+            }
+            confirmSettingsContextGone(manager, payload);
+          }
+
           /** 没有 PID 记录时只按记录 id 推导的试运行 profile 确认无进程；不碰主 Web 与其他试运行。 */
           public void confirmAbsent(String id) throws IOException {
             String nonce = id.replace("-", "");
@@ -652,6 +743,19 @@ public final class RuntimeTrial {
                 .retireRecordedTrialProfile("dsha-recovery-" + nonce.substring(0, 16));
           }
         });
+  }
+
+  static void confirmSettingsContextGone(WebProcessManager manager, File payload)
+      throws IOException {
+    String nonce = payload.getParentFile().getName().replace("-", "");
+    try {
+      legacyImportIo(manager)
+          .confirmNoRelated(nonce, "/root/.dsha-runtime-trial-" + nonce, payload);
+    } catch (InterruptedIOException cancelled) {
+      throw cancelled;
+    } catch (IOException failure) {
+      throw new IOException(SettingsTrialCleanup.PROCESS_UNCONFIRMED, failure);
+    }
   }
 
   /**
@@ -772,13 +876,7 @@ public final class RuntimeTrial {
             Map<String, String> env = environment(pid);
             String directory = cwd(pid);
             boolean related =
-                nonce.equals(env.get("DSHA_RUNTIME_TRIAL_NONCE"))
-                    || (guest + "/home").equals(env.get("DSH_HOME"))
-                    || (guest + "/isolated-user-home").equals(env.get("HOME"))
-                    || directory.equals(path)
-                    || directory.startsWith(path + "/");
-            for (String argument : before.command.split("\u0000"))
-              related |= argument.equals(guest) || argument.startsWith(guest + "/");
+                TrialRecovery.matchesContext(nonce, guest, path, before.command, env, directory);
             WebProcessManager.ProcessState after = manager.inspect(pid);
             if (after.kind == WebProcessManager.Kind.GONE) continue;
             if (after.kind == WebProcessManager.Kind.DENIED

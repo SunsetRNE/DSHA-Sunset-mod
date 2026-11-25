@@ -18,6 +18,43 @@ public final class PortableBackupCrypto {
 
   private PortableBackupCrypto() {}
 
+  public static boolean validPassword(char[] password) {
+    return password != null && password.length >= 12 && password.length <= 1024;
+  }
+
+  /** Verify the private ciphertext against the exact capture before it may be published. */
+  static void encryptVerified(
+      BackupFileSystem fs,
+      File plain,
+      String expected,
+      File encrypted,
+      char[] password,
+      BackupControl control)
+      throws IOException {
+    try (InputStream input = fs.read(plain, fs.stat(plain));
+        OutputStream output = fs.create(encrypted)) {
+      encrypt(input, output, password, control);
+    }
+    java.security.MessageDigest authenticated = BackupArchive.sha();
+    try (InputStream input = fs.read(encrypted, fs.stat(encrypted))) {
+      decrypt(
+          input,
+          new java.security.DigestOutputStream(
+              new OutputStream() {
+                @Override
+                public void write(int b) {}
+
+                @Override
+                public void write(byte[] bytes, int off, int len) {}
+              },
+              authenticated),
+          password,
+          control);
+    }
+    if (!expected.equals(BackupArchive.hex(authenticated.digest())))
+      throw new IOException("PRIVATE_ARTIFACT_VERIFICATION");
+  }
+
   public static void encrypt(
       InputStream plain, OutputStream target, char[] password, BackupControl control)
       throws IOException {
@@ -37,6 +74,25 @@ public final class PortableBackupCrypto {
             .array();
     target.write(header);
     crypt(true, plain, target, password, header, control);
+  }
+
+  /** The caller can inspect staged data only after the complete authentication tag succeeds. */
+  static void decryptIsolated(
+      BackupFileSystem fs, File encrypted, File isolated, char[] password, BackupControl control)
+      throws IOException {
+    try (InputStream input = fs.read(encrypted, fs.stat(encrypted))) {
+      OutputStream newFile = fs.create(isolated);
+      try (OutputStream out = newFile) {
+        decrypt(input, out, password, control);
+      } catch (IOException | RuntimeException | Error failure) {
+        try {
+          fs.delete(isolated);
+        } catch (IOException cleanup) {
+          failure.addSuppressed(cleanup);
+        }
+        throw failure;
+      }
+    }
   }
 
   public static void decrypt(
@@ -64,8 +120,7 @@ public final class PortableBackupCrypto {
       byte[] header,
       BackupControl control)
       throws IOException {
-    if (password == null || password.length < 12 || password.length > 1024)
-      throw new IOException("PASSWORD_LENGTH");
+    if (!validPassword(password)) throw new IOException("PASSWORD_LENGTH");
     byte[] encoded = PBEParametersGenerator.PKCS5PasswordToUTF8Bytes(password), key = null;
     byte[] in = new byte[65536], out = new byte[65568];
     try {

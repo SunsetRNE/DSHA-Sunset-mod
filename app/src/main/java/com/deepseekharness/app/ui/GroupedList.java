@@ -34,6 +34,7 @@ final class GroupedList {
     final TextView header;
     final View body;
     Drawable originalBackground;
+    float originalZ;
     boolean collapsed;
 
     Group(String key, TextView header, View body) {
@@ -98,6 +99,7 @@ final class GroupedList {
       Boolean saved = list.memory.collapsed(group.key);
       group.collapsed = saved != null && saved;
       group.originalBackground = group.header.getBackground();
+      group.originalZ = group.header.getZ();
       list.groups.add(group);
       list.bind(group);
     }
@@ -170,9 +172,12 @@ final class GroupedList {
     group.header.setStateDescription(group.collapsed ? UiText.text("已收起") : UiText.text("已展开"));
   }
 
-  /** 吸顶时补不透明底色，避免正文从标题后面透出；不吸顶时恢复原背景。 */
+  /** 吸顶时让标题覆盖后绘制的正文，并用不透明底色挡住下方文字。 */
   private void applyStickySkin(Group group, boolean sticky) {
     TextView header = group.header;
+    float z =
+        sticky ? Math.max(group.originalZ, group.body.getZ() + dp(header, 1)) : group.originalZ;
+    if (header.getZ() != z) header.setZ(z);
     if (sticky) {
       if (!(header.getBackground() instanceof ColorDrawable))
         header.setBackground(new ColorDrawable(header.getContext().getColor(R.color.shell_bg)));

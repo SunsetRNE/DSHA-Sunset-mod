@@ -31,6 +31,28 @@ public final class DshVersionPolicyTest {
   }
 
   @Test
+  public void currentRc5ReadsOnlyDeclaredOlderFormatsAndCannotBeSilentlyDowngraded() {
+    String current = "0.2.2-rc.5";
+    String currentWrite = "dsh-" + current;
+    List<String> readable = List.of(RC5, RC1, currentWrite);
+    assertEquals(
+        DshVersionPolicy.Status.CURRENT,
+        DshVersionPolicy.assess(current, currentWrite, current, readable));
+    assertEquals(
+        DshVersionPolicy.Status.INSTALLED_OLDER,
+        DshVersionPolicy.assess("0.2.1-rc.5", RC5, current, readable));
+    assertEquals(
+        DshVersionPolicy.Status.INSTALLED_OLDER,
+        DshVersionPolicy.assess("0.2.2-rc.1", RC1, current, readable));
+    assertEquals(
+        DshVersionPolicy.Status.UNKNOWN,
+        DshVersionPolicy.assess("0.2.1-rc.3", RC3, current, readable));
+    assertEquals(
+        DshVersionPolicy.Status.INSTALLED_NEWER,
+        DshVersionPolicy.assess(current, currentWrite, "0.2.2-rc.1", readable));
+  }
+
+  @Test
   public void dataWriteEvidenceWinsOverStaleDshLabel() {
     assertEquals(
         DshVersionPolicy.Status.INSTALLED_NEWER,

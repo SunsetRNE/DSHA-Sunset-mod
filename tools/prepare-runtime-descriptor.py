@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import re
 import sys
+import tarfile
 from runtime_input_contract import load, asset_paths, launcher_paths, relative
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,6 +44,10 @@ READ_COMPATIBILITY = {
     # profile package.json normalization. See
     # docs/runtime-data-compatibility-0.2.2-rc.1.md. Do not infer older edges.
     '0.2.2-rc.1': ['dsh-0.2.1-rc.5'],
+    # build370: exact archived readers for build308 and 0.2.2-rc.1 each
+    # passed the five-phase host fixture against the 0.2.2-rc.5 readers.
+    # This authorizes forward reading of those two formats only.
+    '0.2.2-rc.5': ['dsh-0.2.1-rc.5', 'dsh-0.2.2-rc.1'],
 }
 
 def digest(path):
@@ -72,6 +77,54 @@ def validate_installs(root, spec):
             raise ValueError('RUNTIME_INSTALL_EXTRACT')
 
 
+def staging_space(assets, spec):
+    """当前签名候选的展开用量；隐式父目录、复制的 tar 硬链接也占空间。"""
+    logical = nodes = largest = hardlinks = 0
+    directories = set()
+
+    def parents(path):
+        while '/' in path:
+            path = path.rsplit('/', 1)[0]
+            if path in directories:
+                break
+            directories.add(path)
+
+    def add(path, size):
+        nonlocal logical, nodes, largest
+        logical += size
+        nodes += 1
+        largest = max(largest, size)
+        parents(path)
+
+    def archive(name, member=None, target=None):
+        nonlocal hardlinks
+        found = False
+        with tarfile.open(assets / name) as stream:
+            for row in stream:
+                if member is not None and row.name != member:
+                    continue
+                path = target or row.name
+                if row.isdir():
+                    parents(path)
+                    directories.add(path.rstrip('/'))
+                else:
+                    # 生产解压器复制硬链接；归档允许其先于目标出现，按最大成员预留。
+                    hardlinks += int(row.islnk())
+                    add(path, row.size)
+                found = True
+        if not found:
+            raise ValueError('RUNTIME_SPACE_ARCHIVE_MEMBER: ' + name)
+
+    archive('dsh-runtime.bin')
+    archive('pnpm-runtime.bin')
+    for row in spec['installs']:
+        if 'extract' in row:
+            archive(row['asset'], row['extract']['member'], row['target'])
+        else:
+            add(row['target'], (assets / row['asset']).stat().st_size)
+    return dict(logicalBytes=logical + hardlinks * largest, nodes=nodes + len(directories), largestFile=largest)
+
+
 def build_descriptor(root):
     root = Path(root)
     assets = root / 'app/src/main/assets'
@@ -87,7 +140,7 @@ def build_descriptor(root):
                 'dataRead': previous + ['dsh-' + version], 'dataWrite': 'dsh-' + version,
                 'inputs': inputs}
     identity = hashlib.sha256(json.dumps(contract, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
-    return dict(version=1, runtimeId=identity, **contract)
+    return dict(version=1, runtimeId=identity, **contract, stagingSpace=staging_space(assets, spec))
 
 def main(args):
     output = build_descriptor(ROOT)

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="portable_password">Backup password</string>
+    <string name="portable_password_confirm">Confirm backup password</string>
+    <string name="portable_password_help">Keep the password separately. Restoring on another device requires it. DSHA cannot recover it.</string>
+    <string name="portable_password_length">Enter 12 to 1024 characters.</string>
+    <string name="portable_password_mismatch">The passwords do not match.</string>
+    <string name="portable_export_summary">Protect the tar.gz with a backup password so you can restore it on a new device.</string>
+    <string name="portable_included_secrets">The selected data may include credentials saved in chats, attachments and files.</string>
+    <string name="portable_import_summary">Choose a backup. Encrypted backups require a password. Review the verified scope before restoring.</string>
+    <string name="portable_password_restore_help">Enter the password used to create this backup.</string>
+    <string name="portable_rescue_diagnostics">Encrypted rescue exports contain backup data only. Plaintext rescue exports also include the diagnostic summary when available.</string>
+    <string name="portable_keep_password">This copy keeps its original password. Use that password to restore it on a new device.</string>
+    <string name="portable_plain_opt_in">Export as plaintext for compatibility. Anyone with the file can read everything in it, including secrets in chats and attachments.</string>
+    <string name="portable_export_label">Export portable backup</string>
+    <string name="portable_automatic_help">Uninstalling removes automatic copies and their device key. Before moving or uninstalling, export with your own backup password and save the file outside the app.</string>
+    <string name="portable_retry_password">Try password again</string>
+</resources>

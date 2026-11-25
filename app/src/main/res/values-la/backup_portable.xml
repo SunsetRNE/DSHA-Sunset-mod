@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="portable_password">Tessera exemplaris</string>
+    <string name="portable_password_confirm">Tesseram iterum inscribe</string>
+    <string name="portable_password_help">Tesseram separatim serva. Ad data in alio instrumento restituenda necessaria est. DSHA eam recuperare non potest.</string>
+    <string name="portable_password_length">Insere inter 12 et 1024 notas.</string>
+    <string name="portable_password_mismatch">Tesserae non congruunt.</string>
+    <string name="portable_export_summary">Tabularium tar.gz tessera protege, ut in novo instrumento restitui possit.</string>
+    <string name="portable_included_secrets">Data selecta indicia aditum praebentia in colloquiis, adnexis vel documentis servata continere possunt.</string>
+    <string name="portable_import_summary">Exemplar elige. Exemplar cifratum tesseram requirit. Post probationem confirma quae data restituenda sint.</string>
+    <string name="portable_password_restore_help">Tesseram qua hoc exemplar creatum est inscribe.</string>
+    <string name="portable_rescue_diagnostics">Exemplar auxiliarium cifratum sola data servata continet. Exemplar apertum etiam summarium diagnosticum, si adest, continet.</string>
+    <string name="portable_keep_password">Haec copia tesseram pristinam servat. Eadem tessera in novo instrumento utere.</string>
+    <string name="portable_plain_opt_in">Ad congruentiam sine cifris exporta. Quicumque tabularium tenet omnia legere potest, etiam secreta in colloquiis et adnexis.</string>
+    <string name="portable_export_label">Exemplar portatile exporta</string>
+    <string name="portable_automatic_help">Remotio applicationis exemplaria automatica et clavem huius instrumenti delet. Ante migrationem vel remotionem tua tessera exporta et tabularium extra applicationem serva.</string>
+    <string name="portable_retry_password">Tesseram denuo inscribe</string>
+</resources>

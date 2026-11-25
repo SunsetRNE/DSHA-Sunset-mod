@@ -128,6 +128,9 @@ public final class StartupLogDigest {
     /** 失败 / 警告行数量（含计时异常）。 */
     public final int issueCount;
 
+    /** 概览只统计网页就绪前的启动行与问题。 */
+    public final int startupLineCount, startupIssueCount;
+
     public final Severity worst;
     public final int timingCount;
     public final int lineCount;
@@ -142,6 +145,8 @@ public final class StartupLogDigest {
         Severity worst,
         int timingCount,
         int lineCount,
+        int startupLineCount,
+        int startupIssueCount,
         List<LineClass> lineClasses) {
       this.outcome = outcome;
       this.stages = Collections.unmodifiableList(stages);
@@ -149,6 +154,8 @@ public final class StartupLogDigest {
       this.worst = worst;
       this.timingCount = timingCount;
       this.lineCount = lineCount;
+      this.startupLineCount = startupLineCount;
+      this.startupIssueCount = startupIssueCount;
       this.lineClasses = Collections.unmodifiableList(lineClasses);
     }
   }
@@ -186,10 +193,20 @@ public final class StartupLogDigest {
     List<Builder> builders = new ArrayList<>();
     List<LineClass> classes = new ArrayList<>(lines.size());
     Builder current = null;
-    int issues = 0, timings = 0;
+    int issues = 0, timings = 0, startupLines = 0, startupIssues = 0;
     Severity worst = Severity.NONE;
     for (int i = 0; i < lines.size(); i++) {
       StartupTrace.Entry entry = lines.get(i);
+      if (entry.runtimeMs >= 0) {
+        Item item = item(entry, i, entry.atMs, result);
+        classes.add(lineClass(item));
+        if (item.severity != Severity.NONE) {
+          issues++;
+          if (item.severity == Severity.BAD || worst == Severity.NONE) worst = item.severity;
+        }
+        continue;
+      }
+      startupLines++;
       if (entry.kind == StartupTrace.Entry.STAGE_START) {
         if (current != null && !current.closed) current.close(entry.atMs, false);
         current = new Builder(entry.body, entry.atMs, i);
@@ -218,16 +235,12 @@ public final class StartupLogDigest {
       if (item.kind == ItemKind.TIMING) timings++;
       if (item.severity != Severity.NONE) {
         issues++;
+        startupIssues++;
         if (item.severity == Severity.BAD || worst == Severity.NONE) worst = item.severity;
         if (item.severity == Severity.BAD || current.worst == Severity.NONE)
           current.worst = item.severity;
       }
-      classes.add(
-          item.severity == Severity.BAD
-              ? LineClass.BAD
-              : item.severity == Severity.WARN
-                  ? LineClass.WARN
-                  : item.kind == ItemKind.TIMING ? LineClass.TIMING : LineClass.NOTE);
+      classes.add(lineClass(item));
     }
     List<Stage> stages = new ArrayList<>(builders.size());
     for (int i = 0; i < builders.size(); i++) {
@@ -235,7 +248,14 @@ public final class StartupLogDigest {
       boolean last = i == builders.size() - 1;
       stages.add(b.build(last, result, endMs));
     }
-    return new Result(result, stages, issues, worst, timings, lines.size(), classes);
+    return new Result(
+        result, stages, issues, worst, timings, lines.size(), startupLines, startupIssues, classes);
+  }
+
+  private static LineClass lineClass(Item item) {
+    if (item.severity == Severity.BAD) return LineClass.BAD;
+    if (item.severity == Severity.WARN) return LineClass.WARN;
+    return item.kind == ItemKind.TIMING ? LineClass.TIMING : LineClass.NOTE;
   }
 
   /** 未关闭阶段的结束时刻：运行中取当前，已就绪取后端 / 浏览器就绪时刻，其余取停止计时。 */

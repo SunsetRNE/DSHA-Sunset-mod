@@ -1,6 +1,7 @@
 package com.deepseekharness.app.util;
 
 import static org.junit.Assert.*;
+
 import org.junit.Test;
 
 /** 实体屏特权端点只认完整精确路径，动作路由表与 Core/桥两位一体的语义一致。 */
@@ -19,6 +20,22 @@ public final class PrivilegedScreenRoutesTest {
     assertEquals("", PrivilegedScreenRoutes.operation("/app/priv/TAP"));
     assertEquals("", PrivilegedScreenRoutes.operation("/app/ui/tap"));
     assertEquals("", PrivilegedScreenRoutes.operation(null));
+  }
+
+  @Test
+  public void defaultPhysicalFrameAndObservedGesturesUseTheWindowPipeline() {
+    for (String source : new String[] {"", "window"}) {
+      assertEquals(
+          "screenshot", PrivilegedScreenRoutes.windowOperation("frame", source, false, 34));
+      for (String verb : new String[] {"tap", "swipe"}) {
+        assertEquals(verb, PrivilegedScreenRoutes.windowOperation(verb, source, true, 34));
+        assertEquals("", PrivilegedScreenRoutes.windowOperation(verb, source, false, 34));
+      }
+      for (int sdk = 30; sdk < 34; sdk++)
+        assertEquals("", PrivilegedScreenRoutes.windowOperation("frame", source, true, sdk));
+    }
+    assertEquals("", PrivilegedScreenRoutes.windowOperation("key", "", true, 34));
+    assertEquals("", PrivilegedScreenRoutes.windowOperation("frame", "display", true, 34));
   }
 
   @Test

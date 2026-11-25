@@ -302,6 +302,16 @@ final class BootScreen {
     UiMotion.crossFadeText(hint, text == null ? "" : text);
   }
 
+  /** Recolor the embedded cover without restarting its loading or diagnostics timers. */
+  void refreshEmbeddedPalette(BootPalette palette) {
+    root.setBackgroundColor(palette.background);
+    wordmark.setTextColor(palette.primary);
+    spinner.setColors(palette.border, palette.brand);
+    hint.setTextColor(palette.tertiary);
+    diagnostics.setTextColor(palette.primary);
+    openMain.setTextColor(palette.primary);
+  }
+
   /** 直启路径的退出口：始终可见，回到原生主界面。 */
   void offerMain(Runnable open) {
     openMain.setOnClickListener(v -> open.run());

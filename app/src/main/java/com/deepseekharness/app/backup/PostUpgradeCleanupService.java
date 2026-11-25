@@ -2,6 +2,7 @@ package com.deepseekharness.app.backup;
 
 import android.app.job.*;
 import android.content.*;
+import android.util.Log;
 import com.deepseekharness.app.BuildConfig;
 
 /** 覆盖更新后的单次清理；运行中延后，绝不为清理终止用户任务。 */
@@ -12,23 +13,32 @@ public final class PostUpgradeCleanupService extends JobService {
       new java.util.concurrent.atomic.AtomicBoolean();
 
   public static void schedule(Context context) {
-    if (AutomaticBackups.factoryResetPending(context)) {
+    try {
+      if (AutomaticBackups.factoryResetPending(context)) {
+        JobScheduler scheduler = context.getSystemService(JobScheduler.class);
+        if (scheduler != null) scheduler.cancel(JOB);
+        return;
+      }
+      var prefs = context.getSharedPreferences("dsha_storage_cleanup", MODE_PRIVATE);
+      if (prefs.getInt("completedBuild", 0) >= BuildConfig.VERSION_CODE
+          && prefs.getInt("policy", 0) >= POLICY) return;
       JobScheduler scheduler = context.getSystemService(JobScheduler.class);
-      if (scheduler != null) scheduler.cancel(JOB);
-      return;
+      if (scheduler == null || scheduler.getPendingJob(JOB) != null) return;
+      int result =
+          scheduler.schedule(
+              new JobInfo.Builder(JOB, new ComponentName(context, PostUpgradeCleanupService.class))
+                  .setMinimumLatency(30_000)
+                  .setBackoffCriteria(60_000, JobInfo.BACKOFF_POLICY_EXPONENTIAL)
+                  .setPersisted(true)
+                  .build());
+      if (result != JobScheduler.RESULT_SUCCESS) scheduleFailure("RESULT_FAILURE");
+    } catch (RuntimeException unavailable) {
+      scheduleFailure(unavailable.getClass().getSimpleName());
     }
-    var prefs = context.getSharedPreferences("dsha_storage_cleanup", MODE_PRIVATE);
-    if (prefs.getInt("completedBuild", 0) >= BuildConfig.VERSION_CODE
-        && prefs.getInt("policy", 0) >= POLICY) return;
-    JobScheduler scheduler = context.getSystemService(JobScheduler.class);
-    if (scheduler == null) return;
-    if (scheduler.getAllPendingJobs().stream().noneMatch(job -> job.getId() == JOB))
-      scheduler.schedule(
-          new JobInfo.Builder(JOB, new ComponentName(context, PostUpgradeCleanupService.class))
-              .setMinimumLatency(30_000)
-              .setBackoffCriteria(60_000, JobInfo.BACKOFF_POLICY_EXPONENTIAL)
-              .setPersisted(true)
-              .build());
+  }
+
+  private static void scheduleFailure(String reason) {
+    Log.w("DshaBackup", "POST_UPGRADE_CLEANUP_SCHEDULER job=" + JOB + " reason=" + reason);
   }
 
   static void suspendForFactoryReset(BackupControl control) throws java.io.IOException {
@@ -48,17 +58,18 @@ public final class PostUpgradeCleanupService extends JobService {
     WORKERS.reopen();
   }
 
-  private void save(boolean success, String value) {
+  private void save(StorageMaintenance.CleanupResult result, String error) {
     synchronized (PostUpgradeCleanupService.class) {
       if (FACTORY_RESET.get() || AutomaticBackups.factoryResetPending(this)) return;
       var edit = getSharedPreferences("dsha_storage_cleanup", MODE_PRIVATE).edit();
-      if (success)
-        edit.putInt("completedBuild", BuildConfig.VERSION_CODE)
-            .putInt("policy", POLICY)
-            .putLong("freedBytes", Long.parseLong(value))
-            .putString("error", "");
-      else edit.putString("error", value);
-      edit.commit();
+      if (result != null) {
+        edit.putLong("removedLogicalBytes", result.removedBytes())
+            .putLong("availableBeforeBytes", result.availableBefore)
+            .putLong("availableAfterBytes", result.availableAfter);
+      }
+      if (result != null && error.isEmpty())
+        edit.putInt("completedBuild", BuildConfig.VERSION_CODE).putInt("policy", POLICY);
+      edit.putString("error", error).commit();
     }
   }
 
@@ -73,21 +84,11 @@ public final class PostUpgradeCleanupService extends JobService {
               try (WorkerQuiescence.Lease ignored = lease) {
                 boolean retry = false;
                 try {
-                  var controller = com.deepseekharness.app.core.HarnessController.get(this);
-                  if (!AutomaticBackups.idle(this) || !controller.isEnvironmentReady()) {
-                    retry = true;
-                    return;
-                  }
-                  var descriptor = controller.proot().installedRuntimeDescriptor();
-                  if (!RuntimeDescriptor.healthy(
-                      controller.proot().runtimeHealth(), descriptor.id())) {
-                    retry = true;
-                    return;
-                  }
-                  long bytes = StorageMaintenance.clean(this);
-                  save(true, String.valueOf(bytes));
+                  var result = StorageMaintenance.cleanWhenIdle(this);
+                  if (result != null) save(result, result.error);
+                  else retry = !FACTORY_RESET.get() && !AutomaticBackups.factoryResetPending(this);
                 } catch (Exception error) {
-                  save(false, NativeBackupJobs.code(error));
+                  save(null, NativeBackupJobs.code(error));
                 } finally {
                   jobFinished(params, retry);
                 }
@@ -99,7 +100,7 @@ public final class PostUpgradeCleanupService extends JobService {
       return true;
     } catch (RuntimeException | Error unavailable) {
       lease.close();
-      save(false, "WORKER_UNAVAILABLE");
+      save(null, "WORKER_UNAVAILABLE");
       return false;
     }
   }

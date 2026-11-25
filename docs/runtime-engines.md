@@ -75,19 +75,11 @@ flowchart TD
 
 | 当前文件 / 来源 | 已知边界 |
 |---|---|
-| Standard `libproot.so`、`libprootloader.so`、`libprootloader32.so` | Termux proot / GPL-2.0；[第三方声明](../THIRD_PARTY_NOTICES.md)明确：原始二进制的精确源码修订仍未核实。不能称 Standard 已按 Low 脚本复现。 |
+| Standard PRoot 主程序、ARM64 和 ARM EABI loader、talloc | 自 build377 起，主程序与两个 loader 取同一 Termux v5.1.107.91 源码。talloc 取 Samba 2.4.3。使用 NDK r26d 和 [独立构建配方](../tools/proot-source/README.md)。 |
 | 历史 Low 兼容库 | 已随 low 源集在 build209 删除；当前只随包发布 Standard 的三个 proot 原生库 |
 | NDK / 自有会话启动器 | [ci/toolchain.lock.json](../ci/toolchain.lock.json) 固定 NDK `26.3.11579264`；[native-session/build.py](../tools/native-session/build.py) 构建 API23 ARM64 会话启动器，4KiB/common 与 16KiB LOAD 对齐。对齐检查不等于全部 16KiB 手机实测。 |
 
-本次只读核对的 Standard 三件原件 SHA-256，供查找对应字节，不补造源码来源：
-
-```text
-libproot.so         cbde86eb01b58413f9e4673e182caca5440e8fc4af8482a0e23d0faa0846f721
-libprootloader.so   a2cbccfc776e23225b75e6700dd1990fcd505d2e973f5bfa19c76642d4e41c7d
-libprootloader32.so 4c649eb2dce258c9111231940fdbf0474bcf1cd6dd447ad9bdf2898b35a85554
-```
-
-上游机制见 [Termux proot](https://github.com/termux/proot)。源码标签与实际分发 ELF 是不同证据层，来源缺口必须保留。
+构建固定 PRoot 的旧命名 fd 修复、两种 loader 的入口与 16 KiB 段对齐。正式发布将源码附件 `dsha-proot-talloc-source.zip` 与 APK 放在同一页。APK 成员、许可和源码摘要见[交付锁定清单](../tools/proot-source.lock.json)。旧版本的四件由项目继承，当时的准确构建参数仍待核实。
 
 ## 5. proroot、static_loader 和兼容 shim
 

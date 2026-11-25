@@ -114,6 +114,7 @@ class PluginRegistry {
     fun issueMutation(
         web: PluginMutationTickets.Web
     ): PluginMutationTickets.Ticket<PluginSourceIdentity>? {
+        if (mutations.isOlderWebObservation(web)) return null
         mutations.observeWeb(web)
         if (mutations.stopping()) return null
         val source = current.source
@@ -137,6 +138,7 @@ class PluginRegistry {
         source: PluginSourceIdentity?,
         web: PluginMutationTickets.Web,
     ): Boolean {
+        if (mutations.isOlderWebObservation(web)) return false
         mutations.observeWeb(web)
         return source != null &&
             Objects.equals(current.source, source) &&
@@ -150,6 +152,7 @@ class PluginRegistry {
         source: PluginSourceIdentity?,
         web: PluginMutationTickets.Web,
     ): Boolean {
+        if (mutations.isOlderWebObservation(web)) return false
         mutations.observeWeb(web)
         return source != null &&
             Objects.equals(current.source, source) &&

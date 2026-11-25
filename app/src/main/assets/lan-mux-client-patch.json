@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-api-gateway/lib/client.browser.js",
+  "sourceSha256": "3b505de5bca1cd96de580895ce752384e572eb4ffefbe1684f0c65b1c6ade7c8",
+  "patches": [
+    {
+      "before": "this.streams=new RemoteStreamMuxClient(path=>connection.openWebSocket(path),connection.interactions===`answer`);",
+      "after": "this.streams=new RemoteStreamMuxClient(path=>connection.openWebSocket(path),connection.interactions===`answer`);this.streams.dshaPrepareLanMux=connection.dshaPrepareLanMux;"
+    },
+    {
+      "before": "async connect(){const socket=this.openSocket(REMOTE_STREAM_MUX_PATH);",
+      "after": "async connect() {\n  let openAuthorizedSocket;\n  if (this.dshaPrepareLanMux) {\n    const pending = new AbortController();\n    this.cancelCandidate = () => pending.abort();\n    const deadline = setTimeout(() => pending.abort(), 10000);\n    try {\n      openAuthorizedSocket = await this.dshaPrepareLanMux(pending.signal);\n      if (pending.signal.aborted) throw new Error(\"LAN WebSocket authorization interrupted\");\n    } finally {\n      clearTimeout(deadline);\n      this.cancelCandidate = undefined;\n    }\n  }\n  const socket = openAuthorizedSocket ? openAuthorizedSocket() : this.openSocket(REMOTE_STREAM_MUX_PATH);\n"
+    }
+  ]
+}

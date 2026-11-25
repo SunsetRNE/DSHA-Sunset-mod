@@ -30,13 +30,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--jdk', required=True)
     parser.add_argument('--gradle-home', required=True)
+    parser.add_argument('--flavor', required=True)
     args = parser.parse_args()
     java_root = Path(args.jdk).resolve() / 'bin'
     java = java_root / ('java.exe' if os.name == 'nt' else 'java')
     javac = java_root / ('javac.exe' if os.name == 'nt' else 'javac')
     cache = Path(args.gradle_home).resolve()
+    kotlin_classes = ROOT / (f'app/build/intermediates/built_in_kotlinc/{args.flavor}Debug/'
+                             f'compile{args.flavor.capitalize()}DebugKotlin/classes')
+    if not kotlin_classes.is_dir():
+        raise RuntimeError('EXPLICIT_KOTLIN_COMPILATION_DEPENDENCY_REQUIRED')
     dependencies = [jar(cache, 'junit', 'junit', '4.13.2'), jar(cache, 'org.hamcrest', 'hamcrest-core', '1.3'),
-                    jar(cache, 'com.google.code.gson', 'gson', '2.13.1')]
+                    jar(cache, 'com.google.code.gson', 'gson', '2.13.1'), kotlin_classes,
+                    jar(cache, 'org.jetbrains.kotlin', 'kotlin-stdlib', '2.2.10')]
     cp = os.pathsep.join(map(str, dependencies))
     with tempfile.TemporaryDirectory(prefix='dsha-current-bridge-files-') as folder:
         work = Path(folder)

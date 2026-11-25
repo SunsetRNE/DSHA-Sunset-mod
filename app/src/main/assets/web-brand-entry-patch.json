@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-web-frontend/dist/index.html",
+  "sourceSha256": "271698ef62d4cc9a10a5f0aa28d0f4f6cd5e16fe04734908c3eab477a8da0ec1",
+  "patches": [
+    {
+      "before": "<title>DeepSeek Harness</title>",
+      "after": "<title>DSHA</title>"
+    },
+    {
+      "before": "<meta name=\"apple-mobile-web-app-title\" content=\"DSH\" />",
+      "after": "<meta name=\"apple-mobile-web-app-title\" content=\"DSHA\" />"
+    },
+    {
+      "before": "href=\"./favicon-dark.svg\"",
+      "after": "href=\"./favicon-dark.svg?dsha-brand=1\""
+    },
+    {
+      "before": "href=\"./favicon.svg\"",
+      "after": "href=\"./favicon.svg?dsha-brand=1\""
+    },
+    {
+      "before": "href=\"./apple-touch-icon.png\"",
+      "after": "href=\"./apple-touch-icon.png?dsha-brand=1\""
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-app-boot/lib/index.js",
+  "sourceSha256": "a8d2138bb274bd982079df14a615f6c0d5d7589c9faeae81973128a72293b6de",
+  "patches": [
+    {
+      "before": "import { imports } from \"resolve.exports\";",
+      "after": "import { imports } from \"resolve.exports\";\n// DSHA_CONFIG_FIELD_BOOT_V1: retain boundaries in boot, schema projection, and config dumps.\nimport { applyEntryPatches, entryListSchema as fieldsEntryListSchema, markConfigFieldLayers } from \"@deepseek-ai/cordis-plugin-include\";"
+    },
+    {
+      "before": "function applyPatches(data, patches, warn) {\n\tdata = structuredClone(data);\n\tif (!patches?.length) return data;\n\tconst entryMap = /* @__PURE__ */ new Map();\n\tconst buildMap = (entries) => {\n\t\tfor (const entry of entries) {\n\t\t\tif (entry.id) entryMap.set(entry.id, entry);\n\t\t\tif (entry.group && Array.isArray(entry.config)) buildMap(entry.config);\n\t\t}\n\t};\n\tbuildMap(data);\n\tfor (const patch of patches) {\n\t\tconst { id, insert, name, ...overrides } = patch;\n\t\tif (insert) {\n\t\t\tconst clone = structuredClone(insert);\n\t\t\tif (id) {\n\t\t\t\tconst target = entryMap.get(id);\n\t\t\t\tif (!target) {\n\t\t\t\t\twarn(\"patch insert: entry %C not found\", id);\n\t\t\t\t\tcontinue;\n\t\t\t\t}\n\t\t\t\tif (!target.group) {\n\t\t\t\t\twarn(\"patch insert: entry %C is not a group\", id);\n\t\t\t\t\tcontinue;\n\t\t\t\t}\n\t\t\t\tif (!Array.isArray(target.config)) target.config = [];\n\t\t\t\ttarget.config.push(...clone);\n\t\t\t} else data.push(...clone);\n\t\t\tbuildMap(clone);\n\t\t\tcontinue;\n\t\t}\n\t\tif (!id) {\n\t\t\twarn(\"patch: id is required for non-insert patches\");\n\t\t\tcontinue;\n\t\t}\n\t\tconst target = entryMap.get(id);\n\t\tif (!target) {\n\t\t\twarn(\"patch: entry %C not found\", id);\n\t\t\tcontinue;\n\t\t}\n\t\tif (name && name !== target.name) {\n\t\t\twarn(\"patch: name mismatch for %C (expected %C, got %C), skipping\", id, target.name, name);\n\t\t\tcontinue;\n\t\t}\n\t\tfor (const [key, value] of Object.entries(overrides)) {\n\t\t\tif (key === \"id\") continue;\n\t\t\ttarget[key] = value;\n\t\t}\n\t}\n\treturn data;\n}\n",
+      "after": "const applyPatches = applyEntryPatches;\n"
+    },
+    {
+      "before": "const JsExpr = new yaml.Type(\"tag:yaml.org,2002:js\", {\n\tkind: \"scalar\",\n\tresolve: (data) => typeof data === \"string\",\n\tconstruct: (data) => ({ __jsExpr: data }),\n\tpredicate: isJsExpr,\n\trepresent: (data) => data[\"__jsExpr\"]\n});\n/** YAML dialect preserving child-owned JavaScript expression nodes. */\nconst entryListSchema = yaml.JSON_SCHEMA.extend(JsExpr);\n",
+      "after": "const entryListSchema = fieldsEntryListSchema;\n"
+    },
+    {
+      "before": "structuredClone(layers.flat())",
+      "after": "structuredClone(markConfigFieldLayers(layers))"
+    },
+    {
+      "before": "\n\tconst patches = structuredClone([\n\t\t...readBundlePatches(binName, context, initialProfile),\n\t\t...initialProfile?.patches ?? loadOptionalPatches(binName, context.patchPath) ?? [],\n\t\t...loadOptionalPatches(binName, join(context.home, \"cordis.patch.yml\")) ?? [],\n\t\t...context.overlays\n\t]);",
+      "after": "\n\tconst patches = structuredClone(markConfigFieldLayers([\n\t\treadBundlePatches(binName, context, initialProfile),\n\t\tinitialProfile?.patches ?? loadOptionalPatches(binName, context.patchPath) ?? [],\n\t\tloadOptionalPatches(binName, join(context.home, \"cordis.patch.yml\")) ?? [],\n\t\tcontext.overlays\n\t]));"
+    },
+    {
+      "before": "structuredClone(layers.slice(0, count).flatMap((layer) => layer.patches))",
+      "after": "structuredClone(markConfigFieldLayers(layers.slice(0, count).map((layer) => layer.patches)))"
+    }
+  ]
+}

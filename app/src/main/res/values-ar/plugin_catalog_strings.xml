@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="plugin_catalog_reading">جارٍ قراءة قائمة الإضافات…</string>
+    <string name="plugin_catalog_rechecking">جارٍ فحص الإضافات…</string>
+    <string name="plugin_catalog_cached">تُعرض قائمة الإضافات السابقة</string>
+    <string name="plugin_catalog_configured">من الإعدادات · بانتظار التحقق</string>
+    <string name="plugin_catalog_failed">تعذّر التحقق من القائمة</string>
+    <string name="plugin_catalog_unconfirmed">القائمة غير مؤكدة</string>
+    <string name="plugin_catalog_verified">تم التحقق من القائمة</string>
+    <string name="plugin_catalog_queued">فحص الإضافات في الطابور</string>
+</resources>

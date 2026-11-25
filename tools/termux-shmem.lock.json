@@ -1,0 +1,17 @@
+{
+  "package": "libandroid-shmem",
+  "version": "0.7",
+  "arch": "aarch64",
+  "url": "https://packages.termux.dev/apt/termux-main/pool/main/liba/libandroid-shmem/libandroid-shmem_0.7_aarch64.deb",
+  "sha256": "0da3a24d558b93c92bcf8d611e0826a99ff96e396b148e6cdf33b47c47c57ff6",
+  "source": "https://github.com/termux/libandroid-shmem/tree/7f0bd7e25dbdd146265aff7c6a890029e374622d",
+  "library": {
+    "member": "./data/data/com.termux/files/usr/lib/libandroid-shmem.so",
+    "sha256": "84475798e07c8174dbbfaec70a827fdb02f19ffa69a589380c13e7507fd0e731"
+  },
+  "license": {
+    "expression": "BSD-3-Clause",
+    "member": "./data/data/com.termux/files/usr/share/doc/libandroid-shmem/copyright",
+    "sha256": "0dd43abe17196b0224cb0b159819af798cd508a82a21e5870126fff4e899a7eb"
+  }
+}

@@ -20,6 +20,8 @@ public class ConfigStore {
   public ConfigStore(Context ctx) {
     this.prefs = ctx.getSharedPreferences(Constants.PREFS, Context.MODE_PRIVATE);
     this.vault = new KeyVault(ctx);
+    if (prefs.contains(Constants.KEY_LAN_TOKEN_V2) || prefs.contains("lan_token"))
+      prefs.edit().remove(Constants.KEY_LAN_TOKEN_V2).remove("lan_token").apply();
     // 启动计数备份已移除；覆盖安装与旧备份恢复均不能重新启用。
     if (prefs.contains(Constants.KEY_AUTO_BACKUP) || prefs.contains("backup_launch_count"))
       prefs.edit().remove(Constants.KEY_AUTO_BACKUP).remove("backup_launch_count").apply();
@@ -611,6 +613,7 @@ public class ConfigStore {
   }
 
   public void setLanMode(boolean v) {
+    if (!v) com.deepseekharness.app.LanProxyService.forgetNetwork();
     prefs.edit().putBoolean(Constants.KEY_LAN_MODE, v).apply();
   }
 
@@ -714,6 +717,10 @@ public class ConfigStore {
     return text("web_failure_reason", "");
   }
 
+  public String getWebFailureCode() {
+    return text("web_failure_code", "");
+  }
+
   public String getDiagnosticFailureStage() {
     return text("diagnostic_failure_stage", getWebFailureStage());
   }
@@ -734,12 +741,17 @@ public class ConfigStore {
   }
 
   public void recordWebRecovery(int count, String stage, String reason) {
+    recordWebRecovery(count, stage, reason, "");
+  }
+
+  void recordWebRecovery(int count, String stage, String reason, String failureCode) {
     if (!stage.isEmpty() && !reason.isEmpty()) recordEnvironmentFailure(stage, reason);
     prefs
         .edit()
         .putInt("web_consecutive_failures", count)
         .putString("web_failure_stage", stage)
         .putString("web_failure_reason", reason.length() > 500 ? reason.substring(0, 500) : reason)
+        .putString("web_failure_code", failureCode)
         .commit();
   }
 

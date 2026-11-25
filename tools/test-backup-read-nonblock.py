@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Real POSIX open/fstat checks using the current Android reader's flag expressions.
 
-Flag NAMES are mapped to the executing host's os constants; arm64 numeric flags
-are never passed to x86 syscalls. Set DSHA_NDK_SYSROOT to the locked NDK sysroot
-to independently verify both production O_DIRECTORY constants against its
-aarch64 header (arm64 040000 differs from x86/asm-generic 00200000).
+Flag names and the exact production O_DIRECTORY selector expression map to
+the executing host's os constants. Set DSHA_NDK_SYSROOT to the locked NDK
+sysroot to verify the selector and its use against the four Android ABIs.
 This tests Linux FIFO and NOFOLLOW behavior, not Android framework execution.
 AndroidBackupFileSystemReadTest separately checks production Java ownership and
 type/identity rejection with controlled Android facts. No device is accessed.
@@ -25,6 +24,8 @@ import unittest
 SOURCE = (Path(__file__).resolve().parents[1] /
           'app/src/main/java/com/deepseekharness/app/backup/AndroidBackupFileSystem.java')
 DEVICE_SOURCE = SOURCE.parents[1] / 'bridge/AndroidDeviceFiles.java'
+FLAG_SOURCE = SOURCE.parents[1] / 'util/LinuxOpenFlags.java'
+DIRECTORY_EXPRESSION = 'LinuxOpenFlags.directoryFlag(OsConstants.O_NOFOLLOW)'
 
 
 def read_flags(method):
@@ -37,7 +38,8 @@ def read_flags(method):
         raise AssertionError('Production final-open flags were not found')
     flags = 0
     for term in found[1].split('|'):
-        name = term.strip().removeprefix('OsConstants.')
+        term = term.strip()
+        name = 'O_DIRECTORY' if term == DIRECTORY_EXPRESSION else term.removeprefix('OsConstants.')
         if not re.fullmatch(r'O_[A-Z_]+', name):
             raise AssertionError('Unsupported production flag expression: ' + name)
         # This is a semantic host mapping, not an assertion of cross-ABI equality.
@@ -45,20 +47,35 @@ def read_flags(method):
     return flags
 
 
-class Arm64DirectoryAbiTest(unittest.TestCase):
+class DirectoryAbiTest(unittest.TestCase):
     @unittest.skipUnless(os.environ.get('DSHA_NDK_SYSROOT'), 'Locked NDK header path not supplied')
-    def test_both_production_directory_flags_match_aarch64_ndk_header(self):
-        header = (Path(os.environ['DSHA_NDK_SYSROOT']) /
-                  'usr/include/aarch64-linux-android/asm/fcntl.h').read_text(encoding='utf-8')
-        value = re.search(r'^#define O_DIRECTORY (0[0-7]+)\s*$', header, re.M)
-        self.assertIsNotNone(value)
-        expected = int(value[1], 8)
+    def test_directory_selector_matches_all_four_ndk_abis(self):
+        include = Path(os.environ['DSHA_NDK_SYSROOT']) / 'usr/include'
+
+        def defines(path):
+            return {name: int(value, 8) for name, value in re.findall(
+                r'^#define\s+(O_DIRECTORY|O_NOFOLLOW)\s+(0[0-7]+)\b',
+                path.read_text(encoding='utf-8'), re.M)}
+
+        generic = defines(include / 'asm-generic/fcntl.h')
+        selector = FLAG_SOURCE.read_text(encoding='utf-8')
+        selected = {int(no_follow, 8): int(directory, 8) for no_follow, directory in re.findall(
+            r'\bcase (0[0-7]+) -> (0[0-7]+);', selector)}
+        expected = {}
+        for abi in ('arm-linux-androideabi', 'aarch64-linux-android',
+                    'i686-linux-android', 'x86_64-linux-android'):
+            with self.subTest(abi=abi):
+                header = include / abi / 'asm/fcntl.h'
+                self.assertIn('#include <asm-generic/fcntl.h>', header.read_text(encoding='utf-8'))
+                flags = {**generic, **defines(header)}
+                no_follow, directory = flags['O_NOFOLLOW'], flags['O_DIRECTORY']
+                self.assertEqual(selected.get(no_follow), directory)
+                expected[no_follow] = directory
+        self.assertEqual(selected, expected)
+        self.assertIn('default -> throw new IOException("O_DIRECTORY_LAYOUT_UNSUPPORTED")', selector)
         for source in (SOURCE, DEVICE_SOURCE):
             with self.subTest(source=source.name):
-                actual = re.search(r'private static final int O_DIRECTORY = (0[0-7]+);',
-                                   source.read_text(encoding='utf-8'))
-                self.assertIsNotNone(actual)
-                self.assertEqual(int(actual[1], 8), expected)
+                self.assertEqual(source.read_text(encoding='utf-8').count(DIRECTORY_EXPRESSION), 2)
 
 
 PROBE = r'''

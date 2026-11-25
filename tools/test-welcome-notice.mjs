@@ -47,7 +47,8 @@ let cases = 0;
 const sourceInputs = {
   models: recipe.sourceSha256,
   settings: sha(fs.readFileSync(path.join(runtime, 'node_modules/@deepseek-ai/dsh-client-ui-settings/lib/client.js'))),
-  recipe: sha(fs.readFileSync(recipePath))
+  recipe: sha(fs.readFileSync(recipePath)),
+  nativeBack: sha(fs.readFileSync(path.join(root, 'app/src/main/assets/web-integration/page.js')))
 };
 async function install() {
   await fixture.load('dsh-client-ui-settings', [], 'module.exports.audit={ConfigFormController,SettingsDescribeMirror};');
@@ -160,9 +161,38 @@ try {
   await install();
   await setup();
   await noticeLayout();
+  await page.addScriptTag({path: path.join(root, 'app/src/main/assets/web-integration/page.js')});
+  const back = await page.evaluate(() => {
+    let escapes = 0;
+    const count = event => { if (event.key === 'Escape') ++escapes; };
+    document.addEventListener('keydown', count, true);
+    const historyPath = location.pathname;
+    history.pushState({}, '', historyPath + '?previous-route=1');
+    const gate = window.__dshaPageBack();
+    const afterGate = escapes;
+    // A dismissible overlay above the notice gets the first back press as usual.
+    const overlay = document.createElement('div');
+    overlay.setAttribute('role', 'dialog');
+    overlay.textContent = 'Open menu';
+    overlay.addEventListener('keydown', event => { if (event.key === 'Escape') overlay.remove(); });
+    document.body.appendChild(overlay);
+    const dialog = window.__dshaPageBack();
+    document.removeEventListener('keydown', count, true);
+    const historyRetained = location.search === '?previous-route=1';
+    history.replaceState({}, '', historyPath);
+    return {gate, afterGate, dialog, escapes, overlayClosed: !overlay.isConnected, historyRetained,
+      persistRequests: wire.length, accepted: completed};
+  });
+  assert.deepEqual(back, {gate: 'native', afterGate: 0, dialog: true, escapes: 1, overlayClosed: true,
+    historyRetained: true, persistRequests: 0, accepted: 0});
+  assert.equal(await page.getByRole('dialog').isVisible(), true);
+  assert.equal((await state()).acknowledged, false);
+  ++cases;
+
   await begin();
   await settled(0, 'success');
   await entered();
+  assert.equal(await page.evaluate(() => window.__dshaPageBack()), false);
   assert.equal((await state()).acknowledged, true);
   assert.equal((await state()).status, 'ready');
   assert.equal((await state()).sessionOnly, false);

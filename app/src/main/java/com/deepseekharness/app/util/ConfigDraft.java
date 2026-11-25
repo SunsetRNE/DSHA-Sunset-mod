@@ -8,7 +8,8 @@ import java.util.Objects;
  * <p>画中画开关与局域网密码在页面上即时生效，不进入草稿，因此也不计入未保存数。自动端口开启时
  * 输入框被禁用、保存沿用已存端口，所以端口文本只在固定端口模式下参与比较。
  */
-public final class ConfigDraft {
+public final class ConfigDraft implements java.io.Serializable {
+  private static final long serialVersionUID = 1L;
   public final boolean proroot;
   public final boolean automaticPort;
   public final String port;

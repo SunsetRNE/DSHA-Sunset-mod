@@ -40,12 +40,12 @@
     }
   ],
   "sourceHashes": {
-    "app/src/main/assets/app-integration/client.js": "efb90327ebcffaa655150e07e8816296bfec08fcce565aa47558da4f9ea3a72d",
-    "app/src/main/assets/web-integration/page.js": "d900a265e77b9f19d7b34c9fae5997fa45582620e5b0d591e1153ae1f12db381",
-    "app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js": "6197a0ce14c04043c7a60022c95c519234956ee07542742d7264879528f3ecc2",
-    "<local-workspace>\\cache\\host-runtimes\\dsh-0.2.1-rc.3-win32-x64\\raw\\node_modules\\@deepseek-ai\\dsh-client-ui-workspace\\lib\\client.js": "9c2c17a66a5c20de00ac2852cb76debb5237439e97f877403bcaa2a471086544",
-    "tools/rc1-browser-fixture.mjs": "02955da5dfe9136fdd55f98bb8326d098c253e62f06d06a2aa349a710fd3c5c9",
-    "<local-workspace>\\source\\build198-sunset-20261027\\tools\\test-mobile-native-route.mjs": "b87330f0ab09599707b2feab062174158fd27156403488e31c2eef6f439a9972"
+    "app/src/main/assets/app-integration/client.js": "268c48702fc790e249b3a82feee0a096c8fdc5e8380d5552f17f31befe6e4403",
+    "app/src/main/assets/web-integration/page.js": "0eaff362286a76cff561a6a9dcc3476dd7621abe4f55da1d160b2b861155c524",
+    "app/src/main/assets/builtin-plugins/dsh-web-mobile/lib/client.js": "7d772c38df481799c0ced3422af3991188d8770d189ce164d4d8f3c912289b2e",
+    "F:\\DSHA_RESTART\\source\\build373\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\raw\\node_modules\\@deepseek-ai\\dsh-client-ui-workspace\\lib\\client.js": "3ff4116dc91b7dc5cc57e7672e0d7935f992b339be3444a7a72992df218765ba",
+    "tools/rc1-browser-fixture.mjs": "04d56ccbf459f1a5ef7189d8c0096a78f0359e0c51ba532502b48289905aa277",
+    "F:\\DSHA_RESTART\\source\\build374\\tools\\test-mobile-native-route.mjs": "b87330f0ab09599707b2feab062174158fd27156403488e31c2eef6f439a9972"
   },
   "scope": "Real locked rc2 UiWorkspaceService.openSession/replaceMain and snapshot store; current mobile drawer close and production native route JS; synthetic catalogue/reference transport",
   "deviceAcceptance": false,

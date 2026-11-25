@@ -5,13 +5,9 @@
     android:layout_height="match_parent">
 
     <FrameLayout
+        android:id="@+id/web_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-        <FrameLayout
-            android:id="@+id/web_container"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-
         <!--
           对话页错误面板（实验性，docs/design/web-crash-20261102）：顶栏返回 + 结论 + 当前状态 + 更多操作。
           文案、状态行、宽窄三档由 WebCrashPanel 设置；既有 ID 保留供 WebPreviewActivity 与单测使用。
@@ -241,6 +237,7 @@
                                     </FrameLayout>
                                     <LinearLayout style="@style/WebCrashRowText">
                                         <TextView
+                                            android:id="@+id/web_error_logs_title"
                                             style="@style/WebCrashRowTitle"
                                             android:text="@string/ui_m0047" />
                                     </LinearLayout>
@@ -258,6 +255,7 @@
                                     </FrameLayout>
                                     <LinearLayout style="@style/WebCrashRowText">
                                         <TextView
+                                            android:id="@+id/web_error_browser_title"
                                             style="@style/WebCrashRowTitle"
                                             android:text="@string/ui_m0095" />
                                         <TextView
@@ -278,6 +276,7 @@
                                     </FrameLayout>
                                     <LinearLayout style="@style/WebCrashRowText">
                                         <TextView
+                                            android:id="@+id/web_error_recovery_title"
                                             style="@style/WebCrashRowTitle"
                                             android:text="@string/ui_m0202" />
                                     </LinearLayout>

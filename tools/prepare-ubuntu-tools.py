@@ -6,11 +6,14 @@ import gzip
 import hashlib
 import io
 import json
+import lzma
 from pathlib import Path
 import re
 import shutil
 import tarfile
+import tempfile
 import urllib.request
+from rootfs_archive import RootfsInput, open_rootfs_tar
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCK = ROOT / 'tools/ubuntu-tools/packages.lock.json'
@@ -25,7 +28,38 @@ def digest(path):
 
 
 def inputs():
-    return {p.relative_to(ROOT).as_posix(): digest(p) for p in (Path(__file__), LOCK)}
+    return {p.relative_to(ROOT).as_posix(): digest(p)
+            for p in (Path(__file__), Path(__file__).with_name('rootfs_archive.py'), LOCK)}
+
+
+def encode_configured_overlay(prepared, output):
+    """Preserve the tar stream, including modes, links and package metadata."""
+    with tempfile.TemporaryDirectory(prefix='ubuntu-tools-', dir=output.parent) as work:
+        candidate = Path(work) / output.name
+        with prepared.open('rb') as source, io.BufferedReader(RootfsInput(source)) as raw, lzma.open(
+                candidate, 'xb', format=lzma.FORMAT_XZ, check=lzma.CHECK_CRC64,
+                preset=3 | lzma.PRESET_EXTREME) as compressed:
+            shutil.copyfileobj(raw, compressed, length=1024 * 1024)
+        candidate.replace(output)
+
+
+def configured_state(prepared):
+    expected = {'var/lib/dpkg/status': 16 * 1024 * 1024, 'root/.dsha-ubuntu-tools-version': 128}
+    entries = {}
+    with prepared.open('rb') as source, open_rootfs_tar(source) as archive:
+        for member in archive:
+            name = member.name.removeprefix('./')
+            if name.startswith('/') or '..' in name.split('/') or not (
+                    name in ('root', 'etc', 'usr', 'var', 'var/lib', 'var/cache')
+                    or name in expected or name.startswith(('etc/', 'usr/', 'var/lib/', 'var/cache/'))):
+                raise ValueError('预安装工具路径越界:' + name)
+            if name in expected:
+                if not member.isfile() or not 0 < member.size <= expected[name] or name in entries:
+                    raise ValueError('预安装工具状态成员无效:' + name)
+                entries[name] = archive.extractfile(member).read()
+    if set(entries) != set(expected):
+        raise ValueError('预安装工具状态缺失')
+    return entries['var/lib/dpkg/status'], entries['root/.dsha-ubuntu-tools-version']
 
 
 def main():
@@ -48,27 +82,23 @@ def main():
         proof=json.loads(args.configured_proof.read_text(encoding='utf-8'))
         if proof.get('layout')!='configured-overlay-v1' or proof.get('archiveSha256')!=digest(prepared) or proof.get('packageLockSha256')!=digest(LOCK):
             raise ValueError('预安装工具与当前锁不一致')
-        with tarfile.open(prepared,'r:gz') as archive:
-            members=archive.getmembers()
-            for member in members:
-                name=member.name.removeprefix('./')
-                if name.startswith('/') or '..' in name.split('/') or not (name in ('root','etc','usr','var','var/lib','var/cache','root/.dsha-ubuntu-tools-version') or name.startswith(('etc/','usr/','var/lib/','var/cache/'))):
-                    raise ValueError('预安装工具路径越界:'+name)
-            status=archive.extractfile('var/lib/dpkg/status').read()
-            if hashlib.sha256(status).hexdigest()!=proof.get('statusSha256'): raise ValueError('dpkg 状态摘要不一致')
-            packages={}
-            for paragraph in status.decode().split('\n\n'):
-                item=dict(line.split(': ',1) for line in paragraph.splitlines() if ': ' in line and not line.startswith(' '))
-                if 'Package' in item: packages[item['Package']]=item
-            for item in rows:
-                actual=packages.get(item['Package'],{})
-                if actual.get('Version')!=item['Version'] or actual.get('Status')!='install ok installed':raise ValueError('工具尚未配置:'+item['Package'])
-            if archive.extractfile('root/.dsha-ubuntu-tools-version').read().decode().strip()!=digest(LOCK):raise ValueError('工具版本标记不一致')
-        output=ROOT/'app/src/main/assets/ubuntu-tools.bin';shutil.copyfile(prepared,output)
+        status, version = configured_state(prepared)
+        if hashlib.sha256(status).hexdigest()!=proof.get('statusSha256'): raise ValueError('dpkg 状态摘要不一致')
+        packages={}
+        for paragraph in status.decode().split('\n\n'):
+            item=dict(line.split(': ',1) for line in paragraph.splitlines() if ': ' in line and not line.startswith(' '))
+            if 'Package' in item: packages[item['Package']]=item
+        for item in rows:
+            actual=packages.get(item['Package'],{})
+            if actual.get('Version')!=item['Version'] or actual.get('Status')!='install ok installed':raise ValueError('工具尚未配置:'+item['Package'])
+        if version.decode().strip()!=digest(LOCK):raise ValueError('工具版本标记不一致')
+        output=ROOT/'app/src/main/assets/ubuntu-tools.bin'
+        encode_configured_overlay(prepared, output)
         metadata={'inputs':inputs(),'archive_sha256':digest(output),'installed_bytes':sum(int(r['Installed-Size'])*1024 for r in rows),'base_status_sha256':lock['baseStatusSha256'],'packages':len(rows),'layout':'configured-overlay-v1','status_sha256':proof['statusSha256']}
-        output.with_suffix('.inputs.json').write_text(json.dumps(metadata,indent=2)+'\n')
-        (output.parent/'ubuntu-tools.layout').write_text('configured-overlay-v1\n',encoding='ascii')
-        (output.parent/'ubuntu-tools.manifest.json').write_text(json.dumps({'schema':1,'archiveSha256':metadata['archive_sha256'],'statusSha256':proof['statusSha256'],'packageLockSha256':digest(LOCK),'packages':len(rows)},indent=2)+'\n')
+        output.with_suffix('.inputs.json').write_text(json.dumps(metadata,indent=2)+'\n', encoding='utf-8', newline='\n')
+        # These two signed assets use CRLF in the original configured layout.
+        (output.parent/'ubuntu-tools.layout').write_text('configured-overlay-v1\n', encoding='ascii', newline='\r\n')
+        (output.parent/'ubuntu-tools.manifest.json').write_text(json.dumps({'schema':1,'archiveSha256':metadata['archive_sha256'],'statusSha256':proof['statusSha256'],'packageLockSha256':digest(LOCK),'packages':len(rows)},indent=2)+'\n', encoding='utf-8', newline='\r\n')
         print(json.dumps({'layout':metadata['layout'],'archiveBytes':output.stat().st_size,'configuredPackages':len(rows)}));return
     if len({r['Package'] for r in rows}) != len(rows):
         raise ValueError('工具包重复')

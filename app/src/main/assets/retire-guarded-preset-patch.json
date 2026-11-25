@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-permission-presets/lib/index.js",
   "sourceSha256": "08f06dac668d2639e963753c127230ec8818b47be72e5aed7f5bf637c9f6c16e",
   "patches": [

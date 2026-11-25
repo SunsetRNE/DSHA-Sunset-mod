@@ -78,8 +78,10 @@ class GeneratedAssetDirectoryTest(unittest.TestCase):
             generate()
             self.assertTrue((output / 'web-integration' / marker.name).is_file())
             for name in ['glibc-python.bin','adb-wheels.bin','gh-cli.bin']:
-                with tarfile.open(output/name,'r:gz') as archive:
+                with tarfile.open(output/name,'r:*') as archive:
                     self.assertEqual(archive.extractfile('fixture.txt').read(),b'owned small archive\n')
+                if name != 'adb-wheels.bin':
+                    self.assertTrue((output / (name + '.sha256')).is_file())
             marker.unlink()
             generate()
             self.assertFalse((output / 'web-integration' / marker.name).exists())

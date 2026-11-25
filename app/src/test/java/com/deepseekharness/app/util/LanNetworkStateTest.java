@@ -1,44 +1,28 @@
 package com.deepseekharness.app.util;
 
 import static org.junit.Assert.*;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
+import java.net.InetAddress;
 import org.junit.Test;
 
 public class LanNetworkStateTest {
   @Test
-  public void firstObservationAndUnchangedNetworkDoNotRetireConnections() {
-    var observation = new AtomicReference<Set<String>>(Set.of("wlan0:5:192.168.0.2"));
-    var state = new LanNetworkState(observation::get);
-    assertFalse(state.poll());
-    assertFalse(state.poll());
-    observation.set(Set.of("wlan0:5:192.168.0.3"));
-    assertTrue(state.poll());
-    assertFalse(state.poll());
+  public void physicalRouteIncludesOnlyTheConnectedPrivateSubnet() throws Exception {
+    var route = new LanNetworkState(12, "eth0", "192.168.1.129", 25);
+    assertTrue(route.eligible());
+    assertTrue(route.admits(InetAddress.getByName("192.168.1.250")));
+    assertFalse(route.admits(InetAddress.getByName("192.168.1.120")));
+    assertFalse(route.admits(InetAddress.getByName("::1")));
+    assertFalse(new LanNetworkState(12, "eth0", "192.168.1.2", 8).eligible());
+    assertFalse(new LanNetworkState(12, "eth0", "127.0.0.1", 8).eligible());
+    assertFalse(new LanNetworkState(0, "eth0", "10.0.0.1", 24).eligible());
   }
 
   @Test
-  public void disconnectAndReconnectEachRetireOldConnections() {
-    var observation = new AtomicReference<Set<String>>(Set.of("wlan0:5:192.168.0.2"));
-    var state = new LanNetworkState(observation::get);
-    assertFalse(state.poll());
-    observation.set(Set.of());
-    assertTrue(state.poll());
-    assertFalse(state.poll());
-    observation.set(Set.of("wlan0:7:192.168.0.2"));
-    assertTrue("interface replacement matters even with the same address", state.poll());
-  }
-
-  @Test
-  public void deniedInterfaceObservationPreservesTheLastKnownIdentity() {
-    var observation = new AtomicReference<Set<String>>(Set.of("wlan0:5:192.168.0.2"));
-    var state = new LanNetworkState(observation::get);
-    assertFalse(state.poll());
-    observation.set(null);
-    assertFalse(state.poll());
-    observation.set(Set.of("wlan0:5:192.168.0.2"));
-    assertFalse(state.poll());
-    observation.set(Set.of("eth0:6:10.0.0.2"));
-    assertTrue(state.poll());
+  public void reusedAddressOnANewNetworkRequiresFreshApproval() {
+    var first = new LanNetworkState(12, "wlan0", "192.168.1.2", 24);
+    assertNotEquals(first, new LanNetworkState(13, "wlan0", "192.168.1.2", 24));
+    assertNotEquals(first, new LanNetworkState(12, "wlan0", "192.168.1.2", 25));
+    assertNotEquals(first, new LanNetworkState(12, "eth0", "192.168.1.2", 24));
+    assertNotEquals(first, new LanNetworkState(12, "wlan0", "192.168.1.3", 24));
   }
 }

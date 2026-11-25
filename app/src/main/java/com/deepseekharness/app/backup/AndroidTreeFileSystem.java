@@ -331,7 +331,12 @@ final class AndroidTreeFileSystem extends AndroidBackupFileSystem implements Clo
 
     /** 摘要直接持有、读取和关闭本次 raw FD；不再为每个文件 dup 与建立自动关闭流。 */
     byte[] digestFile(
-        String name, Node expected, MessageDigest digest, byte[] buffer, BackupControl control)
+        String name,
+        Node expected,
+        MessageDigest digest,
+        byte[] buffer,
+        BackupControl control,
+        BackupTree.DigestReadProgress progress)
         throws IOException {
       if (!expected.type.equals("FILE")) throw new IOException("FILE_TYPE");
       String path = childPath(name);
@@ -349,6 +354,7 @@ final class AndroidTreeFileSystem extends AndroidBackupFileSystem implements Clo
             control.check();
             total = BackupLimits.add(total, count, BackupLimits.BYTES + 256L * 1024 * 1024);
             digest.update(buffer, 0, count);
+            if (progress != null) progress.advance(0, count);
           }
           control.check();
           if (total != expected.size

@@ -1,0 +1,111 @@
+{
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-settings-models/lib/client.js",
+  "sourceSha256": "74b45c32a08a6aa367be684bf89212e0a3b7a2c3de1cc95ccbfe82045533ae31",
+  "patches": [
+    {
+      "before": "async function removeProviderProfile(operations,controller,target){if(target.credentialRef!==void 0){const credential=await operations.removeCredential(target.credentialRef);if(credential!==void 0)return credential}const written=await operations.writeSettings(target.settingsNs,[{op:`unset`,path:[...target.settingsPath]}],void 0);if(written.kind!==`written`)return written.message;await controller.load()}",
+      "after": "async function removeProviderProfile(operations, controller, target) {\n  // DSHA_MODEL_DELETE_KEEP_SHARED_KEY_V1: a provider is profile-local; its saved key can be reused by other profiles.\n  const revision = controller.store.getSnapshot().namespaces.get(target.settingsNs)?.revision;\n  const written = await operations.writeSettings(target.settingsNs, [{ op: `unset`, path: [...target.settingsPath] }], revision);\n  if (written.kind !== `written`) return written.message;\n  await controller.load();\n}"
+    },
+    {
+      "before": "if(keyRemoval!==void 0&&keyRemoval.removed!==true){const removed=await operations.removeCredential(keyRemoval.ref);if(removed!==void 0)return removed;setKeyDraft({...keyRemoval,removed:true})}if(ops.length>0){const written=await operations.writeSettings(ns,ops,expectedRevision);if(written.kind!==`written`)return written.kind===`conflict`?t(`conflict`):written.message;setCommittedOriginal(schema.getPath(written.view.user,settingsPath));setExpectedRevision(written.view.revision);setDraft(next)}",
+      "after": "if(ops.length>0){const written=await operations.writeSettings(ns,ops,expectedRevision);if(written.kind!==`written`)return written.kind===`conflict`?t(`conflict`):written.message;setCommittedOriginal(schema.getPath(written.view.user,settingsPath));setExpectedRevision(written.view.revision);setDraft(next)}if(keyRemoval!==void 0&&keyRemoval.removed!==true){const removed=await operations.removeCredential(keyRemoval.ref);if(removed!==void 0)return removed;setKeyDraft({...keyRemoval,removed:true})}"
+    },
+    {
+      "before": "deleteDescriptionWithCredential:`Deleting {provider} removes its configuration and stored API key.`",
+      "after": "deleteDescriptionWithCredential:`Deleting {provider} removes its configuration. The saved API key is kept because other presets can use it. To clear it, cancel and clear the API key in this provider’s Edit page first.`"
+    },
+    {
+      "before": "deleteDescriptionWithCredential:`删除 {provider} 会移除其配置和存储的 API 密钥。`",
+      "after": "deleteDescriptionWithCredential:`删除 {provider} 会移除其配置。已保存的 API 密钥会保留，其他预设仍可使用。 如需清除密钥，请先取消删除，并在该供应商的编辑页清除 API 密钥。`"
+    },
+    {
+      "before": "\"deleteDescriptionWithCredential\":`{provider}を削除すると、その設定と保存済みのAPIキーが削除されます。`",
+      "after": "\"deleteDescriptionWithCredential\":`{provider} の設定を削除します。保存済みの API キーは他のプリセットでも使えるように保持します。 キーを削除するには、キャンセルして、このプロバイダーの編集画面で先に API キーを消去してください。`"
+    },
+    {
+      "before": "deleteDescriptionWithCredential:`Al eliminar {provider} se elimina su configuración y la clave API almacenada.`",
+      "after": "deleteDescriptionWithCredential:`Al eliminar {provider} se elimina su configuración. La clave API guardada se conserva para otros ajustes preestablecidos. Para borrarla, cancela primero y elimina la clave API en la pantalla Editar de este proveedor.`"
+    },
+    {
+      "before": "deleteDescriptionWithCredential:`La suppression de {provider} supprime sa configuration et la clé API stockée.`",
+      "after": "deleteDescriptionWithCredential:`La suppression de {provider} efface sa configuration. La clé API enregistrée est conservée pour les autres préréglages. Pour l’effacer, annulez cette suppression et effacez d’abord la clé API dans l’écran Modifier de ce fournisseur.`"
+    },
+    {
+      "before": "deleteDescriptionWithCredential:`Durch das Löschen von {provider} werden seine Konfiguration und der gespeicherte API-Schlüssel entfernt.`",
+      "after": "deleteDescriptionWithCredential:`Beim Löschen von {provider} wird die Konfiguration entfernt. Der gespeicherte API-Schlüssel bleibt für andere Voreinstellungen erhalten. Um ihn zu löschen, brechen Sie den Vorgang ab und löschen Sie zuerst den API-Schlüssel unter „Bearbeiten“ für diesen Anbieter.`"
+    },
+    {
+      "before": "deleteDescriptionWithCredential:`Удаление {provider} удаляет его конфигурацию и сохраненный ключ API.`",
+      "after": "deleteDescriptionWithCredential:`При удалении {provider} его конфигурация удаляется. Сохранённый ключ API остаётся доступным другим предустановкам. Чтобы удалить ключ, отмените действие и сначала очистите ключ API на странице редактирования этого поставщика.`"
+    },
+    {
+      "before": "deleteDescriptionWithCredential:`A exclusão de {provider} remove sua configuração e a chave API armazenada.`",
+      "after": "deleteDescriptionWithCredential:`Excluir {provider} remove sua configuração. A chave API salva é mantida para outras predefinições. Para apagá-la, cancele e limpe primeiro a chave API na tela Editar deste provedor.`"
+    },
+    {
+      "before": "keyRemovePending:`Apply to clear the saved API key and use environment authentication.`",
+      "after": "keyRemovePending:`Apply to clear the saved API key and use environment authentication. Clearing this key also affects other presets that use it.`"
+    },
+    {
+      "before": "keyRemovePending:`保存以清除已保存的 API key，并改用环境认证。`",
+      "after": "keyRemovePending:`保存以清除已保存的 API key，并改用环境认证。 清除后，使用此密钥的其他预设也会受到影响。`"
+    },
+    {
+      "before": "\"keyRemovePending\":`適用すると保存済みのAPIキーを削除し、環境変数の認証を使用します。`",
+      "after": "\"keyRemovePending\":`適用すると保存済みのAPIキーを削除し、環境変数の認証を使用します。 このキーを使用する他のプリセットにも影響します。`"
+    },
+    {
+      "before": "keyRemovePending:`Aplique para borrar la clave API guardada y usar la autenticación del entorno.`",
+      "after": "keyRemovePending:`Aplique para borrar la clave API guardada y usar la autenticación del entorno. El borrado también afecta a otros ajustes preestablecidos que usen esta clave.`"
+    },
+    {
+      "before": "keyRemovePending:`Appliquez pour effacer la clé API enregistrée et utiliser l’authentification de l’environnement.`",
+      "after": "keyRemovePending:`Appliquez pour effacer la clé API enregistrée et utiliser l’authentification de l’environnement. Cet effacement affecte aussi les autres préréglages qui utilisent cette clé.`"
+    },
+    {
+      "before": "keyRemovePending:`Anwenden, um den gespeicherten API-Schlüssel zu löschen und die Umgebungsauthentifizierung zu verwenden.`",
+      "after": "keyRemovePending:`Anwenden, um den gespeicherten API-Schlüssel zu löschen und die Umgebungsauthentifizierung zu verwenden. Das Löschen betrifft auch andere Voreinstellungen, die diesen Schlüssel verwenden.`"
+    },
+    {
+      "before": "keyRemovePending:`Примените, чтобы удалить сохранённый API-ключ и использовать аутентификацию из окружения.`",
+      "after": "keyRemovePending:`Примените, чтобы удалить сохранённый API-ключ и использовать аутентификацию из окружения. Удаление также затронет другие предустановки, использующие этот ключ.`"
+    },
+    {
+      "before": "keyRemovePending:`Aplique para limpar a chave API salva e usar a autenticação do ambiente.`",
+      "after": "keyRemovePending:`Aplique para limpar a chave API salva e usar a autenticação do ambiente. A remoção também afeta outras predefinições que usam esta chave.`"
+    },
+    {
+      "before": "keyRemovePendingEnvironment:`Apply to clear the saved API key. Environment authentication will be used ({hint}).`",
+      "after": "keyRemovePendingEnvironment:`Apply to clear the saved API key. Environment authentication will be used ({hint}). Clearing this key also affects other presets that use it.`"
+    },
+    {
+      "before": "keyRemovePendingEnvironment:`保存以清除已保存的 API key。之后使用环境认证（{hint}）。`",
+      "after": "keyRemovePendingEnvironment:`保存以清除已保存的 API key。之后使用环境认证（{hint}）。 清除后，使用此密钥的其他预设也会受到影响。`"
+    },
+    {
+      "before": "\"keyRemovePendingEnvironment\":`適用すると保存済みのAPIキーを削除します。その後、環境変数の認証（{hint}）を使用します。`",
+      "after": "\"keyRemovePendingEnvironment\":`適用すると保存済みのAPIキーを削除します。その後、環境変数の認証（{hint}）を使用します。 このキーを使用する他のプリセットにも影響します。`"
+    },
+    {
+      "before": "keyRemovePendingEnvironment:`Aplique para borrar la clave API guardada. Se usará la autenticación del entorno ({hint}).`",
+      "after": "keyRemovePendingEnvironment:`Aplique para borrar la clave API guardada. Se usará la autenticación del entorno ({hint}). El borrado también afecta a otros ajustes preestablecidos que usen esta clave.`"
+    },
+    {
+      "before": "keyRemovePendingEnvironment:`Appliquez pour effacer la clé API enregistrée. L’authentification de l’environnement sera utilisée ({hint}).`",
+      "after": "keyRemovePendingEnvironment:`Appliquez pour effacer la clé API enregistrée. L’authentification de l’environnement sera utilisée ({hint}). Cet effacement affecte aussi les autres préréglages qui utilisent cette clé.`"
+    },
+    {
+      "before": "keyRemovePendingEnvironment:`Anwenden, um den gespeicherten API-Schlüssel zu löschen. Danach wird die Umgebungsauthentifizierung verwendet ({hint}).`",
+      "after": "keyRemovePendingEnvironment:`Anwenden, um den gespeicherten API-Schlüssel zu löschen. Danach wird die Umgebungsauthentifizierung verwendet ({hint}). Das Löschen betrifft auch andere Voreinstellungen, die diesen Schlüssel verwenden.`"
+    },
+    {
+      "before": "keyRemovePendingEnvironment:`Примените, чтобы удалить сохранённый API-ключ. Будет использована аутентификация из окружения ({hint}).`",
+      "after": "keyRemovePendingEnvironment:`Примените, чтобы удалить сохранённый API-ключ. Будет использована аутентификация из окружения ({hint}). Удаление также затронет другие предустановки, использующие этот ключ.`"
+    },
+    {
+      "before": "keyRemovePendingEnvironment:`Aplique para limpar a chave API salva. A autenticação do ambiente será usada ({hint}).`",
+      "after": "keyRemovePendingEnvironment:`Aplique para limpar a chave API salva. A autenticação do ambiente será usada ({hint}). A remoção também afeta outras predefinições que usam esta chave.`"
+    }
+  ]
+}

@@ -362,4 +362,120 @@ public final class TrialRecoveryTest {
     assertTrue(diagnostic.contains("force=WEB_STOP_TRIAL_IDENTITY_CHANGED"));
     assertTrue(diagnostic.contains("retry=WEB_GUESTS_UNCONFIRMED"));
   }
+
+  private void writeSettingsIntent(File entry, String purpose, String profile) throws IOException {
+    String id = entry.getName(), nonce = id.replace("-", "");
+    write(entry, "launched", id);
+    Files.write(
+        new File(entry, "intent.json").toPath(),
+        com.deepseekharness.app.backup.BackupJson.write(
+            java.util.Map.of(
+                "id", id,
+                "nonce", nonce,
+                "purpose", purpose,
+                "profile", "dsha-recovery-" + nonce.substring(0, 16),
+                "sourceProfile", profile),
+            16384));
+  }
+
+  @Test
+  public void exactR16SettingsIntentRecoversAfterProofWithoutLegacyRuntimeIdOrSourceChange()
+      throws Exception {
+    File home = home(), entry = entry(home);
+    File retained = temporary.newFile("retained-settings.zip");
+    Files.writeString(retained.toPath(), "synthetic import original");
+    writeSettingsIntent(entry, "profile-settings", "web");
+    write(entry, "payload/.dsha-web.pid.stale", "42\n");
+    AtomicInteger observations = new AtomicInteger();
+    TrialRecovery.Stopper stopper =
+        new TrialRecovery.Stopper() {
+          public void stopAndConfirm(File payload) {
+            fail("settings never enter legacy --import stop");
+          }
+
+          public void confirmSettings(File payload, boolean hasPidEvidence) throws IOException {
+            assertEquals(new File(entry, "payload").getCanonicalFile(), payload);
+            assertTrue(hasPidEvidence);
+            assertFalse(new File(entry, "closed").exists());
+            if (observations.getAndIncrement() == 0)
+              throw new IOException("SETTINGS_TRIAL_PROCESS_UNCONFIRMED");
+          }
+        };
+    assertEquals(
+        "SETTINGS_TRIAL_PROCESS_UNCONFIRMED",
+        assertThrows(IOException.class, () -> TrialRecovery.recover(fs, home, stopper))
+            .getMessage());
+    retained(entry);
+    assertTrue(TrialRecovery.recover(fs, home, stopper));
+    assertFalse(TrialRecovery.recover(fs, home, stopper));
+    assertEquals(2, observations.get());
+    assertEquals(entry.getName(), Files.readString(new File(entry, "closed").toPath()));
+    assertFalse(new File(entry, "payload").exists());
+    assertEquals("synthetic import original", Files.readString(retained.toPath()));
+  }
+
+  @Test
+  public void settingsWithoutPidStillNeedsSettingsProofAndRejectsMalformedIntent()
+      throws Exception {
+    File home = home(), entry = entry(home);
+    writeSettingsIntent(entry, "profile-settings", "web");
+    assertEquals(
+        "SETTINGS_TRIAL_PROCESS_UNCONFIRMED",
+        assertThrows(
+                IOException.class,
+                () -> TrialRecovery.recover(fs, home, payload -> fail("unexpected legacy call")))
+            .getMessage());
+    retained(entry);
+    writeSettingsIntent(entry, "unknown-purpose", "web");
+    assertEquals(
+        "TRIAL_INTENT_BINDING",
+        assertThrows(
+                IOException.class,
+                () -> TrialRecovery.recover(fs, home, payload -> fail("unexpected legacy call")))
+            .getMessage());
+    retained(entry);
+    writeSettingsIntent(entry, "profile-settings", "../web");
+    assertEquals(
+        "TRIAL_INTENT_BINDING",
+        assertThrows(
+                IOException.class,
+                () -> TrialRecovery.recover(fs, home, payload -> fail("unexpected legacy call")))
+            .getMessage());
+    retained(entry);
+  }
+
+  @Test
+  public void settingsProfileOrMountAloneKeepsUnknownTrialWithNoPidOpen() {
+    String nonce = "0123456789abcdef0123456789abcdef";
+    String guest = "/root/.dsha-runtime-trial-" + nonce, host = "/synthetic/trial/payload";
+    String args =
+        String.join(
+            "\u0000",
+            "/usr/local/bin/node",
+            "/usr/local/lib/node_modules/@deepseek-ai/dsh/lib/bin.js",
+            "--profile",
+            "dsha-recovery-0123456789abcdef",
+            "--no-open",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "0");
+    assertTrue(TrialRecovery.matchesContext(nonce, guest, host, args, java.util.Map.of(), "/"));
+    assertTrue(
+        TrialRecovery.matchesContext(
+            nonce,
+            guest,
+            host,
+            String.join("\u0000", "proot", "-b", host + ":" + guest),
+            java.util.Map.of(),
+            "/"));
+    assertFalse(
+        TrialRecovery.matchesContext(
+            nonce,
+            guest,
+            host,
+            args.replace("0123456789abcdef", "fedcba9876543210"),
+            java.util.Map.of(),
+            "/"));
+  }
 }

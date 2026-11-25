@@ -92,7 +92,7 @@ def main():
     commands = [('compile', [str(jdk / ('javac' + ext)), '-J-Dfile.encoding=UTF-8', '@' + str(argfile)], args.compile_timeout),
                 ('junit', [str(jdk / ('java' + ext)), '-Xmx768m', '-Dfile.encoding=UTF-8',
                            '-Djava.awt.headless=true', '-Dphysical.classes=' + str(classes),
-                           '-Dphysical.evidence=' + str(output),
+                           '-Dphysical.evidence=' + str(output), '-Dphysical.kotlinClasses=' + str(kotlin),
                            *['-D' + key + '=' + value for key, value in props.items()],
                            '-cp', str(classes) + os.pathsep + cp, 'org.junit.runner.JUnitCore',
                            'com.deepseekharness.app.screen.PhysicalScreenFlowTest'], args.junit_timeout)]

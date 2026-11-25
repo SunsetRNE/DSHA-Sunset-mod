@@ -19,6 +19,60 @@ public class UserDataLayoutTest {
   }
 
   @Test
+  public void onlyTwoProvenAbsentHomesWithNoSelectionQualifyForFirstHomeRotation()
+      throws Exception {
+    File files = temp.newFolder();
+    var layout = new UserDataLayout(fs, files);
+    assertTrue(layout.pristineMissingHome());
+    for (String marker : List.of(UserDataLayout.RECORD, UserDataLayout.RECORD + ".previous")) {
+      put(files, marker, "fixture");
+      assertFalse(layout.pristineMissingHome());
+      Files.delete(new File(files, marker).toPath());
+    }
+    for (String home : List.of(UserDataLayout.LEGACY, UserDataLayout.STABLE)) {
+      Path path = new File(files, home).toPath();
+      Files.createDirectories(path);
+      assertFalse(layout.pristineMissingHome());
+      Files.delete(path);
+      assertTrue(layout.pristineMissingHome());
+    }
+    File legacyParent = new File(files, UserDataLayout.LEGACY).getParentFile();
+    for (String unsafeType : List.of("FILE", "LINK", "SPECIAL")) {
+      var other =
+          new JvmBackupFileSystem() {
+            public Node stat(File file) throws IOException {
+              return file.equals(legacyParent)
+                  ? new Node(unsafeType, "fixture", 0, 0, 0, 0)
+                  : super.stat(file);
+            }
+          };
+      assertFalse(new UserDataLayout(other, files).pristineMissingHome());
+    }
+    var replaced =
+        new JvmBackupFileSystem() {
+          boolean checked;
+
+          public Node stat(File file) throws IOException {
+            if (file.equals(new File(files, UserDataLayout.STABLE))) {
+              if (checked) return new Node("DIRECTORY", "replacement", 0, 0, 0, 0700);
+              checked = true;
+            }
+            return super.stat(file);
+          }
+        };
+    assertThrows(
+        IOException.class, () -> new UserDataLayout(replaced, files).pristineMissingHome());
+    var denied =
+        new JvmBackupFileSystem() {
+          public Node stat(File file) throws IOException {
+            if (file.equals(legacyParent)) throw new IOException("PERMISSION_DENIED");
+            return super.stat(file);
+          }
+        };
+    assertThrows(IOException.class, () -> new UserDataLayout(denied, files).pristineMissingHome());
+  }
+
+  @Test
   public void explicitChoiceKeepsBothTreesAndKeepsOldDocumentIds() throws Exception {
     File root = temp.newFolder();
     put(root, UserDataLayout.LEGACY + "/sessions/old", "old");

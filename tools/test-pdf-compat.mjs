@@ -20,7 +20,7 @@ assert.throws(()=>apply(source.replaceAll(spec.workerBefore,'changed upstream wo
 let registered;vm.runInNewContext(updated,{window:{__ModuleLoader__:{load(entry){registered=entry;}}},URL,Response,structuredClone});
 assert.equal(registered.id,'@deepseek-ai/dsh-client-ui-sidebar-documentpreview');
 assert.equal(typeof registered.factory,'function');
-const workerLiteral=source.match(/var _dsh_pdf_worker_default = (".*");/);
+const workerLiteral=source.match(/var _dsh_pdf_worker_default\s*=\s*((?:"(?:\\[\s\S]|[^"\\])*")|(?:'(?:\\[\s\S]|[^'\\])*'));/);
 assert.ok(workerLiteral);const worker=vm.runInNewContext(workerLiteral[1]);
 assert.ok(worker.includes('Iterator.prototype.join')&&worker.includes('Math.sumPrecise'));
 assert.ok(updated.includes('new Blob(['+JSON.stringify(compatibility+'\n')+', _dsh_pdf_worker_default,'));
@@ -28,7 +28,9 @@ console.log('PASS 锁定 PDF 插件补丁：准确锚点、幂等、失败拒绝
 const registry=await readFile(`${tree}/${spec.resourceModule}`,'utf8');
 const fixed=patch(registry,spec.resourceBefore,spec.resourceAfter);
 assert.equal(patch(fixed,spec.resourceBefore,spec.resourceAfter),fixed);
-const fn=fixed.slice(fixed.indexOf('function protocolOf(address)'),fixed.indexOf('\n\t\tfunction idle('));
+const start=fixed.indexOf('function protocolOf(address)'),end=fixed.indexOf('function idle(',start);
+assert.ok(start>=0&&end>start);
+const fn=fixed.slice(start,end);
 class OldURL extends URL {get hostname(){return this.protocol==='dsh-resource:'?'':super.hostname;}}
 for(const Type of [OldURL,URL]) {
  const ctx=vm.createContext({URL:Type});vm.runInContext(fn,ctx);

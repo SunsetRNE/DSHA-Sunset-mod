@@ -14,7 +14,7 @@ public final class SensitiveData {
     java.util.regex.Pattern.compile(
         "(?s)-----BEGIN ((?:RSA |EC |OPENSSH |ENCRYPTED |DSA )?)PRIVATE KEY-----.*?(?:-----END \\1PRIVATE KEY-----|\\z)"),
     java.util.regex.Pattern.compile(
-        "(?im)((?:authorization|proxy-authorization|cookie|set-cookie|x-token)\\s*:\\s*)[^\\r\\n]+"),
+        "(?im)((?:authorization|proxy-authorization|cookie|set-cookie|x-token|sec-websocket-protocol)\\s*:\\s*)[^\\r\\n]+"),
     java.util.regex.Pattern.compile(
         "(?i)([?&](?:token|api[_-]?key|access[_-]?token|refresh[_-]?token|id[_-]?token|auth|secret|password|code|state|authorization_code|code_verifier|code_challenge|authorize_id)=)[^\\s&#'\"<>]+"),
     java.util.regex.Pattern.compile(
@@ -22,7 +22,7 @@ public final class SensitiveData {
     java.util.regex.Pattern.compile("(?i)(https?://)[^\\s/@:]+:[^\\s/@]+@"),
     java.util.regex.Pattern.compile("(?i)(\\bBearer\\s+)[A-Za-z0-9._~+/-]+=*"),
     java.util.regex.Pattern.compile(
-        "\\b(?:sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[abpr]-[A-Za-z0-9-]{10,}|eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+)\\b")
+        "\\bdsha-lan-ticket-v1\\.[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])|\\b(?:sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|xox[abpr]-[A-Za-z0-9-]{10,}|eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+)\\b")
   };
   private static final java.util.LinkedHashSet<String> KNOWN = new java.util.LinkedHashSet<>();
 

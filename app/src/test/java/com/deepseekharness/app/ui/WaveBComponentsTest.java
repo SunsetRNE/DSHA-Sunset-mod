@@ -2,6 +2,7 @@ package com.deepseekharness.app.ui;
 
 import static org.junit.Assert.*;
 
+import android.animation.ValueAnimator;
 import android.content.ContentResolver;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -17,8 +18,11 @@ import android.widget.TextView;
 import androidx.appcompat.widget.AppCompatButton;
 import com.deepseekharness.app.DshaApp;
 import com.deepseekharness.app.R;
+import com.deepseekharness.app.util.Fmt;
 import com.deepseekharness.app.util.UiText;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
@@ -31,6 +35,7 @@ import org.robolectric.annotation.Config;
 import org.robolectric.annotation.LooperMode;
 import org.robolectric.shadow.api.Shadow;
 import org.robolectric.shadows.ShadowLooper;
+import org.robolectric.util.ReflectionHelpers;
 
 /**
  * Wave B 组件：按压（禁用/关动画不缩放）、加载按钮锁宽与恢复、数值滚动、内容淡换、
@@ -175,6 +180,109 @@ public final class WaveBComponentsTest {
     RollingNumber.bytes(view, 2L * 1024L * 1024L);
     idle(400);
     assertEquals("2.0 MB", view.getText().toString());
+  }
+
+  @Test
+  public void rollingNumberPreservesStorageTotalsAcrossGiBBoundaryAndDecrease() {
+    TextView view = new TextView(context);
+    var observed = new ArrayList<Long>();
+    long gib = 1L << 30;
+    long initial = 3 * gib / 2;
+    RollingNumber.value(view, initial, Fmt::binaryBytes);
+    RollingNumber.value(
+        view,
+        7 * gib,
+        bytes -> {
+          observed.add(bytes);
+          return Fmt.binaryBytes(bytes);
+        });
+    idle(96);
+    boolean crossedBoundary =
+        observed.stream().anyMatch(bytes -> bytes > 2 * gib && bytes < 7 * gib);
+    idle(320);
+    assertEquals("7.00 GiB", view.getText().toString());
+    assertTrue(crossedBoundary);
+    RollingNumber.value(view, 9 * gib, Fmt::binaryBytes);
+    idle(320);
+    assertEquals("9.00 GiB", view.getText().toString());
+
+    observed.clear();
+    RollingNumber.value(
+        view,
+        3 * gib,
+        bytes -> {
+          observed.add(bytes);
+          return Fmt.binaryBytes(bytes);
+        });
+    idle(96);
+    assertTrue(observed.stream().anyMatch(bytes -> bytes > 3 * gib && bytes < 9 * gib));
+    idle(320);
+    assertEquals("3.00 GiB", view.getText().toString());
+  }
+
+  @Test
+  public void rollingNumberPreservesHighPrecisionLongEndpoints() {
+    TextView view = new TextView(context);
+    long from = (1L << 53) + 3;
+    long target = Long.MAX_VALUE - 57;
+    RollingNumber.value(view, from, Long::toString);
+    assertEquals(Long.toString(from), view.getText().toString());
+    RollingNumber.value(view, target, Long::toString);
+    assertEquals(Long.toString(from), view.getText().toString());
+    idle(320);
+    assertEquals(Long.toString(target), view.getText().toString());
+    RollingNumber.value(view, target - 19, Long::toString);
+    idle(320);
+    assertEquals(Long.toString(target - 19), view.getText().toString());
+  }
+
+  @Test
+  public void rollingNumberFencesLateFramesFromReplacedAnimation() {
+    TextView view = new TextView(context);
+    RollingNumber.value(view, 700, Long::toString);
+    RollingNumber.value(view, 900, value -> "old " + value);
+    ValueAnimator old = rollingAnimation(view);
+    assertNotNull(old);
+    idle(48);
+
+    RollingNumber.value(view, 800, value -> "latest " + value);
+    String current = view.getText().toString();
+    old.setCurrentFraction(1f);
+    assertEquals(current, view.getText().toString());
+    idle(320);
+    assertEquals("latest 800", view.getText().toString());
+  }
+
+  @Test
+  public void rollingNumberCancelsAnimationForDisabledAndRepeatedValues() {
+    TextView view = new TextView(context);
+    RollingNumber.value(view, 700, Long::toString);
+    RollingNumber.value(view, 900, value -> "old " + value);
+    ValueAnimator old = rollingAnimation(view);
+    assertNotNull(old);
+    idle(48);
+    animationScales(0f);
+    RollingNumber.value(view, 800, value -> "static " + value);
+    assertEquals("static 800", view.getText().toString());
+    old.setCurrentFraction(1f);
+    idle(320);
+    assertEquals("static 800", view.getText().toString());
+
+    animationScales(1f);
+    RollingNumber.value(view, 1000, value -> "old " + value);
+    old = rollingAnimation(view);
+    assertNotNull(old);
+    RollingNumber.value(view, 1000, value -> "repeat " + value);
+    assertEquals("repeat 1000", view.getText().toString());
+    old.setCurrentFraction(1f);
+    idle(320);
+    assertEquals("repeat 1000", view.getText().toString());
+  }
+
+  private static ValueAnimator rollingAnimation(TextView view) {
+    Map<TextView, ValueAnimator> counters =
+        ReflectionHelpers.getStaticField(UiMotion.class, "COUNTERS");
+    return counters.get(view);
   }
 
   @Test

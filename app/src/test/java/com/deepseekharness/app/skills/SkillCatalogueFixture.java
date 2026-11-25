@@ -11,6 +11,25 @@ import java.util.List;
 public final class SkillCatalogueFixture {
   private SkillCatalogueFixture() {}
 
+  public static final String REMOVAL_SAMPLE = "dsha375-qa-r9-fs-cancel-02";
+
+  public static byte[] removalSample() {
+    String frontmatter =
+        "---\nname: "
+            + REMOVAL_SAMPLE
+            + "\ndescription: Isolated build375 read/cancel fixture\n"
+            + "disable-model-invocation: true\nuser-invocable: false\n---\n\n";
+    String line = "Inert synthetic skill test text.\n";
+    return (frontmatter + line.repeat((1_048_575 - frontmatter.length()) / line.length()) + "\n")
+        .getBytes(StandardCharsets.UTF_8);
+  }
+
+  public static SkillImports.Catalogue withSource(byte[] source) throws IOException {
+    SkillDocument document = SkillDocument.parse(source);
+    return new SkillImports.Catalogue(
+        List.of(new SkillImports.Entry(document.name + "/SKILL.md", document)), 0);
+  }
+
   public static SkillImports.Catalogue of(int unreadable, String... names) throws IOException {
     return withStates(unreadable, 0, 0, names);
   }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="plugin_catalog_reading">正在讀取外掛清單…</string>
+    <string name="plugin_catalog_rechecking">正在檢查外掛…</string>
+    <string name="plugin_catalog_cached">目前顯示上一次的外掛清單</string>
+    <string name="plugin_catalog_configured">依設定顯示，等待驗證</string>
+    <string name="plugin_catalog_failed">無法驗證外掛清單</string>
+    <string name="plugin_catalog_unconfirmed">外掛清單尚未確認</string>
+    <string name="plugin_catalog_verified">外掛清單已驗證</string>
+    <string name="plugin_catalog_queued">外掛檢查已排入佇列</string>
+</resources>

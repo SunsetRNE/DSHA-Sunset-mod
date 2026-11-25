@@ -1,7 +1,6 @@
 package com.deepseekharness.app.runtime;
 
 import android.content.Context;
-import com.deepseekharness.app.util.Compat;
 import com.deepseekharness.app.util.InstallProbe;
 import com.deepseekharness.app.util.InstallProcess;
 import com.deepseekharness.app.util.InstallTask;
@@ -84,13 +83,13 @@ public final class InstallPipeline {
         if (selected == 0 || selected == step)
           task.result(
               step, false, com.deepseekharness.app.util.UiText.text("无法验证：Linux 环境未就绪，请先处理第 1 项"));
-      task.finish(
+      task.finishChecked(
           InstallTask.Outcome.FAILED,
           com.deepseekharness.app.util.UiText.text("检查完成：Linux 环境未就绪，其余组件无法验证；现有文件已保留"));
       return;
     }
     if (selected == ENVIRONMENT_ID) {
-      task.finish(
+      task.finishChecked(
           InstallTask.Outcome.SUCCEEDED, com.deepseekharness.app.util.UiText.text("第 1 步检查通过"));
       return;
     }
@@ -153,14 +152,15 @@ public final class InstallPipeline {
       } catch (InstallTask.Cancelled cancelled) {
         throw cancelled;
       } catch (Exception error) {
-        if (InstallProcess.cleanupFailure(error) != null) throw error;
+        if (error instanceof InstallProcess.OwnedExitFailure
+            || InstallProcess.cleanupFailure(error) != null) throw error;
         if (isCancellation(error)) throw new InstallTask.Cancelled();
         task.result(step, false, InstallFailure.from(stage, error).display());
         failed = true;
       }
     }
     task.checkCancelled();
-    task.finish(
+    task.finishChecked(
         failed ? InstallTask.Outcome.FAILED : InstallTask.Outcome.SUCCEEDED,
         failed
             ? com.deepseekharness.app.util.UiText.text("检查完成，仍有步骤未通过；失败项与详细输出已保留")
@@ -281,13 +281,8 @@ public final class InstallPipeline {
     public int execute(
         String script, long timeout, boolean cancellable, InstallTask task, Consumer<String> output)
         throws Exception {
-      return InstallProcess.read(
-          proot.execRootfsForInstall(script),
-          timeout,
-          cancellable,
-          task::cancellationRequested,
-          output,
-          Compat::destroy);
+      return proot.checkInstall(
+          script, timeout, cancellable ? task::cancellationRequested : () -> false, output);
     }
   }
 }

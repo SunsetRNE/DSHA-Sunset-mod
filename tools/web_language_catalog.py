@@ -178,10 +178,11 @@ def static_names(source):
 
 def loop_dictionaries(reader, names, position):
     """`for (const [locale, dict] of NAME) register(NS, locale, dict)` with a static pair array."""
-    head = reader.text.rfind('for (const [', 0, position)
-    match = re.compile(r'for \(const \[([\w$]+), ([\w$]+)\] of ([\w$]+)\)').match(reader.text, head) if head >= 0 else None
-    if not match or position - match.end() > 400:
+    loop = re.compile(r'\bfor\s*\(\s*const\s*\[\s*([\w$]+)\s*,\s*([\w$]+)\s*\]\s*of\s+([\w$]+)\s*\)')
+    matches = list(loop.finditer(reader.text, max(0, position - 400), position))
+    if not matches:
         raise KeyError('WEB_REGISTER_LOOP')
+    match = matches[-1]
     pairs = reader.resolve(match[3], match.start())
     if not isinstance(pairs, list) or not all(isinstance(row, list) and len(row) == 2 for row in pairs):
         raise ValueError('WEB_REGISTER_LOOP_PAIRS')

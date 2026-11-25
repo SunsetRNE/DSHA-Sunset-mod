@@ -5,7 +5,7 @@ Java 与 Kotlin 共用同一套架构边界。tree 级规则（层依赖、共�
 package-private，这里用 `internal` 作为最接近的可见性，真正阻止 `ui` 访问协作者的是
 引用扫描。Kotlin 语法检查是保守近似：拿不准的可变共享状态按违规报告，而不是静默放行。
 """
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import json
 import re
 import unittest
@@ -176,7 +176,7 @@ def parallel_implementations(relative_names):
     """同一相对路径同时存在 .java/.kt 时返回重复对。"""
     by_stem = {}
     for name in relative_names:
-        path = Path(name)
+        path = PurePosixPath(name)
         if path.suffix not in SOURCE_SUFFIXES:
             continue
         by_stem.setdefault(str(path.with_suffix("")), set()).add(path.suffix)

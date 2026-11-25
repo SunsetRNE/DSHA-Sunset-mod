@@ -17,7 +17,8 @@ const requiredRecipes = ['plugin-inventory-entries-patch.json', 'plugin-manager-
   'plugin-manager-management-probe-patch.json'];
 
 // 执行真实 observer 和固定 checker；只隔离 YAML/Loader 入口，不能称真实 Cordis Loader 验收。
-function observe({ manifest = {}, exemptions, registry, checkerFailure = false, runtimeMissing = false, instance = 'fixture-instance' } = {}) {
+function observe({ manifest = {}, exemptions, registry, checkerFailure = false, runtimeMissing = false,
+  instance = 'fixture-instance', linkedPatch = '' } = {}) {
   const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'a6-startup-metadata-'));
   const home = path.join(folder, 'home'), installation = path.join(folder, 'installation');
   const profile = path.join(home, 'profiles/web'), moduleDir = path.join(profile, 'node_modules/fixture-plugin');
@@ -25,6 +26,13 @@ function observe({ manifest = {}, exemptions, registry, checkerFailure = false, 
   put(path.join(profile, 'package.json'), { dsh: { profile: { bundles: ['fixture-plugin'] } } });
   put(path.join(moduleDir, 'package.json'), { name: 'fixture-plugin', version: '1.0.0', dsh: { bundle: { patch: 'cordis.patch.yml' } }, ...manifest });
   put(path.join(moduleDir, 'cordis.patch.yml'), [{ insert: [{ id: 'entry', name: './private.js' }] }]);
+  if (linkedPatch) {
+    const target = path.join(linkedPatch === 'internal' ? moduleDir : folder, 'patch-target');
+    put(path.join(target, 'linked.yml'), [{ insert: [{ id: 'second-entry', name: './linked.js' }] }]);
+    fs.symlinkSync(target, path.join(moduleDir, 'linked'), process.platform === 'win32' ? 'junction' : 'dir');
+    put(path.join(moduleDir, 'package.json'), { name: 'fixture-plugin', version: '1.0.0',
+      dsh: { bundle: { patch: ['cordis.patch.yml', 'linked/linked.yml'] } } });
+  }
   put(path.join(installation, 'package.json'), { name: '@deepseek-ai/dsh', version: '0.2.2-rc.1' });
   if (!runtimeMissing) {
     const boot = path.join(installation, 'node_modules/@deepseek-ai/dsh-app-boot');
@@ -84,6 +92,15 @@ test('真实observer初始化仅一次批量预检，内容/metadata不冒充Loa
   assert.equal(evidence.patchChain.state, 'present-unverified');
   assert(Object.isFrozen(row.eligibility));
   const json = JSON.stringify(evidence); assert(!json.includes(folder)); assert(!json.includes('private-runtime'));
+});
+
+test('补丁链接保留包内解析和顺序，包外目标使整组静态入口未确认', () => {
+  const inside = observe({ linkedPatch: 'internal' }).evidence.bundles[0];
+  assert.equal(inside.ambiguous, false);
+  assert.deepEqual(Array.from(inside.entries, entry => entry.id), ['entry', 'second-entry']);
+  const outside = observe({ linkedPatch: 'external' }).evidence.bundles[0];
+  assert.equal(outside.ambiguous, true);
+  assert.equal(outside.entries.length, 0);
 });
 
 for (const [state, options] of [

@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-web-app/cordis.patch.yml",
+  "sourceSha256": "58dffac57b73cd06b84fb81e6adcfcf3ba7175952e607c0753b5535712388afe",
+  "purpose": "Leave the default web brand slots available to the Android distribution.",
+  "patches": [
+    {
+      "before": "    - id: ui-brand-official\n      name: '@deepseek-ai/dsh-client-ui-brand-official'",
+      "after": "    - id: ui-brand-official\n      name: '@deepseek-ai/dsh-client-ui-brand-official'\n      disabled: true"
+    }
+  ]
+}

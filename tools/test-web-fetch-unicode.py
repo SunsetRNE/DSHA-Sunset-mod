@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Exercise the signed web-fetch patch recipes against the actual bundled 0.2.2-rc.1 code."""
+"""Exercise the signed web-fetch patch recipes against the actual bundled 0.2.2-rc.5 code."""
 import json
+import os
 from pathlib import Path
 import subprocess
 import tarfile
@@ -21,7 +22,8 @@ def main():
     manifest = json.loads((ASSETS / 'managed-runtime-inputs.json').read_text(encoding='utf8'))
     assert all(name in manifest['assetFiles'] for name in inputs if name.startswith('web-fetch-'))
     bundled = {}
-    with tarfile.open(ASSETS / 'dsh-runtime.bin', 'r|gz') as archive:
+    archive_path = Path(os.environ.get('DSHA_RUNTIME_ARCHIVE') or ASSETS / 'dsh-runtime.bin')
+    with tarfile.open(archive_path, 'r|gz') as archive:
         for member in archive:
             name = member.name.removeprefix('./')
             if name in [PREFIX + module for module in MODULES]:
@@ -57,7 +59,7 @@ def main():
             path.write_bytes(patched)
             paths.append(str(path))
         subprocess.run(['node', str(ROOT / 'tools/test-web-fetch-unicode.mjs'), *paths], check=True, cwd=ROOT)
-    print('PASS bundled 0.2.2-rc.1 exact anchors, idempotent managed recipes, drift rejection and executed Unicode boundaries')
+    print('PASS bundled 0.2.2-rc.5 exact anchors, idempotent managed recipes, drift rejection and executed Unicode boundaries')
 
 
 if __name__ == '__main__':

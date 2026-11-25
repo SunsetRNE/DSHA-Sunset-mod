@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-llm-pi-ai/lib/index.js",
+  "sourceSha256": "e956da3d7300e1426e13e14f47e6f981dd1ca345633a406568ee5058ad93e9d8",
+  "purpose": "Use the public API routes for Anthropic and OpenAI. Preserve stored profiles and credentials while excluding their subscription login, refresh and catalog routes.",
+  "patches": [
+    {
+      "before": "function catalogProviders() {\n\tproviderIndex ??= new Map(builtinProviders().filter(servesChat).map((provider) => [provider.id, provider]));",
+      "after": "function catalogProviders() {\n\tif (providerIndex) return providerIndex;\n\tproviderIndex = new Map();\n\tfor (const provider of builtinProviders()) {\n\t\tif (provider.id === \"openai-codex\" || !servesChat(provider)) continue;\n\t\tif (provider.id === \"openai\" || provider.id === \"anthropic\") {\n\t\t\t// Register API credentials only. Registration, discovery and dispatch share this catalog.\n\t\t\tconst apiKey = provider.auth.apiKey;\n\t\t\tconst method = provider.id === \"openai\" ? apiKey : {\n\t\t\t\t...apiKey,\n\t\t\t\tasync resolve(request) {\n\t\t\t\t\tconst result = await apiKey.resolve(request);\n\t\t\t\t\tif ([result?.auth.apiKey, result?.auth.headers?.Authorization].some((value) => value?.includes(\"sk-ant-oat\"))) {\n\t\t\t\t\t\tthrow new LlmError(\"Anthropic subscription credentials are unsupported; use an Anthropic API key\", INVALID_CREDENTIAL_CODE);\n\t\t\t\t\t}\n\t\t\t\t\treturn result;\n\t\t\t\t}\n\t\t\t};\n\t\t\tproviderIndex.set(provider.id, { ...provider, auth: { apiKey: method } });\n\t\t} else {\n\t\t\tproviderIndex.set(provider.id, provider);\n\t\t}\n\t}"
+    },
+    {
+      "before": "\t\tasync env(name) {\n\t\t\tif (isCredentialRefName(name))",
+      "after": "\t\tasync env(name) {\n\t\t\tif (name === \"ANTHROPIC_OAUTH_TOKEN\") return void 0;\n\t\t\tif (isCredentialRefName(name))"
+    },
+    {
+      "before": "\t\t\t\"ANTHROPIC_AUTH_TOKEN\",\n\t\t\t\"ANTHROPIC_OAUTH_TOKEN\",\n\t\t\t\"ANTHROPIC_API_KEY\",",
+      "after": "\t\t\t\"ANTHROPIC_AUTH_TOKEN\",\n\t\t\t\"ANTHROPIC_API_KEY\","
+    },
+    {
+      "before": "\t\t\tcatalog = resolveRouteModels({\n\t\t\t\tprovider,",
+      "after": "\t\t\tif (provider === \"openai-codex\") invalid(provider, \"is a subscription route; configure the OpenAI API provider instead\");\n\t\t\tcatalog = resolveRouteModels({\n\t\t\t\tprovider,"
+    }
+  ]
+}

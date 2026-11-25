@@ -6,13 +6,13 @@ import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
 // The emergency ABI is pinned only when the explicit recovery fixture is used.
-// A normal current fixture follows the formal runtime lock; S1 keeps recovery on the same rc1 archive with an independent lock.
+// The default host fixture follows the formal runtime lock.
 const recoveryRuntime = process.env.DSHA_TEST_RECOVERY_RUNTIME;
 const expectedDsh = recoveryRuntime
   ? JSON.parse(await readFile(path.join(root, 'tools/recovery-runtime/lock.json'), 'utf8')).dshVersion
   : JSON.parse(await readFile(path.join(root, 'tools/dsh-runtime/package.json'), 'utf8')).dependencies['@deepseek-ai/dsh'];
-const fixture = JSON.parse(await readFile(path.join(root, 'app/build/test-runtimes/current.json'), 'utf8'));
-const runtime = recoveryRuntime || process.env.DSHA_TEST_RUNTIME || fixture.raw;
+const runtime = recoveryRuntime || process.env.DSHA_TEST_RUNTIME
+  || JSON.parse(await readFile(path.join(root, 'app/build/test-runtimes/current.json'), 'utf8')).raw;
 const requireRuntime = createRequire(path.join(runtime, 'package.json'));
 const load = name => import(pathToFileURL(requireRuntime.resolve(name)).href);
 const { Context } = await load('@deepseek-ai/cordis');
@@ -109,7 +109,7 @@ for (const id of ['plugin-manager', 'ui-plugin-manager', 'entry-customization', 
 }
 const preset = active.find(row => row.id === 'preset-dsha-emergency');
 assert.deepEqual(preset.config.plugins.map(row => row.name), ['@deepseek-ai/dsh-persona']);
-assert.equal(rows.find(row => row.id === 'tools').config?.mode, undefined, '0.2.2 tools no longer accepts the removed mode field');
+assert.equal(rows.find(row => row.id === 'tools').config?.mode, undefined, 'tools uses the separately mounted native executor');
 assert.equal(rows.find(row => row.id === 'tool-executor-native')?.disabled, undefined, 'recovery must retain the native executor');
 
 const calls = [];

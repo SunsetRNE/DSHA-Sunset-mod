@@ -11,7 +11,6 @@ final class PluginNavigation {
 
   static boolean open(Activity activity, String url) {
     if (PluginInstallLink.management(url)) {
-      com.deepseekharness.app.core.PluginRepository.get(activity).invalidateInstalledState();
       activity.startActivity(
           MainActivity.navigationIntent(activity).putExtra("open_plugins", true));
       return true;

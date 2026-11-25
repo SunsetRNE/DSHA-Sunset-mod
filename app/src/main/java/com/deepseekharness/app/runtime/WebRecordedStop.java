@@ -43,6 +43,10 @@ final class WebRecordedStop {
       return false;
     }
 
+    default boolean requireExactTrialProfile() {
+      return false;
+    }
+
     WebProcessManager.ProcessState inspect(int pid) throws IOException;
 
     void retire(String record) throws IOException;
@@ -114,14 +118,18 @@ final class WebRecordedStop {
         }
         if (state.kind != WebProcessManager.Kind.WEB || state.identity == null)
           return WebStopDiagnostic.of(Code.INSPECTION_UNCONFIRMED, state.kind);
-        if (io.trial() && !state.command.contains(io.trialProfile()))
+        if (io.trial() && !matchesTrial(io, state.command))
           return WebStopDiagnostic.of(Code.TRIAL_IDENTITY_CHANGED);
         if (!WebProcSel.maySignalWeb(state.command))
           return WebStopDiagnostic.of(Code.PRE_EXEC_WAIT);
         WebProcessManager.ProcessState again = io.inspect(pid);
         if (!state.identity.sameProcess(again.identity)
             || !WebProcSel.maySignalWeb(again.command)
-            || !record.equals(io.pidRecord())) return WebStopDiagnostic.of(Code.IDENTITY_CHANGED);
+            || !record.equals(io.pidRecord())
+            || io.requireExactTrialProfile()
+                && (!state.command.equals(again.command)
+                    || !java.util.Objects.equals(saved, io.savedIdentity(pid))))
+          return WebStopDiagnostic.of(Code.IDENTITY_CHANGED);
         Signal signal = io.term(pid);
         if (signal == Signal.GONE || signal == Signal.FOREIGN_UID) {
           io.retire(record);
@@ -153,6 +161,24 @@ final class WebRecordedStop {
         return WebStopDiagnostic.failure(Code.STOP_FAILED, error);
       }
     }
+  }
+
+  private static boolean matchesTrial(Io io, String command) {
+    String expected = io.trialProfile();
+    if (!io.requireExactTrialProfile()) return command.contains(expected);
+    return java.util.Arrays.equals(
+        command.split("\\u0000"),
+        new String[] {
+          "/usr/local/bin/node",
+          "/usr/local/lib/node_modules/@deepseek-ai/dsh/lib/bin.js",
+          "--profile",
+          expected,
+          "--no-open",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "0"
+        });
   }
 
   /**

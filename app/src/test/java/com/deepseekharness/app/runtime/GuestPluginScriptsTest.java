@@ -30,13 +30,51 @@ public class GuestPluginScriptsTest {
     }
     assertEquals(List.of("ready", "python", "pnpm", "assets"), calls.subList(0, 4));
     assertEquals(6, calls.size());
-    assertEquals("python3 -u /root/.dsh/register-builtin-plugins.py 2>&1", calls.get(4));
+    assertEquals(
+        "python3 -u /root/.dsh/register-builtin-plugins.py --startup-legacy-review-proof 2>&1",
+        calls.get(4));
     assertEquals(
         "DSHA_PLUGIN_DOWNLOAD_SOURCE=auto python3 /root/.dsh/plugin-manager.py migrate-review-markers 2>&1",
         calls.get(5));
     scripts.manager("list", "", PluginDownloadSource.AUTO);
     assertEquals(List.of("ready", "query"), calls.subList(6, 8));
     assertTrue(calls.get(8).contains("DSHA_PLUGIN_QUERY=1"));
+  }
+
+  @Test
+  public void onlyFinalLegacyClearProofAvoidsSecondGuest() throws Exception {
+    String marker = "STARTUP_LEGACY_REVIEW_CLEAR_V1\n";
+    for (String output :
+        List.of(
+            "BUILTIN_REGISTER_OK\n" + marker,
+            marker + "BUILTIN_REGISTER_OK\n",
+            "BUILTIN_REGISTER_OK\n" + marker + "extra\n")) {
+      var calls = new ArrayList<String>();
+      var scripts =
+          new GuestPluginScripts(
+              preparation(calls, true, true),
+              (command, timeout) -> {
+                calls.add(command);
+                return com.deepseekharness.app.util.BoundedProcessRunner.localCompletion(
+                    command.contains("register-builtin")
+                        ? output
+                        : "PLUGIN_RESULT: legacy guest receipt");
+              });
+      try (var startup = scripts.startup()) {
+        startup.register();
+        String legacy = startup.legacy().output;
+        if (output.endsWith("\n" + marker)) {
+          assertFalse(startup.legacyUsesGuest());
+          assertTrue(legacy.contains("\"activated\":[]"));
+          assertEquals(5, calls.size());
+        } else {
+          assertTrue(startup.legacyUsesGuest());
+          assertEquals("PLUGIN_RESULT: legacy guest receipt", legacy);
+          assertEquals(6, calls.size());
+        }
+        assertThrows(IOException.class, startup::legacy);
+      }
+    }
   }
 
   @Test
@@ -358,6 +396,27 @@ public class GuestPluginScriptsTest {
   }
 
   @Test
+  public void nativeResetProtocolRequiresExactInstalledSignedAssetBytes() throws Exception {
+    byte[] known = {42, 13, (byte) 255};
+    byte[] old = {42, 13};
+    assertTrue(
+        GuestPluginScripts.sameInstalledMigrationScript(
+            known, new java.io.ByteArrayInputStream(known)));
+    assertFalse(
+        GuestPluginScripts.sameInstalledMigrationScript(
+            old, new java.io.ByteArrayInputStream(known)));
+    assertFalse(
+        GuestPluginScripts.sameInstalledMigrationScript(
+            known, new java.io.ByteArrayInputStream(old)));
+    assertFalse(
+        GuestPluginScripts.sameInstalledMigrationScript(
+            new byte[] {42, 13, 0}, new java.io.ByteArrayInputStream(known)));
+    assertFalse(
+        GuestPluginScripts.migrationCommand("prepare", "rollback-r14")
+            .contains("--native-reset-proof"));
+  }
+
+  @Test
   public void verifiedReuseSkipsGuestOnlyForThePreparedStartupId() throws Exception {
     String generation = java.util.UUID.randomUUID().toString();
     List<String> calls = new ArrayList<>();
@@ -652,6 +711,43 @@ public class GuestPluginScriptsTest {
         assertThrows(
             IOException.class, () -> slow.manager("list", "", PluginDownloadSource.AUTO, 30, true));
     assertEquals("PLUGIN_QUERY_TIMEOUT", timeout.getMessage());
+  }
+
+  @Test
+  public void onlyExactReadOnlyListAndRefreshUseTheSelectedEngineEntry() throws Exception {
+    var phases = new ArrayList<String>();
+    var calls = new ArrayList<String>();
+    var runner =
+        new GuestPluginScripts.Runner() {
+          @Override
+          public com.deepseekharness.app.util.BoundedProcessRunner.Result run(
+              String command, long timeout) {
+            calls.add(command);
+            return null;
+          }
+
+          @Override
+          public com.deepseekharness.app.util.BoundedProcessRunner.Result runQuery(
+              String command, long timeout, java.util.function.Consumer<String> timing) {
+            assertTrue(timeout > 0 && timeout <= GuestPluginScripts.QUERY_TIMEOUT_MS);
+            assertTrue(command.contains("DSHA_PLUGIN_QUERY=1 DSHA_PLUGIN_QUERY_TIMING=1"));
+            assertTrue(command.contains("python3 -B /root/.dsh/plugin-manager.py"));
+            phases.add(command);
+            return null;
+          }
+        };
+    var scripts = new GuestPluginScripts(preparation(calls, true, true), runner);
+    scripts.manager("list", "", PluginDownloadSource.AUTO);
+    scripts.manager("refresh", "", PluginDownloadSource.AUTO);
+    assertEquals(List.of("ready", "query", "ready", "query"), calls);
+    assertTrue(phases.get(0).endsWith("list 2>&1"));
+    assertTrue(phases.get(1).endsWith("refresh 2>&1"));
+
+    scripts.manager("enable-state 'official'", "", PluginDownloadSource.AUTO);
+    scripts.manager("list unexpected", "", PluginDownloadSource.AUTO);
+    assertEquals(2, phases.size());
+    assertTrue(calls.stream().anyMatch(line -> line.endsWith("list unexpected 2>&1")));
+    assertTrue(calls.stream().noneMatch(line -> line.contains("DSHA_PLUGIN_QUERY=1")));
   }
 
   @Test

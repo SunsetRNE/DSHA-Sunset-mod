@@ -33,7 +33,7 @@ public final class BackupDownloadsPublicationTest {
     File file;
     ContentValues inserted;
     int publishes, deletes;
-    boolean corrupt, rejectPublish, cancelOnWrite;
+    boolean corrupt, rejectPublish, cancelOnWrite, nameUnavailable;
     BackupControl control;
     final List<ParcelFileDescriptor> opened = new ArrayList<>();
 
@@ -67,6 +67,7 @@ public final class BackupDownloadsPublicationTest {
     }
 
     public Cursor query(Uri uri, String[] columns, String selection, String[] args, String order) {
+      if (nameUnavailable) throw new IllegalStateException("label unavailable");
       MatrixCursor c = new MatrixCursor(columns);
       c.addRow(new Object[] {NAME});
       return c;
@@ -157,6 +158,18 @@ public final class BackupDownloadsPublicationTest {
     assertEquals(0, provider.deletes);
     assertEquals(2, provider.opened.size());
     for (var p : provider.opened) assertThrows(IllegalStateException.class, p::getFd);
+  }
+
+  @Test
+  public void unavailableDisplayNameAfterPublicationPreservesTheVerifiedDownload()
+      throws Exception {
+    provider.nameUnavailable = true;
+    var result = publish();
+    assertEquals(NAME, result.displayName);
+    assertEquals(1, provider.publishes);
+    assertEquals(0, provider.deletes);
+    assertArrayEquals(
+        Files.readAllBytes(source.toPath()), Files.readAllBytes(provider.file.toPath()));
   }
 
   @Test

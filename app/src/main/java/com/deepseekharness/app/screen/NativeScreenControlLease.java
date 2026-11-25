@@ -41,6 +41,18 @@ public final class NativeScreenControlLease implements AutoCloseable {
     }
   }
 
+  /** Reports missing accessibility only for a still-owned session that never acquired a service. */
+  public boolean accessibilityStillUnavailable() {
+    try {
+      return service == null
+          && !closed.get()
+          && authority.getAsBoolean()
+          && connection.snapshot() == null;
+    } catch (RuntimeException unavailable) {
+      return false;
+    }
+  }
+
   public Action begin(int displayId, ScreenTarget target, boolean readingTree) {
     if (displayId <= 0 || !current()) return null;
     display.compareAndSet(-1, displayId);

@@ -102,12 +102,6 @@ public final class LaunchAccessAddressesTest {
   @Implements(value = LanProxyService.class, isInAndroidSdk = false)
   public static final class Proxy {
     static int starts;
-    static String token;
-
-    @Implementation
-    protected static String boundLanToken(long generation) {
-      return token;
-    }
 
     @Implementation
     protected static void start(String root, Context c, int port, long generation) {
@@ -168,7 +162,6 @@ public final class LaunchAccessAddressesTest {
     Controller.generation = 7;
     Controller.local = LOCAL;
     Proxy.starts = 0;
-    Proxy.token = LAN_TOKEN;
     NetworkAccess.applications = 0;
     host = Robolectric.buildActivity(Host.class).setup();
     entry = new Entry();
@@ -187,10 +180,12 @@ public final class LaunchAccessAddressesTest {
     return LanAccessPresentation.capture(
         enabled,
         permission,
+        true,
         Controller.generation,
         true,
         49231,
-        new LanAddressPolicy.Discovery(addresses, false, LanAddressPolicy.Failure.NONE));
+        new LanAddressPolicy.Discovery(addresses, false, LanAddressPolicy.Failure.NONE),
+        "12:".repeat(31) + "34");
   }
 
   private AlertDialog open() {
@@ -257,7 +252,7 @@ public final class LaunchAccessAddressesTest {
     assertEquals(0, Proxy.starts);
     click(lanButton(dialog));
     AlertDialog confirmation = (AlertDialog) ShadowDialog.getLatestDialog();
-    assertTrue(message(confirmation).contains("unencrypted"));
+    assertTrue(message(confirmation).contains("SHA-256"));
     assertFalse("showing confirmation cannot enable LAN", Controller.config.isLanMode());
     clickDialogButton(confirmation, DialogInterface.BUTTON_NEGATIVE);
     assertFalse(Controller.config.isLanMode());
@@ -265,20 +260,21 @@ public final class LaunchAccessAddressesTest {
   }
 
   @Test
-  public void readyLanUrlsAreListedAndCopyCarriesTheTokenOnlyInClipboard() {
+  public void readyLanAddressesContainNoCredentialOnScreenOrClipboard() {
     Controller.config.setLanMode(true);
     entry.snapshot = snapshot(true, true, List.of("192.168.1.2", "10.2.0.2"));
     AlertDialog dialog = open();
     String shown = body(dialog);
-    assertTrue(shown.contains("http://192.168.1.2:49231/"));
-    assertTrue(shown.contains("http://10.2.0.2:49231/"));
+    assertTrue(shown.contains("https://192.168.1.2:49231/"));
+    assertTrue(shown.contains("12:".repeat(31) + "34"));
+    assertTrue(shown.contains("https://10.2.0.2:49231/"));
     assertFalse("overview must not expose the LAN token", shown.contains(LAN_TOKEN));
     assertEquals("Disable LAN", lanButton(dialog).getText().toString());
     assertEquals("Copy LAN link", copyButton(dialog).getText().toString());
     assertTrue(copyButton(dialog).isEnabled());
     click(copyButton(dialog));
     assertEquals(
-        "http://192.168.1.2:49231/?token=" + LAN_TOKEN,
+        "https://192.168.1.2:49231/",
         clipboard().getPrimaryClip().getItemAt(0).getText().toString());
     assertEquals(0, Proxy.starts);
   }
@@ -307,6 +303,17 @@ public final class LaunchAccessAddressesTest {
   }
 
   @Test
+  public void retiredLanCopyButtonNeverCopiesTheLocalAuthUrl() {
+    Controller.config.setLanMode(true);
+    entry.snapshot = snapshot(true, true, List.of("192.168.1.2"));
+    AlertDialog dialog = open();
+    entry.snapshot = snapshot(false, true, List.of());
+    click(copyButton(dialog));
+    assertFalse(clipboard().hasPrimaryClip());
+    assertEquals("Copy local URL", copyButton(dialog).getText().toString());
+  }
+
+  @Test
   public void missingPasswordIsShownAndDoesNotExposeAnAddress() {
     RuntimeEnvironment.getApplication()
         .getSharedPreferences(com.deepseekharness.app.util.Constants.PREFS, Context.MODE_PRIVATE)
@@ -317,7 +324,7 @@ public final class LaunchAccessAddressesTest {
     AlertDialog dialog = open();
     String shown = body(dialog);
     assertTrue(shown.contains("No LAN password"));
-    assertFalse(shown.contains("http://192.168.1.2"));
+    assertFalse(shown.contains("https://192.168.1.2"));
     assertEquals("Enable LAN", lanButton(dialog).getText().toString());
   }
 
@@ -328,7 +335,7 @@ public final class LaunchAccessAddressesTest {
     AlertDialog dialog = open();
     String shown = body(dialog);
     assertTrue(shown.contains("permission is missing"));
-    assertFalse(shown.contains("http://192.168"));
+    assertFalse(shown.contains("https://192.168"));
     assertFalse(copyButton(dialog).isEnabled());
     assertEquals("Enable LAN", lanButton(dialog).getText().toString());
   }

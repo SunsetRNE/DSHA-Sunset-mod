@@ -21,21 +21,31 @@ public final class LanPortPolicy {
   }
 
   /** Return the held listener itself, never a port discovered by opening and closing a probe. */
-  public static ServerSocket bind(int preferred) throws IOException {
+  public static ServerSocket bind(java.net.InetAddress address, int preferred) throws IOException {
+    return bind(javax.net.ServerSocketFactory.getDefault(), address, preferred);
+  }
+
+  public static ServerSocket bind(
+      javax.net.ServerSocketFactory factory, java.net.InetAddress address, int preferred)
+      throws IOException {
+    if (address == null || address.isAnyLocalAddress())
+      throw new IllegalArgumentException("LAN_BIND_ADDRESS");
     if (preferred < 1 || preferred > 65535) throw new IllegalArgumentException("LAN_PORT_RANGE");
     try {
-      return bindOnce(preferred);
+      return bindOnce(factory, address, preferred);
     } catch (BindException busy) {
       if (!BridgePortPolicy.addressInUse(busy)) throw busy;
-      return bindOnce(0);
+      return bindOnce(factory, address, 0);
     }
   }
 
-  private static ServerSocket bindOnce(int port) throws IOException {
-    ServerSocket socket = new ServerSocket();
+  private static ServerSocket bindOnce(
+      javax.net.ServerSocketFactory factory, java.net.InetAddress address, int port)
+      throws IOException {
+    ServerSocket socket = factory.createServerSocket();
     try {
       socket.setReuseAddress(true);
-      socket.bind(new InetSocketAddress("0.0.0.0", port));
+      socket.bind(new InetSocketAddress(address, port));
       return socket;
     } catch (IOException | RuntimeException error) {
       try {

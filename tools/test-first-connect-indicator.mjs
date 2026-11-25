@@ -192,7 +192,7 @@ test('挂载时已经 connected 的首次观察也不显示绿色', () => {
 });
 
 test('恢复提示与最短可见常量保持上游数值', () => {
-  assert.match(patched, /const RECOVERY_CONFIRMATION_MS = 2e3;/);
+  assert.match(patched, /const RECOVERY_CONFIRMATION_MS\s*=\s*2e3;/);
   assert.match(patched, /const CONNECTING_MIN_VISIBLE_MS = 800;/);
 });
 

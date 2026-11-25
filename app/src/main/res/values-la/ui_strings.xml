@@ -61,7 +61,7 @@
     <string name="ui134_recent_startups" formatted="false">"Ultima quinque initia"</string>
     <string name="ui134_recent_startups_sub" formatted="false">"Gradus, errores, exitus"</string>
     <string name="ui134_results" formatted="false">"Eventus examinis"</string>
-    <string name="ui134_root_hint" formatted="false">"In apparatu cum root, su directe sine coniunctione ADB uti potes. Primo exsecutione DSHA in administro root auctoriza. Gradum interceptionis mandatorum infra elige; claustra nativa ut lectio nuntiorum SMS in omnibus tribus gradibus valent."</string>
+    <string name="ui134_root_hint" formatted="false">"Primo usu DSHA in administratore root permitte. Modus strictus lectionem recursivam directoriorum prohibet. Interrogationes SMS ab applicatione moderatae consensum proprium requirunt. In utroque modo remisso scripta root data privata directe legere possunt."</string>
     <string name="ui134_screen_setup" formatted="false">"Moderationem veli para · Duo gradus"</string>
     <string name="ui134_shizuku_hint" formatted="false">"Shizuku in administratore eius initia, deinde DSHA hic auctoriza. Plerumque ministerium post reinitiationem rursus initia."</string>
     <string name="ui134_start_records" formatted="false">"Acta initii"</string>
@@ -130,7 +130,7 @@
     <string name="ui2_meet" formatted="false">"DSHA cognosce"</string>
     <string name="ui2_network_runtime" formatted="false">"Exsecutio et rete"</string>
     <string name="ui2_offline_badge" formatted="false">"Praeparatio sine rete  ·  Sine root  ·  %1$s"</string>
-    <string name="ui2_online_notice" formatted="false">"Exemplaria per rete nuntios et adiuncta accipiunt quae mittere eligis."</string>
+    <string name="ui2_online_notice" formatted="false">"Exemplar per rete electum nuntios, adiuncta et eventus instrumentorum accipere potest, velut textum aut imagines scrinii."</string>
     <string name="ui2_overlay" formatted="false">"Status supernatans"</string>
     <string name="ui2_overlay_sub" formatted="false">"Res, opacitas et tempus ostensionis"</string>
     <string name="ui2_plugin_link" formatted="false">"Repositorium aut URL"</string>
@@ -187,7 +187,6 @@
     <string name="ui_adb_code_label" formatted="false">"Codex copulationis (6 digiti)"</string>
     <string name="ui_adb_host_label" formatted="false">"Inscriptio (vacua = inventio)"</string>
     <string name="ui_adb_port_label" formatted="false">"Portus (vacuus = inventio)"</string>
-    <string name="ui_lan_unencrypted" formatted="false">"Negotiatio retis localis non obscurata; tantum retibus et instrumentis fide dignis"</string>
     <string name="ui_language_title" formatted="false">"Lingua"</string>
     <string name="ui_m0001" formatted="false">"Renovationem depone"</string>
     <string name="ui_m0002" formatted="false">"Optiones serva"</string>

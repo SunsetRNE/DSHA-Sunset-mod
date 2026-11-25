@@ -14,12 +14,13 @@ public final class LanPortPolicyTest {
 
   @Test
   public void occupiedPreferenceFallsBackToAHeldKernelPort() throws Exception {
-    try (ServerSocket owner = new ServerSocket(0, 8, InetAddress.getByName("0.0.0.0"))) {
+    try (ServerSocket owner = new ServerSocket(0, 8, InetAddress.getByName("127.0.0.1"))) {
       int preferred = owner.getLocalPort();
-      try (ServerSocket actual = LanPortPolicy.bind(preferred)) {
+      try (ServerSocket actual =
+          LanPortPolicy.bind(InetAddress.getByName("127.0.0.1"), preferred)) {
         assertNotEquals(preferred, actual.getLocalPort());
         assertTrue(actual.isBound());
-        assertEquals("0.0.0.0", actual.getInetAddress().getHostAddress());
+        assertEquals("127.0.0.1", actual.getInetAddress().getHostAddress());
         assertThrows(
             BridgePortPolicy.Exhausted.class,
             () -> BridgePortPolicy.bind(new int[] {actual.getLocalPort()}));
@@ -42,7 +43,7 @@ public final class LanPortPolicyTest {
           () -> {
             ready.countDown();
             go.await();
-            return LanPortPolicy.bind(preferred);
+            return LanPortPolicy.bind(InetAddress.getByName("127.0.0.1"), preferred);
           };
       Future<ServerSocket> first = workers.submit(bind), second = workers.submit(bind);
       ServerSocket a = null, b = null;
@@ -69,7 +70,7 @@ public final class LanPortPolicyTest {
     for (int port = 20100; port <= 20199; port++) {
       try (ServerSocket candidate = new ServerSocket()) {
         candidate.setReuseAddress(true);
-        candidate.bind(new InetSocketAddress("0.0.0.0", port));
+        candidate.bind(new InetSocketAddress("127.0.0.1", port));
         return port;
       } catch (BindException busy) {
         // 候选端口被占用，继续试下一个。

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "active": [
     {
       "asset": "web-fetch-http-surrogate-patch.json"
@@ -102,7 +102,7 @@
     {
       "asset": "frontend-static-cache-patch.json",
       "markers": [
-        "DSHA_STATIC_CACHE_V3"
+        "DSHA_STATIC_CACHE_V4"
       ]
     },
     {
@@ -128,6 +128,9 @@
     },
     {
       "asset": "tool-history-display-patch.json"
+    },
+    {
+      "asset": "tool-history-projection-identity-patch.json"
     },
     {
       "asset": "guard-tools-patch.json",
@@ -210,6 +213,18 @@
       ]
     },
     {
+      "asset": "plugin-manager-web-update-status-patch.json",
+      "markers": [
+        "DSHA_PLUGIN_WEB_UPDATE_STATUS_V1"
+      ]
+    },
+    {
+      "asset": "plugin-manager-web-update-rollback-patch.json",
+      "markers": [
+        "DSHA_PLUGIN_WEB_UPDATE_ROLLBACK_V1"
+      ]
+    },
+    {
       "asset": "agent-preset-pending-patch.json",
       "markers": [
         "DSHA_PRESET_PENDING_V2",
@@ -263,6 +278,18 @@
       "asset": "plugin-bundle-proof-workers-patch.json",
       "markers": [
         "DSHA_PLUGIN_BUNDLE_READ_WORKERS_V2"
+      ]
+    },
+    {
+      "asset": "plugin-inventory-shell-integrations-patch.json",
+      "markers": [
+        "DSHA_SHELL_INTEGRATION_POLICY_V1"
+      ]
+    },
+    {
+      "asset": "plugin-manager-shell-integrations-patch.json",
+      "markers": [
+        "DSHA_SHELL_INTEGRATION_POLICY_V1"
       ]
     },
     {
@@ -321,6 +348,162 @@
       "markers": [
         "DSHA_FIRST_CONNECT_SILENT_V1"
       ]
+    },
+    {
+      "asset": "startup-resolution-patch.json",
+      "markers": [
+        "DSHA_STARTUP_RESOLUTION_REALPATH_V1",
+        "DSHA_STARTUP_BUNDLE_RUNTIME_VERSION_V1"
+      ]
+    },
+    {
+      "asset": "config-field-include-patch.json"
+    },
+    {
+      "asset": "config-field-boot-patch.json"
+    },
+    {
+      "asset": "config-field-editor-patch.json"
+    },
+    {
+      "asset": "config-field-compound-delete-patch.json"
+    },
+    {
+      "asset": "config-field-settings-patch.json"
+    },
+    {
+      "asset": "model-provider-delete-patch.json"
+    },
+    {
+      "asset": "provider-retry-mode-inheritance-patch.json",
+      "markers": [
+        "DSHA_PROVIDER_RETRY_INHERIT_MODE_V1"
+      ]
+    },
+    {
+      "asset": "subagent-model-selection-fields-patch.json"
+    },
+    {
+      "asset": "workspace-change-feed-bounded-patch.json",
+      "markers": [
+        "DSHA_WORKSPACE_CHANGE_FEED_BOUNDED_V1"
+      ]
+    },
+    {
+      "asset": "local-directory-prefix-patch.json",
+      "markers": [
+        "DSHA_DIRECTORY_PREFIX_BOUNDED_V1"
+      ]
+    },
+    {
+      "asset": "local-directory-watch-patch.json",
+      "markers": [
+        "DSHA_DIRECTORY_WATCH_BOUNDED_V1",
+        "DSHA_FILE_WATCH_BOUNDED_V1",
+        "DSHA_WATCH_ERROR_TERMINAL_V1"
+      ]
+    },
+    {
+      "asset": "workspace-directory-prefix-patch.json",
+      "markers": [
+        "DSHA_WORKSPACE_DIRECTORY_PREFIX_V1"
+      ]
+    },
+    {
+      "asset": "files-list-rejection-patch.json",
+      "markers": [
+        "DSHA_FILES_LIST_REJECTION_V1"
+      ]
+    },
+    {
+      "asset": "text-page-rejection-patch.json",
+      "markers": [
+        "DSHA_TEXT_PAGE_REJECTION_V1"
+      ]
+    },
+    {
+      "asset": "openai-sse-esm-patch.json",
+      "markers": [
+        "DSHA_OPENAI_SSE_FRAMING_V1",
+        "DSHA_SSE_INVALID_JSON"
+      ]
+    },
+    {
+      "asset": "openai-sse-cjs-patch.json",
+      "markers": [
+        "DSHA_OPENAI_SSE_FRAMING_V1",
+        "DSHA_SSE_INVALID_JSON"
+      ]
+    },
+    {
+      "asset": "literal-loopback-online-patch.json",
+      "markers": [
+        "DSHA_LITERAL_LOOPBACK_ONLINE_V1"
+      ]
+    },
+    {
+      "asset": "temporary-plugin-host-remove-patch.json",
+      "markers": [
+        "DSHA_TEMPORARY_PLUGIN_REMOVE_V1"
+      ]
+    },
+    {
+      "asset": "temporary-plugin-ui-remove-patch.json",
+      "markers": [
+        "DSHA_TEMPORARY_PLUGIN_UI_REMOVE_V1"
+      ]
+    },
+    {
+      "asset": "chat-render-performance-patch.json",
+      "markers": [
+        "DSHA_CHAT_RENDER_INCREMENTAL_V1",
+        "DSHA_CHAT_FLOW_ROWS_V1"
+      ]
+    },
+    {
+      "asset": "chat-viewport-performance-patch.json",
+      "markers": [
+        "DSHA_CHAT_ANCHOR_LOOKUP_V1"
+      ]
+    },
+    {
+      "asset": "session-status-scale-patch.json",
+      "markers": [
+        "DSHA_SESSION_STATUS_SCALE_V1"
+      ]
+    },
+    {
+      "asset": "local-feedback-policy-patch.json"
+    },
+    {
+      "asset": "api-provider-auth-policy-patch.json"
+    },
+    {
+      "asset": "web-default-brand-patch.json"
+    },
+    {
+      "asset": "web-brand-entry-patch.json"
+    },
+    {
+      "asset": "web-brand-manifest-patch.json"
+    },
+    {
+      "asset": "web-brand-title-patch.json"
+    },
+    {
+      "asset": "web-brand-sidebar-patch.json"
+    },
+    {
+      "asset": "web-brand-run-indicator-patch.json"
+    },
+    {
+      "asset": "web-brand-viewer-patch.json"
+    },
+    {
+      "asset": "lan-mux-authorization-patch.json"
+    },
+    {
+      "asset": "lan-mux-client-patch.json"
     }
   ],
   "specialized": [

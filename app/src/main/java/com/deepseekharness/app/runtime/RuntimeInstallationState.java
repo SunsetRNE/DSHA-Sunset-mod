@@ -162,9 +162,12 @@ final class RuntimeInstallationState {
   }
 
   /** 解压和适配全部在事务的 stage 下完成，此时既有运行时和个人目录保持原位。 */
-  public List<String> stageManagedRuntime(File stage, java.util.function.Consumer<String> progress)
+  public List<String> stageManagedRuntime(
+      File stage,
+      java.util.function.Consumer<String> progress,
+      com.deepseekharness.app.backup.BackupControl control)
       throws IOException {
-    return managedAssets.stage(stage, progress);
+    return managedAssets.stage(stage, progress, control);
   }
 
   public void markOfflineExtracted() throws IOException {

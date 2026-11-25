@@ -9,8 +9,9 @@ import {pathToFileURL} from 'node:url';
 const raw=testRuntime('raw'),managed=testRuntime('managed'),root=process.cwd();
 const {PluginManager}=await import(pathToFileURL(path.join(managed,'node_modules/@deepseek-ai/dsh-plugin-manager/lib/index.js')));
 const registry=JSON.parse(fs.readFileSync('app/src/main/assets/builtin-plugins.json','utf8'));
-const targets=registry.plugins.filter(p=>p.name!=='dsh-auto-review').map(p=>p.name);
-assert.equal(targets.length,10);
+const shellNames=['dsh-app-integration','dsh-computer-use-android'];
+const targets=registry.plugins.filter(p=>p.name!=='dsh-auto-review'&&!shellNames.includes(p.name)).map(p=>p.name);
+assert.ok(targets.includes('dsh-web-mobile')&&targets.includes('dsh-fs-search-scope'));
 const owned=fs.mkdtempSync(path.join(os.tmpdir(),'dsha-signed-web-intent-'));
 const nativeScript=path.resolve('app/src/main/assets/register-builtin-plugins.py');
 const python=process.env.DSHA_TEST_PYTHON??process.env.DSHA_PYTHON??'python';
@@ -26,7 +27,7 @@ function native(args=[]){
   assert.equal(result.status,0,result.stderr||result.stdout||String(result.error));return result;
 }
 function managerFor(dir){
-  const manager=Object.create(PluginManager.prototype),ctx={get:()=>undefined,emit:()=>{},loader:{entries:()=>[]},logger:{warn:()=>{}}};
+  const manager=Object.create(PluginManager.prototype),ctx={get:()=>undefined,emit:()=>{},parallel:async()=>{},loader:{entries:()=>[]},logger:{warn:()=>{}}};
   Object.defineProperty(manager,'ctx',{value:ctx});
   Object.assign(manager,{profile:{name:path.basename(dir),dir,home:path.dirname(dir),patchPath:path.join(dir,'cordis.patch.yml'),overlays:[],startedBundles:[],installAnchor:path.join(raw,'node_modules/@deepseek-ai/dsh/package.json')},ownerContext:ctx,managementBundles:new Set(),installedFrom:new Map(),packageOperations:new Set(),installs:new Map(),abort:new AbortController(),lockWaitMs:1000});
   return manager;
@@ -56,7 +57,7 @@ try {
     assert.equal((await manager.setBundleEnabled(name,true)).application,'restart-required',name);
     assert.equal(selected().includes(name),true);assert.equal(fs.existsSync(marker(name)),false);
   }
-  console.log('PASS: all ten actual Host OFF -> two native register -> Host ON roundtrips preserve intent and current APK metadata aliases.');
+  console.log('PASS: '+targets.length+' actual Host OFF -> two native register -> Host ON roundtrips preserve intent and current APK metadata aliases.');
   for(const content of ['', 'unknown historical native intent', 'DSHA_SAFE_MODE\n']){
     for(const name of targets)fs.writeFileSync(marker(name),content);
     native();
@@ -67,7 +68,7 @@ try {
     }
   }
   assert.deepEqual(fs.readFileSync(path.join(other,'package.json')),otherBefore);
-  console.log('PASS: empty, unknown, and safe-mode native markers beat Web ON for all ten; the other profile is unchanged.');
+  console.log('PASS: empty, unknown, and safe-mode native markers beat Web ON for all '+targets.length+'; the other profile is unchanged.');
   // Explicit native enable is authorized only for these synthetic fixtures.
   // Node can prepare junctions on Windows, where Python symlink creation may
   // require a privilege the test host lacks. Native code still verifies them.
@@ -96,5 +97,19 @@ try {
   }
   assert.deepEqual(fs.readFileSync(path.join(other,'package.json')),otherBefore);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(profile,'package.json'),'utf8')).fixtureUntouched,{keep:'same bytes and values'});
-  console.log('PASS: all ten real native OFF processes wait for actual Host Web ON lock ownership, then win after release; unrelated profile/settings remain unchanged.');
+  console.log('PASS: all '+targets.length+' real native OFF processes wait for actual Host Web ON lock ownership, then win after release; unrelated profile/settings remain unchanged.');
+  // The Web boundary cannot override existing shell opt-outs or the Android owner.
+  fs.writeFileSync(marker(shellNames[0]),'DSHA_WEB_BUILTIN_DISABLED_V1\n');
+  native(['--disable',shellNames[1]]);
+  native();native();
+  for(const name of shellNames){
+    assert.equal(selected().includes(name),false,name+' was re-enabled at registration');
+    assert.equal((await manager.setBundleEnabled(name,true)).error.code,'management-required');
+  }
+  assert.equal(fs.readFileSync(marker(shellNames[0]),'utf8'),'DSHA_WEB_BUILTIN_DISABLED_V1\n');
+  assert.equal(fs.readFileSync(marker(shellNames[1]),'utf8'),'');
+  ensureAlias(shellNames[1]);native(['--enable',shellNames[1]]);
+  assert.equal(selected().includes(shellNames[1]),true);
+  assert.equal(fs.existsSync(marker(shellNames[1])),false);
+  console.log('PASS: old Web shell OFF and explicit native Android OFF survive two registrations; only the native Android owner can enable it via the supported controls.');
 } finally {fs.rmSync(owned,{recursive:true,force:true});}

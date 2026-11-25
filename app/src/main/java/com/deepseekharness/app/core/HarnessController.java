@@ -5,6 +5,9 @@ import android.util.Log;
 import com.deepseekharness.app.DshaApp;
 import com.deepseekharness.app.runtime.ProotBootstrap;
 import com.deepseekharness.app.runtime.RuntimeHostPorts;
+import com.deepseekharness.app.runtime.WebProcessManager;
+import com.deepseekharness.app.util.PreviewPageSession;
+import com.deepseekharness.app.util.WebStartProtection;
 import java.io.IOException;
 import java.util.function.Consumer;
 
@@ -94,18 +97,20 @@ public class HarnessController {
     web.requestWebSessionRecheck(completed);
   }
 
-  public boolean isWebSessionRetained(
-      com.deepseekharness.app.util.PreviewPageSession.Identity expected) {
+  public boolean isWebSessionRetained(PreviewPageSession.Identity expected) {
     return web.isWebSessionRetained(expected);
   }
 
-  public boolean isWebSessionExited(
-      com.deepseekharness.app.util.PreviewPageSession.Identity expected) {
+  public boolean isWebSessionExited(PreviewPageSession.Identity expected) {
     return web.isWebSessionExited(expected);
   }
 
   public boolean isWebStoppedForMaintenance() throws IOException {
     return web.isWebStoppedForMaintenance();
+  }
+
+  public boolean observeWebStopped() throws IOException {
+    return web.observeWebStopped();
   }
 
   public boolean hasLiveWebProcesses() {
@@ -133,8 +138,12 @@ public class HarnessController {
     return web.getWebAuthUrl();
   }
 
-  public com.deepseekharness.app.util.PreviewPageSession.Identity getReadyWebPageIdentity() {
+  public PreviewPageSession.Identity getReadyWebPageIdentity() {
     return web.getReadyWebPageIdentity();
+  }
+
+  public boolean isOrdinaryWebPage(PreviewPageSession.Identity expected) {
+    return web.isOrdinaryWebPage(expected);
   }
 
   public com.deepseekharness.app.util.AgentTaskRegistration.Snapshot getReadyTaskRegistration() {
@@ -171,15 +180,12 @@ public class HarnessController {
     return web.startWebIfUnchanged(expectedGeneration, manual, status);
   }
 
-  public com.deepseekharness.app.util.WebStartProtection webStartProtection() {
+  public WebStartProtection webStartProtection() {
     return web.startProtection();
   }
 
   public boolean startProtectedWeb(
-      com.deepseekharness.app.util.WebStartProtection.Ticket ticket,
-      boolean safe,
-      boolean recover,
-      Consumer<String> status) {
+      WebStartProtection.Ticket ticket, boolean safe, boolean recover, Consumer<String> status) {
     return web.startProtectedWeb(ticket, safe, recover, status);
   }
 
@@ -208,14 +214,16 @@ public class HarnessController {
     web.stopWeb(status);
   }
 
+  void stopWebDuringMaintenance() {
+    web.stopWebDuringMaintenance();
+  }
+
   public void stopWebIfUnchanged(long generation) {
     web.stopWebIfUnchanged(generation);
   }
 
   /** Candidate held by one native confirmation; it cannot be reused after any new Web intent. */
-  public record ForceStopRequest(
-      long generation,
-      com.deepseekharness.app.runtime.WebProcessManager.ForceCandidate candidate) {}
+  public record ForceStopRequest(long generation, WebProcessManager.ForceCandidate candidate) {}
 
   public ForceStopRequest prepareForceStop() throws IOException {
     return web.prepareForceStop();
@@ -274,20 +282,12 @@ public class HarnessController {
     return web.getWebGeneration();
   }
 
-  public void resetExtraction() {
-    proot.markNotExtracted();
-  }
-
   public String resetConfig() throws IOException {
     return hostConfig.reset();
   }
 
   com.deepseekharness.app.backup.HostDataTransaction.Settings nativeSettingsTransaction() {
     return hostConfig.settings();
-  }
-
-  public String smokeTest() {
-    return proot.smokeTest();
   }
 
   public static String fmtBytes(long bytes) {

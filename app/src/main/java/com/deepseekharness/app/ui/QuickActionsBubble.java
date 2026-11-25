@@ -10,6 +10,8 @@ import android.view.animation.OvershootInterpolator;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
+import androidx.core.view.OneShotPreDrawListener;
+
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.util.QuickActions;
 import com.deepseekharness.app.util.UiText;
@@ -21,6 +23,7 @@ import java.util.function.Consumer;
  * 点按「+」后从右上角锚点带缩放淡入动画展开；点按外部、返回键或再次点按「+」都会关闭。
  */
 final class QuickActionsBubble {
+  private static final OvershootInterpolator ENTER = new OvershootInterpolator(1.15f);
 
   interface Listener {
     void onAction(QuickActions.Action action);
@@ -46,6 +49,7 @@ final class QuickActionsBubble {
     window.setOutsideTouchable(true);
     window.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED);
     window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+    window.setAnimationStyle(0);
     QuickActionsBubble bubble = new QuickActionsBubble(window);
     bind(
         root,
@@ -146,7 +150,8 @@ final class QuickActionsBubble {
     boolean rtl =
         anchor.getResources().getConfiguration().getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
     float density = anchor.getResources().getDisplayMetrics().density;
-    if (card != null) {
+    boolean animate = card != null && UiMotion.animationsEnabled(anchor.getContext());
+    if (animate) {
       card.setAlpha(0f);
       card.setScaleX(0.92f);
       card.setScaleY(0.92f);
@@ -158,8 +163,9 @@ final class QuickActionsBubble {
             .getDimensionPixelSize(com.deepseekharness.app.R.dimen.shell_quick_action_width);
     // 右对齐锚点右缘；RTL 下锚点在左侧，改为左对齐。
     window.showAsDropDown(anchor, rtl ? 0 : anchor.getWidth() - width, Math.round(6f * density));
-    if (card != null) {
-      card.post(
+    if (animate) {
+      OneShotPreDrawListener.add(
+          card,
           () -> {
             card.setPivotX(rtl ? 0f : card.getWidth());
             card.setPivotY(0f);
@@ -169,7 +175,7 @@ final class QuickActionsBubble {
                 .scaleY(1f)
                 .translationY(0f)
                 .setDuration(180L)
-                .setInterpolator(new OvershootInterpolator(1.15f))
+                .setInterpolator(ENTER)
                 .start();
           });
     }

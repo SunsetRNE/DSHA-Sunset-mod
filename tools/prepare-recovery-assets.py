@@ -12,6 +12,7 @@ from pathlib import Path
 from generated_asset_directory import prune as prune_generated
 from recovery_runtime_overlay import build as build_browser_overlay, TARGETS as BROWSER_TARGETS, input_assets, CAPSULE_DEPENDENCIES
 from recovery_descriptor_limits import validate as validate_descriptor_budget
+from rootfs_archive import open_rootfs_tar
 
 ROOT = Path(__file__).resolve().parents[1]
 HOME = ROOT / 'tools/recovery-runtime'
@@ -58,7 +59,9 @@ def capsule_dependencies(assets, by_path, links):
 def describe(archives):
     files, links = {}, {}
     for archive in archives:
-        with tarfile.open(archive, 'r|gz') as tree:
+        with archive.open('rb') as source, (
+                open_rootfs_tar(source) if archive.name == 'recovery-rootfs.bin'
+                else tarfile.open(fileobj=source, mode='r|gz')) as tree:
             for item in tree:
                 name = safe_name(item.name)
                 if not name:

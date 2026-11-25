@@ -16,6 +16,27 @@ public final class RuntimeTrialRecords {
   private static final int SCAN_LIMIT = 64;
   private static final String ID = com.deepseekharness.app.util.Ids.UUID_PATTERN;
 
+  /** Validate the small closure markers without reading trial payloads or pruning records. */
+  public static boolean hasPending(BackupFileSystem fs, File home) throws IOException {
+    String root = fs.stat(home).type;
+    if (root.equals("MISSING")) return false;
+    if (!root.equals("DIRECTORY")) throw new IOException("TRIAL_DIRECTORY");
+    List<String> entries = fs.list(home);
+    if (entries.size() > SCAN_LIMIT) throw new IOException("TRIAL_RETENTION_LIMIT");
+    for (String id : entries) {
+      if (!id.matches(ID)) throw new IOException("TRIAL_DIRECTORY");
+      File operation = fs.child(home, id);
+      if (!fs.stat(operation).type.equals("DIRECTORY")) throw new IOException("TRIAL_DIRECTORY");
+      File closed = fs.child(operation, "closed");
+      String marker = fs.stat(closed).type;
+      if (marker.equals("MISSING")) return true;
+      if (!marker.equals("FILE")
+          || !id.equals(new String(fs.small(closed, 128), StandardCharsets.US_ASCII)))
+        throw new IOException("TRIAL_MARKER");
+    }
+    return false;
+  }
+
   private static final class Record {
     final String id;
     final long closedAt;

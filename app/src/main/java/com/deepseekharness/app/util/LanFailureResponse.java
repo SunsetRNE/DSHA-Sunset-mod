@@ -73,7 +73,13 @@ public final class LanFailureResponse {
     };
   }
 
-  public static void write(OutputStream out, int status, Reason reason, boolean headOnly)
+  public static void write(OutputStream out, int status, Reason reason, boolean headOnly, int port)
+      throws IOException {
+    write(out, status, reason, headOnly, port, true);
+  }
+
+  public static void write(
+      OutputStream out, int status, Reason reason, boolean headOnly, int port, boolean clearCookie)
       throws IOException {
     String phrase =
         switch (status) {
@@ -97,12 +103,17 @@ public final class LanFailureResponse {
             + phrase
             + "\r\n"
             + "Content-Type: text/plain; charset=utf-8\r\nCache-Control: no-store\r\n"
-            + "Referrer-Policy: no-referrer\r\nX-Content-Type-Options: nosniff\r\n"
+            + "Referrer-Policy: no-referrer\r\nX-Content-Type-Options: nosniff\r\nX-Dsha-Lan-Transport: v1\r\n"
             + "X-Dsha-Lan-Reason: "
             + reason.header
             + "\r\n"
             + (status == 401
-                ? "WWW-Authenticate: Basic realm=\"DSHA LAN (username: dsha)\", charset=\"UTF-8\"\r\nSet-Cookie: dsha_lan=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict\r\n"
+                ? "WWW-Authenticate: Basic realm=\"DSHA LAN (username: dsha)\", charset=\"UTF-8\"\r\n"
+                : "")
+            + (status == 401 && clearCookie
+                ? "Set-Cookie: "
+                    + LanTokenState.cookieName(port)
+                    + "=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict\r\n"
                 : "")
             + (status == 429 ? "Retry-After: 60\r\n" : "")
             + "Content-Length: "

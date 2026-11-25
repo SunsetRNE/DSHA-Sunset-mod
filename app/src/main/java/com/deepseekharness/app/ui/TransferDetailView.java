@@ -294,6 +294,11 @@ final class TransferDetailView {
       }
     }
     TransferListModel.Step[] steps = TransferListModel.steps(task.status.name(), failure);
+    if (task.status == DownloadTask.Status.CANCELLED) {
+      String recovery =
+          com.deepseekharness.app.transfer.SelectedDocumentSave.recoveryMessage(task.message);
+      if (recovery != null) card.addView(body(recovery), TransferUi.match(context, 8));
+    }
     if (steps.length > 0) {
       View line = TransferUi.divider(context, 0);
       LinearLayout.LayoutParams lineParams = (LinearLayout.LayoutParams) line.getLayoutParams();
@@ -313,6 +318,9 @@ final class TransferDetailView {
   }
 
   private String pausedText(DownloadTask task) {
+    String recovery =
+        com.deepseekharness.app.transfer.SelectedDocumentSave.recoveryMessage(task.message);
+    if (recovery != null) return recovery;
     String reason = task.message == null ? "" : task.message.trim();
     if (reason.isEmpty() || reason.startsWith("已暂停"))
       return TransferText.t(

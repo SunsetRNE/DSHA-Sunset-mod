@@ -1,5 +1,6 @@
 package com.deepseekharness.app;
 
+import com.deepseekharness.app.bridge.AdbBridge;
 import com.deepseekharness.app.util.SensitiveData;
 
 import android.content.BroadcastReceiver;
@@ -10,7 +11,7 @@ import android.provider.Settings;
 
 /**
  * 开机自启（参考 thedjchi/Shizuku 增强版的核心机制）：
- * 1. 若已获得 WRITE_SECURE_SETTINGS 权限（首次 ADB 配对成功后自动 pm grant）：
+ * 1. 若系统用户中的本应用已获得 WRITE_SECURE_SETTINGS 权限：
  *    → 开机广播直接 Settings.Global.adb_wifi_enabled=1 自动开启无线调试
  *      （无需用户手动去开发者选项开！这正是 thedjchi fork 的卖点）
  * 2. 拉起 DeviceBridgeService → 连接看门狗自动发现端口并重连已配对设备
@@ -53,16 +54,8 @@ public class BootReceiver extends BroadcastReceiver {
       android.util.Log.i(
           "DSHA-ADB", com.deepseekharness.app.util.UiText.text("开机/升级自启：尝试自动开启无线调试 + 拉起设备桥"));
 
-      // 关键（thedjchi/Shizuku 机制）：有 WRITE_SECURE_SETTINGS 权限 → 直接开无线调试
-      boolean hasSecure = false;
       try {
-        hasSecure =
-            context.checkSelfPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS)
-                == android.content.pm.PackageManager.PERMISSION_GRANTED;
-      } catch (Throwable ignored) {
-      }
-      if (hasSecure) {
-        try {
+        if (AdbBridge.canRestoreWirelessDebugging(context)) {
           int cur = Settings.Global.getInt(context.getContentResolver(), "adb_wifi_enabled", 0);
           if (cur != 1) {
             Settings.Global.putInt(context.getContentResolver(), "adb_wifi_enabled", 1);
@@ -70,16 +63,12 @@ public class BootReceiver extends BroadcastReceiver {
                 "DSHA-ADB",
                 com.deepseekharness.app.util.UiText.text("已自动开启无线调试（WRITE_SECURE_SETTINGS）"));
           }
-        } catch (Throwable e) {
-          android.util.Log.w(
-              "DSHA-ADB",
-              com.deepseekharness.app.util.UiText.format(
-                  "自动开无线调试失败: %s", SensitiveData.redact(String.valueOf(e))));
         }
-      } else {
-        android.util.Log.i(
+      } catch (RuntimeException e) {
+        android.util.Log.w(
             "DSHA-ADB",
-            com.deepseekharness.app.util.UiText.text("无 WRITE_SECURE_SETTINGS 权限，靠 Shizuku/看门狗兜底"));
+            com.deepseekharness.app.util.UiText.format(
+                "自动开无线调试失败: %s", SensitiveData.redact(String.valueOf(e))));
       }
 
       // 拉起设备桥（看门狗会自动发现端口重连）

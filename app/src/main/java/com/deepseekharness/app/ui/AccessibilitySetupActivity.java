@@ -35,6 +35,7 @@ public final class AccessibilitySetupActivity extends AppCompatActivity {
                     "Tap below → Downloaded apps / services → “%s” → Enable the service, then confirm the system prompt.")),
             13,
             R.color.text_secondary));
+    first.addView(page.text(getString(R.string.ui2_online_notice), 13, R.color.text_secondary));
     enable =
         page.button(first, t("去开启屏幕操作", "Enable screen control"), true, () -> openSettings(this));
     LinearLayout second = page.card();
@@ -96,17 +97,10 @@ public final class AccessibilitySetupActivity extends AppCompatActivity {
   }
 
   /**
-   * 系统无障碍列表显示的服务名就是清单里的 accessibility_service_label（「DSH-A-Su 屏幕控制」，
-   * 测试包同名；只有 app_name 在测试包不同）。按当前资源读取，步骤文案与系统列表保持一致。
+   * 从系统服务与引导共用的资源读取名称，使正式身份和测试变体都显示实际应用名。
    */
   static String withServiceName(Context context, String template) {
-    String label;
-    try {
-      label = context.getString(R.string.accessibility_service_label);
-    } catch (RuntimeException missing) {
-      label = "DSH-A-Su";
-    }
-    return String.format(java.util.Locale.ROOT, template, label);
+    return String.format(java.util.Locale.ROOT, template, context.getString(R.string.app_name));
   }
 
   private void refresh() {

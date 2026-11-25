@@ -28,9 +28,13 @@ public final class WebLaunchCommand {
         + " && "
         + "export DSHA_WEB_GENERATION="
         + generation
-        + " && cd /root && rm -f "
+        + " && cd /root && { [ ! -e "
         + WebProcSel.IDENTITY_WEB
-        + "; echo $$ > "
+        + " ] && [ ! -L "
+        + WebProcSel.IDENTITY_WEB
+        + " ] || rm -f "
+        + WebProcSel.IDENTITY_WEB
+        + "; }; echo $$ > "
         + WebProcSel.PID_WEB
         + " 2>/dev/null; "
         + "[ ! -e "

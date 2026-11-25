@@ -241,10 +241,9 @@ semantics do not change and no authorization surface is added (`util/VirtualScre
   `applicationWindowCount` / `systemWindowCount` / `inputMethodWindowCount`, `focusedWindowId` /
   `activeWindowId` and `windowAmbiguous` when accessibility is readable. When exactly one window is selectable
   they also carry `targetWindowDisplayId` / `targetWindowId` / `targetWindowType` / `targetWindowLayer` /
-  `targetWindowBounds` / `targetWindowFocused` / `targetWindowActive` / `targetWindowTitle` /
+  `targetWindowBounds` / `targetWindowFocused` / `targetWindowActive` /
   `targetWindowPackage`.
-- Fields come only from the accessibility window inventory: titles drop control characters, collapse
-  whitespace and are truncated to 64 code points; package names are kept only when they match the
+- Fields come only from the accessibility window inventory: package names are kept only when they match the
   package-name alphabet, and invalid values are omitted. No node text, control content, screenshot or complete
   window list is included. Window ids are reused and are not long-term identities.
 - `NO_UNIQUE_APPLICATION_WINDOW` is separated by counts: multiple application windows side by side (split

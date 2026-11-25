@@ -40,6 +40,21 @@ PATCHES = {'@deepseek-ai/dsh-fs-local/lib/index.js': 'publishExclusive',
            '@deepseek-ai/dsh-session-persistence-jsonl/lib/index.js': 'publishSessionExclusive',
            '@deepseek-ai/dsh-attachment-local/lib/index.js': 'publishAttachmentExclusive'}
 
+WEB_DIST = '@deepseek-ai/dsh-web-frontend/dist/'
+WEB_BRAND_INPUTS = {WEB_DIST + name: digest for name, digest in {
+    'apple-touch-icon.png': '30a68c6871fc3974968cd285c63c42ddc80aa0e4d37a349cb4dbe824fa52ab92',
+    'favicon-dark.svg': 'dde7db781f41e7aeb4709ff5485af2bdcf7f4b4ea81b4500cfd5df44efdbd817',
+    'favicon.svg': '9e983b4f649c25c6ca0623a50be1a6e705fd8f49f756638b980fa13b40575ab6',
+    'icon-192.png': 'dfbf42e79fa2a44fedb67497efa81e897e446f64b313531738f32974a117602c',
+    'icon-512.png': '0aa6ff8cac04541957b937465341e1840e0323d6076f0c7f3c61ff937b7e6d63',
+    'icon-maskable-512.png': '0b80994078a417bf33370e6c4e5b6174313bbece29ce7f3e8c6dc538d6ec46eb',
+}.items()}
+
+
+def web_brand_asset(module):
+    return HOOKS.parent / 'web-brand' / PurePosixPath(module).name
+
+
 def destructive_policy_files(assets=None):
     assets = HOOKS.parent if assets is None else Path(assets)
     for name in ('destructive.js', 'workdir.js'):
@@ -70,6 +85,7 @@ def destructive_policy_files(assets=None):
 
 def recipe_inputs():
     paths = [Path(__file__), Path(__file__).with_name('source_text.py'), LOCK_ROOT / 'package.json', LOCK_ROOT / 'package-lock.json']
+    paths.extend(web_brand_asset(module) for module in WEB_BRAND_INPUTS)
     paths += list(destructive_policy_files().values())
     paths.append(HOOKS.parent / 'managed-runtime-inputs.json')
     paths += [Path(__file__).with_name('prepare-destructive-policy.py')]
@@ -91,11 +107,16 @@ def recipe_inputs():
     # 共享输入解析器的新增布局依赖也须纳入固定归档配方，不能只更新顶层脚本摘要。
     paths += [Path(__file__).with_name('source_layout.py'), root / 'ci/source-layout.json']
     result = {path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
-    # Only installation rows affect this archive. Audit/launcher list edits in
-    # the shared source manifest cannot invalidate an otherwise identical DSH.
+    # Bind both installation routes. The archive supplies first install/recovery
+    # and Android's managed overlay also upgrades already-unpacked web icons.
     manifest = HOOKS.parent / 'managed-runtime-inputs.json'
-    installs = [row for row in json.loads(manifest.read_text(encoding='utf-8'))['installs']
-                if row.get('target', '').startswith(PREFIX + '/node_modules/dsha-destructive-policy/')]
+    rows = json.loads(manifest.read_text(encoding='utf-8'))['installs']
+    brand_installs = [row for row in rows if row.get('asset', '').startswith('web-brand/')]
+    expected = [dict(asset='web-brand/' + PurePosixPath(module).name,
+                     target=PREFIX + '/node_modules/' + module, executable=False) for module in WEB_BRAND_INPUTS]
+    if sorted(brand_installs, key=lambda row: row['asset']) != sorted(expected, key=lambda row: row['asset']):
+        raise ValueError('WEB_BRAND_MANAGED_INSTALL')
+    installs = [row for row in rows if row.get('target', '').startswith(PREFIX + '/node_modules/dsha-destructive-policy/')] + brand_installs
     result[manifest.relative_to(root).as_posix()] = hashlib.sha256(
         json.dumps(installs, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
     return result
@@ -118,6 +139,10 @@ def validate_command_chip_source(data, proof, expected):
 def patched_content(relative, data):
     """只修改固定版本的两个发布调用依赖，保留上游的校验、迁移及排他语义。"""
     name = relative.as_posix()
+    if name in WEB_BRAND_INPUTS:
+        if hashlib.sha256(data).hexdigest() != WEB_BRAND_INPUTS[name]:
+            raise ValueError('WEB_BRAND_OFFICIAL_INPUT: ' + name)
+        return web_brand_asset(name).read_bytes()
     if name == WORKSPACE_DIRECTORY_MODULE:
         text = data.decode('utf-8')
         recipe = json.loads(WORKSPACE_DIRECTORY_PATCH.read_text(encoding='utf-8'))
@@ -682,16 +707,17 @@ def omitted(relative, foreign=()):
 
 
 def archive_path_key(path, source):
-    # 沿用已发布归档的 Windows 路径组件排序；不依赖构建机的 Path 比较规则。
-    # 逐组件比较与整条字符串不同；原始组件作为仅大小写相同时的确定性次序。
+    # Group common npm filenames (e.g. package.json) within gzip's short
+    # history. For equal filenames keep the previous host-independent path order.
     parts = path.relative_to(source).parts
-    return tuple(part.lower() for part in parts), parts
+    return parts[-1], tuple(part.lower() for part in parts), parts
 
 
 def build(source, output, version):
     initial_inputs = recipe_inputs()
     stable_chains, _ = load_chains(HOOKS.parent, version)
     seen_stable = set()
+    seen_icons = set()
     source = source.resolve(strict=True)
     # npm includes upstream documentation paths beyond Win32 MAX_PATH. Use
     # the extended local path for traversal without changing archive names.
@@ -753,6 +779,9 @@ def build(source, output, version):
                                                        SESSION_PERSISTENCE_JSONL_MODULE,
                                                        '@deepseek-ai/dsh-session-format-v2-to-v3/lib/index.js') else None
                         module = relative.as_posix()
+                        if module in WEB_BRAND_INPUTS:
+                            content = patched_content(relative, stream.read())
+                            seen_icons.add(module)
                         if module in stable_chains:
                             content = apply_stable_patches(
                                 stream.read() if content is None else content, stable_chains[module])
@@ -793,6 +822,8 @@ def build(source, output, version):
                                 links['usr/local/bin/' + command] = posixpath.relpath(target_path(entry_path.relative_to(source)), 'usr/local/bin')
                 if seen_stable != set(stable_chains):
                     raise ValueError('STABLE_PATCH_MODULE_MISSING: ' + ','.join(sorted(set(stable_chains) - seen_stable)))
+                if seen_icons != set(WEB_BRAND_INPUTS):
+                    raise ValueError('WEB_BRAND_FILE_MISSING: ' + ','.join(sorted(set(WEB_BRAND_INPUTS) - seen_icons)))
                 for directory, package in ((HOOKS, 'dsha-runtime-fs'), (SESSION_HOOKS, 'dsha-session-compat'), (COMBO_HOOKS, 'dsha-client-combo-cache')):
                     for filename in ('package.json', 'index.js'):
                         content = (directory / filename).read_bytes()

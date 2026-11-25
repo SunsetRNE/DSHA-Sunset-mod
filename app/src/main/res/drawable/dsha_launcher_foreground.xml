@@ -1,1 +1,3 @@
-<inset xmlns:android="http://schemas.android.com/apk/res/android" android:drawable="@drawable/dsha_brand" android:inset="16.67%" />
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_dsha_mark"
+    android:inset="18%" />

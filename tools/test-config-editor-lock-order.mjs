@@ -21,9 +21,10 @@ const moduleName='@deepseek-ai/dsh-config-editor/lib/index.js';
 const original=fs.readFileSync(path.join(raw,'node_modules',moduleName),'utf8').replaceAll('\r\n','\n');
 const hmrModule='@deepseek-ai/dsh-hmr/lib/index.js';
 const hmrSource=fs.readFileSync(path.join(raw,'node_modules',hmrModule),'utf8').replaceAll('\r\n','\n');
-assert.equal(sha(hmrSource),'143b445f1b303be83d56f9e7d3992e1a4885850c08f1082065d332ba7a70ae0a','review the pinned HMR AsyncLocalStorage contract when upgrading');
+assert.equal(sha(hmrSource),'d4990a34a9874f94fa1e045563e016526e4fefe5a72a4945532043188a65dfde','review the pinned HMR AsyncLocalStorage contract when upgrading');
 assert.match(hmrSource,/executing = new AsyncLocalStorage\(\);/);
 assert.match(hmrSource,/if \(this\.executing\.getStore\(\)\) return Promise\.reject\(.*HMR transactions cannot be nested/);
+assert.match(hmrSource,/if \(await this\.applicationReady\) await operation\(\);/);
 const recipe=JSON.parse(fs.readFileSync(path.join(source,'app/src/main/assets/config-editor-lock-order-patch.json')));
 assert.equal(recipe.module,moduleName);assert.equal(recipe.dshVersion,currentDshVersion);
 assert.equal(sha(original),recipe.sourceSha256,'unknown upstream ConfigEditor must fail closed');
@@ -50,11 +51,20 @@ for(const row of JSON.parse(fs.readFileSync(path.join(source,'app/src/main/asset
 }
 const inventoryDependency=preparePrivatePluginInventory({source,raw,directory:owned,managerSource});
 assert.equal(inventoryDependency.evidence.importAdaptation.count,1);
+const managedRoot=process.env.DSHA_CONFIG_MANAGED_MODULES;
+const comparedManagedModules=[];
+if(managedRoot){
+ for(const [module,expected] of [[moduleName,patched],[hmrModule,hmrSource],[managerModule,managerSource],
+   [inventoryDependency.evidence.module,fs.readFileSync(path.join(owned,'dsha-current-plugin-inventory.mjs'),'utf8')]]){
+  assert.equal(sha(fs.readFileSync(path.join(managedRoot,module))),sha(expected),module);
+  comparedManagedModules.push(module);
+ }
+}
 const managerFile=path.join(owned,'plugin-manager-current.mjs');fs.writeFileSync(managerFile,inventoryDependency.source);
 const mod=name=>import(pathToFileURL(path.join(raw,'node_modules/@deepseek-ai',name,'lib/index.js')));
-const [{boot,readProfilePatches},{default:Hmr},{PluginManager},{default:Timer},{withFileLock},{ConfigEditor:BeforeEditor},{ConfigEditor:AfterEditor}]=await Promise.all([
+const [{boot,composeEntries,readProfilePatches},{default:Hmr},{PluginManager},{default:Timer},{withFileLock},{ConfigEditor:BeforeEditor},{ConfigEditor:AfterEditor},{SettingsForms}]=await Promise.all([
  mod('dsh-app-boot'),mod('dsh-hmr'),import(pathToFileURL(managerFile)),mod('cordis-plugin-timer'),mod('dsh-atomic-write'),
- import(pathToFileURL(beforeFile)),import(pathToFileURL(afterFile))
+ import(pathToFileURL(beforeFile)),import(pathToFileURL(afterFile)),mod('dsh-settings')
 ]);
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const calls=new AsyncLocalStorage(),results=[];
@@ -67,7 +77,7 @@ async function fixture(Editor,{hmr=true}={}){
  const state={events:[]};globalThis.__DSHA_CONFIG_LOCK_LIFECYCLE__.set(dir,state);
  const stateExpression=`globalThis.__DSHA_CONFIG_LOCK_LIFECYCLE__.get(${JSON.stringify(dir)})`;
  const configFile=path.join(dir,'config.mjs');
- fs.writeFileSync(configFile,`import z from '@deepseek-ai/schemastery';export const name='fixture-config';export const Config=z.object({value:z.number().default(0)});export function apply(ctx,config){const state=${stateExpression};state.events.push(['config-initialize',config.value]);if(config.value===13)throw Error('fixture-rejected-config');state.events.push(['config-active',config.value]);ctx.effect(()=>()=>state.events.push(['config-disposed',config.value]));}`);
+ fs.writeFileSync(configFile,`import z from '@deepseek-ai/schemastery';export const name='fixture-config';export const Config=z.object({value:z.number().default(0).volatile(),other:z.number().default(0).volatile(),activation:z.number().default(0)});export function apply(ctx,config){const state=${stateExpression};state.events.push(['config-initialize',config.activation]);if(config.activation===13)throw Error('fixture-rejected-config');state.events.push(['config-active',config.activation]);ctx.effect(()=>()=>state.events.push(['config-disposed',config.activation]));}`);
  const toggleFile=path.join(dir,'toggle.mjs');
  fs.writeFileSync(toggleFile,`export const name='fixture-toggle';export async function apply(ctx){const state=${stateExpression};state.events.push(['toggle-initialize']);if(state.failToggle)throw Error('fixture-toggle-failure');if(state.toggleGate)await state.toggleGate.promise;state.events.push(['toggle-active']);ctx.effect(()=>()=>state.events.push(['toggle-disposed']));}`);
  function bundle(name,rows){const folder=path.join(dir,name);fs.mkdirSync(folder);fs.writeFileSync(path.join(folder,'package.json'),JSON.stringify({name,version:'1.0.0',dsh:{bundle:{patch:'cordis.patch.yml'}}}));fs.writeFileSync(path.join(folder,'cordis.patch.yml'),JSON.stringify([{insert:rows}]));fs.symlinkSync(folder,path.join(profileDir,'node_modules',name),process.platform==='win32'?'junction':'dir');}
@@ -117,12 +127,47 @@ async function concurrentControl(Editor,kind){
 try{
  await concurrentControl(BeforeEditor,'before');
  await concurrentControl(AfterEditor,'after');
+ const settingsFixture=await fixture(AfterEditor);
+ const entered=Promise.withResolvers(),release=Promise.withResolvers();
+ try{
+  await settingsFixture.ctx.plugin(SettingsForms,{});
+  const settings=settingsFixture.ctx.settings;
+  const read=()=>settings.describe().find(row=>row.ns==='fixture-config');
+  const write=(field,value,revision)=>settings.mutate('fixture-config',[{op:'set',path:[field],value}],revision);
+  const initial=read();
+  assert.deepEqual(initial.value,{value:0,other:0});
+  const hmr=settingsFixture.ctx.hmr,originalExclusive=hmr.runExclusive;
+  hmr.runExclusive=function(operation){
+   if(calls.getStore()!=='first-settings-write')return originalExclusive.call(this,operation);
+   return originalExclusive.call(this,async()=>{entered.resolve();await release.promise;return operation();});
+  };
+  const firstWrite=calls.run('first-settings-write',()=>write('value',3,initial.revision));
+  await entered.promise;
+  const staleWrite=write('other',9,initial.revision);
+  release.resolve();
+  const [accepted,rejected]=await Promise.allSettled([firstWrite,staleWrite]);
+  assert.equal(accepted.status,'fulfilled',String(accepted.reason));
+  assert.equal(rejected.status,'rejected');
+  assert.equal(rejected.reason.code,'SETTINGS_CONFLICT');
+  assert.equal(rejected.reason.expected,initial.revision);
+  assert.equal(rejected.reason.actual,read().revision);
+  assert.deepEqual(read().value,{value:3,other:0});
+  await write('other',9,read().revision);
+  assert.deepEqual(read().value,{value:3,other:9});
+  const patch=fs.readFileSync(settingsFixture.profile.patchPath,'utf8');
+  assert.match(patch,/value: 3/);
+  assert.match(patch,/other: 9/);
+  const reopened=composeEntries([readProfilePatches('dsh',settingsFixture.profile)]).find(row=>row.id==='fixture-config');
+  assert.equal(reopened.config.value,3);assert.equal(reopened.config.other,9);
+  noLock(settingsFixture);
+  results.push({name:'concurrent-settings-mutations-conflict-refresh-and-persist',ok:true,rejectedCode:rejected.reason.code});
+ }finally{release.resolve();await settingsFixture.close();}
  const f=await fixture(AfterEditor);
  try{
   await edit(f,3);assert.equal(valueOf(f),3);noLock(f);
   const before=fs.readFileSync(f.profile.patchPath);
   await assert.rejects(f.ctx.configEditor.edit(f.entry(),()=>{throw Error('fixture-transform-failure');}),/fixture-transform-failure/);assert.deepEqual(fs.readFileSync(f.profile.patchPath),before);noLock(f);
-  await assert.rejects(edit(f,13),/fixture-rejected-config/);await f.ctx.loader.await();assert.deepEqual(fs.readFileSync(f.profile.patchPath),before);assert.equal(valueOf(f),3);assert.equal(f.entry().fiber.state,2);noLock(f);
+  await assert.rejects(f.ctx.configEditor.edit(f.entry(),current=>({...current,activation:13})),/fixture-rejected-config/);await f.ctx.loader.await();assert.deepEqual(fs.readFileSync(f.profile.patchPath),before);assert.equal(valueOf(f),3);assert.equal(f.entry().fiber.state,2);noLock(f);
   await edit(f,4);assert.equal(valueOf(f),4);noLock(f);
   await assert.rejects(f.ctx.hmr.runExclusive(()=>edit(f,5)),/HMR transactions cannot be nested/);assert.equal(valueOf(f),4);noLock(f);
   const nestedAt=performance.now();
@@ -153,7 +198,7 @@ try{
  }finally{await f.close();}
  const plain=await fixture(AfterEditor,{hmr:false});
  try{await edit(plain,8);assert.equal(valueOf(plain),8);assert.equal(plain.entry().fiber.state,2);noLock(plain);const selected=await plain.ctx.pluginManager.setBundleEnabled('fixture-toggle-bundle',true);assert.equal(selected.application,'restart-required');assert.equal(toggle(plain),undefined);noLock(plain);results.push({name:'without-hmr-config-save-and-restart-required',ok:true});}finally{await plain.close();}
- const receipt={schema:1,node:process.version,platform:process.platform,owned,recipeSha256:sha(fs.readFileSync(path.join(source,'app/src/main/assets/config-editor-lock-order-patch.json'))),upstreamSha256:sha(original),patchedSha256:sha(patched),managerSha256:sha(managerSource),managerRecipes,inventoryDependency:inventoryDependency.evidence,fixtureScope:'current-recipe target modules and real privately rebuilt inventory dependency with proven pinned raw peers; exactly one import adaptation; real Cordis Loader Include, HMR queue and file lock; local plugins only, no browser/device/network/model claims',results};
+ const receipt={schema:1,node:process.version,platform:process.platform,owned,recipeSha256:sha(fs.readFileSync(path.join(source,'app/src/main/assets/config-editor-lock-order-patch.json'))),upstreamSha256:sha(original),patchedSha256:sha(patched),managerSha256:sha(managerSource),managerRecipes,comparedManagedModules,inventoryDependency:inventoryDependency.evidence,fixtureScope:'current-recipe target modules and real privately rebuilt inventory dependency with proven pinned raw peers; exactly one import adaptation; real SettingsForms, Cordis Loader Include, HMR queue and file lock; local plugins only, no browser/device/network/model claims',results};
  const report=process.env.DSHA_CONFIG_LOCK_REPORT;if(report){fs.mkdirSync(path.dirname(report),{recursive:true});fs.writeFileSync(report,JSON.stringify(receipt,null,2)+'\n');}
- console.log('PASS: exact-source ABBA negative control, concurrent config/plugin success, validation/activation rollback, lock expiry, HMR guard, honest readiness and no-HMR path.');
+ console.log('PASS: exact-source ABBA negative control, concurrent config/plugin success, settings conflict and reopened persistence, rollback, HMR readiness and no-HMR path.');
 }finally{delete globalThis.__DSHA_CONFIG_LOCK_LIFECYCLE__;}

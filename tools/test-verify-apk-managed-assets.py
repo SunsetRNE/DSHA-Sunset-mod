@@ -8,6 +8,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import lzma
 from pathlib import Path
 import sys
 import tarfile
@@ -53,6 +54,8 @@ def fixture_root(base, archive=None, member_sha=None, member_bytes=None):
     assets.mkdir(parents=True)
     source = gzip_tar() if archive is None else archive
     (assets / 'gh-cli.tar.gz').write_bytes(source)
+    (assets / 'runtime-descriptor.json').write_text(
+        json.dumps({'inputs': {'gh-cli.tar.gz': digest(source)}}), encoding='utf-8')
     (assets / 'plain.txt').write_bytes(b'plain managed asset\n')
     (assets / 'tree').mkdir()
     (assets / 'tree/entry.js').write_bytes(b'// tree entry\n')
@@ -84,6 +87,7 @@ def fixture_root(base, archive=None, member_sha=None, member_bytes=None):
     (root / 'tools/asset-deployment.json').write_text(
         json.dumps(deployment), encoding='utf-8')
     lock = {'schema': 1, 'version': '2.103.3', 'member': GH_MEMBER,
+            'sha256': digest(source),
             'binarySha256': digest(GH_BODY) if member_sha is None else member_sha,
             'binaryBytes': len(GH_BODY) if member_bytes is None else member_bytes}
     (root / 'tools/gh-cli/packages.lock.json').write_text(
@@ -197,6 +201,45 @@ class ManagedApkAssetsGate(unittest.TestCase):
         files = self.packaged()
         files['assets/gh-cli.bin'] = source
         self.assert_rejected(self.apk(files), 'APK_GH_ARCHIVE_NOT_GZIP')
+
+    def recompressed(self, tar=None, check=lzma.CHECK_CRC64, recorded_sha=None, extra=b''):
+        manifest = self.root / 'tools/asset-deployment.json'
+        deployment = json.loads(manifest.read_text(encoding='utf-8'))
+        deployment['recompressedArchives'] = ['gh-cli.tar.gz']
+        deployment['generatedFiles'].append('gh-cli.bin.sha256')
+        manifest.write_text(json.dumps(deployment), encoding='utf-8')
+        raw = gzip.decompress((self.assets / 'gh-cli.tar.gz').read_bytes()) if tar is None else tar
+        carrier = lzma.compress(raw, check=check, preset=1) + extra
+        sidecar = ((recorded_sha or digest(carrier)) + '\n').encode('ascii')
+        generated = self.root / 'app/build/generated/standardAssets'
+        generated.mkdir(parents=True)
+        (generated / 'gh-cli.bin').write_bytes(carrier)
+        (generated / 'gh-cli.bin.sha256').write_bytes(sidecar)
+        files = self.packaged()
+        files['assets/gh-cli.bin'] = carrier
+        files['assets/gh-cli.bin.sha256'] = sidecar
+        return self.apk(files)
+
+    def test_crc64_xz_carrier_has_the_same_complete_tar_and_pinned_gh(self):
+        report = GATE.verify(self.recompressed(), self.root)
+        self.assertEqual(report['generatedReferences'], 2)
+        self.assertEqual(report['gh']['sha256'], digest(GH_BODY))
+        self.assertEqual(report['recompressedArchives']['gh-cli.bin']['tarSha256'],
+                         digest(gzip.decompress((self.assets / 'gh-cli.tar.gz').read_bytes())))
+
+    def test_xz_carrier_with_matching_pins_but_different_tar_is_rejected(self):
+        old_tar = gzip.decompress((self.assets / 'gh-cli.tar.gz').read_bytes())
+        self.assert_rejected(self.recompressed(tar=old_tar + bytes(512)),
+                             'APK_TOOL_ARCHIVE_TAR_DIGEST')
+
+    def test_xz_carrier_with_wrong_check_is_rejected(self):
+        self.assert_rejected(self.recompressed(check=lzma.CHECK_CRC32), 'ROOTFS_XZ_CHECK')
+
+    def test_xz_carrier_with_wrong_sidecar_is_rejected(self):
+        self.assert_rejected(self.recompressed(recorded_sha='f'*64), 'APK_TOOL_ARCHIVE_SHA256')
+
+    def test_xz_carrier_with_trailing_data_is_rejected(self):
+        self.assert_rejected(self.recompressed(extra=b'junk'), 'ROOTFS_XZ_TRAILING_DATA')
 
     def test_gh_member_digest_mismatch_is_rejected(self):
         longer = b'#!/bin/sh\necho other gh\n'

@@ -1,0 +1,63 @@
+{
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-config-editor/lib/index.js",
+  "sourceSha256": "17e953c5ef913d368b288e3d64e952276ea08a46967bfdd430534b69b9d0c039",
+  "patches": [
+    {
+      "before": "import { Scalar, isMap, isSeq, parseDocument, visit } from \"yaml\";",
+      "after": "import { Scalar, isAlias, isMap, isSeq, parseDocument, visit } from \"yaml\";"
+    },
+    {
+      "before": "import { entryListSchema } from \"@deepseek-ai/cordis-plugin-include\";",
+      "after": "import { applyConfigFields, entryListSchema } from \"@deepseek-ai/cordis-plugin-include\";"
+    },
+    {
+      "before": "/** Persist complete raw configs and apply them through the normal Loader path. */",
+      "after": "// DSHA_CONFIG_FIELD_EDITOR_V1: persist the addressed fields while retaining the existing YAML nodes.\r\nfunction profileConfigRow(row, entry) {\r\n\treturn row.id === entry.options.id && row.insert === void 0 && (!row.name || row.name === entry.options.name);\r\n}\r\nasync function readConfigDocument(path) {\r\n\ttry {\r\n\t\treturn await readFile(path, \"utf8\");\r\n\t} catch (error) {\r\n\t\tif (error.code !== \"ENOENT\") throw error;\r\n\t\treturn \"[]\\n\";\r\n\t}\r\n}\r\nfunction hasYamlAnnotations(node) {\r\n\tlet annotated = false;\r\n\tvisit(node, (_key, child) => {\r\n\t\tif (child?.comment || child?.commentBefore || child?.anchor || isAlias(child)) {\r\n\t\t\tannotated = true;\r\n\t\t\treturn visit.BREAK;\r\n\t\t}\r\n\t});\r\n\treturn annotated;\r\n}\r\nfunction restoreExpressions(node) {\r\n\tvisit(node, { Map(_key, child) {\r\n\t\tif (child.items.length !== 1 || typeof child.get(\"__jsExpr\") !== \"string\") return;\r\n\t\tconst expression = new Scalar(child.get(\"__jsExpr\"));\r\n\t\texpression.tag = \"tag:yaml.org,2002:js\";\r\n\t\treturn expression;\r\n\t} });\r\n}\r\nfunction configFieldPath(operation) {\r\n\tconst path = isMap(operation) && operation.get(\"path\", true);\r\n\treturn isSeq(path) ? path.items.map((part) => part?.value) : void 0;\r\n}\r\nfunction hasPathPrefix(path, prefix) {\r\n\treturn path.length >= prefix.length && prefix.every((key, offset) => path[offset] === key);\r\n}\r\nfunction writeConfigFields(document, index, entry, fields) {\r\n\tif (fields.length === 0) return;\r\n\tif (index < 0) {\r\n\t\tif (fields.every((field) => field.inherit === true)) return;\r\n\t\tindex = document.contents.items.length;\r\n\t\tdocument.add(document.createNode({ id: entry.options.id, name: entry.options.name }));\r\n\t}\r\n\tconst target = document.contents.items[index];\r\n\tif (!target.has(\"configFields\")) target.set(\"configFields\", document.createNode([]));\r\n\tconst operations = target.get(\"configFields\", true);\r\n\tif (!isSeq(operations)) throw new TypeError(\"configFields must be an editable YAML sequence\");\r\n\toperations.tag = \"!dsha-config-fields-v1\";\r\n\tconst otherConfig = document.contents.items.some((row) => isMap(row) && !row.has(\"insert\")\r\n\t\t&& profileConfigRow({ id: row.get(\"id\"), name: row.get(\"name\") }, entry)\r\n\t\t&& (row.has(\"config\") || row !== target && row.has(\"configFields\")));\r\n\tfor (const field of fields) {\r\n\t\tfor (let at = operations.items.length - 1; at >= 0; at--) {\r\n\t\t\tconst prior = operations.items[at];\r\n\t\t\tconst path = configFieldPath(prior);\r\n\t\t\tif (path && hasPathPrefix(path, field.path) && !hasYamlAnnotations(prior)) operations.delete(at);\r\n\t\t}\r\n\t\tif (field.inherit === true && !otherConfig && !operations.anchor && !operations.comment && !operations.commentBefore\r\n\t\t\t&& !operations.items.some((operation) => {\r\n\t\t\t\tconst path = configFieldPath(operation);\r\n\t\t\t\treturn !path || hasPathPrefix(path, field.path) || hasPathPrefix(field.path, path);\r\n\t\t\t})) continue;\r\n\t\toperations.add(document.createNode(field));\r\n\t}\r\n\tif (operations.items.length === 0 && !hasYamlAnnotations(operations)) {\r\n\t\ttarget.delete(\"configFields\");\r\n\t\tif (target.items.length === Number(target.has(\"id\")) + Number(target.has(\"name\")) && !hasYamlAnnotations(target)) document.delete(index);\r\n\t}\r\n}\r\n/** Persist raw configs and field overrides through the normal Loader path. */"
+    },
+    {
+      "before": "Object.hasOwn(patch, \"config\")).map((patch) => patch.id));",
+      "after": "(Object.hasOwn(patch, \"config\") || Object.hasOwn(patch, \"configFields\"))).map((patch) => patch.id));"
+    },
+    {
+      "before": "override: structuredClone(loaded.patches.findLast((row) => row.id === entry.options.id && row.config !== void 0)?.config ?? {})",
+      "after": "override: this.override(entry, loaded)"
+    },
+    {
+      "before": "\tinherited(entry, loaded) {",
+      "after": "\toverride(entry, loaded) {\n\t\tlet override = {};\n\t\tfor (const row of loaded.patches) {\n\t\t\tif (!profileConfigRow(row, entry)) continue;\n\t\t\tif (Object.hasOwn(row, \"config\")) override = structuredClone(row.config ?? {});\n\t\t\tif (row.configFields !== void 0) override = applyConfigFields(override, row.configFields, {});\n\t\t}\n\t\treturn override;\n\t}\n\tinherited(entry, loaded) {"
+    },
+    {
+      "before": "if (patch.id !== entry.options.id || patch.insert !== void 0) return patch;\n\t\t\tconst rest = { ...patch };\n\t\t\tReflect.deleteProperty(rest, \"config\");",
+      "after": "if (!profileConfigRow(patch, entry)) return patch;\n\t\t\tconst rest = { ...patch };\n\t\t\tReflect.deleteProperty(rest, \"config\");\n\t\t\tReflect.deleteProperty(rest, \"configFields\");"
+    },
+    {
+      "before": "\tasync edit(entry, change) {",
+      "after": "\tasync edit(entry, change, scoped = false) {"
+    },
+    {
+      "before": "\t\t\t\tresolve: (value) => value\n\t\t\t}] });",
+      "after": "\t\t\t\tresolve: (value) => value\n\t\t\t}, {\n\t\t\t\ttag: \"!dsha-config-fields-v1\",\n\t\t\t\tcollection: \"seq\",\n\t\t\t\tresolve: (value) => value\n\t\t\t}] });"
+    },
+    {
+      "before": "\t\t\tconst next = change(current, inherited);",
+      "after": "\t\t\tconst edit = change(current, inherited);\n\t\t\tif (scoped && edit.length === 0) return;\n\t\t\tconst next = scoped ? applyConfigFields(current, edit, inherited) ?? {} : edit;"
+    },
+    {
+      "before": "\t\t\tif (isDeepStrictEqual(next, inherited)) for (let index = document.contents.items.length - 1; index >= 0; index--) {\n\t\t\t\tconst row = document.contents.items[index];\n\t\t\t\tif (!isMap(row) || document.getIn([index, \"id\"]) !== entry.options.id || row.has(\"insert\")) continue;\n\t\t\t\trow.delete(\"config\");\n\t\t\t\tif (row.items.length === Number(row.has(\"id\")) + Number(row.has(\"name\"))) document.delete(index);\n\t\t\t}\n\t\t\telse if (index < 0) document.add(document.createNode({\n\t\t\t\tid: entry.options.id,\n\t\t\t\tname: entry.options.name,\n\t\t\t\tconfig: next\n\t\t\t}));\n\t\t\telse document.setIn([index, \"config\"], document.createNode(next));\n\t\t\tvisit(document, { Map(_key, node) {\n\t\t\t\tif (node.items.length !== 1 || typeof node.get(\"__jsExpr\") !== \"string\") return;\n\t\t\t\tconst expression = new Scalar(node.get(\"__jsExpr\"));\n\t\t\t\texpression.tag = \"tag:yaml.org,2002:js\";\n\t\t\t\treturn expression;\n\t\t\t} });\n",
+      "after": "\t\t\tif (scoped) {\n\t\t\t\twriteConfigFields(document, index, entry, edit);\n\t\t\t} else {\n\t\t\t\tconst reset = isDeepStrictEqual(next, inherited);\n\t\t\t\tconst target = document.contents.items[index];\n\t\t\t\tfor (let at = document.contents.items.length - 1; at >= 0; at--) {\n\t\t\t\t\tconst row = document.contents.items[at];\n\t\t\t\t\tconst name = document.getIn([at, \"name\"]);\n\t\t\t\t\tif (!isMap(row) || document.getIn([at, \"id\"]) !== entry.options.id || row.has(\"insert\")\n\t\t\t\t\t\t|| name && name !== entry.options.name) continue;\n\t\t\t\t\tconst hadFields = row.delete(\"configFields\");\n\t\t\t\t\tconst hadConfig = reset && row.delete(\"config\");\n\t\t\t\t\tif ((hadFields || hadConfig) && (reset || row !== target) && !hasYamlAnnotations(row)\n\t\t\t\t\t\t&& row.items.length === Number(row.has(\"id\")) + Number(row.has(\"name\"))) document.delete(at);\n\t\t\t\t}\n\t\t\t\tif (!reset && target) target.set(\"config\", document.createNode(next));\n\t\t\t\telse if (!reset) document.add(document.createNode({ id: entry.options.id, name: entry.options.name, config: next }));\n\t\t\t\trestoreExpressions(document);\n\t\t\t}\n"
+    },
+    {
+      "before": "\t\t\tlet before;\n\t\t\ttry {\n\t\t\t\tbefore = await readFile(path, \"utf8\");\n\t\t\t} catch (error) {\n\t\t\t\tif (error.code !== \"ENOENT\") throw error;\n\t\t\t\tbefore = \"[]\\n\";\n\t\t\t}\n",
+      "after": "\t\t\t// Parse the locked pre-write snapshot.\n"
+    },
+    {
+      "before": "\t\t\tconst beforePatches = readProfilePatches(\"dsh\", this.ownerContext.profileContext);",
+      "after": "\t\t\tconst before = await readConfigDocument(path);\n\t\t\tconst beforePatches = readProfilePatches(\"dsh\", this.ownerContext.profileContext);"
+    },
+    {
+      "before": "\t\t\tawait writeFileAtomic(path, String(document), { mode: 384 });",
+      "after": "\t\t\tconst after = String(document);\n\t\t\tif (before === after) return;\n\t\t\tconst latest = await readConfigDocument(path);\n\t\t\tif (latest !== before) throw new Error(\"Configuration document changed during the write\");\n\t\t\tawait writeFileAtomic(path, after, { mode: 384 });"
+    }
+  ]
+}

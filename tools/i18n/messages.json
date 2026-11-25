@@ -3439,8 +3439,8 @@
   },
   {
     "id": "m0420",
-    "zh": "已保存；网页显示选项重新进入对话生效，端口与运行时需重启 Web",
-    "en": "Saved. Reopen the conversation to apply web display options. Port and runtime changes require restarting the Web service.",
+    "zh": "已保存。新建工作台网页视图时应用桌面布局设置，返回工作台会继续显示原页面。更改端口或运行时需要重启 Web 服务。",
+    "en": "Saved. A new workbench web view uses the desktop layout setting. Returning to the workbench keeps the current page. Port and runtime changes require restarting the Web service.",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java"
     ]
@@ -9244,7 +9244,7 @@
     "zh": "上次任务因进程退出而中断，未自动重试。请先处理未完成的维护或重新选择备份。\n",
     "en": "The previous task was interrupted when the app process exited; it was not retried automatically. Resolve incomplete maintenance or select a backup again.\n",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupTaskState.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupTaskState.kt"
     ]
   },
   {
@@ -9604,7 +9604,7 @@
     "zh": "仅备份对话记录",
     "en": "Back up conversations only",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupScope.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupScope.kt"
     ]
   },
   {
@@ -9612,7 +9612,7 @@
     "zh": "仅备份插件",
     "en": "Back up plugins only",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupScope.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupScope.kt"
     ]
   },
   {
@@ -9620,7 +9620,7 @@
     "zh": "仅备份设置",
     "en": "Back up settings only",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupScope.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupScope.kt"
     ]
   },
   {
@@ -10296,7 +10296,7 @@
     "zh": "只打包会话、索引、附件与工作区结构，恢复时不动设置与插件",
     "en": "Back up sessions, indexes, attachments and workspace structure only. Restoration leaves settings and plugins unchanged.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupScope.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupScope.kt"
     ]
   },
   {
@@ -10304,7 +10304,7 @@
     "zh": "只打包插件清单、配置和已安装插件数据",
     "en": "Back up plugin manifests, settings and installed plugin data only",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupScope.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupScope.kt"
     ]
   },
   {
@@ -10592,7 +10592,7 @@
     "zh": "备份全部数据",
     "en": "Back up all data",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupScope.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupScope.kt"
     ]
   },
   {
@@ -10608,7 +10608,7 @@
     "zh": "备份文件标识无效",
     "en": "Invalid backup file identifier",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupScope.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupScope.kt"
     ]
   },
   {
@@ -11707,7 +11707,7 @@
     "zh": "打包 settings.yaml 和运行参数；原生 API Key 遵循备份密钥开关",
     "en": "Back up settings.yaml and runtime parameters; the app API key follows the backup-key setting",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupScope.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupScope.kt"
     ]
   },
   {
@@ -13619,7 +13619,7 @@
     "zh": "正在准备…",
     "en": "Preparing…",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupTaskState.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupTaskState.kt"
     ]
   },
   {
@@ -13732,7 +13732,7 @@
     "zh": "正在恢复…",
     "en": "Restoring…",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupTaskState.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupTaskState.kt"
     ]
   },
   {
@@ -15190,7 +15190,7 @@
     "zh": "覆盖 settings.yaml 和原生运行设置，不改聊天记录和插件",
     "en": "Replace settings.yaml and app runtime settings; preserve conversations and plugins",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupScope.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupScope.kt"
     ]
   },
   {
@@ -15198,7 +15198,7 @@
     "zh": "覆盖插件 profile 和插件源码，不改聊天记录和设置",
     "en": "Replace plugin profiles and source; preserve conversations and settings",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupScope.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupScope.kt"
     ]
   },
   {
@@ -15206,7 +15206,7 @@
     "zh": "覆盖聊天记录、会话索引与附件，不改设置和插件",
     "en": "Replace conversations, session indexes and attachments; preserve settings and plugins",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupScope.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupScope.kt"
     ]
   },
   {
@@ -15214,7 +15214,7 @@
     "zh": "覆盖配置、聊天记录、附件、插件与工作区 .env/日志",
     "en": "Replace settings, conversations, attachments, plugins and workspace .env/logs",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupScope.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupScope.kt"
     ]
   },
   {
@@ -15873,7 +15873,7 @@
     "zh": "配置、对话、附件、插件与工作区 .env/日志，换机或重装用这个",
     "en": "Settings, conversations, attachments, plugins and workspace .env/logs. Use for device migration or reinstallation.",
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupScope.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupScope.kt"
     ]
   },
   {
@@ -23048,6 +23048,7 @@
     "en": "Previous page",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/RetainedDataActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java",
       "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFilesActivity.java"
     ]
   },
@@ -23057,6 +23058,7 @@
     "en": "Next page",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/RetainedDataActivity.java",
+      "app/src/main/java/com/deepseekharness/app/ui/SkillsFragment.java",
       "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFilesActivity.java"
     ]
   },
@@ -23994,8 +23996,8 @@
   },
   {
     "id": "ui2_online_notice",
-    "zh": "使用在线模型时，消息及你选择的附件会发送到所配置的模型服务。",
-    "en": "Online models receive the messages and attachments you choose to send.",
+    "zh": "使用在线模型时，消息、附件和工具结果（如读屏文字或截图）可能发送到所选模型服务。",
+    "en": "Your chosen online model may receive messages, attachments, and tool results such as screen text or screenshots.",
     "files": [
       "app/src/main/res/values/ui_iteration.xml"
     ]
@@ -25950,8 +25952,8 @@
     "id": "build156_91fa78a28abb"
   },
   {
-    "zh": "LAN 代理已启动：0.0.0.0:%s -> 127.0.0.1:%s",
-    "en": "LAN proxy started: 0.0.0.0:%s -> 127.0.0.1:%s",
+    "zh": "LAN 代理已启动：%s -> 127.0.0.1:%s",
+    "en": "LAN proxy started: %s -> 127.0.0.1:%s",
     "uiFormat": true,
     "files": [
       "app/src/main/java/com/deepseekharness/app/LanProxyService.java"
@@ -26710,7 +26712,7 @@
     "en": "The previous task was interrupted when the process exited and was not retried automatically. Resolve unfinished maintenance or select the backup again.\n%s",
     "uiFormat": true,
     "files": [
-      "app/src/main/java/com/deepseekharness/app/util/BackupTaskState.java"
+      "app/src/main/java/com/deepseekharness/app/util/BackupTaskState.kt"
     ],
     "id": "build156_a56b9916a234"
   },
@@ -30912,6 +30914,14 @@
     "en": "Disabled",
     "files": [
       "app/src/main/java/com/deepseekharness/app/ui/RootModulesFragment.java"
+    ]
+  },
+  {
+    "id": "m9517",
+    "zh": "系统未接受备份任务，请稍后再试",
+    "en": "Android did not accept the backup request. Try again later.",
+    "files": [
+      "app/src/main/java/com/deepseekharness/app/ui/AutomaticBackupActivity.java"
     ]
   }
 ]

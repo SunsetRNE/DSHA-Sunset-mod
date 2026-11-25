@@ -66,6 +66,31 @@ public final class PortableBackupEnvelope {
     write(fs, payload, expectedSha, target, control, NOTE, null);
   }
 
+  /** Enforce the requested protection at the final boundary to a user-readable destination. */
+  static void writeExport(
+      BackupFileSystem fs,
+      File payload,
+      String expectedSha,
+      OutputStream target,
+      BackupControl control,
+      boolean protectedExport,
+      byte[] diagnostics)
+      throws IOException {
+    if (!protectedExport) {
+      writeUnencrypted(fs, payload, expectedSha, target, control, diagnostics);
+      return;
+    }
+    byte[] magic = new byte[8];
+    try (InputStream input = fs.read(payload, fs.stat(payload))) {
+      new DataInputStream(input).readFully(magic);
+    }
+    if (!Arrays.equals(magic, PortableBackupCrypto.MAGIC))
+      throw new IOException("ENCRYPTED_PAYLOAD_REQUIRED");
+    // The transport is public. Data and optional private diagnostics must never sit beside
+    // ciphertext.
+    write(fs, payload, expectedSha, target, control);
+  }
+
   private static void write(
       BackupFileSystem fs,
       File payload,

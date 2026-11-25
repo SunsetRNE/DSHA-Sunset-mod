@@ -6,7 +6,6 @@ import android.os.Handler;
 import android.os.Looper;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import com.deepseekharness.app.BackupManager;
 import com.deepseekharness.app.BuildConfig;
 import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.core.HarnessController;
@@ -75,6 +74,7 @@ public final class NativeBackupJobs {
   private final Handler main = new Handler(Looper.getMainLooper());
   private final WorkerQuiescence workers = new WorkerQuiescence();
   private State state = new State("", "IDLE", "", "", "", 0, 0, false);
+  private boolean storageCleanup;
   private BackupControl control;
   private File task;
   private long lastProgress;
@@ -149,10 +149,12 @@ public final class NativeBackupJobs {
         state = selected.state;
       } else if (!pointerType.equals("MISSING")) throw new IOException("OPERATION_LAST_TASK");
       Set<String> seen = new HashSet<>();
+      List<String> interrupted = new ArrayList<>();
       for (String name : HostOperationArchive.activeEntries(fs, root)) {
         if (!name.matches(com.deepseekharness.app.util.Ids.UUID_PATTERN)) continue;
         if (!seen.add(name)) throw new IOException("OPERATION_DUPLICATE");
         LastRecord record = lastRecord(fs.child(root, name), name);
+        if (record != null && record.state.stage.equals("INTERRUPTED")) interrupted.add(name);
         if (record != null && record.updated >= newest) {
           newest = record.updated;
           state = record.state;
@@ -171,6 +173,23 @@ public final class NativeBackupJobs {
             pointed = name;
           }
         }
+      }
+      if (!interrupted.isEmpty()) {
+        // This is the first initialization in the owner process. A new job cannot reuse these
+        // UUIDs.
+        launch(
+            () -> {
+              for (String id : interrupted) {
+                try {
+                  HostOperationArchive.clearInterruptedCopies(fs, root, id);
+                } catch (IOException retained) {
+                  android.util.Log.w(
+                      "DshaBackup", BackupFailureDiagnostic.describe("STAGING_CLEANUP", retained));
+                }
+              }
+            },
+            "host-backup-staging-cleanup",
+            null);
       }
       if (!pointed.isEmpty() && pointerType.equals("MISSING"))
         fs.atomic(files, LAST_TASK, BackupJson.write(Map.of("version", 1L, "id", pointed), 1024));
@@ -223,15 +242,54 @@ public final class NativeBackupJobs {
 
   public synchronized boolean reexport(
       String sourceId, char[] suppliedOriginalPassword, Uri destination, String name) {
-    if (state.busy || workers.isClosed() || AutomaticBackups.factoryResetPending(context))
-      return false;
-    final char[] originalPassword =
-        suppliedOriginalPassword == null ? null : suppliedOriginalPassword.clone();
+    return reexport(sourceId, suppliedOriginalPassword, destination, name, false);
+  }
+
+  public synchronized boolean reexport(
+      String sourceId,
+      char[] suppliedOriginalPassword,
+      Uri destination,
+      String name,
+      boolean confirmedCredentials) {
+    return reexport(
+        sourceId, suppliedOriginalPassword, destination, name, confirmedCredentials, false);
+  }
+
+  /** Preserve existing portable ciphertext, or protect a local/plain copy with the supplied password. */
+  public synchronized boolean reexportPortable(
+      String sourceId, char[] exportPassword, Uri destination, String name) {
+    return reexport(sourceId, exportPassword, destination, name, true, true);
+  }
+
+  private boolean reexport(
+      String sourceId,
+      char[] suppliedPassword,
+      Uri destination,
+      String name,
+      boolean confirmedCredentials,
+      boolean protectedExport) {
+    if (state.busy
+        || storageCleanup
+        || workers.isClosed()
+        || AutomaticBackups.factoryResetPending(context)) return false;
+    final char[] password = suppliedPassword == null ? null : suppliedPassword.clone();
     final VerifiedBackupCopy source;
+    final boolean preserveCiphertext;
     final DataProtectionService.StartTicket protection;
     try {
       File parent = operations();
       source = VerifiedBackupCopy.inspect(fs, parent, sourceId);
+      preserveCiphertext =
+          protectedExport
+              && source.passwordProtected(fs)
+              && !Boolean.TRUE.equals(source.metadata.get("automatic"));
+      if (preserveCiphertext && password != null) throw new IOException("VERIFIED_COPY_CHANGED");
+      if (protectedExport && !preserveCiphertext && !PortableBackupCrypto.validPassword(password))
+        throw new IOException("PASSWORD_LENGTH");
+      if (!confirmedCredentials
+          && (!Boolean.FALSE.equals(source.metadata.get("includeProviderCredentials"))
+              || !Boolean.FALSE.equals(source.metadata.get("includeApiKey"))))
+        throw new IOException("BACKUP_CREDENTIAL_CONSENT_REQUIRED");
       parent = HostOperationArchive.reserve(fs, context.getFilesDir().getCanonicalFile());
       task = new File(parent, UUID.randomUUID().toString());
       fs.directory(task);
@@ -244,7 +302,7 @@ public final class NativeBackupJobs {
       update("VERIFYING", "", "", "", source.entries, source.bytes, true);
       protection = foreground();
     } catch (IOException error) {
-      if (originalPassword != null) Arrays.fill(originalPassword, '\0');
+      if (password != null) Arrays.fill(password, '\0');
       beginFailed(error);
       return false;
     }
@@ -253,22 +311,35 @@ public final class NativeBackupJobs {
     return launch(
         () -> {
           char[] automaticPassword = null;
+          PasswordFreeBackupExport prepared = null;
           try {
             protection.await();
             update("VERIFYING", "", "", "", source.entries, source.bytes, true);
-            if (source.passwordProtected(fs)
-                && Boolean.TRUE.equals(source.metadata.get("automatic")))
-              automaticPassword = AutomaticBackups.password(context);
-            PasswordFreeBackupExport plaintext =
-                PasswordFreeBackupExport.prepare(
-                    fs,
-                    source,
-                    owned,
-                    automaticPassword == null ? originalPassword : automaticPassword,
-                    cancellation);
+            File payload;
+            String payloadHash;
+            if (preserveCiphertext) {
+              source.verify(fs, cancellation);
+              payload = source.artifact;
+              payloadHash = source.sha256;
+            } else {
+              if (source.passwordProtected(fs)
+                  && Boolean.TRUE.equals(source.metadata.get("automatic")))
+                automaticPassword = AutomaticBackups.password(context);
+              char[] readPassword = automaticPassword != null ? automaticPassword : password;
+              prepared =
+                  PasswordFreeBackupExport.prepare(
+                      fs,
+                      source,
+                      owned,
+                      readPassword,
+                      protectedExport ? password : null,
+                      cancellation);
+              payload = prepared.artifact;
+              payloadHash = prepared.sha256;
+            }
             DocumentCopy exported =
                 copyToDocument(
-                    plaintext.artifact, plaintext.sha256, destination, name, cancellation, null);
+                    payload, payloadHash, destination, name, cancellation, protectedExport, null);
             String result = source.result(exported.readback);
             if (result.equals("COMPLETE")) {
               File catalogue =
@@ -284,7 +355,7 @@ public final class NativeBackupJobs {
                           "sha256",
                           exported.sha256,
                           "payloadSha256",
-                          plaintext.sha256,
+                          payloadHash,
                           "sourceSha256",
                           source.sha256,
                           "uri",
@@ -299,11 +370,10 @@ public final class NativeBackupJobs {
           } catch (Exception error) {
             failed(error);
           } finally {
-            if (originalPassword != null) Arrays.fill(originalPassword, '\0');
+            if (password != null) Arrays.fill(password, '\0');
             if (automaticPassword != null) Arrays.fill(automaticPassword, '\0');
             try {
-              File plain = new File(owned, "reexport-plain.dshbak");
-              if (fs.stat(plain).type.equals("FILE")) fs.delete(plain);
+              if (prepared != null) fs.delete(prepared.artifact);
             } catch (IOException ignored) {
             }
             try {
@@ -317,7 +387,7 @@ public final class NativeBackupJobs {
           }
         },
         "host-backup-reexport",
-        originalPassword);
+        password);
   }
 
   public Map<String, Object> preview(String id) throws IOException {
@@ -339,6 +409,26 @@ public final class NativeBackupJobs {
   /** 界面的迟到取消只影响点击时的作业，不撤销后来启动的另一作业。 */
   synchronized void cancelIfCurrent(String id) {
     if (id != null && !id.isEmpty() && state.busy && state.id.equals(id)) cancel();
+  }
+
+  /** 与备份、恢复等入口共用 monitor；等待 UI 停止和清理时无需长时间持有 monitor。 */
+  synchronized CleanupLease tryReserveStorageCleanup() {
+    if (storageCleanup || state.busy || workers.active() != 0 || workers.isClosed()) return null;
+    storageCleanup = true;
+    return new CleanupLease();
+  }
+
+  final class CleanupLease implements AutoCloseable {
+    private boolean closed;
+
+    @Override
+    public void close() {
+      synchronized (NativeBackupJobs.this) {
+        if (closed) return;
+        closed = true;
+        storageCleanup = false;
+      }
+    }
   }
 
   /**
@@ -598,6 +688,16 @@ public final class NativeBackupJobs {
         selection, null, destination, expectedName, rescue, false, false, null, diagnostics);
   }
 
+  public synchronized ExportRefusal exportProtected(
+      NativeDataLocations.Selection selection,
+      char[] password,
+      Uri destination,
+      String name,
+      boolean rescue) {
+    if (!PortableBackupCrypto.validPassword(password)) return ExportRefusal.PASSWORD_INVALID;
+    return exportInternal(selection, password, destination, name, rescue, false, false, null, null);
+  }
+
   /** Legacy native entry points use the same host v5 writer and a new verified Downloads file. */
   public synchronized boolean exportToDownloads(
       NativeDataLocations.Selection selection, boolean rescue) {
@@ -627,6 +727,22 @@ public final class NativeBackupJobs {
             true,
             null,
             diagnostics)
+        == ExportRefusal.NONE;
+  }
+
+  public synchronized boolean exportOneClick(
+      NativeDataLocations.Selection selection, char[] password, Uri directory) {
+    if (!PortableBackupCrypto.validPassword(password)) return false;
+    return exportInternal(
+            selection,
+            password,
+            null,
+            com.deepseekharness.app.util.BackupFileNames.portableName(),
+            false,
+            false,
+            directory == null,
+            directory,
+            null)
         == ExportRefusal.NONE;
   }
 
@@ -688,19 +804,19 @@ public final class NativeBackupJobs {
       Uri directory,
       byte[] diagnostics) {
     if (selection == null) return ExportRefusal.INVALID_SELECTION;
-    if (state.busy) return ExportRefusal.BUSY;
+    if (state.busy || storageCleanup) return ExportRefusal.BUSY;
     if (workers.isClosed()) return ExportRefusal.WORKERS_CLOSED;
     if (AutomaticBackups.factoryResetPending(context)) return ExportRefusal.FACTORY_RESET_PENDING;
     if (!rescue && MaintenanceCoordinator.pending(context.getFilesDir()))
       return ExportRefusal.MAINTENANCE_PENDING;
-    // 密码仅供内部自动副本；所有用户导出由无密码 public API 创建。
-    if (suppliedPassword != null
-        && (suppliedPassword.length < 12 || suppliedPassword.length > 1024))
+    if (automatic && suppliedPassword == null
+        || suppliedPassword != null && !PortableBackupCrypto.validPassword(suppliedPassword))
       return ExportRefusal.PASSWORD_INVALID;
     char[] password = suppliedPassword == null ? null : suppliedPassword.clone();
     NativeDataLocations.Selection frozen = new NativeDataLocations.Selection();
     frozen.scope = selection.scope;
     frozen.includeApiKey = selection.includeApiKey;
+    frozen.includeProviderCredentials = automatic || selection.includeProviderCredentials;
     frozen.retainedKey = selection.retainedKey;
     if (frozen.retainedKey != null && !frozen.retainedKey.isEmpty() && !rescue) {
       if (password != null) Arrays.fill(password, '\0');
@@ -747,6 +863,8 @@ public final class NativeBackupJobs {
                 provenance.put("operation", rescue ? "RESCUE" : "EXPORT");
                 provenance.put("createdAt", System.currentTimeMillis());
                 provenance.put("requestedScope", frozen.scope);
+                provenance.put("includeProviderCredentials", frozen.includeProviderCredentials);
+                provenance.put("includeApiKey", frozen.includeApiKey);
                 if (automatic) provenance.put("automatic", true);
                 if (frozen.retainedKey != null && !frozen.retainedKey.isEmpty())
                   provenance.put("retainedSource", frozen.retainedKey);
@@ -826,24 +944,8 @@ public final class NativeBackupJobs {
                     true);
                 failurePhase[0] = "BUILDING_PORTABLE";
                 if (password != null) {
-                  try (InputStream input = fs.read(plain, fs.stat(plain));
-                      OutputStream output = fs.create(encrypted)) {
-                    PortableBackupCrypto.encrypt(input, output, password, cancellation);
-                  }
-                  java.security.MessageDigest authenticated = BackupArchive.sha();
-                  try (InputStream input = fs.read(encrypted, fs.stat(encrypted));
-                      OutputStream verify =
-                          new java.security.DigestOutputStream(
-                              new OutputStream() {
-                                public void write(int b) {}
-
-                                public void write(byte[] b, int o, int n) {}
-                              },
-                              authenticated)) {
-                    PortableBackupCrypto.decrypt(input, verify, password, cancellation);
-                  }
-                  if (!plainHash.equals(BackupArchive.hex(authenticated.digest())))
-                    throw new IOException("PRIVATE_ARTIFACT_VERIFICATION");
+                  PortableBackupCrypto.encryptVerified(
+                      fs, plain, plainHash, encrypted, password, cancellation);
                 } else {
                   // 无密码 dshbak 保留同一个带完整尾摘要的 BackupArchive 格式，
                   // 导入时仍执行相同的范围、路径和校验流程。
@@ -893,58 +995,27 @@ public final class NativeBackupJobs {
                         ? diagnostics
                         : null;
                 failurePhase[0] = downloads ? "EXPORTING_MEDIASTORE" : "EXPORTING_DOCUMENT";
-                boolean savedToDownloads = downloads;
                 DocumentCopy exported;
                 if (automatic) exported = null;
                 else if (downloads)
                   exported =
                       copyToDownloads(
-                          encrypted, artifactHash, expectedName, cancellation, rescueDiagnostics);
-                else {
-                  try {
-                    exported =
-                        copyToDocument(
-                            encrypted,
-                            artifactHash,
-                            actualDestination,
-                            expectedName,
-                            cancellation,
-                            rescueDiagnostics);
-                  } catch (IOException destinationFailure) {
-                    if (!rescue) throw destinationFailure;
-                    // 救援导出只读：SAF 写入失败时降级到 MediaStore 下载，已保护的快照不受影响。
-                    // 回退事实写进本作业私有记录，不新增 backup→core 依赖。
-                    try {
-                      fs.atomic(
-                          owned,
-                          "export-fallback.json",
-                          BackupJson.write(
-                              Map.of(
-                                  "version",
-                                  1L,
-                                  "diagnostic",
-                                  BackupFailureDiagnostic.describe(
-                                      "EXPORT_SAF_FALLBACK", destinationFailure)),
-                              16384));
-                    } catch (IOException ignored) {
-                      // 回退记录写不了也必须继续走下载；快照与回读校验仍然生效。
-                    }
-                    failurePhase[0] = "EXPORTING_MEDIASTORE_FALLBACK";
-                    savedToDownloads = true;
-                    try {
-                      exported =
-                          copyToDownloads(
-                              encrypted,
-                              artifactHash,
-                              expectedName,
-                              cancellation,
-                              rescueDiagnostics);
-                    } catch (IOException fallbackFailure) {
-                      destinationFailure.addSuppressed(fallbackFailure);
-                      throw destinationFailure;
-                    }
-                  }
-                }
+                          encrypted,
+                          artifactHash,
+                          expectedName,
+                          cancellation,
+                          password != null,
+                          rescueDiagnostics);
+                else
+                  exported =
+                      copyToDocument(
+                          encrypted,
+                          artifactHash,
+                          actualDestination,
+                          expectedName,
+                          cancellation,
+                          password != null,
+                          rescueDiagnostics);
                 failurePhase[0] = "PUBLISHING_EXPORT_RESULT";
                 if (selectedTarget != null) {
                   selectedTarget.retain();
@@ -995,14 +1066,14 @@ public final class NativeBackupJobs {
                               "payloadSha256",
                               artifactHash,
                               "uri",
-                              (savedToDownloads ? exported.uri : actualDestination).toString(),
+                              (downloads ? exported.uri : actualDestination).toString(),
                               "name",
-                              savedToDownloads ? exported.name : expectedName),
+                              downloads ? exported.name : expectedName),
                           16384));
                   new ConfigStore(context)
                       .recordVerifiedNativeBackup(
-                          (savedToDownloads ? exported.uri : actualDestination).toString(),
-                          savedToDownloads ? exported.name : expectedName,
+                          (downloads ? exported.uri : actualDestination).toString(),
+                          downloads ? exported.name : expectedName,
                           frozen.scope);
                 }
                 if (automatic) {
@@ -1095,7 +1166,12 @@ public final class NativeBackupJobs {
   }
 
   private DocumentCopy copyToDownloads(
-      File source, String expected, String name, BackupControl cancellation, byte[] diagnostics)
+      File source,
+      String expected,
+      String name,
+      BackupControl cancellation,
+      boolean protectedExport,
+      byte[] diagnostics)
       throws IOException {
     if (!name.matches("DSHA-data-v5-[a-f0-9-]{36}\\.tar\\.gz"))
       throw new IOException("EXPORT_DESTINATION");
@@ -1103,8 +1179,8 @@ public final class NativeBackupJobs {
         verification = fs.child(task, "export-verified.dshbak");
     try (BackupTemporaryFiles cleanup = new BackupTemporaryFiles(fs, envelope, verification)) {
       try (OutputStream output = fs.create(envelope)) {
-        PortableBackupEnvelope.writeUnencrypted(
-            fs, source, expected, output, cancellation, diagnostics);
+        PortableBackupEnvelope.writeExport(
+            fs, source, expected, output, cancellation, protectedExport, diagnostics);
       }
       if (!PortableBackupEnvelope.unwrapIfPresent(fs, envelope, verification, cancellation))
         throw new IOException("ENVELOPE_VERIFICATION");
@@ -1156,6 +1232,7 @@ public final class NativeBackupJobs {
       Uri target,
       String name,
       BackupControl cancellation,
+      boolean protectedExport,
       byte[] diagnostics)
       throws IOException {
     if (target == null
@@ -1185,8 +1262,8 @@ public final class NativeBackupJobs {
         verifiedPayload = new File(task, "export-verified.dshbak");
     try {
       try (OutputStream output = fs.create(envelope)) {
-        PortableBackupEnvelope.writeUnencrypted(
-            fs, source, expected, output, cancellation, diagnostics);
+        PortableBackupEnvelope.writeExport(
+            fs, source, expected, output, cancellation, protectedExport, diagnostics);
       }
       if (!PortableBackupEnvelope.unwrapIfPresent(fs, envelope, verifiedPayload, cancellation))
         throw new IOException("ENVELOPE_VERIFICATION");
@@ -1291,6 +1368,7 @@ public final class NativeBackupJobs {
       boolean includeKey,
       String projects) {
     if (state.busy
+        || storageCleanup
         || workers.isClosed()
         || AutomaticBackups.factoryResetPending(context)
         || (retained == null
@@ -1386,19 +1464,7 @@ public final class NativeBackupJobs {
               }
               if (Arrays.equals(signature, PortableBackupCrypto.MAGIC)) {
                 update("AUTHENTICATING", "", "", "", 0, fs.stat(input).size, true);
-                try (InputStream source = fs.read(portable, fs.stat(portable));
-                    OutputStream out = fs.create(plain)) {
-                  PortableBackupCrypto.decrypt(source, out, password, cancellation);
-                } catch (Throwable failure) {
-                  // 解密是流式写出：口令错误/认证失败时，明文文件里已经落了前面若干块。
-                  // 不删就是「认证失败但明文留在磁盘上」，等于把错误口令变成了一次部分解密。
-                  try {
-                    fs.delete(plain);
-                  } catch (Throwable cleanup) {
-                    failure.addSuppressed(cleanup);
-                  }
-                  throw failure;
-                }
+                PortableBackupCrypto.decryptIsolated(fs, portable, plain, password, cancellation);
               } else if (BackupArchive.hasMagic(signature)) {
                 // 无密码导出的 v5 dshbak 已经是可直接读取的 BackupArchive。
                 try (InputStream source = fs.read(portable, fs.stat(portable));
@@ -1438,6 +1504,7 @@ public final class NativeBackupJobs {
             preview.put("conflicts", plan.previewConflicts());
             preview.put("warnings", plan.warnings);
             preview.put("projectDestination", projects);
+            preview.put("selectedScopes", new ArrayList<>(new TreeSet<>(scopes)));
             // A3 slice2：计划决策投影为 PlanView v1，JVM（+ Rust，若运行层开关打开）校验同一份字节；
             // 预览期只把回执写进加法键，不改既有字段与恢复语义。
             NativeRestorePlan.ProjectionFacts planFacts = plan.projectionFacts();
@@ -1524,8 +1591,7 @@ public final class NativeBackupJobs {
                       new HostDataTransaction(fs, owned, mapping, mapping, null);
                   transaction.prepare(roots, plan.before, proposed, cancellation);
                   update("COMMITTING", "", "", "", 0, 0, true);
-                  transaction.commit(cancellation);
-                  com.deepseekharness.app.HttpShellService.resetTokenAfterRestore(context);
+                  commitRestore(context, fs, transaction, cancellation);
                   return null;
                 });
             boolean plugins = plan.groups.containsKey("plugin-store");
@@ -1589,9 +1655,36 @@ public final class NativeBackupJobs {
         password);
   }
 
+  /** The journal predates the first switch. Recovery may rotate again after a lost acknowledgement. */
+  public static void commitRestore(
+      Context context, BackupFileSystem fs, HostDataTransaction transaction, BackupControl control)
+      throws IOException {
+    File operation = transaction.directory();
+    TransactionMarkers.writeAtomic(
+        fs, operation, HostPendingTransactions.ROTATION_REQUIRED, "RESTORE_ROTATION_MARKER");
+    com.deepseekharness.app.HttpShellService.requireTokenRotation(context);
+    transaction.commit(control);
+    finishRestoreRotation(context, fs, operation);
+  }
+
+  /** Call only after the host transaction reached its final, rolled-back or never-switched state. */
+  public static void finishRestoreRotation(Context context, BackupFileSystem fs, File operation)
+      throws IOException {
+    if (!HostPendingTransactions.rotationPending(fs, operation)) return;
+    if (TransactionMarkers.read(fs, operation, "switching", "TRANSACTION_MARKER")
+        && !TransactionMarkers.read(fs, operation, "finalized", "TRANSACTION_MARKER")
+        && !TransactionMarkers.read(fs, operation, "rolled-back", "TRANSACTION_MARKER"))
+      throw new IOException("RESTORE_TRANSACTION_UNRESOLVED");
+    com.deepseekharness.app.HttpShellService.resetTokenAfterRestore(context);
+    TransactionMarkers.writeAtomic(
+        fs, operation, HostPendingTransactions.ROTATION_COMPLETE, "RESTORE_ROTATION_MARKER");
+  }
+
   public synchronized boolean recoverPending() {
-    if (state.busy || workers.isClosed() || AutomaticBackups.factoryResetPending(context))
-      return false;
+    if (state.busy
+        || storageCleanup
+        || workers.isClosed()
+        || AutomaticBackups.factoryResetPending(context)) return false;
     final DataProtectionService.StartTicket protection;
     List<File> pending;
     try {

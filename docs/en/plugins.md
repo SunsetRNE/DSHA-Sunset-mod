@@ -2,7 +2,7 @@
 
 > Baseline reviewed on 2026-10-21 against the build190/F13 source. Current publication identity is build363 / DSH `0.2.2-rc.1` / single Standard; F10–F13 and build190 records are historical and not this build's evidence. This page describes DSHA entry points for DSH 0.2.2-rc.1; final identity, software and APK results are in the [English README](../../README.en.md) and this CI / Release receipt. It does not prefill test totals or device acceptance.
 
-Paste a link into plugin management, import a local package through the system file picker, or open a DSHA installation link supplied by a website. The app resolves the actual package and checks its format, paths, name/version, actual dependencies, and digests before the plugin transaction commits and enables it. The current production plugin flow does not require a native review confirmation. Browsing a website does not install a plugin: installation continues only after the user opens its installation entry point. Restart Web normally when the app requests it after an update or a toggle.
+Paste a link in plugin management or import a local package through the system file picker to start an installation. External DSHA installation links open a confirmation page. Review the source and confirm inside DSHA before the app downloads or installs the package. The app checks the package format, paths, name, version, dependencies, and digests before it commits and enables the plugin. Restart Web when prompted after an update or a toggle.
 
 ## Supported sources and package contract
 
@@ -39,7 +39,6 @@ A plugin export includes the selected user plugin's real source, existing depend
 
 Removing a third-party plugin from a managed location removes that plugin's installation and registration while retaining chats, configuration, other plugins, shared dependencies, and the external import source. Export first if you need to retain it. Optional built-ins use toggles. Official core bundles can also be explicitly disabled, which may prevent Web from starting; re-enable them in the native plugin page or use the recovery workbench. Do not attempt to repair a core bundle by deleting it or replacing it with a third-party package.
 
-The temporary built-in fix plugin `dsh-fs-read-hint` (read hint) appends the same-named path this session did read (for example the main checkout instead of a worktree copy) when DSH refuses a change with `file has not been read`. It changes only the error text and never allows a change; it can be disabled or removed on its own, after which errors match upstream. Upstream tracking and removal criteria: [its page](fs-read-hint-plugin.md).
 
 The temporary built-in fix plugin `dsh-fs-search-scope` (search scope) makes glob skip nested git worktrees (`.agents/worktrees` and linked worktrees inside the search root) unless `path` points into one. Hidden and ignored files are still listed and DSHA required policy checks still run. It can be disabled or removed on its own, after which glob matches upstream. Removal criteria are on [its page](fs-search-scope-plugin.md).
 

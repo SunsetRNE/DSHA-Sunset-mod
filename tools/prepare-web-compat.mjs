@@ -8,7 +8,17 @@ const output=await build({entryPoints:[fileURLToPath(new URL('web-compat/entry.c
   bundle:true,write:false,format:'iife',platform:'browser',target:'es2018',minify:true,legalComments:'inline',
   // PDF 模块前导需压成单行；禁止将带换行的字符串改写成模板字面量。
   supported:{'template-literal':false},
-  banner:{js:'/*! DSHA ES compatibility | core-js 3.50.0 | MIT | see core-js.LICENSE */'}});
+  // The native document-start, installed index and PDF entry can share a realm.
+  // Keep initialization in a lazily compiled function and mark only a successful run.
+  // The same gate runs independently in each document and worker.
+  banner:{js:`/*! DSHA ES compatibility | core-js 3.50.0 | MIT | see core-js.LICENSE */
+(function (scope) {
+  if (scope.__dshaEsCompatibilityV1 === true) return;
+  installDshaEsCompatibility();
+  Object.defineProperty(scope, '__dshaEsCompatibilityV1', { value: true });
+  function installDshaEsCompatibility() {`},
+  footer:{js:`  }
+})(typeof globalThis === 'object' ? globalThis : self);`}});
 const code=output.outputFiles[0].contents;
 await writeFile(new URL('es-compat.js',asset),code);
 await copyFile(new URL('web-compat/node_modules/core-js/LICENSE',import.meta.url),new URL('core-js.LICENSE',asset));

@@ -61,7 +61,7 @@
     <string name="ui134_recent_startups" formatted="false">"最近五次啟動"</string>
     <string name="ui134_recent_startups_sub" formatted="false">"階段、實際錯誤與退出碼"</string>
     <string name="ui134_results" formatted="false">"檢查結果"</string>
-    <string name="ui134_root_hint" formatted="false">"手機已 root 時可直接使用 su，無需 ADB 配對。首次執行請在 root 管理器中授權 DSHA；指令攔截等級可在下方選擇，簡訊等原生閘門在三個等級都生效。"</string>
+    <string name="ui134_root_hint" formatted="false">"首次使用 su 時，請在 root 管理員中授權 DSHA。嚴格模式禁止遞迴讀取目錄。受管簡訊查詢需要單獨授權，兩種放寬模式的 root 指令碼都能直接讀取私人資料。"</string>
     <string name="ui134_screen_setup" formatted="false">"設定螢幕操作 · 兩步完成"</string>
     <string name="ui134_shizuku_hint" formatted="false">"先在 Shizuku 管理器啟動服務，再返回授權。手機重新啟動後通常需要重新啟動服務。"</string>
     <string name="ui134_start_records" formatted="false">"啟動記錄"</string>
@@ -130,7 +130,7 @@
     <string name="ui2_meet" formatted="false">"認識 DSHA"</string>
     <string name="ui2_network_runtime" formatted="false">"執行與網路"</string>
     <string name="ui2_offline_badge" formatted="false">"離線部署  ·  無需 ROOT  ·  %1$s"</string>
-    <string name="ui2_online_notice" formatted="false">"使用線上模型時，訊息及你選擇的附件會傳送到所設定的模型服務。"</string>
+    <string name="ui2_online_notice" formatted="false">"使用線上模型時，訊息、附件和工具結果（如讀屏文字或截圖）可能傳送到所選的模型服務。"</string>
     <string name="ui2_overlay" formatted="false">"浮動條"</string>
     <string name="ui2_overlay_sub" formatted="false">"顯示內容、透明度與停留時間"</string>
     <string name="ui2_plugin_link" formatted="false">"儲存庫或下載連結"</string>
@@ -187,7 +187,6 @@
     <string name="ui_adb_code_label" formatted="false">"配對碼（6 位數字）"</string>
     <string name="ui_adb_host_label" formatted="false">"裝置位址（留空自動發現）"</string>
     <string name="ui_adb_port_label" formatted="false">"配對連接埠（留空自動發現）"</string>
-    <string name="ui_lan_unencrypted" formatted="false">"區域網路流量未加密，僅限可信網路與可信裝置"</string>
     <string name="ui_language_title" formatted="false">"語言 / Language"</string>
     <string name="ui_m0001" formatted="false">"下載更新"</string>
     <string name="ui_m0002" formatted="false">"儲存設定"</string>

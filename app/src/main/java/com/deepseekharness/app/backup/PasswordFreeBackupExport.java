@@ -3,7 +3,7 @@ package com.deepseekharness.app.backup;
 import java.io.*;
 import java.util.Map;
 
-/** A new readable export from a verified old copy; old ciphertext is always retained. */
+/** Repackages a verified copy for a new destination while preserving its source and actual scope. */
 public final class PasswordFreeBackupExport {
   public final File artifact;
   public final String sha256;
@@ -22,9 +22,27 @@ public final class PasswordFreeBackupExport {
       char[] originalPassword,
       BackupControl control)
       throws IOException {
+    return prepare(fs, source, operation, originalPassword, null, control);
+  }
+
+  static PasswordFreeBackupExport prepare(
+      BackupFileSystem fs,
+      VerifiedBackupCopy source,
+      File operation,
+      char[] originalPassword,
+      char[] exportPassword,
+      BackupControl control)
+      throws IOException {
+    if (exportPassword != null && !PortableBackupCrypto.validPassword(exportPassword))
+      throw new IOException("PASSWORD_LENGTH");
     source.verify(fs, control);
     File decrypted = fs.child(operation, "reexport-authenticated.dshdata"),
-        output = fs.child(operation, "reexport-plain.dshbak");
+        output = fs.child(operation, "reexport-plain.dshbak"),
+        protectedCopy = fs.child(operation, "reexport-protected.dshbak");
+    if (!fs.stat(decrypted).type.equals("MISSING")
+        || !fs.stat(output).type.equals("MISSING")
+        || !fs.stat(protectedCopy).type.equals("MISSING"))
+      throw new IOException("REEXPORT_STAGING_EXISTS");
     File input = source.artifact;
     IOException failed = null;
     try {
@@ -46,7 +64,7 @@ public final class PasswordFreeBackupExport {
       try (InputStream old =
               new java.security.DigestInputStream(fs.read(input, fs.stat(input)), checked);
           OutputStream fresh = fs.create(output)) {
-        manifest = BackupArchive.copyUnencrypted(old, fresh, control);
+        manifest = BackupArchive.copyWithProtection(old, fresh, control, exportPassword != null);
       }
       if (input.equals(source.artifact)
           && !source.sha256.equals(BackupArchive.hex(checked.digest())))
@@ -58,11 +76,19 @@ public final class PasswordFreeBackupExport {
       try (InputStream fresh = fs.read(output, fs.stat(output))) {
         hash = BackupArchive.digest(fresh, control);
       }
-      return new PasswordFreeBackupExport(output, hash, manifest);
+      if (exportPassword == null) return new PasswordFreeBackupExport(output, hash, manifest);
+      PortableBackupCrypto.encryptVerified(
+          fs, output, hash, protectedCopy, exportPassword, control);
+      fs.delete(output);
+      try (InputStream fresh = fs.read(protectedCopy, fs.stat(protectedCopy))) {
+        return new PasswordFreeBackupExport(
+            protectedCopy, BackupArchive.digest(fresh, control), manifest);
+      }
     } catch (IOException failure) {
       failed = failure;
       try {
         if (fs.stat(output).type.equals("FILE")) fs.delete(output);
+        if (fs.stat(protectedCopy).type.equals("FILE")) fs.delete(protectedCopy);
       } catch (IOException cleanup) {
         failure.addSuppressed(cleanup);
       }

@@ -4,7 +4,8 @@ import static org.junit.Assert.*;
 
 import android.app.LocaleManager;
 import android.content.Context;
-import android.view.View;
+import android.content.ContextWrapper;
+import android.content.res.Resources;
 import com.deepseekharness.app.core.ConfigStore;
 import com.deepseekharness.app.util.SystemLanguage;
 import com.deepseekharness.app.util.UiLanguagePreference;
@@ -48,29 +49,52 @@ public final class LanguageControllerTest {
   }
 
   @Test
-  public void everySupportedLocalLanguageUpdatesResourcesAndPlatformPreference() {
+  public void
+      everySupportedLocalLanguageUpdatesPlatformPreferenceWithoutWritingActivityResources() {
     var config = new ConfigStore(context);
     LocaleManager manager = context.getSystemService(LocaleManager.class);
+    var activity =
+        new ContextWrapper(context) {
+          @Override
+          public Resources getResources() {
+            throw new AssertionError("Only Android may update Activity resources on API 33+");
+          }
+        };
     for (String language : UiLanguagePreference.LANGUAGES) {
       config.setUiLanguage(language);
-      LanguageController.apply(context);
+      LanguageController.apply(activity);
       assertEquals(language, config.getUiLanguagePreference());
       assertEquals(language, UiText.language());
       assertEquals(language, manager.getApplicationLocales().toLanguageTags());
-      assertEquals(
-          language, context.getResources().getConfiguration().getLocales().get(0).toLanguageTag());
     }
   }
 
   @Test
-  public void localArabicSwitchesToRtlAndFrenchRestoresLtr() {
+  public void switchingArabicAndFrenchKeepsNativeUiDirectionInSync() {
     LanguageController.select(context, "ar");
-    assertEquals(
-        View.LAYOUT_DIRECTION_RTL, context.getResources().getConfiguration().getLayoutDirection());
+    assertTrue(UiText.isRtl());
     LanguageController.select(context, "fr");
-    assertEquals(
-        View.LAYOUT_DIRECTION_LTR, context.getResources().getConfiguration().getLayoutDirection());
+    assertFalse(UiText.isRtl());
     assertEquals("fr", UiText.language());
+  }
+
+  @Test
+  public void sameEffectiveLanguageStoresNewPreferenceWithoutReapplyingTheLocale() {
+    var config = new ConfigStore(context);
+    config.setUiLanguage("system");
+    LanguageController.apply(context);
+    var manager = context.getSystemService(LocaleManager.class);
+    assertEquals("ja", manager.getApplicationLocales().toLanguageTags());
+    var sameLanguage =
+        new ContextWrapper(context) {
+          @Override
+          public Context getApplicationContext() {
+            throw new AssertionError("A preference-only change should not reapply the locale");
+          }
+        };
+    LanguageController.select(sameLanguage, "ja");
+    assertEquals("ja", config.getUiLanguagePreference());
+    assertEquals("ja", UiText.language());
   }
 
   @Test

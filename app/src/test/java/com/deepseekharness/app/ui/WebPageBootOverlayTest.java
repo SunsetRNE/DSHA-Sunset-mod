@@ -90,13 +90,16 @@ public final class WebPageBootOverlayTest {
     retained.view = page;
     retained.owner = new java.lang.ref.WeakReference<>(browser);
     retained.pageSession.claim(ORIGINAL);
-    // 与 activity_web_preview 相同：网页容器与错误面板同在一个内层容器里。
+    // 与 activity_web_preview 相同：网页和错误面板共用内层容器，进度条在外层覆盖。
     layer = new FrameLayout(browser);
     container = new FrameLayout(browser);
     panel = new FrameLayout(browser);
     panel.setVisibility(View.GONE);
+    ProgressBar progress = new ProgressBar(browser);
     layer.addView(container);
-    layer.addView(panel);
+    layer.addView(progress);
+    container.addView(page);
+    container.addView(panel);
     browser.views.put(R.id.web_error_browser, new Button(browser));
     set("retained", retained);
     set("webView", page);
@@ -104,7 +107,7 @@ public final class WebPageBootOverlayTest {
     set("errorPanel", panel);
     set("errorTitle", new TextView(browser));
     set("errorDetail", new TextView(browser));
-    set("progress", new ProgressBar(browser));
+    set("progress", progress);
     set("container", container);
     set("baseUrl", "http://127.0.0.1:41821/");
     set("downloads", new WebDownloads(browser, null));
@@ -113,6 +116,7 @@ public final class WebPageBootOverlayTest {
   @After
   public void finish() {
     try {
+      container.removeView(page);
       page.destroy();
       idle();
     } finally {
@@ -121,7 +125,7 @@ public final class WebPageBootOverlayTest {
   }
 
   private View overlay() {
-    return layer.getChildCount() > 2 ? layer.getChildAt(layer.getChildCount() - 1) : null;
+    return container.getChildCount() > 2 ? container.getChildAt(2) : null;
   }
 
   private static boolean hasText(View view, String text) {
@@ -139,7 +143,8 @@ public final class WebPageBootOverlayTest {
     invoke("showPageBoot", new Class<?>[0]);
     View boot = overlay();
     assertNotNull(boot);
-    assertEquals("only one overlay above the page and error panel", 3, layer.getChildCount());
+    assertEquals("only one overlay above the page and error panel", 3, container.getChildCount());
+    assertSame(get("progress"), layer.getChildAt(1));
     assertEquals(
         BootPalette.fromWeb(0xFF141414, 0).background,
         ((ColorDrawable) boot.getBackground()).getColor());

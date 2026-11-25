@@ -147,10 +147,12 @@ const upstream = fs.statSync(input).isDirectory()
 const raw = fs.readFileSync(upstream, 'utf8');
 const currentDshVersion = JSON.parse(fs.readFileSync(new URL('runtime-patches.json', assets), 'utf8')).dshVersion;
 const recipe = JSON.parse(fs.readFileSync(new URL('permission-full-access-patch.json', assets), 'utf8'));
+let patched;
 await test('exact official client recipe applies once and parses without executing SDK', async () => {
   assert.equal(recipe.dshVersion, currentDshVersion);
   assert.equal(recipe.module, '@deepseek-ai/dsh-client-ui-permission-presets/lib/client.js');
-  let patched = raw;
+  assert.equal(crypto.createHash('sha256').update(raw).digest('hex'), recipe.sourceSha256);
+  patched = raw;
   for (const patch of recipe.patches) {
     assert.equal(patched.split(patch.before).length - 1, 1, patch.before.slice(0, 100));
     const after = patch.prependAsset ? fs.readFileSync(new URL(patch.prependAsset, assets), 'utf8') + '\n' + patch.after : patch.after;
@@ -159,7 +161,54 @@ await test('exact official client recipe applies once and parses without executi
   new vm.Script(patched);
   assert(patched.includes('createDshaPermissionSubmit(ctx, ctx.configForms.describe())'));
   assert(patched.includes('"data-dsha-permission-error": true'));
-  assert.equal(patched.includes('"preset.fullAccess": "完全权限"'), false);
+  assert.equal(patched.includes('"preset.fullAccess":`完全权限`'), false);
+});
+await test('reselecting current Full access requires a fresh acknowledgement before any mutation', async () => {
+  const exportPoint = 'exports.apply=apply;exports.inject=inject;';
+  assert.equal(patched.split(exportPoint).length - 1, 1);
+  const source = patched.replace(exportPoint, exportPoint + 'exports.PermissionSelect=PermissionSelect;');
+  const state = [];
+  let cursor = 0;
+  const renderElement = (type, props) => ({ type, props });
+  const primitives = { Menu: 'menu', RiskConfirmation: 'confirmation' };
+  const bindings = {
+    'react/jsx-runtime': { jsx: renderElement, jsxs: renderElement, Fragment: 'fragment' },
+    react: {
+      useEffect() {},
+      useState(initial) {
+        const index = cursor++;
+        if (!(index in state)) state[index] = initial;
+        return [state[index], value => { state[index] = value; }];
+      },
+    },
+    '@deepseek-ai/dsh-client-ui-primitives': primitives,
+    '@deepseek-ai/dsh-client-store': {},
+  };
+  let client;
+  const window = { __ModuleLoader__: { load({ factory }) { client = factory(name => bindings[name]); } } };
+  new vm.Script(source).runInNewContext({ window });
+  const submitted = [];
+  const render = locked => {
+    cursor = 0;
+    return client.PermissionSelect({
+      locked,
+      select: async id => { submitted.push(id); },
+      usePermissionCatalog: reader => reader({ value: { options: [{ value: FULL, name: 'Full access' }] } }),
+      useProjection: () => ({ currentValue: FULL }),
+      t: key => key,
+    }).props.children;
+  };
+  render(false)[0].props.onSelect(FULL);
+  let confirmation = render(false)[1];
+  assert.equal(confirmation.type, 'confirmation');
+  confirmation.props.onConfirm();
+  assert.deepEqual(submitted, []);
+  confirmation.props.onAcknowledgedChange(true);
+  confirmation = render(true)[1];
+  confirmation.props.onConfirm();
+  assert.deepEqual(submitted, []);
+  render(false)[1].props.onConfirm();
+  assert.deepEqual(submitted, [FULL]);
 });
 console.log(JSON.stringify({ scope: 'SOURCE_UNIT_COORDINATOR_CONTROLLED_REMOTE_CONTRACTS', sdkLoaded: false, browserLaunched: false, commandsExecuted: false, remoteProviderPersistenceTested: false, upstream: { path: upstream, sha256: crypto.createHash('sha256').update(raw).digest('hex'), bytes: Buffer.byteLength(raw) }, cases: results.length, passed: results.filter(row => row.status === 'PASS').length, results }, null, 2));
 if (results.some(row => row.status !== 'PASS')) process.exitCode = 1;

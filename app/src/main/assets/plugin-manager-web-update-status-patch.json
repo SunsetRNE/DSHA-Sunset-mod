@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-plugin-manager/lib/client.js",
+  "sourceSha256": "ec1e18683032730be2f97e76847fc1638e59f86df937af727e9b885991983064",
+  "targetSha256": "1def3074ac175cd87c3ddf5b112ad0dc57436211aedb927685191eff47852524",
+  "packageIntegrity": "sha512-XhwV/mz/3K8zK8OIN7Map8FeNSX/QnF4y/HcKKkfv0CvlabbpOVGgFI72oSNqlYhWdVuQx3xt+lbRFMjKje6tA==",
+  "patches": [
+    {
+      "before": "const available=checks.filter(check=>versionUpdate(check)!==void 0).length;if(available>0)return{text:t(`updatesAvailable`,{count:String(available)}),tone:`info`};if(checks.some(check=>check?.phase===`done`&&check.list.status===`refused`))return{text:t(`updatesFailed`),tone:`error`};return{text:t(`updatesNone`)}",
+      "after": "\n        // DSHA_PLUGIN_WEB_UPDATE_STATUS_V1: report failures even when another lookup found an update.\n        const available = checks.filter(check => versionUpdate(check) !== void 0).length;\n        const failed = checks.some(check => check?.phase === \"done\" && check.list.status === \"refused\");\n        if (available > 0) return {\n            text: t(\"updatesAvailable\", { count: String(available) }),\n            tone: \"info\",\n            warning: failed ? t(\"updatesFailed\") : null\n        };\n        if (failed) return { text: t(\"updatesFailed\"), tone: \"error\" };\n        return { text: t(\"updatesNone\") };\n        "
+    },
+    {
+      "before": "updates===void 0?null:(0,react_jsx_runtime.jsx)(`span`,{className:PluginManagerPage_module_css_default.updatesNote,\"data-tone\":updates.tone,children:updates.text})",
+      "after": "\n                    (0, react_jsx_runtime.jsx)(\"div\", {\n                        className: PluginManagerPage_module_css_default.updatesNote,\n                        role: \"status\",\n                        hidden: updates === void 0,\n                        children: updates === void 0 ? null : (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, {\n                            children: [\n                                (0, react_jsx_runtime.jsx)(\"span\", {\n                                    className: PluginManagerPage_module_css_default.updatesNote,\n                                    \"data-tone\": updates.tone,\n                                    children: updates.text\n                                }),\n                                updates.warning == null ? null : (0, react_jsx_runtime.jsx)(\"span\", {\n                                    className: PluginManagerPage_module_css_default.updatesNote,\n                                    \"data-tone\": \"error\",\n                                    style: { display: \"block\" },\n                                    children: updates.warning\n                                })\n                            ]\n                        })\n                    })"
+    },
+    {
+      "before": "if(result.restore===void 0)return{...error,title:t(`updateKept`,{version:update.to}),",
+      "after": "\n    if (result.result.error?.diagnostic?.startsWith(\"DSHA_PLUGIN_UPDATE_RESTORE_UNCONFIRMED\"))\n        return { ...error, title: t(\"updateLost\"), detail: reason(result.result) };\n    if(result.restore===void 0)return{...error,title:t(`updateKept`,{version:update.to}),"
+    }
+  ]
+}

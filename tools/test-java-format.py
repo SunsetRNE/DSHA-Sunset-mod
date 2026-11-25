@@ -104,8 +104,9 @@ class JavaFormatTests(unittest.TestCase):
             self.assertEqual(path.read_bytes(), before)
         with self.assertRaises(formatter.FormatError):
             formatter.checked_path(self.fixture / ".." / "Anything.java")
+        protected = self.source("Protected.java", b"class Protected {}\n")
         with self.assertRaises(formatter.FormatError):
-            formatter.checked_path(ROOT / LOCK["protectedFiles"][0], protected=LOCK["protectedFiles"])
+            formatter.checked_path(protected, protected=[protected.relative_to(ROOT).as_posix()])
         for name in LOCK["generatedFiles"]:
             with self.assertRaises(formatter.FormatError):
                 formatter.select_files([name], LOCK)

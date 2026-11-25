@@ -3,6 +3,8 @@ package com.deepseekharness.app.backup;
 import android.content.Context;
 import android.os.Environment;
 import com.deepseekharness.app.core.ConfigStore;
+import com.deepseekharness.app.util.FileKind;
+import com.deepseekharness.app.util.ProfileConfigPath;
 import java.io.*;
 import java.util.*;
 
@@ -23,10 +25,13 @@ public final class NativeDataLocations {
               ".dsha-restored-packages",
               ".dsha-restored-originals",
               ".dsha-plugin-restore.json"));
+  private static final String LEGACY_PRESETS = ".agent-presets";
+  private static final String OUTSIDE_SETTINGS = "OUTSIDE_SETTINGS_SCOPE";
+  private static final Set<String> LEGACY_PRESET_FILES = Set.of("preset.yml", "agent.cordis.yml");
 
   public static final class Selection {
     public String scope = "application";
-    public boolean includeApiKey;
+    public boolean includeApiKey, includeProviderCredentials;
     public String retainedKey = "";
     public final List<String> guestProjects = new ArrayList<>();
     public final List<BackupSource> documentProjects = new ArrayList<>();
@@ -92,6 +97,7 @@ public final class NativeDataLocations {
       if (!entry.scope.equals(selection.scope) || selection.includeApiKey)
         throw new IOException("RETAINED_SCOPE_CHANGED");
       result.sources.addAll(catalogue.sources(entry));
+      applyCredentialSelection(result, selection);
       result.possibleExistingData = true;
       result.notices.add("RETAINED_READ_ONLY_SOURCE");
       return result;
@@ -123,23 +129,37 @@ public final class NativeDataLocations {
             }
           }
           result.possibleExistingData = true;
-          for (String name : fs.list(actual.file)) {
-            control.check();
-            // 历史离线备份可能在 .dsh 留下明文 .dsha-apikey。
-            // v5 只允许通过 native-settings + includeApiKey 显式导出凭据；
-            // 不能把这个遗留文件当普通 settings 根绕过“默认不包含”。
-            if (name.equals(".dsha-apikey")) continue;
-            BackupLimits.path(name);
-            if (name.contains("/")) throw new IOException("DATA_NAME");
-            String scope = classify(name);
-            if (selection.scope.equals("application") || selection.scope.equals(scope))
-              add(
-                  result,
-                  id(name),
-                  scope,
-                  new File(data, name),
-                  "root/.dsh/" + name,
-                  DataRootPolicy.machine(name));
+          if (selection.scope.equals("settings")) {
+            for (String name :
+                List.of(
+                    "settings.yaml",
+                    "settings.yaml.imported",
+                    "cordis.patch.yml",
+                    LEGACY_PRESETS)) {
+              control.check();
+              addSelectedSetting(
+                  result, new File(data, name), new File(actual.file, name), name, false);
+            }
+            // Legacy models and current provider/plugin settings may live in different profiles.
+            addProfileSettings(result, data, actual.file);
+          } else {
+            for (String name : fs.list(actual.file)) {
+              control.check();
+              // 历史离线备份可能在 .dsh 留下明文 .dsha-apikey。
+              // v5 只允许通过 native-settings + includeApiKey 显式导出原生凭据。
+              if (name.equals(".dsha-apikey")) continue;
+              BackupLimits.path(name);
+              if (name.contains("/")) throw new IOException("DATA_NAME");
+              String scope = classify(name);
+              if (selection.scope.equals("application") || selection.scope.equals(scope))
+                add(
+                    result,
+                    id(name),
+                    scope,
+                    new File(data, name),
+                    "root/.dsh/" + name,
+                    DataRootPolicy.machine(name));
+            }
           }
         } else if (status.type.equals("MISSING")) discoverPublic(result, selection);
         else {
@@ -173,7 +193,7 @@ public final class NativeDataLocations {
       // dsh 0.1.7 imports the legacy settings.yaml into the active web
       // profile. Keep that profile layer in a settings-only archive so
       // an upgrade does not silently lose provider/model configuration.
-      addProfileSettings(result, selection, data);
+      if (selection.scope.equals("application")) addProfileSettings(result, data, null);
     }
     for (String project : selection.guestProjects) {
       String relative = project.startsWith("/") ? project.substring(1) : "root/" + project;
@@ -201,10 +221,21 @@ public final class NativeDataLocations {
           false,
           projectResolver);
     }
-    result.sources.addAll(selection.documentProjects);
+    for (BackupSource source : selection.documentProjects)
+      result.sources.add(
+          source instanceof SafBackupSource
+              ? ((SafBackupSource) source).copyForOperation()
+              : source);
     if (result.plugins != null) result.sources.addAll(result.plugins.sources);
+    applyCredentialSelection(result, selection);
     if (result.sources.isEmpty()) result.notices.add("NO_SELECTED_DATA");
     return result;
+  }
+
+  private static void applyCredentialSelection(Located result, Selection selection) {
+    result.sources.replaceAll(
+        source ->
+            CredentialFileBackupSource.forExport(source, selection.includeProviderCredentials));
   }
 
   private void discoverPublic(Located result, Selection selection) throws IOException {
@@ -215,6 +246,13 @@ public final class NativeDataLocations {
       if (!selection.scope.equals("application") && !selection.scope.equals(scope)) continue;
       File source = new File(publicData, name);
       try {
+        if (selection.scope.equals("settings")) {
+          if (addSelectedSetting(result, source, source, name, false)) {
+            result.possibleExistingData = true;
+            readable = true;
+          }
+          continue;
+        }
         BackupFileSystem.Node node = fs.stat(source);
         if (!node.type.equals("MISSING")) {
           result.possibleExistingData = true;
@@ -235,25 +273,36 @@ public final class NativeDataLocations {
     }
   }
 
-  private void addProfileSettings(Located result, Selection selection, File data)
-      throws IOException {
-    File profiles = new File(data, "profiles");
-    if (fs.stat(profiles).type.equals("MISSING")) return;
-    List<String> names = fs.list(resolver.resolve(profiles).file);
+  private void addProfileSettings(Located result, File data, File selectedHome) throws IOException {
+    boolean settingsOnly = selectedHome != null;
+    File profiles = new File(settingsOnly ? selectedHome : data, "profiles");
+    FileKind kind = fs.stat(profiles).kind;
+    if (kind == FileKind.MISSING || (settingsOnly && kind != FileKind.DIRECTORY)) return;
+    File actual = resolver.resolve(profiles).file;
+    if (settingsOnly && !actual.equals(profiles)) return;
+    List<String> names = fs.list(actual);
     if (names.size() > 512) throw new IOException("PROFILE_LIMIT");
     for (String profileName : names) {
-      if (!com.deepseekharness.app.util.ProfileConfigPath.profile(profileName)) {
+      // DSH reserves this sibling for shared dependencies; it cannot be a profile name.
+      if (settingsOnly && profileName.equals("node_modules")) continue;
+      if (!ProfileConfigPath.profile(profileName)) {
         result.notices.add("PROFILE_NAME_REQUIRES_REVIEW");
         continue;
       }
       File profile = new File(profiles, profileName);
+      if (settingsOnly && fs.stat(profile).kind != FileKind.DIRECTORY) continue;
       for (String name : new String[] {"package.json", "cordis.patch.yml"}) {
         File source = new File(profile, name);
-        if (!fs.stat(source).type.equals("FILE")) continue;
         String relative = "profiles/" + profileName + "/" + name;
+        if (settingsOnly) {
+          addSelectedSetting(result, new File(data, relative), source, relative, true);
+          continue;
+        }
+        if (!fs.stat(source).type.equals("FILE")) continue;
         String id = "profile-config-" + hash(relative);
         result.guestTargets.put(id, "root/.dsh/" + relative);
         File resolved = resolver.resolve(source).file;
+        if (CredentialFileBackupSource.providerName(resolved.getName())) continue;
         result.sources.add(
             new FileBackupSource(fs, id, "settings", resolved, false, (path, node) -> "") {
               @Override
@@ -266,6 +315,79 @@ public final class NativeDataLocations {
             });
       }
     }
+  }
+
+  /** Settings exports carry configuration declarations; the legacy classifier still maps imports. */
+  private boolean addSelectedSetting(
+      Located result, File origin, File source, String name, boolean profile) throws IOException {
+    boolean legacyPresets = name.equals(LEGACY_PRESETS);
+    if (fs.stat(source).kind != selectedSettingKind("", legacyPresets)) return false;
+    GuestDataResolver.Resolved resolved = resolver.resolve(origin);
+    if (!resolved.file.equals(source)) throw new IOException("DATA_LOCATION_CHANGED");
+    String id = profile ? "profile-config-" + hash(name) : id(name);
+    FileBackupSource.Policy policy =
+        new FileBackupSource.Policy() {
+          @Override
+          public String before(String path) {
+            return selectedSettingKind(path, legacyPresets) == null ? OUTSIDE_SETTINGS : "";
+          }
+
+          @Override
+          public String exclusion(String path, BackupFileSystem.Node node) throws IOException {
+            if (node.kind != selectedSettingKind(path, legacyPresets)) return OUTSIDE_SETTINGS;
+            if (legacyPresets && !path.isEmpty() && node.kind == FileKind.DIRECTORY) {
+              for (String file : LEGACY_PRESET_FILES)
+                if (fs.stat(fs.child(source, path + "/" + file)).kind == FileKind.FILE) return "";
+              return OUTSIDE_SETTINGS;
+            }
+            return "";
+          }
+        };
+    result.guestTargets.put(id, "root/.dsh/" + name);
+    result.sources.add(
+        new FileBackupSource(
+            fs,
+            id,
+            "settings",
+            source,
+            !profile && !GuestDataResolver.within(rootfs, source),
+            policy) {
+          @Override
+          public Map<String, Object> description() {
+            Map<String, Object> value = super.description();
+            value.put("logicalKind", profile ? "dsh-profile-config" : "dsh-child");
+            value.put("name", name);
+            return value;
+          }
+
+          @Override
+          protected File locate(String path) throws IOException {
+            GuestDataResolver.Resolved now = resolver.resolve(origin);
+            if (!now.file.equals(source) || !now.proof.equals(resolved.proof))
+              throw new IOException("DATA_LOCATION_CHANGED");
+            return super.locate(path);
+          }
+
+          @Override
+          public void walk(Visit visitor, BackupControl control) throws IOException {
+            super.walk(
+                item -> {
+                  if (!item.reason.equals(OUTSIDE_SETTINGS)) visitor.item(item);
+                },
+                control);
+          }
+        });
+    return true;
+  }
+
+  private static FileKind selectedSettingKind(String path, boolean legacyPresets) {
+    if (path.isEmpty()) return legacyPresets ? FileKind.DIRECTORY : FileKind.FILE;
+    if (!legacyPresets) return null;
+    String[] parts = path.split("/", -1);
+    if (!ProfileConfigPath.profile(parts[0])) return null;
+    if (parts.length == 1) return FileKind.DIRECTORY;
+    if (parts.length == 2 && LEGACY_PRESET_FILES.contains(parts[1])) return FileKind.FILE;
+    return null;
   }
 
   private void add(
@@ -326,15 +448,13 @@ public final class NativeDataLocations {
               return super.locate(relative);
             }
           };
-      result.sources.add(
-          !scope.equals("projects") && new File(guest).getName().equals(CredentialProjection.FILE)
-              ? new CredentialFileBackupSource(source)
-              : source);
+      result.sources.add(source);
     } catch (IOException error) {
       result.sources.add(new UnavailableBackupSource(id, scope, "DATA_LOCATION_UNREADABLE", false));
     }
   }
 
+  /** Historic root mapping for reading existing archives and the full application export. */
   public static String classify(String name) {
     return SESSION_NAMES.contains(name)
         ? "sessions"

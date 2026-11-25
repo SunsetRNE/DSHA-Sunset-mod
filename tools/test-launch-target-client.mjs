@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // dsh-launch-target 网页端：设置导航里有独立「启动目标」面板，插件详情卡片保留，
-// 两处共用同一组件、同一路由；文案说明禁用插件不改变启动目标。不连接设备或桥。
+// 两处共用同一组件、同一路由；本机主页动作有十种语言。不连接设备或桥。
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -62,10 +62,14 @@ const children = tree.props.children;
 assert.ok(children.some((c) => c && c.type === mod.LaunchTargetCard), '面板复用 LaunchTargetCard');
 
 // 中英文案齐全，说明禁用插件不改变启动目标。
-const { zh, en } = dictionaries['dsha.launchTarget'];
+const localized = dictionaries['dsha.launchTarget'];
+const { zh, en } = localized;
 assert.deepEqual(Object.keys(zh).sort(), Object.keys(en).sort());
-assert.match(zh.pluginNote, /不需要禁用插件/);
-assert.match(en.pluginNote, /do not need to disable/);
+assert.match(zh.pluginNote, /启动目标保持不变/);
+assert.match(en.pluginNote, /keeps the selected launch target/);
+assert.deepEqual(Object.keys(localized).sort(), ['ar', 'en', 'fr', 'ja', 'ko', 'la', 'pt', 'ru', 'zh', 'zh-Hant']);
+assert.equal(new Set(Object.values(localized).map((dict) => dict.returnHome)).size, 10);
+for (const dict of Object.values(localized)) assert.match(dict.returnHome, /DSHA/);
 assert.ok(source.includes("const ROUTE = '/api/dsha-launch-target'"));
 
 // settings.section 由设置底座声明，客户端须注入它。

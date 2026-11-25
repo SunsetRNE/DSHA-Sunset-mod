@@ -158,7 +158,7 @@ class DownloadEngine private constructor(private val context: Context) {
             throw IOException("FILE_LIMIT_5GB")
         val id = UUID.randomUUID().toString()
         val dir = ensureTaskDir(id)
-        if (root.usableSpace < TransferProtocol.requiredSpace(size, 0, true))
+        if (root.usableSpace < TransferProtocol.requiredSpace(size, 0, destination != "saveas"))
             throw IOException("FILE_SPACE_INSUFFICIENT")
         val partial = File(dir, "partial")
         val integrity =
@@ -300,19 +300,60 @@ class DownloadEngine private constructor(private val context: Context) {
                 saveReleasesRequired()
                 flushReleases()
             }
-            cleanupPending(record)
-            val partial = partial(record)
-            if (TransferFiles.FS.stat(partial).type != "MISSING") TransferFiles.FS.delete(partial)
-            val staged = File(taskDir(id), "share-pending")
-            if (TransferFiles.FS.stat(staged).type != "MISSING") TransferFiles.FS.delete(staged)
-            for (suffix in listOf("", ".previous")) {
-                val file = File(taskDir(id), "task.json$suffix")
-                if (TransferFiles.FS.stat(file).type != "MISSING") TransferFiles.FS.delete(file)
-            }
-            records.remove(id)
-            taskDir(id).delete()
+            removeRecord(record)
             emit()
         }
+    }
+
+    /**
+     * Only remove confirmed, terminal records. Persist their release intents before any deletion.
+     */
+    @Throws(Exception::class)
+    fun removeFinished(ids: List<String>): Int {
+        val confirmed =
+            synchronized(gate) {
+                val selected =
+                    ids.distinct().mapNotNull(records::get).filter {
+                        it.id != activeId &&
+                            (it.status == Status.COMPLETE || it.status == Status.CANCELLED)
+                    }
+                if (selected.any { !it.local }) {
+                    for (record in selected) if (!record.local)
+                        pendingReleases.add(record.artifact.id)
+                    saveReleasesRequired()
+                    flushReleases()
+                }
+                selected
+            }
+        var removed = 0
+        for (record in confirmed) {
+            synchronized(gate) {
+                // COMPLETE and CANCELLED cannot resume. Another caller may already have removed it.
+                if (records[record.id] === record) {
+                    try {
+                        removeRecord(record)
+                        removed++
+                    } catch (failure: Exception) {
+                        // One inaccessible record must not prevent cleanup of the other confirmed
+                        // IDs.
+                    }
+                }
+            }
+        }
+        if (removed != 0) emit()
+        return removed
+    }
+
+    private fun removeRecord(record: Record) {
+        cleanupPending(record)
+        val dir = taskDir(record.id)
+        // Keep published destinations, including the file backing a completed share URI.
+        for (name in listOf("partial", "share-pending", "task.json.previous", "task.json")) {
+            val file = File(dir, name)
+            if (TransferFiles.FS.stat(file).type != "MISSING") TransferFiles.FS.delete(file)
+        }
+        records.remove(record.id)
+        dir.delete()
     }
 
     @Throws(Exception::class)
@@ -405,6 +446,8 @@ class DownloadEngine private constructor(private val context: Context) {
                     ) {
                         record.status = Status.FAILED
                         record.message = safeError(error)
+                    } else if (SelectedDocumentSave.retained(error.message)) {
+                        record.message = error.message
                     }
                     record.speed = 0
                     try {
@@ -431,7 +474,14 @@ class DownloadEngine private constructor(private val context: Context) {
         cleanupPending(record)
         val offset = TransferFiles.size(partial)
         if (offset > record.artifact.bytes) throw IOException("FILE_PARTIAL_INVALID")
-        if (root.usableSpace < TransferProtocol.requiredSpace(record.artifact.bytes, offset, true))
+        if (
+            root.usableSpace <
+                TransferProtocol.requiredSpace(
+                    record.artifact.bytes,
+                    offset,
+                    record.destination != "saveas",
+                )
+        )
             throw IOException("FILE_SPACE_INSUFFICIENT")
         if (offset < record.artifact.bytes) {
             if (record.local) throw IOException("FILE_LOCAL_COPY_MISSING")
@@ -1014,6 +1064,7 @@ class DownloadEngine private constructor(private val context: Context) {
 
         @JvmStatic
         private fun safeError(error: Exception): String {
+            if (SelectedDocumentSave.retained(error.message)) return error.message!!
             var cause: Throwable? = error
             while (cause != null) {
                 if (

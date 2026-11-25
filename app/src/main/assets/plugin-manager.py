@@ -3,6 +3,10 @@
 """DSHA 插件包导入/导出/链接安装。末行 PLUGIN_RESULT JSON 是唯一操作结果。
 仅安装声明 dsh.bundle.patch 的发布包；0.2.0-rc2 按用户请求允许依赖生命周期脚本。
 """
+import time
+
+_MANAGER_STARTED = time.monotonic_ns()
+
 import importlib.util
 import hashlib
 import json
@@ -16,7 +20,6 @@ import signal
 import sys
 import tempfile
 import threading
-import time
 import urllib.error
 import urllib.parse
 
@@ -27,6 +30,7 @@ spec.loader.exec_module(builtin)
 local = builtin.local
 DSH_HOME = builtin.DSH_HOME
 READ_ONLY = os.environ.get("DSHA_PLUGIN_QUERY") == "1"
+QUERY_TIMING = READ_ONLY and os.environ.get('DSHA_PLUGIN_QUERY_TIMING') == '1'
 PLUGIN_SRC = os.path.join(DSH_HOME, "plugin-src")
 SOURCES = os.path.join(DSH_HOME, "plugin-sources.json")
 MAX_DOWNLOAD = 256 * 1024 * 1024
@@ -36,6 +40,7 @@ MAX_FILES = 50000
 _lifecycle = None
 _last_progress = 0
 _progress_lock = threading.RLock()
+_query_cancel_after = 0
 
 
 class PluginCancelled(Exception):
@@ -117,7 +122,14 @@ def task_file(suffix):
     return local('/root/.dsha-plugin-task-' + key + suffix) if re.fullmatch('[a-f0-9]{32}', key) else ''
 
 
-def check_cancel():
+def check_cancel(*, force=False):
+    global _query_cancel_after
+    if READ_ONLY and not force:
+        now = time.monotonic_ns()
+        if now < _query_cancel_after:
+            return
+        # PRoot translates every path lookup, even on the same absent marker.
+        _query_cancel_after = now + 25_000_000
     path = task_file('.cancel')
     if path and os.path.exists(path):
         raise PluginCancelled('已取消；尚未提交的插件数据已清理')
@@ -211,11 +223,11 @@ def _package_group_identity(process):
         return None
 
 
-def _stop_package_process(process, identity, *, grace=3):
+def _stop_package_process(process, identity, *, grace=3, direct_child=False):
     # Windows Popen terminates its owned handle. POSIX group signals require captured
     # birth/session identity; unreadable/changed identity never falls back to bare PID.
     if process.poll() is None:
-        if os.name == 'nt':
+        if os.name == 'nt' or direct_child:
             process.terminate()
         elif identity and _package_group_identity(process) == identity:
             try: os.killpg(process.pid, signal.SIGTERM)
@@ -227,7 +239,7 @@ def _stop_package_process(process, identity, *, grace=3):
         return True
     except subprocess.TimeoutExpired:
         if process.poll() is None:
-            if os.name == 'nt':
+            if os.name == 'nt' or direct_child:
                 process.kill()
             elif identity and _package_group_identity(process) == identity:
                 try: os.killpg(process.pid, signal.SIGKILL)
@@ -535,11 +547,12 @@ def plugin_card_metadata(directory):
         flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0) | getattr(os, 'O_BINARY', 0)
         with os.fdopen(os.open(path, flags), 'rb') as stream:
             opened = os.fstat(stream.fileno())
-            identity = lambda node: (node.st_dev, node.st_ino, node.st_mode, node.st_size, node.st_mtime_ns, node.st_ctime_ns)
-            if identity(before) != identity(opened):
+            pinned = lambda node: (node.st_dev, node.st_ino, node.st_mode, node.st_size, node.st_mtime_ns)
+            identity = lambda node: (*pinned(node), node.st_ctime_ns)
+            if pinned(before) != pinned(opened) or (os.name != 'nt' and before.st_ctime_ns != opened.st_ctime_ns):
                 raise ValueError('PLUGIN_METADATA_CHANGED')
             data = stream.read(1024 * 1024 + 1)
-            if len(data) > 1024 * 1024 or identity(before) != identity(os.fstat(stream.fileno())) \
+            if len(data) > 1024 * 1024 or identity(opened) != identity(os.fstat(stream.fileno())) \
                     or identity(before) != identity(os.lstat(path)):
                 raise ValueError('PLUGIN_METADATA_CHANGED')
         package = json.loads(data.decode('utf-8-sig'))
@@ -1117,8 +1130,25 @@ const { createRequire } = require('node:module');
 const { pathToFileURL } = require('node:url');
 const { createHash } = require('node:crypto');
 const input = fs.readFileSync(0, 'utf8');
-if (Buffer.byteLength(input) > 12 * 1024 * 1024) process.exit(2);
-const request = JSON.parse(input);
+const split = input.indexOf('\n');
+if (split !== -1) {
+  const compatibilityInput = input.slice(0, split);
+  let report = 'null';
+  if (Buffer.byteLength(compatibilityInput) <= 8 * 1024 * 1024) try {
+    const check = require(process.argv[1]).dshaCompatibilityReports;
+    const result = JSON.stringify(check(JSON.parse(compatibilityInput)));
+    if (Buffer.byteLength(result) <= 8 * 1024 * 1024) report = result;
+  } catch { /* Missing or invalid compatibility inputs are independent of YAML. */ }
+  fs.writeFileSync(1, report + '\n');
+}
+const entryInput = input.slice(split + 1);
+if (Buffer.byteLength(entryInput) > 12 * 1024 * 1024) process.exit(2);
+const request = JSON.parse(entryInput);
+function writeEntry(result) {
+  const output = JSON.stringify(result);
+  if (Buffer.byteLength(output) > 1024 * 1024) process.exit(2);
+  fs.writeFileSync(1, output);
+}
 if (!Array.isArray(request.bundles) || request.bundles.length > 512) process.exit(2);
 let yaml, schema;
 try {
@@ -1128,7 +1158,7 @@ try {
   schema = yaml.JSON_SCHEMA.extend(new yaml.Type('tag:yaml.org,2002:js', {
     kind: 'scalar', construct: () => Object.freeze({ expression: true }),
   }));
-} catch { process.stdout.write(JSON.stringify({ error: 'ENTRY_READER_UNAVAILABLE' })); process.exit(0); }
+} catch { writeEntry({ error: 'ENTRY_READER_UNAVAILABLE' }); process.exit(0); }
 let remaining = 32768, entryCount = 0;
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
 function parse(source) {
@@ -1235,9 +1265,7 @@ for (const result of rows) {
     entry.patchDisabled = null; entry.patchReason = result.entryReadError;
   }
 }
-const output = JSON.stringify({ items: rows });
-if (Buffer.byteLength(output) > 1024 * 1024) process.exit(2);
-process.stdout.write(output);
+writeEntry({ items: rows });
 '''
 
 
@@ -1251,8 +1279,9 @@ def _entry_file(path, observations, *, root=None, optional=False, decode=True):
     real = os.path.realpath(path)
     if root is not None and os.path.commonpath([root, real]) != root:
         raise ValueError('ENTRY_PATCH_PATH')
+    flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0)
     try:
-        fd = os.open(real, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0))
+        fd = os.open(real, flags)
     except FileNotFoundError:
         if optional and not os.path.lexists(path):
             observations.append((path, None, None)); return '[]'
@@ -1262,15 +1291,20 @@ def _entry_file(path, observations, *, root=None, optional=False, decode=True):
         if not stat.S_ISREG(before.st_mode) or before.st_size > 1024 * 1024:
             raise ValueError('ENTRY_INPUT_LIMIT')
         # Linux 上读字节前核验实际已打开目标，父链接被换成包外时不读取其内容。
-        descriptor = '/proc/self/fd/' + str(stream.fileno())
-        if root is not None and os.path.isdir('/proc/self/fd') \
-                and os.path.commonpath([root, os.path.realpath(descriptor)]) != root:
-            raise ValueError('ENTRY_PATCH_PATH')
+        if root is not None:
+            descriptor = '/proc/self/fd/' + str(stream.fileno())
+            try:
+                same_path = os.readlink(descriptor) == real
+            except OSError:
+                same_path = False
+            if not same_path and os.path.isdir('/proc/self/fd') \
+                    and os.path.commonpath([root, os.path.realpath(descriptor)]) != root:
+                raise ValueError('ENTRY_PATCH_PATH')
         data = stream.read(1024 * 1024 + 1)
         after = os.fstat(stream.fileno())
     identity = lambda node: (node.st_dev, node.st_ino, node.st_mode, node.st_size, node.st_mtime_ns, node.st_ctime_ns)
     if len(data) > 1024 * 1024 or identity(before) != identity(after) or os.path.realpath(path) != real \
-            or identity(after) != identity(os.stat(real)):
+            or identity(after) != identity(builtin.opened_path_stat(real, flags)):
         raise EntrySnapshotChanged('插件状态在列表读取期间变化；保留上次列表，请刷新重试')
     observations.append((path, real, (identity(after), hashlib.sha256(data).hexdigest())))
     return data.decode('utf-8-sig') if decode else data
@@ -1292,37 +1326,94 @@ def _verify_entry_files(observations):
 
 
 def _entry_read_node(request):
-    """一次固定 Node 子进程；有界输入/输出、协作取消，不继承任意插件 preload。"""
+    """Run one fixed reader with separate bounds for compatibility and YAML."""
+    request = dict(request)
+    compatibility = request.pop('compatibility', None)
     payload = json.dumps(request, ensure_ascii=True).encode()
+    # Large inputs retain their original independent heap and wire limits.
+    if compatibility is None or len(compatibility) + len(payload) <= 2 * 1024 * 1024:
+        return _run_entry_reader(payload, compatibility)
+    reports = lifecycle().read_compatibility_node(compatibility)
+    try:
+        entries = _run_entry_reader(payload)
+    except OSError:
+        entries = {'error': 'ENTRY_READER_UNAVAILABLE'}
+    entries['compatibilityReports'] = reports
+    return entries
+
+
+def _run_entry_reader(payload, compatibility=None):
+    check_cancel()
     if len(payload) > 12 * 1024 * 1024:
         return {'error': 'ENTRY_INPUT_LIMIT'}
+    output_limit = 1024 * 1024
+    compatibility_limit = 8 * 1024 * 1024
+    waiting_compatibility = compatibility is not None
     environment = dict(os.environ)
     for key in ('NODE_OPTIONS', 'NODE_PATH'):
         environment.pop(key, None)
     with tempfile.TemporaryFile() as source, tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as errors:
+        if waiting_compatibility:
+            source.write(compatibility.encode('ascii') + b'\n')
         source.write(payload); source.seek(0)
-        process = subprocess.Popen(['node', '--max-old-space-size=96', '-e', _ENTRY_READER],
+        semver = os.path.abspath(os.path.join(os.path.dirname(__file__), 'plugin-semver.cjs'))
+        # A read-only query belongs to one bounded Android guest session. Its fixed
+        # Node child inherits that session, so host timeout can reap every process.
+        direct_child = READ_ONLY
+        process = subprocess.Popen(['node', '--max-old-space-size=96', '-e', _ENTRY_READER, semver],
                                    stdin=source, stdout=output, stderr=errors, env=environment,
-                                   start_new_session=os.name != 'nt')
-        identity = _package_group_identity(process)
-        deadline = time.monotonic() + 10
+                                   start_new_session=os.name != 'nt' and not direct_child)
+        identity = None if direct_child else _package_group_identity(process)
+        deadline = time.monotonic() + (15 if waiting_compatibility else 10)
+        max_output = output_limit + (compatibility_limit + 1 if waiting_compatibility else 0)
+        timed_out = False
         try:
             while process.poll() is None:
                 check_cancel()
-                if time.monotonic() >= deadline or output.tell() > 1024 * 1024 or errors.tell() > 65536:
+                now = time.monotonic()
+                size = output.tell()
+                if now >= deadline or size > max_output or errors.tell() > 65536:
                     raise TimeoutError('ENTRY_READER_TIMEOUT')
+                # The child publishes its first frame only after compatibility settles.
+                if waiting_compatibility and size:
+                    waiting_compatibility = False
+                    deadline = now + 10
                 time.sleep(.02)
-        except BaseException:
-            if not _stop_package_process(process, identity, grace=1):
-                raise PackageCommandUnknown('只读插件解析进程退出未确认，保留环境占用')
-            raise
-        if process.returncode or output.tell() > 1024 * 1024:
-            return {'error': 'ENTRY_READER_UNAVAILABLE'}
+        except BaseException as error:
+            if not _stop_package_process(process, identity, grace=1, direct_child=direct_child):
+                raise PackageCommandUnknown('只读插件解析进程退出未确认，保留环境占用') from error
+            if not isinstance(error, TimeoutError):
+                raise
+            timed_out = True
+        check_cancel()
+        complete = not timed_out and not process.returncode and output.tell() <= max_output
         output.seek(0)
-        return json.loads(output.read(1024 * 1024 + 1))
+        reports = None
+        if compatibility is not None:
+            frame = output.readline(compatibility_limit + 1)
+            if not frame.endswith(b'\n'):
+                # The shared child exited before reaching YAML. A separate entry
+                # read preserves the original result, after exact exit is known.
+                return _run_entry_reader(payload)
+            try:
+                reports = json.loads(frame)
+            except (ValueError, UnicodeError):
+                reports = None
+        entries = {'error': 'ENTRY_READER_UNAVAILABLE'}
+        if complete:
+            data = output.read(output_limit + 1)
+            if len(data) <= output_limit:
+                try:
+                    parsed = json.loads(data)
+                    if isinstance(parsed, dict):
+                        entries = parsed
+                except (ValueError, UnicodeError):
+                    pass
+        entries['compatibilityReports'] = reports
+        return entries
 
 
-def _read_entry_projection(candidates):
+def _read_entry_projection(candidates, compatibility=None, node_timings=None):
     observations = []
     profile = os.path.join(local(builtin.PROFILE), 'cordis.patch.yml')
     try:
@@ -1380,10 +1471,15 @@ def _read_entry_projection(candidates):
             row['error'] = str(error) if str(error) in ('ENTRY_ENTITY_MISSING', 'ENTRY_PATCH_DECLARATION', 'ENTRY_PATCH_PATH', 'ENTRY_INPUT_LIMIT') else 'ENTRY_INPUT_UNREADABLE'
         revisions[name] = hashlib.sha256(json.dumps(profile_observations + observations[before:], ensure_ascii=True, separators=(',', ':')).encode()).hexdigest()
         request['bundles'].append(row)
+    reports = None
+    if compatibility is not None:
+        request['compatibility'] = compatibility
+    node_started = time.monotonic_ns() if node_timings is not None else None
     try:
         parsed = _entry_read_node(request)
         if not isinstance(parsed, dict):
             raise ValueError('ENTRY_READER_INVALID')
+        reports = parsed.get('compatibilityReports')
         failure = parsed.get('error', '')
         rows = parsed.get('items', [])
         if failure not in ('', 'ENTRY_READER_UNAVAILABLE', 'ENTRY_INPUT_LIMIT') or not isinstance(rows, list) \
@@ -1415,14 +1511,16 @@ def _read_entry_projection(candidates):
             raise ValueError('ENTRY_READER_INVALID')
     except (OSError, ValueError, TypeError, KeyError, TimeoutError):
         failure, projected = 'ENTRY_READER_UNAVAILABLE', {}
-    _verify_entry_files(observations)
+    finally:
+        if node_timings is not None:
+            node_timings.append(time.monotonic_ns() - node_started)
     result = {}
     sources = {row['name']: row for row in request['bundles']}
     for name, _, _ in candidates:
         row = projected.get(name, {})
         result[name] = dict(entries=row.get('entries', []), entryReadError=sources.get(name, {}).get('error') or failure or row.get('entryReadError', 'ENTRY_INPUT_LIMIT'),
                             patchRevision=revisions.get(name, ''))
-    return result
+    return result, reports, observations
 
 
 def _native_marker(name):
@@ -1523,7 +1621,9 @@ def list_state_revision():
 
 
 def cmd_list(message="插件状态已同步"):
+    started = time.monotonic_ns()
     revision = list_state_revision()
+    initial_revision = time.monotonic_ns()
     provenance = builtin.ProvenancePass(check_cancel)
     doc = builtin.read_manifest() or {}
     bundles = doc.get("dsh", {}).get("profile", {}).get("bundles", [])
@@ -1532,6 +1632,7 @@ def cmd_list(message="插件状态已同步"):
     if not isinstance(sources, dict):
         sources = {}
     discovered = builtin.discover_plugins(provenance=provenance)
+    discovered_at = time.monotonic_ns()
     system_names = set(builtin.builtin_names())
     disabled_names = []
     modules = local(builtin.NODE_MODULES)
@@ -1606,7 +1707,15 @@ def cmd_list(message="插件状态已同步"):
                          updatePreviewId=update.get('previewId', ''), updateMessage=update.get('message', '')
                          if update.get('installedVersion') == str(pkg.get('version', '')) else '',
                          rollbackVersion=previous.get('version', ''), compatibility=update.get('compatibility', ''))
-    reports = lifecycle().compatibility_reports(compatibility_candidates) if compatibility_candidates else []
+    cards_at = time.monotonic_ns()
+    projection, entry_observations = {}, []
+    node_timings = [] if QUERY_TIMING else None
+    def read_list_reports(compatibility):
+        nonlocal projection, entry_observations
+        projection, reports, entry_observations = _read_entry_projection(entry_candidates, compatibility, node_timings)
+        return reports
+    reports = lifecycle().compatibility_reports(compatibility_candidates, read_list_reports) if compatibility_candidates else []
+    parsed_at = time.monotonic_ns()
     for item, report in zip(items, reports):
         item.update(compatibilityState=report['compatibility'], currentCompatibilityMessage=report['compatibilityMessage'],
                     versionExempted=report['versionExempted'], compatibilityCode=report['compatibilityCode'],
@@ -1623,11 +1732,20 @@ def cmd_list(message="插件状态已同步"):
                 if stream.read() == 'DSHA_REVIEW_REQUIRED\n':
                     item['loadState'] = 'review-required'
     pending, unreadable = lifecycle().pending_previews()
-    projection = _read_entry_projection(entry_candidates)
+    _verify_entry_files(entry_observations)
     for item in items:
         item.update(projection[item['name']])
     if list_state_revision() != revision:
         raise EntrySnapshotChanged('插件状态在列表读取期间变化；保留上次列表，请刷新重试')
+    if READ_ONLY:
+        check_cancel(force=True)
+    if QUERY_TIMING:
+        phases = [('bootMs', started - _MANAGER_STARTED), ('revisionMs', initial_revision - started),
+                  ('discoveryMs', discovered_at - initial_revision), ('cardsMs', cards_at - discovered_at),
+                  ('parseMs', parsed_at - cards_at), ('nodeMs', sum(node_timings)),
+                  ('recheckMs', time.monotonic_ns() - parsed_at)]
+        print('PLUGIN_QUERY_GUEST_TIMING: ' + ' '.join('%s=%d' % (name, nanos // 1_000_000)
+                                                     for name, nanos in phases))
     result("ok", message, items=items, safeMode=bool(mode.get('active')), pendingReviews=pending, unreadableReviews=unreadable)
     return 0
 

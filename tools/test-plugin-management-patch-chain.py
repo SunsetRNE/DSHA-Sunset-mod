@@ -28,14 +28,19 @@ OLD_MODULE_SHA = '8043321a15a77b0559a03165b253bf366ea04abc4397a808828d083e9c5d87
 PRE_WORKER_SHA = '1eb661c0f36bcc5dcf47570f0c09ae26215bcf449031f218bc32bf6dc98a3d85'
 # Canonical-dependent: the earlier value above was derived on 0.2.1-rc.5. Pin the
 # current generation separately instead of asserting one hash across generations.
-CURRENT_PRE_WORKER_SHA = '69ec30f2e69553b2ee3010af80d9d4887b90812588af7abbf8b13f2a1a3aa0ba'
+CURRENT_PRE_WORKER_SHA = '3d7bdd6164c54c21ce2c0710238722a10411672367284415696fe9c359eb52e0'
 # Retained 0.2.1-rc.5 generation: canonical module + that generation's recipe set,
 # so the historical V1 negative control runs on real bytes instead of being skipped.
 HISTORICAL_VERSION = '0.2.1-rc.5'
 HISTORICAL_CANONICAL_SHA = '1b8bf9eb266d7b3b7f899175e3f435c89ed8baa8aabc677212759f8c6cd23132'
 DEFAULT_HISTORICAL_ROOT = ROOT / 'tools/fixtures/plugin-management-rc5-historical'
 MANAGER = '@deepseek-ai/dsh-plugin-manager/lib/index.js'
+SHELL_MANAGER = 'plugin-manager-shell-integrations-patch.json'
+SHELL_INVENTORY = 'plugin-inventory-shell-integrations-patch.json'
+WEB_UPDATE_ROLLBACK = 'plugin-manager-web-update-rollback-patch.json'
 NEW_RECIPES = {WORKER, 'plugin-inventory-management-patch.json',
+               SHELL_MANAGER, SHELL_INVENTORY, WEB_UPDATE_ROLLBACK,
+               'plugin-manager-web-update-status-patch.json',
                'plugin-manager-management-probe-patch.json',
                'plugin-inventory-management-host-codec-patch.json',
                'plugin-inventory-management-remote-codec-patch.json',
@@ -150,8 +155,10 @@ def main():
     source = args.source_root.resolve()
     assets = source / 'app/src/main/assets'
     chains, _ = runtime_stable_patches.load_chains(assets, json.loads((source / 'tools/dsh-runtime/package.json').read_text(encoding='utf8'))['dependencies']['@deepseek-ai/dsh'])
-    selected = json.loads((source / 'app/build/test-runtimes/current.json').read_text(encoding='utf-8'))
-    raw = Path(selected['raw']) / 'node_modules'
+    selected = os.environ.get('DSHA_TEST_RUNTIME')
+    if selected is None:
+        selected = json.loads((source / 'app/build/test-runtimes/current.json').read_text(encoding='utf-8'))['raw']
+    raw = Path(selected) / 'node_modules'
     historical_bytes = (source / 'tools/fixtures/plugin-bundle-proof-workers-v1-patch.json').read_bytes()
     assert sha(historical_bytes) == OLD_RECIPE_SHA, 'historical actual V1 recipe identity'
     historical = json.loads(historical_bytes)
@@ -192,7 +199,8 @@ def main():
             # This pinned historical pre-worker proof predates the later argv
             # routing repair. Keep the old bytes/hash; current-chain upgrade
             # below still has to migrate them through the new recipe.
-            pre_chain = [row for row in chain if row[0] not in {WORKER, 'plugin-pnpm-argv-patch.json'}]
+            pre_chain = [row for row in chain if row[0] not in {
+                WORKER, 'plugin-pnpm-argv-patch.json', SHELL_MANAGER, WEB_UPDATE_ROLLBACK}]
             pre = runtime_stable_patches.apply(canonical, pre_chain)
             assert sha(pre) == CURRENT_PRE_WORKER_SHA, 'pre-worker current-generation identity'
             (directory / 'pre-worker.js').write_bytes(pre)

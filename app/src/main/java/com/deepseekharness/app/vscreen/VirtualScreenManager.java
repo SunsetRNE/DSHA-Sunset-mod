@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import com.deepseekharness.app.BuildConfig;
 import com.deepseekharness.app.DshaApp;
+import com.deepseekharness.app.screen.ScreenReply;
 import com.deepseekharness.app.screen.ScreenTargetResolver;
 import com.deepseekharness.app.util.VirtualScreenObservationHint;
 import com.deepseekharness.app.util.VirtualScreenWindowEvidence;
@@ -307,9 +308,11 @@ public final class VirtualScreenManager {
             return ordered(
                 () -> {
                   if (captured == null) return missingSnapshot(null);
-                  if (!current() || !lease.current())
-                    return com.deepseekharness.app.screen.ScreenReply.refused(
-                        "NATIVE_CONTROL_REVOKED");
+                  if (!current()) return ScreenReply.refused("NATIVE_CONTROL_REVOKED");
+                  if (!lease.current())
+                    return lease.accessibilityStillUnavailable()
+                        ? ScreenReply.unavailable()
+                        : ScreenReply.refused("NATIVE_CONTROL_REVOKED");
                   JSONObject info = perform(captured, "/vscreen/status", "", false, false);
                   if (!info.optBoolean("ok")) return info;
                   if (!captured.coreInstance.equals(info.optString("coreInstance"))

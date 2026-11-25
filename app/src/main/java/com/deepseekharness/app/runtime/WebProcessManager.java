@@ -132,39 +132,46 @@ public class WebProcessManager {
 
   private volatile Residual retainedResidual;
 
+  private enum RecordedTarget {
+    GUEST,
+    GUEST_AND_LAUNCHER,
+    LAUNCHER
+  }
+
   public static final class ForceCandidate {
     private final com.deepseekharness.app.util.WebForceStop.Candidate proof;
     private final com.deepseekharness.app.util.WebSessionProof.Saved recorded;
     private final Residual residual;
-    private final boolean retirePreviousLauncher;
+    private final RecordedTarget recordedTarget;
 
     private ForceCandidate(com.deepseekharness.app.util.WebForceStop.Candidate proof) {
-      this(proof, null, null, false);
+      this(proof, null, null, null);
     }
 
     private ForceCandidate(
         com.deepseekharness.app.util.WebSessionProof.Saved recorded,
-        boolean retirePreviousLauncher) {
-      this(null, recorded, null, retirePreviousLauncher);
+        RecordedTarget recordedTarget) {
+      this(null, recorded, null, recordedTarget);
     }
 
     private ForceCandidate(Residual residual) {
-      this(null, null, residual, false);
+      this(null, null, residual, null);
     }
 
     private ForceCandidate(
         com.deepseekharness.app.util.WebForceStop.Candidate proof,
         com.deepseekharness.app.util.WebSessionProof.Saved recorded,
         Residual residual,
-        boolean retirePreviousLauncher) {
+        RecordedTarget recordedTarget) {
       this.proof = proof;
       this.recorded = recorded;
       this.residual = residual;
-      this.retirePreviousLauncher = retirePreviousLauncher;
+      this.recordedTarget = recordedTarget;
     }
 
     public int pid() {
       if (residual != null) return residual.pid;
+      if (recordedTarget == RecordedTarget.LAUNCHER) return recorded.launcherPid();
       return recorded != null ? recorded.webPid() : proof.pid();
     }
 
@@ -173,9 +180,10 @@ public class WebProcessManager {
       return recorded != null ? Long.toString(recorded.generation()) : proof.generation();
     }
 
-    /** 覆盖更新弃旧版：用户确认后还会结束记录中的上一版容器启动器。 */
+    /** The existing instance's recorded launcher is included in the confirmation. */
     public boolean retiresPreviousLauncher() {
-      return retirePreviousLauncher;
+      return recordedTarget == RecordedTarget.GUEST_AND_LAUNCHER
+          || recordedTarget == RecordedTarget.LAUNCHER;
     }
   }
 
@@ -205,7 +213,7 @@ public class WebProcessManager {
    */
   ForceCandidate residualCandidateChecked() throws IOException {
     Residual residual = retainedResidual;
-    if (residual == null) return null;
+    if (residual == null || !WebProcSel.trialProfile(residual.command).isEmpty()) return null;
     ProcessState first = inspect(residual.pid);
     pauseForSecondInspection();
     ProcessState second = inspect(residual.pid);
@@ -229,6 +237,7 @@ public class WebProcessManager {
         && state.identity != null
         && residual.identity.sameProcess(state.identity)
         && state.command.equals(residual.command)
+        && WebProcSel.trialProfile(state.command).isEmpty()
         && WebProcSel.maySignalWeb(state.command)
         && residual.uid == recoveryHostUid();
   }
@@ -257,9 +266,11 @@ public class WebProcessManager {
     if (records != null)
       throw new WebStopException(Code.FORCE_EVIDENCE_UNCONFIRMED, "TRIAL_FORBIDDEN");
     if (saved == null) return null;
-    if (observeRecordedSession(saved) != SessionObservation.LIVE)
+    SessionObservation guest = observeRecordedSession(saved);
+    if (guest == SessionObservation.EXITED) return prepareRecordedRetire(saved, true);
+    if (guest != SessionObservation.LIVE)
       throw new WebStopException(Code.RECORDED_SESSION_UNCONFIRMED);
-    return new ForceCandidate(saved, false);
+    return new ForceCandidate(saved, RecordedTarget.GUEST);
   }
 
   /**
@@ -274,9 +285,17 @@ public class WebProcessManager {
     if (records != null)
       throw new WebStopException(Code.FORCE_EVIDENCE_UNCONFIRMED, "TRIAL_FORBIDDEN");
     if (saved == null) return null;
+    return prepareRecordedRetire(saved, false);
+  }
+
+  private ForceCandidate prepareRecordedRetire(
+      com.deepseekharness.app.util.WebSessionProof.Saved saved, boolean guestMustBeExited)
+      throws IOException {
     SessionObservation guestFirst = observeRecordedSession(saved);
     SessionObservation guestSecond = observeRecordedSession(saved);
-    if (guestFirst != guestSecond || guestFirst == SessionObservation.UNKNOWN)
+    if (guestFirst != guestSecond
+        || guestFirst == SessionObservation.UNKNOWN
+        || guestMustBeExited && guestFirst != SessionObservation.EXITED)
       throw new WebStopException(Code.RECORDED_SESSION_UNCONFIRMED);
     com.deepseekharness.app.util.WebProofStop.Observation launcherFirst =
         observeRecordedLauncher(saved);
@@ -288,7 +307,11 @@ public class WebProcessManager {
     if (guestFirst == SessionObservation.EXITED
         && launcherFirst == com.deepseekharness.app.util.WebProofStop.Observation.EXITED)
       return null;
-    return new ForceCandidate(saved, true);
+    return new ForceCandidate(
+        saved,
+        guestFirst == SessionObservation.EXITED
+            ? RecordedTarget.LAUNCHER
+            : RecordedTarget.GUEST_AND_LAUNCHER);
   }
 
   /**
@@ -304,16 +327,13 @@ public class WebProcessManager {
     try {
       if (!saved.boot().equals(recoveryBoot()))
         return com.deepseekharness.app.util.WebProofStop.Observation.EXITED;
-      var launcher = recoveryProcess(saved.launcherPid());
-      if (!launcher.alive() || launcher.started() != saved.launcherStarted())
-        return com.deepseekharness.app.util.WebProofStop.Observation.EXITED;
+      var launcher = recoveryLauncherForSession(saved);
+      if (!launcher.alive()) return com.deepseekharness.app.util.WebProofStop.Observation.EXITED;
       return com.deepseekharness.app.util.WebSessionProof.matchesLauncher(
               saved, recoveryHostUid(), launcher)
           ? com.deepseekharness.app.util.WebProofStop.Observation.LIVE
           : com.deepseekharness.app.util.WebProofStop.Observation.UNKNOWN;
     } catch (IOException | RuntimeException unavailable) {
-      if (recordedProcessExited(saved.launcherPid(), saved.launcherStarted()))
-        return com.deepseekharness.app.util.WebProofStop.Observation.EXITED;
       return com.deepseekharness.app.util.WebProofStop.Observation.UNKNOWN;
     }
   }
@@ -330,7 +350,7 @@ public class WebProcessManager {
       if (!saved.boot().equals(boot)) return SessionObservation.EXITED;
       var web = recoveryProcess(saved.webPid());
       if (!web.alive() || web.started() != saved.webStarted()) return SessionObservation.EXITED;
-      var launcher = recoveryProcess(saved.launcherPid());
+      var launcher = recoveryLauncherForSession(saved);
       return com.deepseekharness.app.util.WebSessionProof.matches(
               saved, boot, recoveryHostUid(), web, launcher)
           ? SessionObservation.LIVE
@@ -362,7 +382,7 @@ public class WebProcessManager {
     if (records != null)
       throw new WebStopException(Code.FORCE_EVIDENCE_UNCONFIRMED, "TRIAL_FORBIDDEN");
     if (candidate != null && candidate.recorded != null)
-      return forceRecordedStop(candidate.recorded, candidate.retirePreviousLauncher);
+      return forceRecordedStop(candidate.recorded, candidate.recordedTarget);
     if (candidate != null && candidate.residual != null)
       return forceResidualStop(candidate.residual);
     try {
@@ -461,9 +481,13 @@ public class WebProcessManager {
    * 该记录对应的旧容器启动器。核验不过不发送任何信号；普通停止 / 试运行路径不放宽。
    */
   private StopResult forceRecordedStop(
-      com.deepseekharness.app.util.WebSessionProof.Saved saved, boolean retireLauncher)
+      com.deepseekharness.app.util.WebSessionProof.Saved saved, RecordedTarget target)
       throws IOException {
     try {
+      if (target == RecordedTarget.LAUNCHER
+          && (observeRecordedSession(saved) != SessionObservation.EXITED
+              || observeRecordedSession(saved) != SessionObservation.EXITED))
+        throw new WebStopException(Code.RECORDED_SESSION_UNCONFIRMED);
       sentinel();
       var clock =
           new com.deepseekharness.app.util.WebProofStop.Clock() {
@@ -476,20 +500,23 @@ public class WebProcessManager {
             }
           };
       var guest =
-          com.deepseekharness.app.util.WebProofStop.run(
-              true,
-              () ->
-                  switch (observeRecordedSession(saved)) {
-                    case LIVE -> com.deepseekharness.app.util.WebProofStop.Observation.LIVE;
-                    case EXITED -> com.deepseekharness.app.util.WebProofStop.Observation.EXITED;
-                    case UNKNOWN -> com.deepseekharness.app.util.WebProofStop.Observation.UNKNOWN;
-                  },
-              () -> signalProofTerm(saved.webPid()),
-              () -> signalKill(saved.webPid()),
-              clock);
+          target == RecordedTarget.LAUNCHER
+              ? new com.deepseekharness.app.util.WebProofStop.Outcome(true, null)
+              : com.deepseekharness.app.util.WebProofStop.run(
+                  true,
+                  () ->
+                      switch (observeRecordedSession(saved)) {
+                        case LIVE -> com.deepseekharness.app.util.WebProofStop.Observation.LIVE;
+                        case EXITED -> com.deepseekharness.app.util.WebProofStop.Observation.EXITED;
+                        case UNKNOWN ->
+                            com.deepseekharness.app.util.WebProofStop.Observation.UNKNOWN;
+                      },
+                  () -> signalProofTerm(saved.webPid()),
+                  () -> signalKill(saved.webPid()),
+                  clock);
       com.deepseekharness.app.util.WebProofStop.Outcome launcher = null;
       // 先结束 guest，再结束旧启动器；guest 未确认退出时绝不碰启动器。
-      if (guest.stopped() && retireLauncher)
+      if (guest.stopped() && target != RecordedTarget.GUEST)
         launcher =
             com.deepseekharness.app.util.WebProofStop.run(
                 true,
@@ -497,14 +524,16 @@ public class WebProcessManager {
                 () -> signalProofTerm(saved.launcherPid()),
                 () -> signalKill(saved.launcherPid()),
                 clock);
-      StopResult barrier = result(stopAll());
-      if (barrier.stopped()) return barrier;
       java.util.List<WebStopDiagnostic> facts = new java.util.ArrayList<>();
       if (guest.diagnostic() != null) facts.add(guest.diagnostic());
       if (launcher != null && launcher.diagnostic() != null) facts.add(launcher.diagnostic());
       if (launcher != null && !launcher.stopped())
         facts.add(WebStopDiagnostic.of(Code.PREVIOUS_LAUNCHER_UNCONFIRMED));
-      facts.addAll(barrier.diagnostics());
+      if (guest.stopped() && (launcher == null || launcher.stopped())) {
+        StopResult barrier = result(stopAll());
+        if (barrier.stopped()) return barrier;
+        facts.addAll(barrier.diagnostics());
+      }
       return new StopResult(
           StopStatus.UNCONFIRMED, "WEB_RECORDED_STOP_UNCONFIRMED", facts, proot.hostPorts());
     } catch (IOException failure) {
@@ -549,6 +578,8 @@ public class WebProcessManager {
     if (uid != android.os.Process.myUid())
       throw forceUnconfirmed("未通过=进程不属于本应用", pid, command, null);
     if (state.kind != Kind.WEB) throw forceUnconfirmed("未通过=进程不是可识别的 Web", pid, command, null);
+    if (!WebProcSel.trialProfile(state.command).isEmpty())
+      throw new WebStopException(Code.FORCE_EVIDENCE_UNCONFIRMED, "TRIAL_FORBIDDEN");
     if (state.signalProbeForbidden)
       throw forceUnconfirmed("未通过=系统拒绝向该 PID 发信号", pid, command, null);
     if (!state.identity.matches(born)) throw forceUnconfirmed("未通过=出生身份与记录不符", pid, command, null);
@@ -635,13 +666,14 @@ public class WebProcessManager {
             // 必须把读取绑定最初节点，不能让 small() 为替换 inode 重新签发 expected。
             try (java.io.InputStream in = fs.read(saved.path(), expected);
                 java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+              byte[] bytes = saved.bytes();
               byte[] buffer = new byte[128];
               int count;
               while ((count = in.read(buffer)) != -1) {
-                if (out.size() + count > 128) return false;
+                if (out.size() + count > bytes.length) return false;
                 out.write(buffer, 0, count);
               }
-              if (!java.util.Arrays.equals(saved.bytes(), out.toByteArray())) return false;
+              if (!java.util.Arrays.equals(bytes, out.toByteArray())) return false;
             }
           }
         }
@@ -895,23 +927,30 @@ public class WebProcessManager {
   }
 
   private String pidRecord() throws IOException {
+    return pidRecord(true);
+  }
+
+  private String pidRecord(boolean repairPermissions) throws IOException {
     File file = pidFile();
     if (Compat.isSymbolicLink(file)) throw new WebStopException(Code.PID_RECORD_INVALID);
     if (!file.exists()) return null;
     if (!file.isFile() || file.length() > 32) throw new WebStopException(Code.PID_RECORD_INVALID);
-    ensureOwnerReadable(file);
+    ensureOwnerReadable(file, repairPermissions);
     String value = Compat.readAll(file);
     if (WebProcSel.parsePid(value) < 0) throw new WebStopException(Code.PID_INVALID);
     return value;
   }
 
-  private void ensureOwnerReadable(File file) throws IOException {
+  private void ensureOwnerReadable(File file, boolean repairPermissions) throws IOException {
     try {
       android.system.StructStat stat = android.system.Os.lstat(file.getAbsolutePath());
       if (stat.st_uid != android.os.Process.myUid())
         throw new WebStopException(Code.RECORD_FOREIGN_UID);
       int mode = stat.st_mode & 0777;
-      if ((mode & 0400) == 0) android.system.Os.chmod(file.getAbsolutePath(), mode | 0400);
+      if ((mode & 0400) == 0) {
+        if (!repairPermissions) throw new WebStopException(Code.RECORD_ACCESS_UNCONFIRMED);
+        android.system.Os.chmod(file.getAbsolutePath(), mode | 0400);
+      }
     } catch (android.system.ErrnoException error) {
       throw new WebStopException(Code.RECORD_ACCESS_UNCONFIRMED, error);
     }
@@ -1026,12 +1065,16 @@ public class WebProcessManager {
   }
 
   private String savedIdentity(int pid) throws IOException {
+    return savedIdentity(pid, true);
+  }
+
+  private String savedIdentity(int pid, boolean repairPermissions) throws IOException {
     File file = identityFile();
     if (Compat.isSymbolicLink(file)) throw new WebStopException(Code.IDENTITY_RECORD_INVALID);
     if (!file.exists()) return null;
     if (!file.isFile() || file.length() > 80)
       throw new WebStopException(Code.IDENTITY_RECORD_VALUE_INVALID);
-    ensureOwnerReadable(file);
+    ensureOwnerReadable(file, repairPermissions);
     String saved = Compat.readAll(file).trim();
     if (!saved.matches(pid + " [1-9][0-9]*")) throw new IOException("WEB_IDENTITY_INVALID");
     return saved;
@@ -1064,6 +1107,10 @@ public class WebProcessManager {
     return !ownedWebFacts().isEmpty();
   }
 
+  boolean observeOwnedWeb() throws IOException {
+    return !ownedWebFacts(null, false).isEmpty();
+  }
+
   /**
    * 残留 Web 的可核对事实（首个命中即止）：用于停止结论与启动失败文案展示 PID / 命令摘要。
    * 只读，不发送信号；无法读全的同 UID 进程仍按原有 fail-closed 规则阻塞。
@@ -1073,6 +1120,11 @@ public class WebProcessManager {
   }
 
   private java.util.List<WebStopDiagnostic> ownedWebFacts(StopTrace trace) throws IOException {
+    return ownedWebFacts(trace, true);
+  }
+
+  private java.util.List<WebStopDiagnostic> ownedWebFacts(StopTrace trace, boolean retainEvidence)
+      throws IOException {
     if (trace != null)
       trace.mark(StopCompletion.Scope.RESIDUALS, StopCompletion.Outcome.UNKNOWN, "scan-started");
     String[] entries = recoveryProcessEntries();
@@ -1100,18 +1152,20 @@ public class WebProcessManager {
         if (state.kind == Kind.DENIED) throw new WebStopException(Code.OWNED_WEB_SCAN_UNCONFIRMED);
         // 09:13 现场：残留可能是 proroot bridge，而 PID/identity 文件已被退休。保留双次核验一致的
         // 残留事实供强停兜底（真正发信号前还会再核验）；两次结论不一致就不保留任何候选。
-        ProcessState again = inspect(pid);
-        retainedResidual =
-            state.identity != null
-                    && again.kind == Kind.WEB
-                    && again.identity != null
-                    && state.identity.sameProcess(again.identity)
-                    && state.command.equals(again.command)
-                    && WebProcSel.maySignalWeb(state.command)
-                    && owner != null
-                    && owner == appUid
-                ? new Residual(pid, state.identity, owner, state.command)
-                : null;
+        if (retainEvidence) {
+          ProcessState again = inspect(pid);
+          retainedResidual =
+              state.identity != null
+                      && again.kind == Kind.WEB
+                      && again.identity != null
+                      && state.identity.sameProcess(again.identity)
+                      && state.command.equals(again.command)
+                      && WebProcSel.maySignalWeb(state.command)
+                      && owner != null
+                      && owner == appUid
+                  ? new Residual(pid, state.identity, owner, state.command)
+                  : null;
+        }
         if (trace != null)
           trace.mark(
               StopCompletion.Scope.RESIDUALS,
@@ -1124,7 +1178,7 @@ public class WebProcessManager {
                 "命令摘要=" + WebProcSel.commandDigest(state.command)));
       }
     }
-    retainedResidual = null;
+    if (retainEvidence) retainedResidual = null;
     if (trace != null)
       trace.mark(
           StopCompletion.Scope.RESIDUALS,
@@ -1257,7 +1311,7 @@ public class WebProcessManager {
   }
 
   public boolean hasRecordedSession() throws IOException {
-    return pidRecord() != null;
+    return pidRecord(false) != null;
   }
 
   /** 宿主重建后只读核验仍活跃实例的内核身份。 */
@@ -1371,15 +1425,16 @@ public class WebProcessManager {
   public boolean verifySession(com.deepseekharness.app.util.WebSessionProof.Saved saved)
       throws IOException {
     if (saved == null || records != null) return false;
-    String record = pidRecord();
+    String record = pidRecord(false);
     if (WebProcSel.parsePid(record) != saved.webPid()
         || !java.util.Objects.equals(
-            savedIdentity(saved.webPid()), saved.webPid() + " " + saved.webStarted())) return false;
+            savedIdentity(saved.webPid(), false), saved.webPid() + " " + saved.webStarted()))
+      return false;
     var web = recoveryProcess(saved.webPid());
-    var launcher = recoveryProcess(saved.launcherPid());
-    return record.equals(pidRecord())
+    var launcher = recoveryLauncherForSession(saved);
+    return record.equals(pidRecord(false))
         && com.deepseekharness.app.util.WebSessionProof.matches(
-            saved, recoveryBoot(), android.os.Process.myUid(), web, launcher);
+            saved, recoveryBoot(), recoveryHostUid(), web, launcher);
   }
 
   public enum SessionObservation {
@@ -1411,13 +1466,21 @@ public class WebProcessManager {
       throws IOException {
     if (saved == null) return true;
     if (!saved.boot().equals(recoveryBoot())) return true;
+    return !recoveryLauncherForSession(saved).alive();
+  }
+
+  private com.deepseekharness.app.util.WebSessionProof.Process recoveryLauncherForSession(
+      com.deepseekharness.app.util.WebSessionProof.Saved saved) throws IOException {
     try {
       var process = recoveryProcess(saved.launcherPid());
-      return !process.alive() || process.started() != saved.launcherStarted();
+      if (!process.alive() || process.started() == saved.launcherStarted()) return process;
     } catch (IOException unavailable) {
-      if (recordedProcessExited(saved.launcherPid(), saved.launcherStarted())) return true;
-      throw unavailable;
+      if (!recordedProcessExited(saved.launcherPid(), saved.launcherStarted())) throw unavailable;
     }
+    // The original launcher is gone. Do not demand environment markers from the replacement or
+    // treat that PID as a live launcher for adoption or for later signal verification.
+    return new com.deepseekharness.app.util.WebSessionProof.Process(
+        saved.launcherPid(), 0, -1, "", "", "", "", false);
   }
 
   /** Exit proof needs the saved birth, never the replacement process's environment or token. */
@@ -1429,7 +1492,14 @@ public class WebProcessManager {
           || current.differentUid
           || current.identity != null && current.identity.started != started;
     } catch (IOException | RuntimeException unavailable) {
-      return false;
+      // Same-UID PID reuse can make cmdline unreadable while stat still has its new birth time.
+      // An unchanged birth is insufficient even here. An unreadable stat remains unknown.
+      try {
+        WebPidIdentity birth = WebPidIdentity.parse(readProcessFile(pid, "stat"), pid);
+        return birth != null && (birth.exited() || birth.started != started);
+      } catch (IOException | RuntimeException denied) {
+        return false;
+      }
     }
   }
 
@@ -1447,9 +1517,12 @@ public class WebProcessManager {
     if (saved == null || records != null) return false;
     if (observeRecoveredSession(saved) != SessionObservation.EXITED) return false;
     if (!recoveredLauncherExited(saved)) return false;
-    String record = pidRecord();
+    String record = pidRecord(false);
     if (record == null) return true;
     if (WebProcSel.parsePid(record) != saved.webPid()) return false;
+    String identity = savedIdentity(saved.webPid(), false);
+    if (identity != null && !identity.equals(saved.webPid() + " " + saved.webStarted()))
+      return false;
     retire(record);
     return pidRecord() == null;
   }
@@ -1472,12 +1545,32 @@ public class WebProcessManager {
       String name = new File(argv[0]).getName();
       if (!(name.startsWith("libproot")
           || name.startsWith("libproroot")
-          || name.startsWith("libdsha-proroot"))) continue;
+          || name.startsWith("libdsha-proroot")
+          || name.equals("proot"))) continue;
+      // A default PTY is a separate user session. Its exact argv is known, and the guest scan
+      // independently catches any Web process already started from that terminal.
+      if (WebProcSel.isInteractiveTerminalLauncher(value.command)) continue;
       // 此处只证明“没有”，不授予signal权限。旧记录缺少可信标记时，
       // 同UID的任何此类启动器都保留屏障；不能把未识别的终端或旧argv当作已经退出。
       return false;
     }
     return true;
+  }
+
+  /**
+   * A legacy PID-only record cannot restore a connection. If read-only checks prove the old
+   * guest, scoped residuals and launchers are gone, the queued Start may run its normal stop
+   * barrier. The legacy records and stop sentinel are untouched here.
+   */
+  public boolean observeLegacySessionExited() throws IOException {
+    if (records != null) return false;
+    var directory = root().toPath();
+    // The general stopped check accepts a missing runtime for maintenance. Recovery needs a
+    // readable record domain to distinguish a stale PID from an orphaned Web during a root swap.
+    return java.nio.file.Files.isDirectory(directory, java.nio.file.LinkOption.NOFOLLOW_LINKS)
+        && confirmNoUntrackedWebLaunchers()
+        && observeStopped(false)
+        && java.nio.file.Files.isDirectory(directory, java.nio.file.LinkOption.NOFOLLOW_LINKS);
   }
 
   String[] recoveryProcessEntries() {
@@ -1498,25 +1591,39 @@ public class WebProcessManager {
   }
 
   public boolean confirmStopped(boolean trackedProcessAlive, StopTrace trace) throws IOException {
+    return checkStopped(trackedProcessAlive, trace, true);
+  }
+
+  /** 闲时任务只观察退出证据，避免向未被追踪的旧 Web 写入看门狗停止标记。 */
+  public boolean observeStopped(boolean trackedProcessAlive) throws IOException {
+    return checkStopped(trackedProcessAlive, null, false);
+  }
+
+  private boolean checkStopped(boolean trackedProcessAlive, StopTrace trace, boolean retireRecords)
+      throws IOException {
     if (trackedProcessAlive) return false;
     if (!root().isDirectory()) return true;
-    sentinel();
-    String record = pidRecord();
+    if (retireRecords) sentinel();
+    String record = pidRecord(retireRecords);
     try {
       if (record != null) {
         int pid = WebProcSel.parsePid(record);
         ProcessState current = inspect(pid);
-        String birth = savedIdentity(pid);
+        String birth = savedIdentity(pid, retireRecords);
         if (!mayRetire(current, birth)) return false;
         if (trace != null
             && record.equals(trace.record)
             && java.util.Objects.equals(birth, trace.birth)) trace.exited(record, birth);
       }
-      if (trace == null ? hasOwnedWeb() : !ownedWebFacts(trace).isEmpty()) return false;
+      boolean owned =
+          !retireRecords
+              ? observeOwnedWeb()
+              : trace == null ? hasOwnedWeb() : !ownedWebFacts(trace).isEmpty();
+      if (owned) return false;
     } catch (ProcessInspectionException transientState) {
       return false;
     }
-    retire(record);
+    if (retireRecords) retire(record);
     return true;
   }
 
@@ -1644,6 +1751,7 @@ public class WebProcessManager {
           if (entries.size() > com.deepseekharness.app.backup.BackupLimits.TRANSACTION_RECORDS)
             throw new IOException("TRIAL_RETENTION_LIMIT");
           java.util.LinkedHashSet<String> profiles = new java.util.LinkedHashSet<>();
+          java.util.HashSet<String> settingsProfiles = new java.util.HashSet<>();
           for (String id : entries) {
             if (!id.matches(com.deepseekharness.app.util.Ids.UUID_PATTERN))
               throw new IOException("TRIAL_RECORD_DIRECTORY");
@@ -1660,7 +1768,6 @@ public class WebProcessManager {
             if (launchedType.equals("FILE")) {
               if (!id.equals(new String(fs.small(launched, 128), StandardCharsets.US_ASCII)))
                 throw new IOException("TRIAL_MARKER");
-              profiles.add("dsha-recovery-" + id.replace("-", "").substring(0, 16));
             } else if (!launchedType.equals("MISSING")) throw new IOException("TRIAL_MARKER");
             if (trace != null)
               trace.rememberInput(
@@ -1670,13 +1777,26 @@ public class WebProcessManager {
             File payload = fs.child(home, id + "/payload");
             var payloadNode = fs.stat(payload);
             if (trace != null) trace.rememberInput(payload, payloadNode, null);
+            boolean settings = false;
+            if (launchedType.equals("FILE")) {
+              File intent = fs.child(trial, "intent.json");
+              var intentNode = fs.stat(intent);
+              byte[] bytes = null;
+              if (!intentNode.type.equals("MISSING")) {
+                bytes = fs.small(intent, 16384);
+                settings = TrialRecovery.isSettingsIntent(id, bytes);
+              }
+              String profile = "dsha-recovery-" + id.replace("-", "").substring(0, 16);
+              (settings ? settingsProfiles : profiles).add(profile);
+              if (trace != null) trace.rememberInput(intent, intentNode, bytes);
+            }
             if (!payloadNode.type.equals("MISSING")) {
               if (!fs.stat(payload).type.equals("DIRECTORY"))
                 throw new IOException("TRIAL_RECORD_DIRECTORY");
               WebProcessManager trialManager = new WebProcessManager(proot, payload);
               StopTrace child = trace == null ? null : new StopTrace(trace.root, trace.boot);
               WebStopDiagnostic stopped =
-                  WebRecordedStop.run(trialManager.recordedStopIo(false, child));
+                  WebRecordedStop.run(trialManager.recordedStopIo(false, child, settings));
               if (trace != null) {
                 trace.inputs.append(payload.getName()).append(child.record).append(child.birth);
                 trace.exitedGuests.addAll(child.exitedGuests);
@@ -1687,6 +1807,7 @@ public class WebProcessManager {
             if (trace != null && (trialBefore == null || !trialBefore.same(trace.node(fs, trial))))
               trace.inputsKnown = false;
           }
+          profiles.removeAll(settingsProfiles);
           WebStopDiagnostic stopped = stopRecordedTrialProfiles(profiles, trace);
           if (stopped != null) errors.add(stopped);
         }
@@ -1747,12 +1868,23 @@ public class WebProcessManager {
     }
   }
 
+  /** Settings checks only act on their exact profile and saved birth, even for SIGTERM. */
+  String stopSettingsTrialGuest(boolean force) {
+    if (records == null) return Code.TRIAL_STOP_FAILED.name();
+    WebStopDiagnostic fault = WebRecordedStop.run(recordedStopIo(force, null, true));
+    return fault == null ? "" : fault.code().name();
+  }
+
   /** 生产记录停止的唯一适配器；force 只换信号并加出生身份复核，其它判据共用。 */
   private WebRecordedStop.Io recordedStopIo(boolean force) {
     return recordedStopIo(force, null);
   }
 
   private WebRecordedStop.Io recordedStopIo(boolean force, StopTrace trace) {
+    return recordedStopIo(force, trace, false);
+  }
+
+  private WebRecordedStop.Io recordedStopIo(boolean force, StopTrace trace, boolean settings) {
     return new WebRecordedStop.Io() {
       public boolean rootExists() {
         return root().isDirectory();
@@ -1768,7 +1900,11 @@ public class WebProcessManager {
       }
 
       public boolean requireSavedBirth() {
-        return force;
+        return force || settings;
+      }
+
+      public boolean requireExactTrialProfile() {
+        return settings;
       }
 
       public long now() {

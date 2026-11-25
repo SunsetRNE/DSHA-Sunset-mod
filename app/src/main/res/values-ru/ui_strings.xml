@@ -61,7 +61,7 @@
     <string name="ui134_recent_startups" formatted="false">"Пять последних запусков"</string>
     <string name="ui134_recent_startups_sub" formatted="false">"Этапы, ошибки и коды"</string>
     <string name="ui134_results" formatted="false">"Результаты проверки"</string>
-    <string name="ui134_root_hint" formatted="false">"На телефоне с root можно напрямую использовать su без сопряжения ADB. При первом запуске разрешите DSHA в менеджере root. Выберите уровень перехвата команд ниже; нативные проверки, например чтение SMS, действуют на всех трёх уровнях."</string>
+    <string name="ui134_root_hint" formatted="false">"При первом запуске разрешите DSHA работу в менеджере root. Строгий режим блокирует рекурсивное чтение каталогов. Для управляемых запросов SMS требуется отдельное согласие. В обоих ослабленных режимах root-скрипты могут напрямую читать личные данные."</string>
     <string name="ui134_screen_setup" formatted="false">"Настроить управление экраном · два шага"</string>
     <string name="ui134_shizuku_hint" formatted="false">"Запустите службу в менеджере Shizuku, затем разрешите DSHA здесь. После перезагрузки устройства службу обычно нужно запускать снова."</string>
     <string name="ui134_start_records" formatted="false">"Записи о запусках"</string>
@@ -130,7 +130,7 @@
     <string name="ui2_meet" formatted="false">"Знакомство с DSHA"</string>
     <string name="ui2_network_runtime" formatted="false">"Среда и сеть"</string>
     <string name="ui2_offline_badge" formatted="false">"Автономная установка  ·  Без root  ·  %1$s"</string>
-    <string name="ui2_online_notice" formatted="false">"Онлайн-модели получают сообщения и вложения, которые вы решаете отправить."</string>
+    <string name="ui2_online_notice" formatted="false">"Выбранная онлайн-модель может получать сообщения, вложения и результаты инструментов, включая текст с экрана и снимки экрана."</string>
     <string name="ui2_overlay" formatted="false">"Плавающий статус"</string>
     <string name="ui2_overlay_sub" formatted="false">"Содержимое, прозрачность и время показа"</string>
     <string name="ui2_plugin_link" formatted="false">"Репозиторий или URL"</string>
@@ -187,7 +187,6 @@
     <string name="ui_adb_code_label" formatted="false">"Код сопряжения (6 цифр)"</string>
     <string name="ui_adb_host_label" formatted="false">"Адрес (пусто = автопоиск)"</string>
     <string name="ui_adb_port_label" formatted="false">"Порт (пусто = автопоиск)"</string>
-    <string name="ui_lan_unencrypted" formatted="false">"Трафик локальной сети не шифруется; только доверенные сети и устройства"</string>
     <string name="ui_language_title" formatted="false">"Язык"</string>
     <string name="ui_m0001" formatted="false">"Скачать обновление"</string>
     <string name="ui_m0002" formatted="false">"Сохранить настройки"</string>

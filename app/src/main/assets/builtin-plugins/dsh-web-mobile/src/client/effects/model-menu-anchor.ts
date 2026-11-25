@@ -41,7 +41,7 @@ import { installMobileEffect } from '../platform/breakpoints.ts'
  *    `getBoundingClientRect()` 只读一次、结果在帧内复用（`frameRects`）。
  * 2. **rAF 槽合并**：旧版 `if (raf !== 0) return` 是「先到者胜」——同一帧里先排了
  *    `follow()` 再来的 `refresh()` 会被整份丢掉，那次交互当帧就不落位。改成「槽位保存
- *    最新那份意图」，后到者覆盖先到者，请求不再丢。
+ *    待执行的意图」，交互刷新不会被滚动重算覆盖。
  * 3. **还值不置空**：旧版收尾统一把 inline left 置成空串，会把宿主自己那行位置一起抹掉；
  *    现在记下第一次接管时的原值并按原值还回去。
  */
@@ -64,7 +64,7 @@ const SETTLE_MS = [0, 60, 200]
 export function installModelMenuAnchor(ctx: ClientContext): void {
   installMobileEffect(ctx, 'dsh-web-mobile: model menu anchor', () => {
     let raf = 0
-    /** 本帧待跑的那一份意图。后到的请求覆盖它（见 schedule()）。 */
+    /** 本帧待跑的那一份意图。交互刷新优先于滚动重算。 */
     let pending: (() => void) | null = null
     /**
      * 本帧的 rect 缓存（键 = 元素）。同一趟定位里同一个元素只读一次：`findMenu()` 判定
@@ -143,7 +143,13 @@ export function installModelMenuAnchor(ctx: ClientContext): void {
 
     /** 交互路径：刷新缓存（会查询）并按新位置落位。 */
     const refresh = (): void => {
-      active = findMenu()
+      const menu = findMenu()
+      if (menu === null) {
+        stopFollowing()
+        return
+      }
+      if (active === null) document.addEventListener('scroll', onViewportChange, { capture: true, passive: true })
+      active = menu
       activeTrigger = active === null ? null : document.querySelector<HTMLElement>(MODEL_TRIGGER)
       activeCard = active === null ? null : document.querySelector<HTMLElement>(COMPOSER_CARD)
       if (active !== null) place(active)
@@ -154,10 +160,7 @@ export function installModelMenuAnchor(ctx: ClientContext): void {
       if (active === null) return
       if (laidOut(active) === null) {
         // 菜单已经不在了（收起/卸载）：把位置还回去，别再占着。
-        releasePlacement()
-        active = null
-        activeTrigger = null
-        activeCard = null
+        stopFollowing()
         return
       }
       place(active)
@@ -165,14 +168,14 @@ export function installModelMenuAnchor(ctx: ClientContext): void {
 
     /**
      * 把一次定位请求排进下一帧。**合并语义**：一帧只跑一次，槽位存的是「最新那份意图」，
-     * 后到的请求覆盖先到的（不是被丢掉）。
+     * 同一帧的 refresh() 优先于 follow()。
      *
      * 旧版是「先到者胜」的 `if (raf !== 0) return`：同一帧里 `follow()` 之后来的
      * `refresh()` 会被整份吃掉 —— 用户刚点开菜单、同一帧页面又在滚（流式输出时常态）时，
      * 那次交互当帧不落位，只能等 60ms/200ms 的收尾计时器兜底。
      */
     const schedule = (run: () => void): void => {
-      pending = run
+      if (pending !== refresh) pending = run
       if (raf !== 0) return
       raf = window.requestAnimationFrame(() => {
         raf = 0
@@ -218,9 +221,16 @@ export function installModelMenuAnchor(ctx: ClientContext): void {
     const onClick = (event: Event): void => {
       if (touchesMenu(event)) scheduleRefresh()
     }
+    const stopFollowing = (): void => {
+      document.removeEventListener('scroll', onViewportChange, true)
+      releasePlacement()
+      active = null
+      activeTrigger = null
+      activeCard = null
+    }
     // 视口变化只走"零查询"的重算路径。
     const onViewportChange = (): void => {
-      schedule(follow)
+      if (active !== null) schedule(follow)
     }
 
     document.addEventListener('pointerdown', onPointerDown, true)
@@ -228,7 +238,6 @@ export function installModelMenuAnchor(ctx: ClientContext): void {
     document.addEventListener('focusin', onFocusIn, true)
     document.addEventListener('click', onClick, true)
     window.addEventListener('resize', onViewportChange)
-    document.addEventListener('scroll', onViewportChange, true)
 
     return () => {
       document.removeEventListener('pointerdown', onPointerDown, true)
@@ -236,17 +245,13 @@ export function installModelMenuAnchor(ctx: ClientContext): void {
       document.removeEventListener('focusin', onFocusIn, true)
       document.removeEventListener('click', onClick, true)
       window.removeEventListener('resize', onViewportChange)
-      document.removeEventListener('scroll', onViewportChange, true)
       if (raf !== 0) window.cancelAnimationFrame(raf)
       pending = null
       frameRects = null
       for (const timer of timers) window.clearTimeout(timer)
       timers.length = 0
       // 还回我们改写的那行 inline left（只在值仍是我们写的时候，按第一次接管时的原值还原）。
-      releasePlacement()
-      active = null
-      activeTrigger = null
-      activeCard = null
+      stopFollowing()
     }
   })
 }

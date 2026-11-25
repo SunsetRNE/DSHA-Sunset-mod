@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="portable_password">备份密码</string>
+    <string name="portable_password_confirm">再次输入备份密码</string>
+    <string name="portable_password_help">请单独保管密码。换机恢复需要此密码，DSHA 无法找回。</string>
+    <string name="portable_password_length">请输入 12 至 1024 个字符。</string>
+    <string name="portable_password_mismatch">两次输入的密码不同。</string>
+    <string name="portable_export_summary">用备份密码保护 tar.gz 文件，可在新设备上恢复。</string>
+    <string name="portable_included_secrets">备份范围可能包含聊天、附件和文件里保存的凭据。</string>
+    <string name="portable_import_summary">请选择备份文件。加密备份需要密码，核验后由你确认恢复范围。</string>
+    <string name="portable_password_restore_help">请输入创建这份备份时使用的密码。</string>
+    <string name="portable_rescue_diagnostics">加密救援包仅包含备份数据。选择明文导出时会附带可用的诊断摘要。</string>
+    <string name="portable_keep_password">副本将使用原密码重新导出。在新设备上输入原密码即可恢复。</string>
+    <string name="portable_plain_opt_in">兼容导出为明文。拿到文件的人能读取全部备份内容，包括聊天与附件中填写的秘密。</string>
+    <string name="portable_export_label">导出可移机备份</string>
+    <string name="portable_automatic_help">卸载会清除自动副本和本机密钥。换机或卸载前，请用自己的备份密码导出，保存到应用外。</string>
+    <string name="portable_retry_password">重新输入密码</string>
+</resources>

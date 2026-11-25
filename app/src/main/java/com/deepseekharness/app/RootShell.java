@@ -4,7 +4,7 @@ import android.content.Context;
 import android.util.Base64;
 import com.deepseekharness.app.util.BoundedProcessRunner;
 import com.deepseekharness.app.util.Compat;
-import com.deepseekharness.app.util.Constants;
+import com.deepseekharness.app.util.DeviceAuthorization;
 import com.deepseekharness.app.util.DeviceShellPolicy;
 import com.deepseekharness.app.util.ProcessTermination;
 import com.deepseekharness.app.util.RootShellCandidates;
@@ -108,12 +108,12 @@ public final class RootShell {
     return base + "\n" + com.deepseekharness.app.util.UiText.format("命令拦截档位：%s", policyLabel(ctx));
   }
 
-  /** 当前档位的中文展示名；三个档位只影响 root 原始命令，不改变 SMS 等原生闸门。 */
+  /** 当前档位展示名；受管短信查询另走原生授权。 */
   public static String policyLabel(Context ctx) {
     return switch (new com.deepseekharness.app.core.ConfigStore(ctx).rootPolicyMode()) {
       case STRICT -> com.deepseekharness.app.util.UiText.text("严格（默认）");
-      case RELAXED -> com.deepseekharness.app.util.UiText.text("放宽（保留不可逆操作拦截）");
-      case FULL -> com.deepseekharness.app.util.UiText.text("完全放宽（不按命令内容拦截）");
+      case RELAXED -> com.deepseekharness.app.util.UiText.choose("放宽", "Relaxed");
+      case FULL -> com.deepseekharness.app.util.UiText.choose("完全放宽", "Fully relaxed");
     };
   }
 
@@ -131,11 +131,11 @@ public final class RootShell {
       for (String label : SLOTS.snapshot(now()).labels)
         if (label.startsWith("root-module-list"))
           return com.deepseekharness.app.device.RootModuleReadCore.unavailable("UNKNOWN");
-      if (!com.deepseekharness.app.util.DeviceAuthorization.shared().current(authorization))
+      if (!DeviceAuthorization.shared().current(authorization))
         return com.deepseekharness.app.device.RootModuleReadCore.unavailable(
             "DEVICE_AUTHORIZATION_CHANGED");
-      String output = runPrivileged(ctx, "", -1, "root-module-list");
-      if (!com.deepseekharness.app.util.DeviceAuthorization.shared().current(authorization))
+      String output = runPrivileged(ctx, "", -1, "root-module-list", authorization);
+      if (!DeviceAuthorization.shared().current(authorization))
         return com.deepseekharness.app.device.RootModuleReadCore.unavailable(
             "DEVICE_AUTHORIZATION_CHANGED");
       if (output.startsWith("{")) return output;
@@ -160,21 +160,21 @@ public final class RootShell {
         && (authorizedSmsUser < 0
             || !new com.deepseekharness.app.core.DeviceGrants(ctx).smsReadAllowed()))
       return com.deepseekharness.app.util.UiText.text("[POLICY_BLOCKED] 短信读取尚未经过原生授权\n[EXIT=126]");
-    if (!com.deepseekharness.app.util.DeviceAuthorization.shared().current(authorization))
-      return "[POLICY_BLOCKED] DEVICE_AUTHORIZATION_CHANGED\n[EXIT=126]";
+    if (!DeviceAuthorization.shared().current(authorization)) return AUTHORITY_CHANGED;
     if (plan.kind == DeviceShellPolicy.Kind.SHELL) {
       // 原始 shell 只能经 root 通道执行；Shizuku/ADB 的通用执行器仍走严格档，不识别此计划。
       if (mode == DeviceShellPolicy.Mode.STRICT || plan.shell == null)
         return com.deepseekharness.app.util.UiText.text(
             "[POLICY_BLOCKED] ROOT_SHELL_PLAN_UNVERIFIED\n[EXIT=126]");
-      return runPrivileged(ctx, plan.shell, -1, "root-unrestricted");
+      return runPrivileged(ctx, plan.shell, -1, "root-unrestricted", authorization);
     }
-    return runPrivileged(ctx, command, authorizedSmsUser, "");
+    return runPrivileged(ctx, command, authorizedSmsUser, "", authorization);
   }
 
   /** Native-only launcher path. Generic RootShell.exec rejects app_process unconditionally. */
   public static String execVirtualScreen(Context ctx, String command) {
-    if (!enabled(ctx))
+    var authorization = com.deepseekharness.app.core.ConfigStore.deviceAuthorization(ctx);
+    if (!authorization.rootAllowed())
       return com.deepseekharness.app.util.UiText.text(
           "[POLICY_BLOCKED] 未允许 root shell\n[EXIT=126]");
     try {
@@ -189,13 +189,14 @@ public final class RootShell {
       return com.deepseekharness.app.util.UiText.text(
           "[POLICY_BLOCKED] 无法核验 DSHA 安装包路径\n[EXIT=126]");
     }
-    return runPrivileged(ctx, command, -1, "virtual-screen-start");
+    return runPrivileged(ctx, command, -1, "virtual-screen-start", authorization);
   }
 
   /** Preserve pre-send refusal separately from a possibly executed native launch/probe. */
   public static com.deepseekharness.app.device.DeviceTransportResult execVirtualScreenTyped(
       Context ctx, String command) {
-    if (!enabled(ctx))
+    var authorization = com.deepseekharness.app.core.ConfigStore.deviceAuthorization(ctx);
+    if (!authorization.rootAllowed())
       return com.deepseekharness.app.device.DeviceTransportResult.notSent(
           "root", "ROOT_NOT_ENABLED", "[POLICY_BLOCKED] ROOT_NOT_ENABLED\n[EXIT=126]");
     try {
@@ -218,7 +219,10 @@ public final class RootShell {
     if (executable() == null)
       return com.deepseekharness.app.device.DeviceTransportResult.notSent(
           "root", "ROOT_UNAVAILABLE", "[ROOT_UNAVAILABLE] ROOT_UNAVAILABLE\n[EXIT=124]");
-    String output = runPrivileged(ctx, command, -1, "virtual-screen-start");
+    String output = runPrivileged(ctx, command, -1, "virtual-screen-start", authorization);
+    if (AUTHORITY_CHANGED.equals(output))
+      return com.deepseekharness.app.device.DeviceTransportResult.notSent(
+          "root", "DEVICE_AUTHORIZATION_CHANGED", output);
     // 槽位已满时 su 未启动，虚拟屏核心确定未拉起，按未发送报告。
     if (isBusy(output))
       return com.deepseekharness.app.device.DeviceTransportResult.notSent(
@@ -446,7 +450,7 @@ public final class RootShell {
       try (java.io.OutputStream input = process.getOutputStream()) {
         // A helper cannot execute an external command without its request. Claim immediately
         // before handing over the immutable argv, after potentially slow su startup and checks.
-        if (!writeExternalRequest(
+        if (!writeRequestIfCurrent(
             input, payload, () -> enabled(ctx) && dispatchCurrent.getAsBoolean()))
           return externalAuthorityChanged();
       }
@@ -473,7 +477,7 @@ public final class RootShell {
     return "[POLICY_BLOCKED] EXTERNAL_AUTHORITY_CHANGED_BEFORE_DISPATCH\n[EXIT=126]";
   }
 
-  static boolean writeExternalRequest(
+  static boolean writeRequestIfCurrent(
       java.io.OutputStream input,
       byte[] payload,
       java.util.function.BooleanSupplier dispatchCurrent)
@@ -601,8 +605,16 @@ public final class RootShell {
     }
   }
 
+  private static final String AUTHORITY_CHANGED =
+      "[POLICY_BLOCKED] DEVICE_AUTHORIZATION_CHANGED\n[EXIT=126]";
+
   private static String runPrivileged(
-      Context ctx, String command, int authorizedSmsUser, String operation) {
+      Context ctx,
+      String command,
+      int authorizedSmsUser,
+      String operation,
+      DeviceAuthorization.Snapshot authorization) {
+    if (!DeviceAuthorization.shared().current(authorization)) return AUTHORITY_CHANGED;
     String su = executable();
     if (su == null)
       return com.deepseekharness.app.util.UiText.text("[ROOT_UNAVAILABLE] 未找到 su\n[EXIT=124]");
@@ -622,9 +634,13 @@ public final class RootShell {
               .put("selfUid", ctx.getApplicationInfo().uid);
       if (!operation.isEmpty()) request.put("operation", operation);
       bindOwner(request, ROOT_WAIT_MS);
+      byte[] payload = request.toString().getBytes(StandardCharsets.UTF_8);
       process = startHelper(ctx, su, ticket);
       try (java.io.OutputStream input = process.getOutputStream()) {
-        input.write(request.toString().getBytes(StandardCharsets.UTF_8));
+        // su startup can outlast the grant. The helper needs the payload before it can act.
+        if (!writeRequestIfCurrent(
+            input, payload, () -> DeviceAuthorization.shared().current(authorization)))
+          return AUTHORITY_CHANGED;
       }
       BoundedProcessRunner.Result result =
           BoundedProcessRunner.collect(process, ROOT_WAIT_MS, 400_000, RootShell::destroyQuietly);

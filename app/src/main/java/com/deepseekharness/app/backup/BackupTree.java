@@ -3,6 +3,7 @@ package com.deepseekharness.app.backup;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.concurrent.TimeUnit;
 
 /** 事务候选及被覆盖原件的摘要；链接只记录本体，不沿链接遍历。 */
 public final class BackupTree {
@@ -10,15 +11,34 @@ public final class BackupTree {
 
   public static String digest(BackupFileSystem fs, File root, BackupControl control)
       throws IOException {
-    if (fs.getClass() == AndroidBackupFileSystem.class && fs.stat(root).type.equals("DIRECTORY")) {
-      try (AndroidTreeFileSystem tree = new AndroidTreeFileSystem(root)) {
-        return digestTree(tree, root, control);
-      }
-    }
-    return digestTree(fs, root, control);
+    return digest(fs, root, control, null);
   }
 
-  private static String digestTree(BackupFileSystem fs, File root, BackupControl control)
+  @FunctionalInterface
+  interface DigestProgress {
+    /** Cumulative completed regular files and actual body bytes read by this digest. */
+    void update(long files, long bytes) throws IOException;
+  }
+
+  static String digest(
+      BackupFileSystem fs, File root, BackupControl control, DigestProgress observer)
+      throws IOException {
+    var progress = observer == null ? null : new DigestReadProgress(observer);
+    if (progress != null) progress.publish(true);
+    String result;
+    if (fs.getClass() == AndroidBackupFileSystem.class && fs.stat(root).type.equals("DIRECTORY")) {
+      try (AndroidTreeFileSystem tree = new AndroidTreeFileSystem(root)) {
+        result = digestTree(tree, root, control, progress);
+      }
+    } else {
+      result = digestTree(fs, root, control, progress);
+    }
+    if (progress != null) progress.publish(true);
+    return result;
+  }
+
+  private static String digestTree(
+      BackupFileSystem fs, File root, BackupControl control, DigestReadProgress progress)
       throws IOException {
     TreeHash hash = new TreeHash();
     long[] limits = {0, 0, 0};
@@ -32,17 +52,45 @@ public final class BackupTree {
         limits,
         new byte[65536],
         null,
-        new ReadScratch(),
+        new ReadScratch(progress),
         null);
     return BackupArchive.hex(hash.finish());
   }
 
   private static final class ReadScratch {
+    private final DigestReadProgress progress;
     private byte[] payload;
+
+    ReadScratch(DigestReadProgress progress) {
+      this.progress = progress;
+    }
 
     byte[] bytes() {
       if (payload == null) payload = new byte[AndroidTreeFileSystem.LeafBatch.PAYLOAD_BYTES];
       return payload;
+    }
+  }
+
+  static final class DigestReadProgress {
+    private static final long INTERVAL = TimeUnit.MILLISECONDS.toNanos(100);
+    private final DigestProgress observer;
+    private long last, files, bytes;
+
+    DigestReadProgress(DigestProgress observer) {
+      this.observer = observer;
+    }
+
+    void advance(long files, long bytes) throws IOException {
+      this.files += files;
+      this.bytes += bytes;
+      publish(false);
+    }
+
+    void publish(boolean force) throws IOException {
+      long now = System.nanoTime();
+      if (!force && now - last < INTERVAL) return;
+      last = now;
+      observer.update(files, bytes);
     }
   }
 
@@ -101,7 +149,7 @@ public final class BackupTree {
   }
 
   /** 保持原有长度前缀字段格式。按有界缓冲合并更新，避免每个长度字节各进一次 SHA。 文件 SHA 直接编码为原有 64 字节小写 hex 字段，不建立中间字符串和 UTF-8 数组。 */
-  private static final class TreeHash {
+  static final class TreeHash {
     final MessageDigest digest = BackupArchive.sha();
     final byte[] fields = new byte[65536];
     int count;
@@ -138,10 +186,13 @@ public final class BackupTree {
     }
 
     void node(String relative, BackupFileSystem.Node node) {
+      node(relative, node.type, node.mode);
+    }
+
+    void node(String relative, String type, int mode) {
       append(relative);
-      append(node.type);
-      if (node.type.equals("FILE") || node.type.equals("DIRECTORY"))
-        append(Integer.toOctalString(node.mode));
+      append(type);
+      if (type.equals("FILE") || type.equals("DIRECTORY")) append(Integer.toOctalString(mode));
     }
 
     void text(String value) {
@@ -167,7 +218,11 @@ public final class BackupTree {
 
   /** 每遍树复用文件 SHA 引擎，字段仍保存各文件独立的完整 SHA-256。 */
   private static byte[] fileDigest(
-      InputStream input, MessageDigest digest, BackupControl control, byte[] buffer)
+      InputStream input,
+      MessageDigest digest,
+      BackupControl control,
+      byte[] buffer,
+      DigestReadProgress progress)
       throws IOException {
     long total = 0;
     int count;
@@ -175,6 +230,7 @@ public final class BackupTree {
       control.check();
       total = BackupLimits.add(total, count, BackupLimits.BYTES + 256L * 1024 * 1024);
       digest.update(buffer, 0, count);
+      if (progress != null) progress.advance(0, count);
     }
     return digest.digest();
   }
@@ -201,12 +257,14 @@ public final class BackupTree {
     if (before.type.equals("FILE")) {
       limits[1] = BackupLimits.add(limits[1], before.size, BackupLimits.BYTES);
       if (parent != null) {
-        hash.file(parent.digestFile(file.getName(), before, fileHash, buffer, control));
+        hash.file(
+            parent.digestFile(file.getName(), before, fileHash, buffer, control, scratch.progress));
+        if (scratch.progress != null) scratch.progress.advance(1, 0);
         // digestFile 已在关闭 FD 前核对同一文件的 fstat 与固定父目录内的 lstat。
         return;
       }
       try (InputStream in = fs.read(file, before)) {
-        hash.file(fileDigest(in, fileHash, control, buffer));
+        hash.file(fileDigest(in, fileHash, control, buffer, scratch.progress));
       }
     } else if (before.type.equals("DIRECTORY")) {
       try (AndroidTreeFileSystem.DigestDirectory directory =
@@ -244,6 +302,7 @@ public final class BackupTree {
     else if (!before.type.equals("MISSING")) throw new IOException("SPECIAL_FILE");
     if (!before.same(parent == null ? fs.stat(file) : parent.stat(file.getName())))
       throw new IOException("SOURCE_CHANGED");
+    if (scratch.progress != null && before.type.equals("FILE")) scratch.progress.advance(1, 0);
   }
 
   /** 本遍的新鲜批量 tuple 先过原 Java 预算，最多 1MiB 的小 FILE 才进入串行 native 读取。 */
@@ -294,8 +353,10 @@ public final class BackupTree {
         byte[][] digests = batch.digestSmall(index, count, scratch.bytes(), fileHash, control);
         for (int entry = 0; entry < count; entry++) {
           String name = batch.name(index + entry);
-          hash.node(relative.isEmpty() ? name : relative + "/" + name, batch.node(index + entry));
+          var node = batch.node(index + entry);
+          hash.node(relative.isEmpty() ? name : relative + "/" + name, node);
           hash.file(digests[entry]);
+          if (scratch.progress != null) scratch.progress.advance(1, node.size);
         }
         index += count;
       }

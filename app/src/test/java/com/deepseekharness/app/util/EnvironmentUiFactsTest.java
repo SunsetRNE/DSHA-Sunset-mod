@@ -10,7 +10,15 @@ import org.junit.Test;
 public final class EnvironmentUiFactsTest {
   private static final class Reads implements EnvironmentUiFacts.Reader {
     final List<String> calls = new ArrayList<>();
-    boolean runnable, installed, latest, pending, busy, maintenance, entry, repairs;
+    boolean runnable,
+        installed,
+        latest,
+        acceptedRollback,
+        pending,
+        busy,
+        maintenance,
+        entry,
+        repairs;
     String fail = "";
 
     private boolean read(String name, boolean value) {
@@ -29,6 +37,10 @@ public final class EnvironmentUiFactsTest {
 
     public boolean latest() {
       return read("latest", latest);
+    }
+
+    public boolean acceptedRollback() {
+      return read("acceptedRollback", acceptedRollback);
     }
 
     public boolean hostPending() {
@@ -85,22 +97,23 @@ public final class EnvironmentUiFactsTest {
 
   @Test
   public void bannerMatchesExistingProjectionWithoutEagerEntryReads() {
-    for (int mask = 0; mask < 16; mask++) {
+    for (int mask = 0; mask < 32; mask++) {
       Reads reads = new Reads();
       reads.runnable = bit(mask, 0);
       reads.latest = bit(mask, 1);
       reads.entry = bit(mask, 2);
       reads.repairs = bit(mask, 3);
+      reads.acceptedRollback = bit(mask, 4);
       var result = EnvironmentUiFacts.banner(reads);
-      boolean runtimeMaintenance = !reads.runnable || !reads.latest;
+      boolean runtimeMaintenance = !reads.runnable || !reads.latest && !reads.acceptedRollback;
       assertEquals(reads.runnable, result.runnable());
       assertEquals(runtimeMaintenance || reads.entry, result.recovery());
       assertEquals(reads.repairs, result.repairs());
-      assertEquals(
-          runtimeMaintenance
-              ? List.of("runnable", "latest", "repairs")
-              : List.of("runnable", "latest", "entry", "repairs"),
-          reads.calls);
+      List<String> expectedReads = new ArrayList<>(List.of("runnable", "latest"));
+      if (reads.runnable && !reads.latest) expectedReads.add("acceptedRollback");
+      if (!runtimeMaintenance) expectedReads.add("entry");
+      expectedReads.add("repairs");
+      assertEquals(expectedReads, reads.calls);
     }
   }
 
@@ -111,7 +124,7 @@ public final class EnvironmentUiFactsTest {
     reads.latest = false;
     reads.fail = "entry";
     assertTrue(EnvironmentUiFacts.banner(reads).recovery());
-    assertEquals(List.of("runnable", "latest", "repairs"), reads.calls);
+    assertEquals(List.of("runnable", "latest", "acceptedRollback", "repairs"), reads.calls);
   }
 
   @Test

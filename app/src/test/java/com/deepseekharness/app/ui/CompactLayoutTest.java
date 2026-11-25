@@ -2,6 +2,7 @@ package com.deepseekharness.app.ui;
 
 import static org.junit.Assert.*;
 
+import android.content.ClipboardManager;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,7 +13,10 @@ import androidx.fragment.app.Fragment;
 import com.deepseekharness.app.DshaApp;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.skills.SkillCatalogueFixture;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 import org.junit.After;
 import org.junit.Test;
@@ -21,8 +25,11 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.annotation.LooperMode;
+import org.robolectric.shadows.ShadowDialog;
 import org.robolectric.shadows.ShadowLooper;
+import org.robolectric.util.ReflectionHelpers;
 
 /**
  * 手机竖屏（360dp）与宽屏的布局回归：方案 A 改过的子页在窄屏下不横向溢出，技能页按宽度切换单列 / 并排。
@@ -197,6 +204,172 @@ public final class CompactLayoutTest {
   public void skillsEmptyStateFitsPhone() throws Exception {
     SkillsFragment page = skills(360, 0);
     assertNoHorizontalOverflow(page.requireView(), 360);
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  @Config(qualifiers = "zh-rCN-w900dp-h700dp-mdpi")
+  public void wideSkillBindsOnlyThePreviewOfTheExactLargeRemovalSample() throws Exception {
+    byte[] sample = SkillCatalogueFixture.removalSample();
+    assertEquals(1_048_557, sample.length);
+    assertEquals(
+        "38536f1cef5a1925c7fc5388d4be5f4db96854cd4b13b9cbaf36c759b8414e92",
+        HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(sample)));
+    long started = System.nanoTime();
+    SkillsFragment page = skillsWithSource(sample, 900);
+    TextView source = skillSource(page.requireView());
+    assertNotNull(source);
+    assertEquals(8, source.getMaxLines());
+    System.out.printf(
+        "SKILL_PREVIEW\t%d units\t%d ms%n",
+        source.getText().length(), (System.nanoTime() - started) / 1_000_000);
+    assertTrue("Collapsed TextView received the full document", source.getText().length() <= 768);
+    assertTrue(new String(sample, StandardCharsets.UTF_8).startsWith(source.getText().toString()));
+    View root = page.requireView();
+    tagged(root, "skills.source.expand", new ArrayList<>()).get(0).performClick();
+    View next = tagged(root, "skills.source.next", new ArrayList<>()).get(0);
+    StringBuilder full = new StringBuilder();
+    int pages = 0;
+    while (true) {
+      assertTrue(++pages <= 400);
+      assertTrue(source.getText().length() > 0 && source.getText().length() <= 4096);
+      full.append(source.getText());
+      if (!next.isEnabled()) break;
+      next.performClick();
+    }
+    assertTrue(new String(sample, StandardCharsets.UTF_8).contentEquals(full));
+    System.out.printf("SKILL_FULL\t%d pages\t%d units%n", pages, full.length());
+  }
+
+  @Test
+  @Config(qualifiers = "zh-rCN-w900dp-h700dp-mdpi")
+  public void skillBusyTransitionKeepsTheExistingDetailAndGuardsMutationControls()
+      throws Exception {
+    SkillsFragment page = skillsWithSource(SkillCatalogueFixture.removalSample(), 900);
+    View root = page.requireView();
+    View detail = tagged(root, "skills.detail", new ArrayList<>()).get(0);
+    View delete = tagged(root, "skills.delete", new ArrayList<>()).get(0);
+    View toggle = tagged(root, "skill.switch:", new ArrayList<>()).get(0);
+    var model = (SkillsFragment.Model) ReflectionHelpers.getField(page, "model");
+    long started = System.nanoTime();
+    model.busy.setValue(true);
+    System.out.printf(
+        "SKILL_BUSY\troot unchanged=%s\t%d ms%n",
+        detail == tagged(root, "skills.detail", new ArrayList<>()).get(0),
+        (System.nanoTime() - started) / 1_000_000);
+    assertSame(detail, tagged(root, "skills.detail", new ArrayList<>()).get(0));
+    assertFalse(delete.isEnabled());
+    assertFalse(toggle.isEnabled());
+    model.busy.setValue(false);
+    assertSame(detail, tagged(root, "skills.detail", new ArrayList<>()).get(0));
+    assertTrue(delete.isEnabled());
+    assertTrue(toggle.isEnabled());
+  }
+
+  @Test
+  @Config(qualifiers = "zh-rCN-w900dp-h700dp-mdpi")
+  public void skillFullSourcePagesKeepAllTextAndSplitNoSurrogatePairs() throws Exception {
+    String header = "---\nname: long-line\ndescription: Inert example\n---\n";
+    String emoji = "\uD83D\uDE00";
+    String doc =
+        header
+            + "x".repeat(767 - header.length())
+            + emoji
+            + "x".repeat(3326)
+            + emoji
+            + "y".repeat(6000);
+    SkillsFragment page = skillsWithSource(doc.getBytes(StandardCharsets.UTF_8), 900);
+    View root = page.requireView();
+    TextView source = skillSource(root);
+    assertNotNull(source);
+    assertEquals(767, source.getText().length());
+    tagged(root, "skills.source.expand", new ArrayList<>()).get(0).performClick();
+    View next = tagged(root, "skills.source.next", new ArrayList<>()).get(0);
+    View previous = tagged(root, "skills.source.previous", new ArrayList<>()).get(0);
+    String first = source.getText().toString();
+    assertFalse(previous.isEnabled());
+    assertTrue(next.isEnabled());
+    next.performClick();
+    previous.performClick();
+    assertEquals(first, source.getText().toString());
+    StringBuilder gathered = new StringBuilder();
+    while (true) {
+      CharSequence chunk = source.getText();
+      assertTrue(chunk.length() > 0 && chunk.length() <= 4096);
+      assertFalse(Character.isLowSurrogate(chunk.charAt(0)));
+      assertFalse(Character.isHighSurrogate(chunk.charAt(chunk.length() - 1)));
+      gathered.append(chunk);
+      if (!next.isEnabled()) break;
+      next.performClick();
+    }
+    assertTrue("The complete original must remain readable", doc.contentEquals(gathered));
+    tagged(root, "skills.source.expand", new ArrayList<>()).get(0).performClick();
+    assertEquals(767, source.getText().length());
+    host.recreate().visible();
+    ShadowLooper.shadowMainLooper().idle();
+    var recreated =
+        (SkillsFragment)
+            host.get().getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+    assertNotNull(recreated);
+    View restoredRoot = recreated.requireView();
+    assertNotSame(root, restoredRoot);
+    layout(restoredRoot, 900);
+    assertEquals(767, skillSource(restoredRoot).getText().length());
+    assertEquals(1, tagged(restoredRoot, "skill:long-line", new ArrayList<>()).size());
+  }
+
+  @Test
+  public void smallSkillStillExpandsInOneViewAndCopiesTheCommand() throws Exception {
+    String small =
+        "---\nname: small-neighbor\ndescription: Inert example\n---\n" + "text\n".repeat(10);
+    SkillsFragment page = skillsWithSource(small.getBytes(StandardCharsets.UTF_8), 360);
+    tagged(page.requireView(), "skill:small-neighbor", new ArrayList<>()).get(0).performClick();
+    var sheet = ShadowDialog.getLatestDialog();
+    assertNotNull(sheet);
+    View root = sheet.getWindow().getDecorView();
+    TextView source = skillSource(root);
+    assertNotNull(source);
+    action(root, "展开全文", "Show all").performClick();
+    assertEquals(small, source.getText().toString());
+    assertTrue(source.isTextSelectable());
+    action(root, "复制命令", "Copy command").performClick();
+    var clipboard = host.get().getSystemService(ClipboardManager.class);
+    assertEquals("/small-neighbor", clipboard.getPrimaryClip().getItemAt(0).getText().toString());
+    sheet.dismiss();
+    assertNotNull(tagged(page.requireView(), "skill:small-neighbor", new ArrayList<>()).get(0));
+  }
+
+  private SkillsFragment skillsWithSource(byte[] sample, int width) throws Exception {
+    SkillsFragment page = new SkillsFragment();
+    page.disableAutoLoadForTest();
+    start(page);
+    page.showCatalogueForTest(SkillCatalogueFixture.withSource(sample));
+    layout(page.requireView(), width);
+    return page;
+  }
+
+  private static TextView skillSource(View view) {
+    if (view instanceof TextView text && text.getText().toString().startsWith("---\nname:"))
+      return text;
+    if (view instanceof ViewGroup group)
+      for (int index = 0; index < group.getChildCount(); index++) {
+        TextView found = skillSource(group.getChildAt(index));
+        if (found != null) return found;
+      }
+    return null;
+  }
+
+  private static TextView action(View view, String chinese, String english) {
+    if (view instanceof TextView text && view.isClickable()) {
+      var label = text.getText().toString();
+      if (label.equals(chinese) || label.equals(english)) return text;
+    }
+    if (view instanceof ViewGroup group)
+      for (int index = 0; index < group.getChildCount(); index++) {
+        TextView found = action(group.getChildAt(index), chinese, english);
+        if (found != null) return found;
+      }
+    return null;
   }
 
   @Test

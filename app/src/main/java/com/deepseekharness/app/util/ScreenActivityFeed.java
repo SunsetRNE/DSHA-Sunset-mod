@@ -65,6 +65,11 @@ public final class ScreenActivityFeed {
     deliveredThrough = latestSequence;
   }
 
+  /** A target transition retires all detailed events from its former window. */
+  public synchronized void discardTargetDetails() {
+    events.removeIf(event -> event.kind() != ScreenActivityEvent.Kind.TARGET_CHANGED);
+  }
+
   public synchronized boolean recording() {
     return recording;
   }

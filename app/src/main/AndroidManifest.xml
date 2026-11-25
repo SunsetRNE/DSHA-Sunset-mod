@@ -197,7 +197,7 @@
             android:documentLaunchMode="never"
             android:excludeFromRecents="true"
             android:supportsPictureInPicture="true"
-            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|locale|layoutDirection|uiMode"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.DeepseekHarness" />
 
@@ -237,11 +237,11 @@
 
         <!-- 无障碍声明放在 main manifest：正式包、测试包与 debug 包共享同一 service 声明，
              不使用 flavor 专属 manifest 覆盖，因此多个变体包可以各自独立启用、互不顶掉。
-             标签/描述按语言资源提供，随实际应用显示名（DSH-A-Su）区分。 -->
+             标签使用实际变体的应用显示名，描述按系统语言资源提供。 -->
         <service
             android:name=".DshaAccessibilityService"
             android:exported="false"
-            android:label="@string/accessibility_service_label"
+            android:label="@string/app_name"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />

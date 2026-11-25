@@ -55,7 +55,7 @@ if(presetLayoutNegative) {
   let restored=0;
   for(const patch of recipes.preset.patches) if(patch.after.includes('DSHA_PRESET_PENDING_VIEW_V2')) {patch.after=patch.before;restored++;}
   assert.equal(restored,1);
-  const anchor='\t\t\t\t\tstate.error === null ? null : (0, react_jsx_runtime.jsx)("p", {';
+  const anchor='state.error===null?null:(0,react_jsx_runtime.jsx)(`p`,{';
   recipes.preset.patches.push({before:anchor,after:`
                     state.saving ? (0, react_jsx_runtime.jsx)("p", {
                         role: "status", "aria-live": "polite", "data-dsha-preset-pending": state.savePhase,
@@ -91,7 +91,7 @@ await page.evaluate(()=>document.fonts.ready);
   await page.evaluate(() => { window.unhandled=[];addEventListener('unhandledrejection',event=>unhandled.push(String(event.reason))); });
   if (surface==='plugin'||surface==='all') {
     await fixture.load('dsh-client-ui-plugin-manager',before?[]:[recipes.plugin],
-      'exports.audit={PluginManagerController,EnableSwitch,RowSwitch,PackageCard,PluginRefreshToast,en,zh};');
+      'exports.audit={PluginManagerController,EnableSwitch,RowSwitch,PackageCard,PluginRefreshToast,en,zh,layout:PluginManagerPage_module_css_default};');
     await page.evaluate(() => {
       const api=auditExports['@deepseek-ai/dsh-client-ui-plugin-manager'].audit;
       const React=auditModules.react;
@@ -113,8 +113,9 @@ await page.evaluate(()=>document.fonts.ready);
         window.face=manager.inject(staticStore,staticStore,text=>text);
         testRoot=auditModules['react-dom/client'].createRoot(document.getElementById('root'));
         function Demo(){const state=React.useSyncExternalStore(manager.store.subscribe,manager.store.getSnapshot);
-          return React.createElement(React.Fragment,null,
-            React.createElement('ul',{style:{listStyle:'none',padding:0,margin:0}},React.createElement(api.PackageCard,{pkg:state.packages[0],t:translate,resolveText:text=>text,busy:state.busy.includes(baseBundle.name),onOpen:()=>{},onSetEnabled:value=>face.setEnabled(baseBundle.name,value)})),
+          // The real bundle switch reserves space using variables on the page root.
+          return React.createElement('section',{className:api.layout.page},
+            React.createElement('ul',{className:api.layout.cards},React.createElement(api.PackageCard,{pkg:state.packages[0],t:translate,resolveText:text=>text,busy:state.busy.includes(baseBundle.name),onOpen:()=>{},onSetEnabled:value=>face.setEnabled(baseBundle.name,value)})),
             React.createElement(api.PluginRefreshToast,{usePluginManager:selector=>selector(state),dismissNotice:()=>{},t:translate}));}
         testRoot.render(React.createElement(Demo));
       };
@@ -132,7 +133,7 @@ await page.evaluate(()=>document.fonts.ready);
     await page.waitForFunction(()=>mutations.length===1);
     assert.equal(await toggle.getAttribute('aria-checked'),'false','no optimistic enabled');
     assert.equal(await toggle.isDisabled(),true);
-    // 0.2.2-rc.1: upstream EnableSwitch owns the bundle pending view (StateDot + applyingChange status);
+    // Upstream EnableSwitch owns the bundle pending view (StateDot + applyingChange status);
     // DSHA's pluginPendingSwitch remains only on component RowSwitch.
     assert.equal(await page.locator('[data-dsha-plugin-pending]').count(),0,'bundle switch is not double-wrapped');
     assert.match(await page.locator('[role=status]').textContent(),/Applying changes to A long plugin title/,'visible mutation feedback');

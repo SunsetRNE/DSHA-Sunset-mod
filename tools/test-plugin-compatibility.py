@@ -16,6 +16,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'app/src/main/assets'
+CURRENT_DSH = json.loads((ASSETS / 'runtime-patches.json').read_text(encoding='utf-8'))['dshVersion']
 
 
 class CompatibilityTest(unittest.TestCase):
@@ -48,10 +49,10 @@ class CompatibilityTest(unittest.TestCase):
         self.put(self.profile / 'package.json', {'dependencies': {}, 'dsh': {'profile': {'bundles': []}}})
         self.source = self.home / 'plugin-sources.json'; self.put(self.source, {})
         runtime = self.root / 'usr/local/lib/node_modules/@deepseek-ai/dsh'
-        self.put(runtime / 'package.json', {'name': '@deepseek-ai/dsh', 'version': '0.2.2-rc.1'})
+        self.put(runtime / 'package.json', {'name': '@deepseek-ai/dsh', 'version': CURRENT_DSH})
         boot = runtime / 'node_modules/@deepseek-ai/dsh-app-boot'
         self.boot = boot / 'package.json'
-        self.put(self.boot, {'name': '@deepseek-ai/dsh-app-boot', 'version': '0.2.2-rc.1', 'main': 'lib/index.js'})
+        self.put(self.boot, {'name': '@deepseek-ai/dsh-app-boot', 'version': CURRENT_DSH, 'main': 'lib/index.js'})
         self.put(boot / 'lib/index.js', "throw Error('must never import app-boot');")
 
     def put(self, path, value):
@@ -110,10 +111,10 @@ class CompatibilityTest(unittest.TestCase):
 const input=JSON.parse(fs.readFileSync(0,'utf8'));globalThis.__fixtureSemver=require(input.adapter);
 (async()=>{const source='const semver=globalThis.__fixtureSemver;\\n'+input.source+'\\nexport {evaluatePluginCompatibility};';
 const reference=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
-const rows=input.packages.map(pkg=>{try{const issue=reference.evaluatePluginCompatibility(pkg,{},'0.2.2-rc.1');return {unmet:issue?.requirements||{}}}catch(_){return {error:true}}});
+const rows=input.packages.map(pkg=>{try{const issue=reference.evaluatePluginCompatibility(pkg,{},input.version);return {unmet:issue?.requirements||{}}}catch(_){return {error:true}}});
 process.stdout.write(JSON.stringify(rows));})().catch(e=>{console.error(e);process.exitCode=1;});"""
         script_path = self.put(self.root / 'compatibility-reference.cjs', script)
-        result = subprocess.run(['node', str(script_path)], input=json.dumps({'source': self.upstream, 'adapter': str(ASSETS / 'plugin-semver.cjs'), 'packages': packages}), text=True, capture_output=True)
+        result = subprocess.run(['node', str(script_path)], input=json.dumps({'source': self.upstream, 'adapter': str(ASSETS / 'plugin-semver.cjs'), 'packages': packages, 'version': CURRENT_DSH}), text=True, capture_output=True)
         self.assertEqual(0, result.returncode, result.stderr)
         expected = json.loads(result.stdout)
         reports = self.life.compatibility_reports(packages)
@@ -151,13 +152,13 @@ process.stdout.write(JSON.stringify(rows));})().catch(e=>{console.error(e);proce
     def test_exemptions_are_exact_read_only_and_bad_records_never_authorize(self):
         incompatible = self.package(engines={'dsh': '<0.1.0'})
         filename = self.profile / 'compatibility.json'
-        cases = [({}, False), ({'test-plugin@1.0.0': ['0.2.2-rc.1']}, True),
-                 ({'test-plugin@1.0.0': ['0.2.2-rc.1+different']}, False),
-                 ({'test-plugin@1.0.0': '0.2.2-rc.1'}, False),
-                 ({'test-plugin@1.0.0': ['0.2.2-rc.1', '*']}, False),
-                 ({'test-plugin@v1.0.0': ['0.2.2-rc.1']}, False),
-                 ({'test-plugin@1.0.0': ['v0.2.2-rc.1']}, False),
-                 ({'bad@latest': ['*'], 'test-plugin@1.0.0': ['0.2.2-rc.1']}, True),
+        cases = [({}, False), ({'test-plugin@1.0.0': [CURRENT_DSH]}, True),
+                 ({'test-plugin@1.0.0': [CURRENT_DSH + '+different']}, False),
+                 ({'test-plugin@1.0.0': CURRENT_DSH}, False),
+                 ({'test-plugin@1.0.0': [CURRENT_DSH, '*']}, False),
+                 ({'test-plugin@v1.0.0': [CURRENT_DSH]}, False),
+                 ({'test-plugin@1.0.0': ['v' + CURRENT_DSH]}, False),
+                 ({'bad@latest': ['*'], 'test-plugin@1.0.0': [CURRENT_DSH]}, True),
                  ([], False), ('{broken', False)]
         for value, allowed in cases:
             with self.subTest(value=value):
@@ -189,7 +190,7 @@ process.stdout.write(JSON.stringify(rows));})().catch(e=>{console.error(e);proce
         self.assertEqual({'first-plugin', 'second-plugin'}, set(json.loads((self.profile / 'package.json').read_text())['dsh']['profile']['bundles']))
 
     def test_revoke_exemption_after_prepare_blocks_commit_and_preserves_candidate(self):
-        filename = self.put(self.profile / 'compatibility.json', {'test-plugin@1.0.0': ['0.2.2-rc.1']})
+        filename = self.put(self.profile / 'compatibility.json', {'test-plugin@1.0.0': [CURRENT_DSH]})
         preview = self.preview([self.directory(engines={'dsh': '<0.1.0'})])
         self.put(filename, {})
         with self.assertRaises(self.m.PluginPolicyError) as caught: self.commit(preview)
@@ -198,7 +199,7 @@ process.stdout.write(JSON.stringify(rows));})().catch(e=>{console.error(e);proce
         self.assertIsNone(self.m.resolve_plugin_dir('test-plugin'))
 
     def test_writer_rechecks_exemption_after_wait(self):
-        filename = self.put(self.profile / 'compatibility.json', {'test-plugin@1.0.0': ['0.2.2-rc.1']})
+        filename = self.put(self.profile / 'compatibility.json', {'test-plugin@1.0.0': [CURRENT_DSH]})
         preview = self.preview([self.directory(engines={'dsh': '<0.1.0'})]); original = self.m.builtin.operation_lock
         @contextlib.contextmanager
         def changed(cancel=None):
@@ -369,10 +370,10 @@ process.stdout.write(JSON.stringify(rows));})().catch(e=>{console.error(e);proce
 
     def test_duplicate_exemption_keys_and_symlink_cannot_grant(self):
         package = self.package(engines={'dsh': '<0.1.0'}); filename = self.profile / 'compatibility.json'
-        self.put(filename, '{"test-plugin@1.0.0":[],"test-plugin@1.0.0":["0.2.2-rc.1"]}')
+        self.put(filename, '{"test-plugin@1.0.0":[],"test-plugin@1.0.0":[' + json.dumps(CURRENT_DSH) + ']}')
         self.assertFalse(self.life.package_metadata(package)['versionExempted'])
         if os.name != 'nt':
-            target = self.put(self.root / 'grant.json', {'test-plugin@1.0.0': ['0.2.2-rc.1']})
+            target = self.put(self.root / 'grant.json', {'test-plugin@1.0.0': [CURRENT_DSH]})
             filename.unlink(); filename.symlink_to(target)
             self.assertFalse(self.life.package_metadata(package)['versionExempted'])
 
@@ -387,7 +388,7 @@ process.stdout.write(JSON.stringify(rows));})().catch(e=>{console.error(e);proce
         filename = self.profile / 'compatibility.json'
         for atomic in (False, True):
             with self.subTest(atomic=atomic):
-                grant = {'test-plugin@1.0.0': ['0.2.2-rc.1']}; self.put(filename, grant)
+                grant = {'test-plugin@1.0.0': [CURRENT_DSH]}; self.put(filename, grant)
                 preview = self.preview([self.directory(engines={'dsh': '<0.1.0'})])
                 if atomic:
                     replacement = self.put(self.profile / 'replacement.json', grant); os.replace(replacement, filename)

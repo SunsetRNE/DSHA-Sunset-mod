@@ -9,11 +9,7 @@ public final class WebPageScripts {
 
   /** 应急页只注入语言与语法兼容，不注册正式设备/插件桥。 */
   public static String emergencyCompatibility(Context context) {
-    return language(context)
-        + "\n"
-        + read(context, "web-integration/es-compat.js")
-        + "\n"
-        + read(context, "web-integration/compat.js");
+    return language(context) + "\n" + esCompatibility(context);
   }
 
   public static String compatibility(Context context) {
@@ -24,15 +20,20 @@ public final class WebPageScripts {
         + "\n"
         + theme(context)
         + "\n"
-        + read(context, "web-integration/es-compat.js")
-        + "\n"
-        + read(context, "web-integration/compat.js")
+        + esCompatibility(context)
         + "\n"
         + read(context, "web-integration/files.js")
         + "\n"
         + read(context, "bridge-token-compat.cjs")
         + "\n"
         + read(context, "web-integration/startup.js");
+  }
+
+  private static String esCompatibility(Context context) {
+    String bundle = read(context, "web-integration/es-compat.js");
+    // The bundle already includes the lightweight shims. Keep them as a fallback for a missing
+    // asset.
+    return bundle.isEmpty() ? read(context, "web-integration/compat.js") : bundle;
   }
 
   public static String compatibility(

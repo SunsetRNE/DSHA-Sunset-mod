@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="portable_password">Senha do backup</string>
+    <string name="portable_password_confirm">Confirmar senha do backup</string>
+    <string name="portable_password_help">Guarde a senha separadamente. Ela é necessária para restaurar em outro dispositivo. O DSHA não pode recuperá-la.</string>
+    <string name="portable_password_length">Digite de 12 a 1024 caracteres.</string>
+    <string name="portable_password_mismatch">As senhas são diferentes.</string>
+    <string name="portable_export_summary">Proteja o tar.gz com uma senha para restaurá-lo em um novo dispositivo.</string>
+    <string name="portable_included_secrets">Os dados selecionados podem incluir credenciais salvas em conversas, anexos e arquivos.</string>
+    <string name="portable_import_summary">Escolha um backup. Backups criptografados exigem senha. Confira o escopo verificado antes de restaurar.</string>
+    <string name="portable_password_restore_help">Digite a senha usada para criar este backup.</string>
+    <string name="portable_rescue_diagnostics">A exportação de resgate criptografada contém apenas os dados do backup. A exportação em texto simples inclui também o resumo de diagnóstico disponível.</string>
+    <string name="portable_keep_password">Esta cópia mantém a senha original. Use essa senha no novo dispositivo.</string>
+    <string name="portable_plain_opt_in">Exportar sem criptografia por compatibilidade. Quem tiver o arquivo poderá ler todo o conteúdo, inclusive segredos em conversas e anexos.</string>
+    <string name="portable_export_label">Exportar backup portátil</string>
+    <string name="portable_automatic_help">A desinstalação remove as cópias automáticas e a chave do dispositivo. Antes de mudar de dispositivo ou desinstalar, exporte com sua senha e salve o arquivo fora do aplicativo.</string>
+    <string name="portable_retry_password">Tentar a senha novamente</string>
+</resources>

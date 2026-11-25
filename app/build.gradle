@@ -6,7 +6,7 @@ apply from: rootProject.file('build-logic/android.gradle')
 // DSH-A-Su（Sunset Mod）单一 Standard 变体：Android 11（API 30）及以上；发布身份见下方 dsha.identity。
 // 旧 low/GeckoView 兼容线与独立上岛包都已移除：上岛能力并入正式包。
 // 文件名独立于可诊断版本名，保持当前用户下载入口不变。
-ext.dshaApkNameVersion = '0.2.1-rc.5'
+ext.dshaApkNameVersion = '0.2.2-rc.5'
 def bundledTools = new groovy.json.JsonSlurper().parse(rootProject.file('tools/runtime-tools.lock.json'))
 if (bundledTools.schema != 1 || !(bundledTools.pnpm.version ==~ /[0-9]+\.[0-9]+\.[0-9]+/))
     throw new GradleException('随包工具身份格式错误')
@@ -128,9 +128,9 @@ android {
         // versionCode / versionName 的构建基准仍写在 build.gradle；三条身份文件必须记录同一值，
         // 由 android 块之后的一致性检查兜底。Rebirth 将来同线递增时须同时改本文件、身份文件与
         // tools/generate-changelog.py / release_names.py / sign-release-apks.py 的解析（G1 另立）。
-        versionCode 369
-        // DSHA 修订号 + 固定的 UTC 时间戳 + 内置 DSH 版本；同一交付重建不变。
-        versionName "0.2.1-rc.5-20261116.0740-dsh0.2.2-rc.1"
+        versionCode 377
+        // DSHA 修订号 + 固定时间戳（本地交付使用 Asia/Shanghai）+ 内置 DSH 版本。
+        versionName "0.2.2-rc.5-20261125.1442-dsh0.2.2-rc.5"
         testInstrumentationRunner project.findProperty('dsha.testRunner') ?: "com.deepseekharness.app.Rc13Instrumentation"
         ndk {
             abiFilters 'arm64-v8a'
@@ -227,10 +227,15 @@ android {
     }
 
     packagingOptions {
+        dex {
+            // 压缩 DEX 以减小下载包，安装时由 Android 处理解压。
+            useLegacyPackaging = true
+        }
         jniLibs {
             useLegacyPackaging = true
-            // 应急启动器按签名 APK 中的完整字节校验，禁止打包阶段再改写这两份 ELF。
-            keepDebugSymbols += ['**/libproot.so', '**/libprootloader.so']
+            // 应急启动器和上游专有 proroot 在最终 APK 中都必须保持固定原件的字节。
+            keepDebugSymbols += ['**/libproot.so', '**/libprootloader.so', '**/libprootloader32.so',
+                                 '**/libtalloc.so', '**/libproroot*.so']
             // 使用 app 自带的同版本 16 KB JNI，覆盖 terminal-emulator AAR 中的旧库。
             pickFirsts += ['**/libtermux.so']
             excludes += ['**/x86/**', '**/x86_64/**', '**/armeabi/**', '**/armeabi-v7a/**']
@@ -398,6 +403,21 @@ def verifyCredentialRegistry = tasks.register('verifyCredentialRegistry', Exec) 
     commandLine(System.getenv('DSHA_PYTHON') ?: 'python3', '-B',
             rootProject.file('tools/generate-credential-paths.py').absolutePath, '--check')
 }
+def prepareProrootInputs = tasks.register('prepareProrootInputs', Exec) {
+    def arguments = [System.getenv('DSHA_PYTHON') ?: 'python3', '-B',
+            rootProject.file('tools/proroot_distribution.py').absolutePath]
+    def localApk = providers.gradleProperty('dsha.prorootApk').orNull
+    if (localApk) {
+        arguments += ['--apk', rootProject.file(localApk).absolutePath]
+    } else if (!gradle.startParameter.offline) {
+        arguments += '--upstream'
+    }
+    commandLine(arguments)
+}
+tasks.configureEach {
+    if (name in ['verifyProrootCompat', 'prepareRuntimeDescriptor', 'verifyRuntimeDescriptorInputs'] ||
+            name.matches('mergeStandard.*(JniLibFolders|NativeLibs)')) dependsOn(prepareProrootInputs)
+}
 def verifyProrootCompat = tasks.register('verifyProrootCompat', Exec) {
     inputs.files(rootProject.files('tools/test-proroot-compat.py',
             'tools/proroot-compat/stack-sysconf.c', 'tools/proroot-compat/abi.lock.json',
@@ -426,8 +446,8 @@ def verifyWebLanguages = tasks.register('verifyWebLanguages', Exec) {
             'tools/i18n/web-messages.json', 'tools/i18n/web-language-bridge.js'))
     inputs.files(rootProject.fileTree('tools/i18n/web-translations') { include '*.json' })
     inputs.files(files('src/main/assets/web-integration/language.js',
-            'src/main/assets/language-patch.json',
-            'src/main/assets/recovery-recipes/0.2.2-rc.1/language-patch.json'))
+            'src/main/assets/language-patch.json'))
+    inputs.files(fileTree('src/main/assets/recovery-recipes') { include '*/language-patch.json' })
     commandLine(System.getenv('DSHA_PYTHON') ?: 'python3', '-B',
             rootProject.file('tools/prepare-web-languages.py').absolutePath,
             '--catalog-only', '--check')
@@ -452,7 +472,7 @@ def prepareStandardAssets = tasks.register("prepareStandardAssets", Exec) {
     inputs.files(rootProject.files("tools/runtime_stable_patches.py", "tools/runtime_input_contract.py",
             "tools/source_layout.py", "ci/source-layout.json"))
     inputs.dir(rootProject.file("tools/dsh-runtime"))
-    inputs.file(rootProject.file("tools/prepare-ubuntu-tools.py"))
+    inputs.files(rootProject.files("tools/prepare-ubuntu-tools.py", "tools/rootfs_archive.py"))
     inputs.dir(rootProject.file("tools/ubuntu-tools"))
     inputs.file(rootProject.file("tools/prepare-gh-cli.py"))
     inputs.files(rootProject.files("tools/gh-cli/packages.lock.json"))
@@ -526,6 +546,7 @@ def prepareRecoveryAssets = tasks.register("prepareRecoveryAssets", Exec) {
     inputs.file(rootProject.file("tools/generated_asset_directory.py"))
     inputs.files(rootProject.files("tools/asset-deployment.json", "tools/asset_deployment.py"))
     inputs.file(rootProject.file("tools/recovery-runtime/lock.json"))
+    inputs.file(rootProject.file("tools/rootfs_archive.py"))
     inputs.files(fileTree("src/main/assets/recovery-recipes"))
     // 正式归档变化必须重算物理位置；固定副本可以首次缺失后由同摘要种子建立。
     inputs.files(layout.buildDirectory.file("generated/standardAssets/offline-rootfs.bin"),
@@ -552,7 +573,7 @@ def verifyBackupDependencies = tasks.register("verifyBackupDependencies") {
     inputs.file(rootProject.file("tools/backup-dependencies.lock.json"))
     doLast {
         def lock = new groovy.json.JsonSlurper().parse(rootProject.file("tools/backup-dependencies.lock.json"))
-        def requiredCoordinates = ["com.google.code.gson:gson", "org.bouncycastle:bcprov-jdk15to18", "org.yaml:snakeyaml"] as Set
+        def requiredCoordinates = ["com.google.code.gson:gson", "org.bouncycastle:bcprov-jdk15to18", "org.yaml:snakeyaml", "org.tukaani:xz"] as Set
         if (!(lock instanceof Map) || lock.version != 1 || !(lock.dependencies instanceof List)
                 || lock.dependencies.size() != requiredCoordinates.size())
             throw new GradleException("备份依赖锁格式错误")
@@ -589,6 +610,14 @@ def verifyBackupDependencies = tasks.register("verifyBackupDependencies") {
                     throw new GradleException("备份依赖版本未锁定：${expected.group}:${expected.name}")
                 if (fileDigest(selected[0].file) != expected.sha256)
                     throw new GradleException("备份依赖摘要不符：${expected.name}")
+                if (expected.group == "org.tukaani" && expected.name == "xz") {
+                    if (!(expected.pomSha256 instanceof String) || !(expected.pomSha256 ==~ /[a-f0-9]{64}/))
+                        throw new GradleException("XZ POM 摘要未锁定")
+                    def pom = project.configurations.detachedConfiguration(
+                            project.dependencies.create("${expected.group}:${expected.name}:${expected.version}@pom")).singleFile
+                    if (fileDigest(pom) != expected.pomSha256)
+                        throw new GradleException("XZ POM 摘要不符")
+                }
                 def license = file("src/main/assets/${expected.licenseAsset}")
                 if (!license.isFile())
                     throw new GradleException("缺少备份依赖许可：${expected.name}")
@@ -627,6 +656,7 @@ def verifyUiLanguageResources = tasks.register("verifyUiLanguageResources", Exec
 tasks.named("preBuild").configure { dependsOn(verifyUiLanguageResources) }
 
 dependencies {
+    implementation 'org.tukaani:xz:1.12'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.webkit:webkit:1.15.0'
     implementation 'com.google.android.material:material:1.11.0'

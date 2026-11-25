@@ -93,6 +93,33 @@ public final class WebOverwriteRetireTest {
   }
 
   @Test
+  public void sameInstallExplicitStopCanPrepareAnExactLauncherOnlyCandidate() throws Exception {
+    Kernel kernel = new Kernel();
+    kernel.webFallback = exited(SAVED.webPid());
+    var candidate = kernel.prepareRecordedForceStop(SAVED);
+    assertNotNull(candidate);
+    assertTrue(candidate.retiresPreviousLauncher());
+    assertEquals(SAVED.launcherPid(), candidate.pid());
+
+    // An unexpected guest invalidates confirmation before the stop sentinel or signal path.
+    kernel.webFallback = live(SAVED.webPid(), SAVED.webStarted(), WEB);
+    var changed = assertThrows(WebStopException.class, () -> kernel.forceStopResult(candidate));
+    assertEquals(WebStopDiagnostic.Code.RECORDED_SESSION_UNCONFIRMED, changed.diagnostic().code());
+  }
+
+  @Test
+  public void sameInstallExplicitStopRetainsUnknownAndReusedLauncherSafety() throws Exception {
+    Kernel kernel = new Kernel();
+    kernel.webFallback = exited(SAVED.webPid());
+    kernel.launcherFallback = live(SAVED.launcherPid(), SAVED.launcherStarted(), "other-command");
+    var unknown =
+        assertThrows(WebStopException.class, () -> kernel.prepareRecordedForceStop(SAVED));
+    assertEquals(WebStopDiagnostic.Code.RECORDED_SESSION_UNCONFIRMED, unknown.diagnostic().code());
+    kernel.launcherFallback = live(SAVED.launcherPid(), SAVED.launcherStarted() + 1, LAUNCHER);
+    assertNull(kernel.prepareRecordedForceStop(SAVED));
+  }
+
+  @Test
   public void bothExitedHasNothingToRetire() throws Exception {
     Kernel kernel = new Kernel();
     kernel.webFallback = exited(SAVED.webPid());

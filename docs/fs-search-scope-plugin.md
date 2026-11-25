@@ -37,7 +37,7 @@ DSH 的 `glob` 固定执行 `rg --files --no-ignore --hidden --sort=modified`，
 
 ## 4. 登记位置
 
-按签名内置插件登记（参照 [dsh-fs-read-hint](fs-read-hint-plugin.md)）：`builtin-plugins.json`、`dsha-builtin.txt`、两份签名名单补丁、`managed-runtime-inputs.json` 三行安装登记（`/root/dsha-fs-search-scope/`），由生成器派生 `BuiltinPluginRegistry`。签名名单在运行时归档补丁内，须按锁重建 `dsh-runtime.bin` 并同步 `runtime-descriptor.json`、`managed-package-proofs.json`、`dsh-runtime.inputs.json` 与应急锁；固定构建输入发布须用户同意。
+按签名内置插件登记：`builtin-plugins.json`、`dsha-builtin.txt`、两份签名名单补丁、`managed-runtime-inputs.json` 三行安装登记（`/root/dsha-fs-search-scope/`），由生成器派生 `BuiltinPluginRegistry`。签名名单在运行时归档补丁内，须按锁重建 `dsh-runtime.bin` 并同步 `runtime-descriptor.json`、`managed-package-proofs.json`、`dsh-runtime.inputs.json` 与应急锁；固定构建输入发布须用户同意。
 
 ## 5. 验证
 
@@ -56,4 +56,4 @@ python3 tools/run-host-tests.py --stage runtime --only test-fs-search-scope.mjs
 1. **明确不再需要**：上游 glob 自行剪掉嵌套工作树或提供排除配置；
 2. **代码变动导致失效**：升级 DSH 后测试的「上游契约」用例或策略三步用例失败（glob 描述、输出形状、导出函数或策略补丁变化）。失效时插件按设计交回原工具，不会改坏结果，但应撤除而不是修补。
 
-撤除步骤与 dsh-fs-read-hint 相同：删除插件目录与测试，移除各处登记，重新生成 `BuiltinPluginRegistry`，回调测试中的内置数量，按锁重建运行时归档并同步摘要；在本页顶部写明撤除版本与原因。
+撤除时：删除插件目录与测试，移除各处登记，重新生成 `BuiltinPluginRegistry`，回调测试中的内置数量，按锁重建运行时归档并同步摘要；在本页顶部写明撤除版本与原因。

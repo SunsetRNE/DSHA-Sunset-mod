@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="portable_password">Mot de passe de sauvegarde</string>
+    <string name="portable_password_confirm">Confirmer le mot de passe</string>
+    <string name="portable_password_help">Conservez le mot de passe séparément. Il est nécessaire sur un autre appareil et DSHA ne peut pas le récupérer.</string>
+    <string name="portable_password_length">Saisissez entre 12 et 1024 caractères.</string>
+    <string name="portable_password_mismatch">Les mots de passe diffèrent.</string>
+    <string name="portable_export_summary">Protégez le fichier tar.gz avec un mot de passe pour le restaurer sur un nouvel appareil.</string>
+    <string name="portable_included_secrets">Les données choisies peuvent contenir des identifiants enregistrés dans les conversations, les pièces jointes et les fichiers.</string>
+    <string name="portable_import_summary">Choisissez une sauvegarde. Une sauvegarde chiffrée nécessite un mot de passe. Confirmez les données à restaurer après vérification.</string>
+    <string name="portable_password_restore_help">Saisissez le mot de passe utilisé lors de la création de cette sauvegarde.</string>
+    <string name="portable_rescue_diagnostics">Un export de secours chiffré contient uniquement les données sauvegardées. Un export en clair inclut aussi le résumé de diagnostic disponible.</string>
+    <string name="portable_keep_password">Cette copie conserve son mot de passe initial. Utilisez-le sur le nouvel appareil.</string>
+    <string name="portable_plain_opt_in">Exporter en clair pour la compatibilité. Toute personne disposant du fichier peut lire son contenu, y compris les secrets dans les conversations et les pièces jointes.</string>
+    <string name="portable_export_label">Exporter une sauvegarde portable</string>
+    <string name="portable_automatic_help">La désinstallation efface les copies automatiques et leur clé locale. Avant de changer d’appareil ou de désinstaller, exportez avec votre mot de passe et enregistrez le fichier hors de l’application.</string>
+    <string name="portable_retry_password">Réessayer le mot de passe</string>
+</resources>

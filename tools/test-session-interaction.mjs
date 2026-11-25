@@ -103,8 +103,8 @@ test('打开会话的效果在移动端不主动 focus（0.2.2 上游 isMobileDe
     const patches=JSON.parse(readFileSync(assets+'composer-enter-patch.json','utf8')).patches;
     assert.equal(patches.some(p=>p.after.includes('DSHA_COMPOSER_EXPLICIT_FOCUS_V1')),false);
     const client=readFileSync(runtime+'/node_modules/@deepseek-ai/dsh-client-ui-conversation/lib/client.js','utf8');
-    assert.equal(client.split('\t\t\t\tif (locked || editor === null) return;\n\t\t\t\tif ((0, _deepseek_ai_dsh_client_ui_primitives.isMobileDevice)()) return;\n\t\t\t\tfocusDraftEditor(editor, revealSelection);\n\t\t\t}, [\n\t\t\t\tlocked,\n\t\t\t\tsessionId,').length,2);
+    assert.equal(client.split('if(locked||editor===null)return;if((0,_deepseek_ai_dsh_client_ui_primitives.isMobileDevice)())return;focusDraftEditor(editor,revealSelection)},[locked,sessionId,editor])').length,2);
     const primitives=readFileSync(runtime+'/node_modules/@deepseek-ai/dsh-client-ui-primitives/lib/index.js','utf8');
     assert.ok(primitives.includes('mobileDevice = /Android|iPhone|iPad|iPod/i.test(userAgent)'));
-    assert.ok(client.includes('editor?.getRootElement()?.focus({ preventScroll: true });'));
+    assert.ok(client.includes('editor?.getRootElement()?.focus({preventScroll:true})'));
 });

@@ -1,6 +1,7 @@
 package com.deepseekharness.app.runtime;
 
 import com.deepseekharness.app.util.InstallProbe;
+import com.deepseekharness.app.util.InstallProcess;
 import com.deepseekharness.app.util.InstallTask;
 import org.junit.Test;
 import java.io.IOException;
@@ -13,7 +14,13 @@ import static org.junit.Assert.*;
 
 public class InstallPipelineTest {
   static final class Environment implements InstallPipeline.Environment {
-    boolean ready = true, empty, cancelDuringRepair, throwRepair, missingResult, earlyExit;
+    boolean ready = true,
+        empty,
+        cancelDuringRepair,
+        throwRepair,
+        missingResult,
+        earlyExit,
+        unconfirmedRecheck;
     int launches, tools, pnpm, groups, patches, extractions;
     final Set<String> failures = new HashSet<>();
     InstallTask active;
@@ -70,6 +77,8 @@ public class InstallPipelineTest {
       launches++;
       active = task;
       assertTrue(cancellable);
+      if (unconfirmedRecheck && launches == 2)
+        throw new InstallProcess.OwnedExitFailure(new IllegalStateException("fixture"), null);
       if (earlyExit) {
         output.accept("DSHA_CHECK_BEGIN:curl");
         return 23;
@@ -170,6 +179,17 @@ public class InstallPipelineTest {
     assertEquals(1, environment.pnpm);
     assertEquals(0, environment.patches);
     assertEquals(1, environment.launches);
+  }
+
+  @Test
+  public void unconfirmedRecheckStopsRemainingRepairs() {
+    Environment environment = new Environment();
+    environment.unconfirmedRecheck = true;
+    environment.failures.addAll(Set.of("pnpm", "dns"));
+    assertThrows(InstallProcess.OwnedExitFailure.class, () -> environment.run(true, 0));
+    assertEquals(1, environment.pnpm);
+    assertEquals(0, environment.patches);
+    assertEquals(2, environment.launches);
   }
 
   @Test

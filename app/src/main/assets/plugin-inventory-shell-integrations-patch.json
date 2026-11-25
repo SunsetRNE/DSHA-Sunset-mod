@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-host-plugin-inventory/lib/index.js",
+  "sourceSha256": "4dbacd5d35857b9682a8a4cc46500a7f2594fbb642c0df66d693e0eeeef75a92",
+  "patches": [
+    {
+      "before": "//#region lib/types/index.js",
+      "after": "//#region lib/types/index.js",
+      "prependAsset": "shell-integration-policy.js"
+    },
+    {
+      "before": "async function readPluginEntries(ctx) {\n\tconst entries = [];\n\tconst packages = ctx.get(\"pluginPackages\");\n\tfor (const entry of ctx.loader.entries()) {\n\t\tif (entry.options.group) continue;",
+      "after": "async function readPluginEntries(ctx) {\n\tconst entries = [];\n\tconst packages = ctx.get(\"pluginPackages\");\n\tfor (const entry of ctx.loader.entries()) {\n\t\tif (entry.options.group) continue;\n\t\tif (dshaIsShellEntry(entry.options.name, entry.id)) continue;"
+    },
+    {
+      "before": "async function readPluginInventory(ctx) {\n\tconst entries = [];\n\tconst packages = ctx.get(\"pluginPackages\");\n\tfor (const entry of ctx.loader.entries()) {\n\t\tif (entry.options.group) continue;",
+      "after": "async function readPluginInventory(ctx) {\n\tconst entries = [];\n\tconst packages = ctx.get(\"pluginPackages\");\n\tfor (const entry of ctx.loader.entries()) {\n\t\tif (entry.options.group) continue;\n\t\tif (dshaIsShellEntry(entry.options.name, entry.id)) continue;"
+    },
+    {
+      "before": "\t\t\trows: composition.rows.map(({ fiberState, ...row }) => {",
+      "after": "\t\t\trows: composition.rows.filter((row) => !dshaIsShellEntry(row.moduleName, row.entryId)).map(({ fiberState, ...row }) => {"
+    }
+  ]
+}

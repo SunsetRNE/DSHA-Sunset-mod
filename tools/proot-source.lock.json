@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "files": {
+    "build.py": "77472b2bbc8c8d576107fcece0d7ddbc571bffae7aad48a740f962524837c877",
+    "inputs/libandroid-shmem-0.7.tar.gz": "48e80a854df55dd8eb2a5026cb3cc90a10165aae68c591acdabad24488ce621f",
+    "inputs/libandroid-shmem_0.7_aarch64.deb": "0da3a24d558b93c92bcf8d611e0826a99ff96e396b148e6cdf33b47c47c57ff6",
+    "inputs/proot-5.1.107.91.zip": "a7bc2fab34bf9a39073e8291f08a662e848c61a67494e59f5f84f5ca10690128",
+    "inputs/talloc-2.4.3.tar.gz": "dc46c40b9f46bb34dd97fe41f548b0e8b247b77a918576733c528e83abd854dd",
+    "README.md": "525f0eec7f3d3e6d1fa85721a60d4a97d99b25cf962562a362748b06b89e47d7",
+    "talloc-config/replace.h": "cb6a9ce87dc9cd23a7102bd5810c3b3b9f6f3be82bf4db911c6e36f00f67b253"
+  },
+  "libraries": {
+    "libproot.so": "c16957450ab9a1da67d4784cf0667b90ad786e7939aa46aeb9796d7d384b7692",
+    "libprootloader.so": "004c1de722687a59052bf472207f99536849a911b5135fe5937bfa1711a69f10",
+    "libprootloader32.so": "a781049d8437fc3a48bd2014e924259babd2610f15979bdba27251278d57a7be",
+    "libtalloc.so": "718d7e738d7fbad261a4c73bc8f947633380c57136ccacf8b49f3d3661413ef0"
+  },
+  "licenses": {
+    "proot-COPYING.txt": "0ffa6454acbe7e410ac6f0007df83b9b3161fe55484c1f4b87487c0f2d228a6d",
+    "talloc-2.4.3-LICENSE.txt": "ceae1f4086f6f4e92db0900b9c31ece50e04341726176b9caab5cd8d6a0d2660",
+    "GPL-3.0.txt": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "LGPL-3.0.txt": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118",
+    "libandroid-shmem-0.7-copyright.txt": "0dd43abe17196b0224cb0b159819af798cd508a82a21e5870126fff4e899a7eb"
+  }
+}

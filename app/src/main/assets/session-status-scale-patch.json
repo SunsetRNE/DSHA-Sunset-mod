@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-session/lib/client.js",
+  "sourceSha256": "2a0b092022faad187c871408ea795b5cbabd828d9581105ba8fedc058ad4d66c",
+  "packageIntegrity": "sha512-j8KfzQKVn8lYOCaONPHW6Hw5wtfzuuPD30ZvE7pwF62bZDLaXfU4td5lWw+dgSu6OUIs2tl9jGe1chzdBCn9ag==",
+  "purpose": "Batch list status reconciliation; skip duplicate remote states; preserve unchanged status entry references and immutable snapshots. Session membership, completion reminders, pending interactions, and persisted data remain authoritative.",
+  "patches": [
+    {
+      "before": "statusSnapshot=new Map;",
+      "after": "\t\t\tstatusSnapshot = /* @__PURE__ */ new Map();\n\t\t\tstatusListById;"
+    },
+    {
+      "before": "observeRunning(sessionId,running){const previous=this.running.get(sessionId);const beforeBaseline",
+      "after": "\t\t\tobserveRunning(sessionId, running, publish = true) {\n\t\t\t\t// DSHA_SESSION_STATUS_SCALE_V1: one projection per authoritative list update.\n\t\t\t\tconst previous = this.running.get(sessionId);\n\t\t\t\tif (previous === running && (!running || !this.completionUnread.has(sessionId)) && this.statusListById === this.sessions.list.getSnapshot().byId) return;\n\t\t\t\tconst beforeBaseline"
+    },
+    {
+      "before": "else if((previous===true||previous===void 0&&beforeBaseline)&&!this.isMain(sessionId))this.completionUnread.add(sessionId);this.publishStatus()",
+      "after": "\t\t\t\telse if ((previous === true || previous === void 0 && beforeBaseline) && !this.isMain(sessionId)) this.completionUnread.add(sessionId);\n\t\t\t\tif (publish) this.publishStatus(sessionId);"
+    },
+    {
+      "before": "else if(previous!==row.running)this.observeRunning(id,row.running)",
+      "after": "else if(previous!==row.running)this.observeRunning(id,row.running,false)"
+    },
+    {
+      "before": "publishStatus(){const ids",
+      "after": "\t\t\tpublishStatus(changedId) {\n\t\t\t\t// A remote status event changes one entry. Retain the public immutable Map\n\t\t\t\t// contract and other row identities; never mutate an earlier snapshot.\n\t\t\t\tif (changedId !== void 0 && this.statusSnapshot.has(changedId) && this.statusListById === this.sessions.list.getSnapshot().byId) {\n\t\t\t\t\tconst previous = this.statusSnapshot.get(changedId);\n\t\t\t\t\tconst status = this.statusValue(changedId, previous);\n\t\t\t\t\tif (status === previous) return;\n\t\t\t\t\tconst next = new Map(this.statusSnapshot);\n\t\t\t\t\tnext.set(changedId, status);\n\t\t\t\t\tthis.statusSnapshot = next;\n\t\t\t\t\t(0, _deepseek_ai_dsh_client_store.notifySubscribers)(this.statusListeners, \"[ui-session] Session status\");\n\t\t\t\t\treturn;\n\t\t\t\t}\n\t\t\t\tconst ids"
+    },
+    {
+      "before": "\t\t\t\tconst ids=new Set([...Object.keys(this.sessions.list.getSnapshot().byId),",
+      "after": "\t\t\t\tconst byId = this.sessions.list.getSnapshot().byId;\n\t\t\t\tthis.statusListById = byId;\n\t\t\t\tconst ids = new Set([\n\t\t\t\t\t...Object.keys(byId),"
+    },
+    {
+      "before": "for(const id of ids)next.set(id,{running:this.running.get(id),pendingInteraction:this.pendingSnapshot.get(id),completionUnread:this.completionUnread.has(id)});if(sameSessionStatus(this.statusSnapshot,next))return;",
+      "after": "\t\t\t\tlet changed = ids.size !== this.statusSnapshot.size;\n\t\t\t\tfor (const id of ids) {\n\t\t\t\t\tconst previous = this.statusSnapshot.get(id);\n\t\t\t\t\tconst status = this.statusValue(id, previous);\n\t\t\t\t\tnext.set(id, status);\n\t\t\t\t\tif (status !== previous) changed = true;\n\t\t\t\t}\n\t\t\t\tif (!changed) return;"
+    },
+    {
+      "before": "createMaterializedBinding(owner){",
+      "after": "\t\t\tstatusValue(id, previous) {\n\t\t\t\tconst running = this.running.get(id);\n\t\t\t\tconst pendingInteraction = this.pendingSnapshot.get(id);\n\t\t\t\tconst completionUnread = this.completionUnread.has(id);\n\t\t\t\tif (previous !== void 0 && previous.running === running && previous.pendingInteraction === pendingInteraction && previous.completionUnread === completionUnread) return previous;\n\t\t\t\treturn { running, pendingInteraction, completionUnread };\n\t\t\t}\n\t\t\tcreateMaterializedBinding(owner) {"
+    }
+  ]
+}

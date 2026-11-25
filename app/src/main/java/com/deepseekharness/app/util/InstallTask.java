@@ -131,6 +131,12 @@ public final class InstallTask {
     append(detail);
   }
 
+  /** Serialize the last cancellation check with the publication of a normal result. */
+  public synchronized void finishChecked(Outcome result, String detail) {
+    checkCancelled();
+    finish(result, detail);
+  }
+
   public synchronized void finish(Outcome result, String detail) {
     if (outcome != Outcome.RUNNING) return;
     outcome = result;

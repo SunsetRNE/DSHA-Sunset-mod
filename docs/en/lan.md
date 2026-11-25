@@ -1,16 +1,16 @@
 # LAN access, authentication, and failure diagnosis
 
-Verification date: 2026-10-21. Source: the complete corresponding Chinese maintenance guide and the LAN configuration, listener, and authentication implementation in the current build190 working tree. Published F10 `087724c` is a reference baseline. This page does not record phone or real-network testing for the current round, and does not establish final F12 release status.
+The current behavior described here is for build377. References to F11 and F12 describe earlier proxy and backend-recovery evidence.
 
 F12 addition: if process identity becomes UNKNOWN within the same generation, the final publication gate rejects a late LAN cookie. Existing authentication, listener and connections for that generation are retired, so keep-alive cannot reopen them using an old cookie. A late observation of an older generation cannot retire a newer connection. This sends no signal to the Web process, does not release the unknown-exit barrier and does not clean user data.
 
 ## Enabling and revoking access
 
-**Configuration → Allow LAN access** is off by default. After the enabled setting is saved, the current Web run must have authenticated its actual port. Only then does the app establish a LAN proxy to that backend and display a token-bearing access link. Starting with Android API 37, local-network permission is also required; earlier systems do not request this new permission. The DSHA toggle cannot override a system-permission failure.
+**Configuration → Allow LAN access** is off by default. Set a LAN password when enabling it. The proxy binds after the current Web run is authenticated and the network is confirmed. Android API 37 and later also require system local-network permission.
 
-Share only the app's currently displayed link with trusted browsers that need access. The proxy listens on `0.0.0.0:3081`, with this run's `127.0.0.1:<actual-Web-port>` as its backend. The backend is not fixed to 3080, and the 3090 device bridge is not exposed by enabling LAN. See [ports and networking](ports-and-networking.md).
+Use **Home → + → Access addresses** to confirm the network and copy `https://private-IPv4:actual-port/`. Sign in as `dsha` with the configured LAN password. For `dsh.android.client`, the proxy prefers port 3082 and can let the OS allocate a port. It binds the confirmed address and forwards to the current Web loopback endpoint. See [ports and networking](ports-and-networking.md).
 
-Disabling the toggle revokes this run's token and closes the external listener and its connections. Revoking LAN does not clear the local DSH cookie. After reenabling or starting a new service run, use the new link rather than an old token from a screenshot or bookmark. The toggle, stored token, and current in-memory service identity are different states. A historical persistent value cannot replace a valid token for this run.
+Disabling LAN revokes browser sessions and closes the listener and its connections. The local Web entry remains independent. After switching networks or restarting the app process, confirm the network, copy the actual address, and sign in again.
 
 ## Reuse verified authentication after strict recovery
 
@@ -20,25 +20,27 @@ Publication still requires the current generation, original authentication URL, 
 
 See [WebSessionRecovery](../../app/src/main/java/com/deepseekharness/app/core/WebSessionRecovery.java), [WebLifecycleController](../../app/src/main/java/com/deepseekharness/app/core/WebLifecycleController.java), and [LanAuthBridge](../../app/src/main/java/com/deepseekharness/app/core/LanAuthBridge.java). The [F12 record](releases/v0.2.1-rc.2-build190-fix12-20261021.md) describes the batch's known scope. The delivery owner freezes final software/APK counts and publication state; this page does not predeclare them.
 
-## Plaintext and authentication boundaries
+## HTTPS and first connection
 
-[LanProxyService](../../app/src/main/java/com/deepseekharness/app/LanProxyService.java) uses ordinary HTTP without TLS. Traffic, conversations, and tokens may be visible to observers on the same network. Use a trusted network; this is not a secure gateway for exposing the service to the public internet. See the [security model](security-model.md) for platform context and project boundaries.
+Open the current HTTPS URL from the phone. On first use the browser may present a self-signed certificate warning. Before entering the LAN password, view the certificate details and compare all 32 hexadecimal pairs of the SHA-256 fingerprint with the value in Access addresses on the phone. Trust the connection only after an exact match. If the browser cannot display the full fingerprint, use a client that can. Replace bookmarks for the old HTTP URL.
 
-Each run generates a secure random 32-byte token. The exact `token=` query parameter or `dsha_lan` cookie can authenticate. [LanAuth](../../app/src/main/java/com/deepseekharness/app/LanAuth.java) compares in constant time and does not accept an arbitrary custom header as a bypass. The first valid token link returns 303 and sets an `HttpOnly; SameSite=Strict; Max-Age=43200` cookie. The redirect preserves the original path and other query parameters, removing only the LAN `token`. For example, an OAuth callback's code/state must not be redirected to the root path. The cookie's 12-hour lifetime cannot extend the server-side lifetime of the current token. After stopping or revocation, the old cookie remains invalid.
+AndroidKeyStore holds the signing key. The certificate covers the current IPv4 address and lasts 90 days. Compare the fingerprint again after an address change, renewal or reinstall. DSH on the phone continues to use its local loopback address. If Android cannot identify the hotspot’s downstream interface, connect both devices to the same Wi-Fi and confirm that network. [TLS listener](../../app/src/main/java/com/deepseekharness/app/LanTlsIdentity.java) · [Key storage](../../app/src/main/java/com/deepseekharness/app/AndroidLanIdentity.java)
+
+Each browser login issues a separate random 32-byte session cookie with `Secure; HttpOnly; SameSite=Strict; Max-Age=43200`. The server uses monotonic time to enforce the 12-hour lifetime and retains at most 64 sessions. Each listener uses a cookie named `__Host-dsha_lan_<actual-port>`, allowing two ports on the same IP to keep separate browser sessions. Ordinary requests also need the browser’s cached Basic credential for the HTTPS origin. The proxy checks a per-run in-memory HMAC and runs the password KDF only during login. Before opening a WebSocket, the bundled client requests a one-use ticket over authenticated same-origin HTTPS. The ticket expires after 60 seconds and is bound to the listener, session and requested path. The proxy removes its transport subprotocol before forwarding. Clients that send Basic on WSS can also connect using their session cookie and Basic credentials. Former URL tokens do not grant a session. See [LanAuth](../../app/src/main/java/com/deepseekharness/app/LanAuth.java).
 
 The proxy uses the backend DSH token/cookie only against the verified local target. It does not directly expose the 3090 `X-Token` or backend credentials as browser-forwardable credentials. Request/response handling, WebSocket upgrades, chunking, and connection quotas remain governed by the bounded HTTP-processing chain.
 
 F11 preserved an unknown backend port of 0 as not ready rather than silently falling back to 3080. If authentication within the same generation supplies a new actual port, the corresponding proxy target is replaced. An ordinary business 401/403 is forwarded for that request; an arbitrary business denial does not invalidate the entire BrowserAuth run. Idle header-reading connections and short requests have separate limits, preventing slow headers from filling the business-dispatch pool.
 
-Interface/address-set changes are checked roughly once per second. Old connections and their companions are closed while the wildcard listener and current LAN token remain. A rapid network replacement with the same interfaces and addresses is not guaranteed to be observed. [LanAddressPolicy](../../app/src/main/java/com/deepseekharness/app/util/LanAddressPolicy.java) chooses an up, non-loopback, non-P2P RFC1918 display candidate, preferring wlan/wifi and then eth. Without a suitable candidate, it does not fall back to another private address. The displayed address is a conservative candidate, not proof of reachability.
+The listener checks the Android network instance, interface, address, and prefix at request admission and roughly every second. A change retires the listener, sessions, and connections. Android must report an identifiable non-VPN Wi-Fi, Ethernet, or USB network with a direct private IPv4 route. The client must be in the approved subnet. See [LocalNetworkAccess](../../app/src/main/java/com/deepseekharness/app/bridge/LocalNetworkAccess.java).
 
 ## Diagnose failures in this order
 
 | Symptom | Meaning and response |
 |---|---|
-| No shareable LAN link | Check the toggle, system local-network permission, and whether this Web run is genuinely ready and authenticated. |
-| 401 with `X-Dsha-Lan-Reason` | The token is absent, stale, or wrong. The response clears the old cookie. Reopen the app's current link. |
-| 503 | The backend is not authenticated/ready or its target is unavailable. Reentering an old token cannot resolve it. |
+| No shareable LAN link | Check the toggle, network confirmation, system permission, and Web readiness. |
+| 401 with `X-Dsha-Lan-Reason` | Open the app's current address and enter the browser login credentials. |
+| 503 | Check current backend readiness and the actual bound address. |
 | A browser remains on an old page | An old cookie or service link does not identify the new run. Reopen the current link. |
 | Connection fails despite being on the same network | Check the phone IP, Wi-Fi isolation, VPN, firewall, and system permission. A network fault is not necessarily an authentication failure. |
 | Local Web works but LAN fails | These entry points are independent. Preserve the working local state and investigate the proxy and network. |

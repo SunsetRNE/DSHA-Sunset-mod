@@ -11,7 +11,22 @@ public interface BackupFileSystem {
     public final long size, modified, device;
     public final int mode;
 
+    /** Filesystem-reported allocation and link count. Negative values mean unavailable. */
+    public final long allocatedBytes, links;
+
     public Node(String type, String key, long size, long modified, long device, int mode) {
+      this(type, key, size, modified, device, mode, -1, -1);
+    }
+
+    public Node(
+        String type,
+        String key,
+        long size,
+        long modified,
+        long device,
+        int mode,
+        long allocatedBytes,
+        long links) {
       this.kind = com.deepseekharness.app.util.FileKind.fromWire(type);
       this.type = kind.wire();
       this.key = key;
@@ -19,6 +34,8 @@ public interface BackupFileSystem {
       this.modified = modified;
       this.device = device;
       this.mode = mode;
+      this.allocatedBytes = allocatedBytes;
+      this.links = links;
     }
 
     public boolean same(Node other) {
@@ -47,6 +64,12 @@ public interface BackupFileSystem {
   void move(File source, File target) throws IOException;
 
   void delete(File file) throws IOException;
+
+  /** 清理统计按核验过的文件身份计数，文件变化时保留并停止本次清理。 */
+  default void deleteChecked(File file, Node expected) throws IOException {
+    if (!expected.same(stat(file))) throw new IOException("SOURCE_CHANGED");
+    delete(file);
+  }
 
   void syncDirectory(File directory) throws IOException;
 

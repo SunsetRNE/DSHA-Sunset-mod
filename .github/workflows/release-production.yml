@@ -339,6 +339,8 @@ jobs:
               json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
           print(json.dumps(value, ensure_ascii=False, indent=2))
           PYCODE
+      - name: Prepare matching source for the unsigned handoff
+        run: python3 tools/proot_source_distribution.py --apk out/unsigned-handoff/*-unsigned.apk --write-source out/unsigned-handoff/dsha-proot-talloc-source.zip
       - name: Hand unsigned APK to the signing node
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -479,6 +481,8 @@ jobs:
             --output out/rust-apk-signed.json
           cp unsigned/rust-apk-unsigned.json out/rust-apk-unsigned.json
 
+      - name: Verify packaged native members and prepare their matching source
+        run: python3 tools/proot_source_distribution.py --apk "out/$APK_NAME" --write-source out/dsha-proot-talloc-source.zip
       - name: Package commit-bound build evidence
         run: |
           python3 - <<'PYCODE'
@@ -541,6 +545,7 @@ jobs:
               for path in sorted(set(files)):
                   archive.write(path, path.as_posix())
           names = [os.environ['APK_NAME'], 'dsha-a-su-build-evidence.zip', 'build-info.json']
+          names.append('dsha-proot-talloc-source.zip')
           Path('out/SHA256SUMS').write_text(''.join(
               hashlib.sha256((Path('out') / name).read_bytes()).hexdigest() + '  ' + name + '\n' for name in names),
               encoding='utf-8')
@@ -550,6 +555,7 @@ jobs:
               + f"- 源码 commit：`{os.environ['GITHUB_SHA']}`\n"
               + f"- Actions run：`{os.environ['GITHUB_RUN_ID']}`（attempt {os.environ['GITHUB_RUN_ATTEMPT']}）\n"
               + f"- APK：`{os.environ['APK_NAME']}`，{apk.stat().st_size} 字节，SHA-256 `{value['apkSha256']}`\n"
+              + "- PRoot 与 talloc 对应源码、NDK 配置及重编命令随同页 dsha-proot-talloc-source.zip 提供。\n"
               + f"- 包名 / versionCode / versionName：`{value['packageName']}` / {value['versionCode']} / `{value['versionName']}`\n"
               + f"- 证书 SHA-256：`{cert}`（由 `apksigner` 从成品读取，与 ci/release-identity.json 一致）\n"
               + f"- 固定输入 bundle SHA-256：`{os.environ['ASSET_SHA']}`\n"
@@ -585,6 +591,7 @@ jobs:
             out/dsha-a-su-build-evidence.zip
             out/build-info.json
             out/SHA256SUMS
+            out/dsha-proot-talloc-source.zip
             out/release-notes.md
             out/build-code.txt
             out/release-test-packages.py
@@ -751,6 +758,7 @@ jobs:
             fi
             assets+=("${test_assets[@]/#/out/}")
           fi
+          gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" out/dsha-proot-talloc-source.zip
           gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" "${assets[@]}"
           gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,isPrerelease,assets,url
 
@@ -840,6 +848,7 @@ jobs:
           out = Path('out')
           info = json.load(open(out / 'build-info.json', encoding='utf-8'))
           names = [info['apkFile'], 'dsha-a-su-build-evidence.zip', 'build-info.json', 'SHA256SUMS']
+          names.append('dsha-proot-talloc-source.zip')
           manifest = out / 'test-package-assets.txt'
           if manifest.is_file():
               names += [line.strip() for line in manifest.read_text(encoding='utf-8').splitlines() if line.strip()]

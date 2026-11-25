@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-client-ui-sidebar-files/lib/client.js",
+  "sourceSha256": "b33da4c36cfe673e4eb83b330da538a9d336c6189d9b1ce06364d739ebdfd453",
+  "packageIntegrity": "sha512-3wREcLf34kgC0xeZjZV3NCUMh1kwPa+l+ol5QPrV4Ed1JgcTgTY6TV3m2x8KE2YgVL1lw+Rf4E9bKfz3y1Id8w==",
+  "reason": "Settle rejected directory reads into the existing failure state behind the same tab/path generation and cancellation fence; no replay.",
+  "patches": [
+    {
+      "before": "const result=await list(sessionId,path,signal);if(aborted())return void 0;",
+      "after": "// DSHA_FILES_LIST_REJECTION_V1: settle only the current directory read.\nlet result;\ntry {\n  result = await list(sessionId, path, signal);\n} catch (error) {\n  if (!aborted()) actions.failed(paneId, path, new RemoteError(\"gateway/internal\", error instanceof Error ? error.message : String(error), {}));\n  return void 0;\n}\nif(aborted())return void 0;"
+    }
+  ]
+}

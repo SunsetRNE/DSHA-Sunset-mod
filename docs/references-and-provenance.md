@@ -92,7 +92,8 @@ DSHA 对安装、桥接、网页与存储有受管适配，不能把运行归档
 | DSHA proroot 兼容层 | [独立兼容层说明](../tools/proroot-compat/README.md)、[ABI 锁](../tools/proroot-compat/abi.lock.json) | 自有 shim/entry 的源码与锁不等于 vendor 五库源码或来源证明 |
 | Termux 终端 JNI | [Termux app](https://github.com/termux/termux-app)；[本地上游许可例外](../tools/termux-jni/LICENSE.upstream.md) | terminal 部分许可例外不能外推整个 Termux 工程 |
 | Ubuntu 包 | [Ubuntu Security Notices](https://ubuntu.com/security/notices)；本地 Ubuntu 包锁与 rootfs 内版权文件 | USN 是核对入口，不表示已证明当前归档没有漏洞 |
-| 其他原始 JNI | THIRD_PARTY_NOTICES 的“实际入库 JNI 成员与来源边界” | libandroidshmem 的原件来源/许可、部分 Standard proot/talloc 的精确版本仍有未核实项 |
+| libandroidshmem | [Termux 0.7 软件包与成员锁](../tools/termux-shmem.lock.json) | ARM64 库与该官方包内 ELF 逐字节一致。包中的 BSD-3-Clause 版权声明随 APK 提供。 |
+| 其他原始 JNI | THIRD_PARTY_NOTICES 的“实际入库 JNI 成员与来源边界” | Standard proot、两个 loader 和 talloc 原件的精确修订仍待核实。 |
 
 历史 low/API23 proot 源码 ZIP 的本地固定 SHA-256 为（build209 起不再使用）：
 `29385d1ddb619a9c4449ab512bfd55032034b22f724ddf98fc95ff300ea32135`。

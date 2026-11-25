@@ -47,6 +47,7 @@ public final class ScreenReply {
   public static JSONObject unavailable() {
     try {
       return refused("ACCESSIBILITY_UNAVAILABLE")
+          .put("accessibilityRequired", true)
           .put("availability", "UNAVAILABLE")
           .put("nextAction", "OPEN_ACCESSIBILITY_SETTINGS")
           .put("settingsAction", "android.settings.ACCESSIBILITY_SETTINGS");

@@ -20,6 +20,10 @@ internal class RuntimeLauncher(
 
     @Throws(IOException::class)
     fun builder(command: String, spec: LaunchSpec): ProcessBuilder =
+        builder(listOf("/bin/bash", "-c", command), spec)
+
+    @Throws(IOException::class)
+    fun builder(guestArgv: List<String>, spec: LaunchSpec): ProcessBuilder =
         ports.open().use {
             try {
                 RuntimeTools.prepareResolver(context, rootfs, ports.settings())
@@ -35,9 +39,8 @@ internal class RuntimeLauncher(
                 argv.add("-b")
                 argv.add(bind.host + ":" + bind.guest)
             }
-            argv.add("/bin/bash")
-            argv.add("-c")
-            argv.add(command)
+            val engineArgvSize = argv.size
+            argv.addAll(guestArgv)
             val builder = ProcessBuilder(argv).redirectErrorStream(true)
             if (!spec.isolated && !spec.pipedInput) Compat.redirectStdinDevNull(builder)
             environment(builder, spec, preloads, apk)
@@ -53,7 +56,7 @@ internal class RuntimeLauncher(
                         " staticLoader=" +
                         builder.environment().containsKey("PROROOT_STUB_LOADER") +
                         " argv=" +
-                        argv.subList(0, argv.size - 3),
+                        argv.subList(0, engineArgvSize),
                 )
             builder
         }
@@ -121,8 +124,17 @@ internal class RuntimeLauncher(
         spec: LaunchSpec,
         timing: RuntimeCommandTiming?,
         beforeStart: ProotBootstrap.LaunchCheck?,
+    ): Process = start(listOf("/bin/bash", "-c", command), spec, timing, beforeStart)
+
+    /** Fixed, shell-free guest helpers use the same binds, environment and exit ownership. */
+    @Throws(IOException::class)
+    fun start(
+        guestArgv: List<String>,
+        spec: LaunchSpec,
+        timing: RuntimeCommandTiming?,
+        beforeStart: ProotBootstrap.LaunchCheck?,
     ): Process {
-        val builder = builder(command, spec)
+        val builder = builder(guestArgv, spec)
         timing?.mark("launcher-prepare")
         beforeStart?.verify()
         val process =

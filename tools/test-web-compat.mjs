@@ -50,10 +50,17 @@ test('PDF 字体与二进制转换保留字节、偏移和转移后的失效语�
  assert.equal(vm.runInContext(`(()=>{const b=new Uint8Array([1,2,3]).buffer;const t=b.transferToFixedLength(5);
   return b.byteLength===0&&new Uint8Array(t).join(',')==='1,2,3,0,0';})()`,ctx),true);
 });
-test('兼容脚本重复注入不改变已有 Iterator 和已补齐的方法',()=>{
- const ctx=oldBrowser();vm.runInContext(`globalThis.savedIterator=Iterator;globalThis.savedFind=Iterator.prototype.find;`,ctx);
- vm.runInContext(esSource,ctx);
- assert.equal(vm.runInContext(`Iterator===savedIterator&&Iterator.prototype.find===savedFind`,ctx),true);
+test('文档起始、受管 HTML 和 PDF 前导在每个 realm 只初始化一次',()=>{
+ const loads = `globalThis['__core-js_shared__'].versions.length`;
+ for (const ctx of [oldBrowser(), oldBrowser()]) {
+  const before = vm.runInContext(loads, ctx);
+  assert.equal(before, 1);
+  vm.runInContext(`globalThis.savedIterator=Iterator;globalThis.savedFind=Iterator.prototype.find;`, ctx);
+  vm.runInContext(esSource, ctx);
+  vm.runInContext(esSource.trim().replaceAll('\n',' '), ctx);
+  assert.equal(vm.runInContext(loads, ctx), before);
+  assert.equal(vm.runInContext(`Iterator===savedIterator&&Iterator.prototype.find===savedFind`, ctx), true);
+ }
 });
 function legacy(){const ctx=vm.createContext({});vm.runInContext('Promise.withResolvers=undefined',ctx);vm.runInContext(source,ctx);return ctx;}
 test('HTML boot-ready marker resolves before the frontend modules start',async()=>{

@@ -45,7 +45,7 @@
         <FrameLayout android:id="@+id/launch_art" android:layout_width="116dp" android:layout_height="140dp" android:layout_marginStart="24dp" android:importantForAccessibility="noHideDescendants" android:visibility="gone">
           <View android:id="@+id/launch_art_ring" android:layout_width="98dp" android:layout_height="93dp" android:layout_gravity="center" android:background="@drawable/bg_launch_art_ring" android:rotation="13" />
           <FrameLayout android:layout_width="65dp" android:layout_height="65dp" android:layout_gravity="center" android:background="@drawable/bg_launch_art_core">
-            <ImageView android:layout_width="34dp" android:layout_height="34dp" android:layout_gravity="center" android:contentDescription="@null" android:src="@drawable/ic_terminal" app:tint="@color/shell_accent" />
+            <ImageView android:layout_width="34dp" android:layout_height="34dp" android:layout_gravity="center" android:contentDescription="@null" android:src="@drawable/ic_dsha_mark" app:tint="@color/shell_accent" />
           </FrameLayout>
         </FrameLayout>
       </LinearLayout>

@@ -109,7 +109,9 @@ public final class InstallRepository {
           task.finish(
               InstallTask.Outcome.FAILED,
               com.deepseekharness.app.util.UiText.text("本次进程已回收，检查未完成，请重新检查"));
-        } else if (InstallPipeline.isCancellation(error))
+        } else if (error instanceof InstallProcess.OwnedExitFailure)
+          task.finish(InstallTask.Outcome.FAILED, error.getMessage());
+        else if (InstallPipeline.isCancellation(error))
           task.finish(
               InstallTask.Outcome.CANCELLED,
               com.deepseekharness.app.util.UiText.text("任务已取消，已完成的结果与修复保留"));

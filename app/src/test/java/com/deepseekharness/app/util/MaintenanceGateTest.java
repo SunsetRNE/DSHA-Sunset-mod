@@ -2,6 +2,7 @@ package com.deepseekharness.app.util;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -37,6 +38,58 @@ public class MaintenanceGateTest {
             "ticket-close"),
         ports.events);
     assertFalse(gate.isOwner());
+    assertFalse(gate.isExclusive());
+  }
+
+  @Test
+  public void automaticMaintenanceChecksIdleInsideFenceAndNeverStopsRuntime() throws Exception {
+    MaintenanceGate gate = new MaintenanceGate();
+    FakePorts ports = new FakePorts();
+    ports.failWeb = true;
+    assertNull(
+        gate.exclusiveWhenIdle(
+            ports,
+            () -> {
+              assertTrue(ports.ticketOwner);
+              assertTrue(gate.isExclusive());
+              assertTrue(ports.events.contains("fence"));
+              ports.events.add("web-became-active");
+              return false;
+            },
+            () -> {
+              throw new AssertionError("Busy Web session must stay active");
+            }));
+    assertEquals(
+        List.of("ticket", "fence", "web-became-active", "fence-close", "ticket-close"),
+        ports.events);
+
+    ports.events.clear();
+    ports.fenceAvailable = false;
+    assertNull(
+        gate.exclusiveWhenIdle(
+            ports,
+            () -> {
+              throw new AssertionError("Detached PTY fenced out cleanup");
+            },
+            () -> {
+              throw new AssertionError("Must not remove anything");
+            }));
+    assertEquals(List.of("ticket", "ticket-close"), ports.events);
+    assertEquals(0, ports.elapsed);
+
+    ports.events.clear();
+    ports.fenceAvailable = true;
+    assertEquals(
+        "cleaned",
+        gate.exclusiveWhenIdle(
+            ports,
+            () -> true,
+            () -> {
+              assertTrue(gate.isOwner());
+              return "cleaned";
+            }));
+    assertFalse(ports.events.contains("terminals"));
+    assertFalse(ports.events.contains("web"));
     assertFalse(gate.isExclusive());
   }
 

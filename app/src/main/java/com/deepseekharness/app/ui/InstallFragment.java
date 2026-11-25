@@ -26,11 +26,15 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.BackupTask;
+import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.core.InstallRepository;
 import com.deepseekharness.app.core.MaintenanceCoordinator;
 import com.deepseekharness.app.util.InstallTask;
 import com.deepseekharness.app.util.SensitiveData;
 import com.deepseekharness.app.util.UiText;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * 安装页只展示应用级任务快照；页面销毁不影响后台任务、取消信号或结果。
@@ -82,6 +86,13 @@ public class InstallFragment extends Fragment {
   };
   private static final String STATE_EXPANDED = "install_expanded_step";
   private static final String STATE_LOG = "install_log_override";
+  private static final ExecutorService DETAILS_IO =
+      Executors.newSingleThreadExecutor(
+          work -> {
+            Thread thread = new Thread(work, "dsha-install-details");
+            thread.setDaemon(true);
+            return thread;
+          });
 
   private final Handler handler = new Handler(Looper.getMainLooper());
   private InstallRepository repository;
@@ -96,6 +107,9 @@ public class InstallFragment extends Fragment {
 
   private InstallTask.Outcome lastOutcome;
   private boolean environmentReady;
+  private boolean environmentDetailsKnown;
+  private long detailsRequest;
+  private Future<?> detailsRead;
 
   /** 六段进度上一轮段位的 ordinal+1；0 表示尚未渲染，用于只给真正变化的段位做高亮。 */
   private final int[] segmentState = new int[6];
@@ -134,18 +148,8 @@ public class InstallFragment extends Fragment {
     columns.setSplitWidthDp(680);
     columns.setGutterDp(24);
     columns.setWeights(1f, 1f);
-    var controller = com.deepseekharness.app.core.HarnessController.get(requireContext());
-    environmentReady = controller.isEnvironmentReady();
-    String base = "—", runtime = "—";
-    try {
-      var descriptor = controller.proot().installedRuntimeDescriptor();
-      var identity = descriptor == null ? java.util.Map.of() : descriptor.json();
-      base = String.valueOf(identity.getOrDefault("baseVersion", "—"));
-      runtime = String.valueOf(identity.getOrDefault("dshVersion", "—"));
-    } catch (java.io.IOException unknown) {
-      // 描述读不到时只显示占位，不影响检查与修复入口。
-    }
-    bindChips(view, base, runtime, com.deepseekharness.app.BuildConfig.VERSION_NAME);
+    bindChips(view);
+    requestEnvironmentDetails(view);
 
     view.findViewById(R.id.install_status)
         .setOnClickListener(v -> BackgroundTasksActivity.open(requireContext()));
@@ -235,6 +239,7 @@ public class InstallFragment extends Fragment {
   @Override
   public void onDestroyView() {
     handler.removeCallbacks(refresh);
+    cancelEnvironmentDetails();
     shownRevision = -1;
     lastRenderKey = "";
     super.onDestroyView();
@@ -244,7 +249,7 @@ public class InstallFragment extends Fragment {
     if (!repository.start(repair, step))
       Toast.makeText(
               requireContext(),
-              BackupTask.get(requireContext()).pendingMaintenance()
+              RuntimeMaintenanceStarter.needsRecovery(requireContext())
                   ? UiText.text("请先恢复中断维护，再检查或修复环境")
                   : UiText.text("无法开始安装，请稍后重试"),
               Toast.LENGTH_LONG)
@@ -265,21 +270,22 @@ public class InstallFragment extends Fragment {
   }
 
   private void render() {
+    render(false);
+  }
+
+  private void render(boolean detailsChanged) {
     View view = getView();
     if (view == null || repository == null) return;
     InstallTask.Snapshot state = repository.snapshot();
     boolean environmentBusy = MaintenanceCoordinator.isExclusiveWorkBlocked();
     BackupTask maintenanceTask = BackupTask.get(requireContext());
-    boolean pending = maintenanceTask.pendingMaintenanceForUi();
+    boolean pending = RuntimeMaintenanceStarter.needsRecoveryForUi(requireContext());
     if (lastOutcome != state.outcome) {
       // 新任务开始时交还自动展开；本页看着任务结束时保持日志可见，便于核对结果。
       if (state.outcome == InstallTask.Outcome.RUNNING) logOverride = null;
       else if (lastOutcome == InstallTask.Outcome.RUNNING) {
         logOverride = true;
-        // 就绪检查会解析 Bash ELF，只在任务结束时重查，不随每秒刷新重复执行。
-        environmentReady =
-            com.deepseekharness.app.core.HarnessController.get(requireContext())
-                .isEnvironmentReady();
+        requestEnvironmentDetails(view);
       }
       lastOutcome = state.outcome;
     }
@@ -300,24 +306,75 @@ public class InstallFragment extends Fragment {
             + ":"
             + expandedStep
             + ":"
-            + logOverride
-            + ":"
-            + environmentReady;
-    if (renderKey.equals(lastRenderKey)) return;
+            + logOverride;
+    if (renderKey.equals(lastRenderKey)) {
+      if (detailsChanged) renderEnvironmentTitle(view, state, environmentBusy, pending);
+      return;
+    }
     lastRenderKey = renderKey;
     boolean gated = state.busy() || environmentBusy || pending;
+    renderEnvironmentTitle(view, state, environmentBusy, pending);
     renderHero(view, state, environmentBusy, pending, gated);
     renderSteps(view, state, gated);
     renderMaintenance(view, state, environmentBusy, pending);
     renderLog(view, state);
   }
 
-  private void renderHero(
-      View view,
-      InstallTask.Snapshot state,
-      boolean environmentBusy,
-      boolean pending,
-      boolean gated) {
+  /** 仅加载版本标签和就绪文案，检查、修复入口各自继续核验环境。 */
+  private void requestEnvironmentDetails(View owner) {
+    cancelEnvironmentDetails();
+    long request = detailsRequest;
+    environmentDetailsKnown = false;
+    updateRuntimeChips(owner, "—", "—");
+    HarnessController controller = HarnessController.get(requireContext());
+    detailsRead =
+        DETAILS_IO.submit(
+            () -> {
+              var details = readEnvironmentDetails(controller);
+              handler.post(
+                  () -> {
+                    if (request != detailsRequest || getView() != owner) return;
+                    detailsRead = null;
+                    environmentReady = details.ready();
+                    environmentDetailsKnown = true;
+                    updateRuntimeChips(owner, details.base(), details.runtime());
+                    render(true);
+                  });
+            });
+  }
+
+  private void cancelEnvironmentDetails() {
+    detailsRequest++;
+    if (detailsRead == null) return;
+    detailsRead.cancel(true);
+    detailsRead = null;
+  }
+
+  private record EnvironmentDetails(boolean ready, String base, String runtime) {}
+
+  private static EnvironmentDetails readEnvironmentDetails(HarnessController controller) {
+    boolean ready;
+    try {
+      ready = controller.isEnvironmentReady();
+    } catch (RuntimeException unavailable) {
+      ready = false;
+    }
+    try {
+      var descriptor = controller.proot().installedRuntimeDescriptor();
+      if (descriptor != null) {
+        Object base = descriptor.json().get("baseVersion");
+        String runtime = descriptor.dshVersion();
+        return new EnvironmentDetails(
+            ready, base == null ? "—" : base.toString(), runtime == null ? "—" : runtime);
+      }
+    } catch (java.io.IOException | RuntimeException unknown) {
+      // 描述读不到时只显示占位，不影响检查与修复入口。
+    }
+    return new EnvironmentDetails(false, "—", "—");
+  }
+
+  private void renderEnvironmentTitle(
+      View view, InstallTask.Snapshot state, boolean environmentBusy, boolean pending) {
     int failed = 0, ok = 0;
     for (InstallTask.Step step : state.steps) {
       if (step == InstallTask.Step.FAILED) failed++;
@@ -342,6 +399,10 @@ public class InstallFragment extends Fragment {
       title = UiText.format("%d 个组件需要处理", failed);
       tone = OnboardingKit.Tone.BAD;
       icon = R.drawable.ic_onb_x;
+    } else if (!environmentDetailsKnown) {
+      title = UiText.text("正在检查环境…");
+      tone = OnboardingKit.Tone.ACCENT;
+      icon = R.drawable.ic_recovery_refresh;
     } else if (!environmentReady) {
       title = UiText.text("等待检查");
       tone = OnboardingKit.Tone.WARN;
@@ -363,7 +424,14 @@ public class InstallFragment extends Fragment {
     orbIcon.setImageTintList(
         android.content.res.ColorStateList.valueOf(
             requireContext().getColor(OnboardingKit.toneColor(tone))));
+  }
 
+  private void renderHero(
+      View view,
+      InstallTask.Snapshot state,
+      boolean environmentBusy,
+      boolean pending,
+      boolean gated) {
     TextView status = view.findViewById(R.id.install_status);
     UiMotion.crossFadeText(
         status,
@@ -624,20 +692,44 @@ public class InstallFragment extends Fragment {
   }
 
   /** 版本标签：Ubuntu / dsh / App，点按复制完整值；长版本在中间省略，不再折行。 */
-  private void bindChips(View view, String base, String runtime, String app) {
+  private void bindChips(View view) {
     FrameLayout host = view.findViewById(R.id.install_chips);
-    host.removeAllViews();
     OnboardingKit kit = new OnboardingKit(requireContext());
     OnboardingKit.FlowRow row =
         new OnboardingKit.FlowRow(requireContext(), kit.dp(6), kit.dp(6), Gravity.START);
-    row.addView(chip(kit, "Ubuntu", base, UiText.text("已复制")));
-    row.addView(chip(kit, "dsh", runtime, UiText.text("已复制")));
-    row.addView(chip(kit, "App", app, UiText.text("已复制应用版本")));
+    row.addView(chip(kit, "Ubuntu", "—", UiText.text("已复制")));
+    row.addView(chip(kit, "dsh", "—", UiText.text("已复制")));
+    row.addView(
+        chip(kit, "App", com.deepseekharness.app.BuildConfig.VERSION_NAME, UiText.text("已复制应用版本")));
     host.addView(row, new FrameLayout.LayoutParams(-1, -2));
+  }
+
+  private void updateRuntimeChips(View view, String base, String runtime) {
+    FrameLayout host = view.findViewById(R.id.install_chips);
+    ViewGroup row = (ViewGroup) host.getChildAt(0);
+    String copied = UiText.text("已复制");
+    setChipValue((TextView) row.getChildAt(0), "Ubuntu", base, copied);
+    setChipValue((TextView) row.getChildAt(1), "dsh", runtime, copied);
   }
 
   private TextView chip(OnboardingKit kit, String label, String value, String copied) {
     TextView view = new TextView(requireContext());
+    view.setTextSize(11.5f);
+    view.setTextColor(requireContext().getColor(R.color.shell_text_secondary));
+    view.setIncludeFontPadding(false);
+    view.setSingleLine(true);
+    view.setEllipsize(TextUtils.TruncateAt.MIDDLE);
+    view.setBackgroundResource(R.drawable.bg_onb_pill_neutral);
+    view.setPadding(kit.dp(10), kit.dp(5), kit.dp(10), kit.dp(5));
+    view.setMinHeight(kit.dp(26));
+    view.setGravity(Gravity.CENTER_VERTICAL);
+    setChipValue(view, label, value, copied);
+    return view;
+  }
+
+  private void setChipValue(TextView view, String label, String value, String copied) {
+    String description = label + " " + value;
+    if (TextUtils.equals(view.getText(), description)) return;
     SpannableStringBuilder text = new SpannableStringBuilder(label).append(' ');
     int start = text.length();
     text.append(value);
@@ -652,18 +744,8 @@ public class InstallFragment extends Fragment {
         text.length(),
         Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
     view.setText(text);
-    view.setTextSize(11.5f);
-    view.setTextColor(requireContext().getColor(R.color.shell_text_secondary));
-    view.setIncludeFontPadding(false);
-    view.setSingleLine(true);
-    view.setEllipsize(TextUtils.TruncateAt.MIDDLE);
-    view.setBackgroundResource(R.drawable.bg_onb_pill_neutral);
-    view.setPadding(kit.dp(10), kit.dp(5), kit.dp(10), kit.dp(5));
-    view.setMinHeight(kit.dp(26));
-    view.setGravity(Gravity.CENTER_VERTICAL);
-    view.setContentDescription(label + " " + value);
+    view.setContentDescription(description);
     view.setOnClickListener(v -> copy(label, value, copied));
-    return view;
   }
 
   private void copy(String label, String value, String done) {
@@ -701,7 +783,7 @@ public class InstallFragment extends Fragment {
       Toast.makeText(requireContext(), UiText.text("已有环境任务进行中，请等待完成"), Toast.LENGTH_LONG).show();
       return;
     }
-    boolean recovery = maintenance.pendingMaintenance();
+    boolean recovery = RuntimeMaintenanceStarter.needsRecovery(requireContext());
     // 重建需要勾选知情后才能确认；恢复中断维护只回切旧环境，保持一步确认。
     CheckBox acknowledge = null;
     if (!recovery) {
@@ -731,6 +813,10 @@ public class InstallFragment extends Fragment {
             recovery ? UiText.text("恢复原环境") : UiText.text("备份并重建"),
             (dialog, which) -> {
               if (!isAdded() || getView() == null) return;
+              if (!recovery && RuntimeMaintenanceStarter.needsRecovery(requireContext())) {
+                confirmMaintenance();
+                return;
+              }
               try {
                 // BackupTask 在发布任务前原子取得同一全局锁，旧弹窗也不能绕过互斥。
                 if (!(recovery ? maintenance.recoverMaintenance() : maintenance.rebuild())) {

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="plugin_catalog_reading">正在读取插件列表…</string>
+    <string name="plugin_catalog_rechecking">正在检测插件…</string>
+    <string name="plugin_catalog_cached">当前显示上一次的插件列表</string>
+    <string name="plugin_catalog_configured">根据配置显示，等待核验</string>
+    <string name="plugin_catalog_failed">未能核验插件列表</string>
+    <string name="plugin_catalog_unconfirmed">插件列表尚未确认</string>
+    <string name="plugin_catalog_verified">插件列表已核验</string>
+    <string name="plugin_catalog_queued">插件检测已排队</string>
+</resources>

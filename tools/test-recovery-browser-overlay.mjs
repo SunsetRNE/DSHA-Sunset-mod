@@ -9,6 +9,8 @@ const output = process.argv[2];
 assert.ok(output, 'provide the generated recoveryAssets directory');
 const root = path.resolve(import.meta.dirname, '..');
 const descriptor = JSON.parse(await readFile(path.join(output, 'recovery-runtime.json'), 'utf8'));
+const recoveryLock = JSON.parse(await readFile(path.join(root, 'tools/recovery-runtime/lock.json'), 'utf8'));
+assert.equal(descriptor.dshVersion, recoveryLock.dshVersion);
 const rows = descriptor.overlays;
 assert.equal(rows.length, 4);
 for (const name of ['web-integration/es-compat.js','web-integration/startup.js',
@@ -38,14 +40,23 @@ assert.ok(pdf.includes('new Blob([' + JSON.stringify(es + '\n') + ', _dsh_pdf_wo
 let registered;
 vm.runInNewContext(pdf, {window:{__ModuleLoader__:{load(entry){registered=entry;}}}, URL, Response, structuredClone});
 assert.equal(registered.id, '@deepseek-ai/dsh-client-ui-sidebar-documentpreview');
-const workerLiteral = pdf.match(/var _dsh_pdf_worker_default = (".*");/);
-assert.ok(workerLiteral);
-const worker = vm.runInNewContext(workerLiteral[1]);
+const workerAssignment = /var _dsh_pdf_worker_default\s*=\s*/.exec(pdf);
+assert.ok(workerAssignment);
+const workerStart = workerAssignment.index + workerAssignment[0].length;
+const quote = pdf[workerStart];
+assert.ok(quote === '"' || quote === "'", 'embedded PDF worker must be a string literal');
+let workerEnd = workerStart + 1;
+while (workerEnd < pdf.length && pdf[workerEnd] !== quote) {
+  workerEnd += pdf[workerEnd] === '\\' ? 2 : 1;
+}
+assert.equal(pdf[workerEnd + 1], ';', 'embedded PDF worker variable must end after the literal');
+const worker = vm.runInNewContext(pdf.slice(workerStart, workerEnd + 1));
 assert.match(worker, /Iterator\.prototype\.join/);
 assert.match(worker, /Math\.sumPrecise/);
 assert.match(contents['client-resources.js'], /DSHA_FILE_RESOURCE_URL_V1/);
 const localeSource = contents['client-locale.js'];
-const languageRecipe = JSON.parse(await readFile(path.join(root, 'app/src/main/assets/language-patch.json'), 'utf8'));
+const languageRecipe = JSON.parse(await readFile(path.join(root,
+  'app/src/main/assets/recovery-recipes', recoveryLock.dshVersion, 'language-patch.json'), 'utf8'));
 for (const patch of languageRecipe.patches) {
   const after = (patch.prependAsset
     ? await readFile(path.join(root, 'app/src/main/assets', patch.prependAsset), 'utf8') + '\n' : '') + patch.after;

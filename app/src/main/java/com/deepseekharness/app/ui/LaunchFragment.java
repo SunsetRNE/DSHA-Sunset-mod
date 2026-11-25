@@ -21,7 +21,6 @@ import com.deepseekharness.app.LanProxyService;
 import com.deepseekharness.app.R;
 import com.deepseekharness.app.core.HarnessController;
 import com.deepseekharness.app.util.LanAccessPresentation;
-import com.deepseekharness.app.util.LanAddressPolicy;
 import com.deepseekharness.app.util.SummaryText;
 import com.deepseekharness.app.util.UiText;
 import com.google.android.material.button.MaterialButton;
@@ -441,10 +440,7 @@ public class LaunchFragment extends Fragment {
     invalidateWebEntry();
     ui.removeCallbacks(refreshState);
     if (controller != null) controller.removeReadyWebPageListener(readyChanged);
-    if (dotPulse != null) {
-      dotPulse.cancel();
-      dotPulse = null;
-    }
+    stopDotPulse();
     super.onPause();
   }
 
@@ -473,10 +469,7 @@ public class LaunchFragment extends Fragment {
     techNote = null;
     techModel = null;
     forceCandidatePending = false;
-    if (dotPulse != null) {
-      dotPulse.cancel();
-      dotPulse = null;
-    }
+    stopDotPulse();
     super.onDestroyView();
   }
 
@@ -610,7 +603,10 @@ public class LaunchFragment extends Fragment {
                       || !trace.issues.isEmpty()
                   ? View.VISIBLE
                   : View.GONE);
-      if (starting) {
+      if (preparingStart && !controller.isStarting() && !startStatusMessage.isEmpty()) {
+        ((TextView) root.findViewById(R.id.launch_status))
+            .setText(com.deepseekharness.app.util.UiStateText.render(startStatusMessage));
+      } else if (starting) {
         // 状态条只放一行阶段与计时；固定说明不再堆在状态条里（启动日志就在同页实时滚动）。
         String timing =
             com.deepseekharness.app.util.UiText.format(
@@ -834,9 +830,12 @@ public class LaunchFragment extends Fragment {
       tone = R.color.shell_text_secondary;
     }
     TextView eyebrow = root.findViewById(R.id.launch_eyebrow);
-    if (eyebrow != null) eyebrow.setText(context);
+    if (eyebrow != null) UiMotion.setTextIfChanged(eyebrow, context);
     TextView dot = root.findViewById(R.id.launch_run_dot);
-    if (dot != null) dot.setTextColor(requireContext().getColor(tone));
+    if (dot != null) {
+      int color = root.getContext().getColor(tone);
+      if (dot.getCurrentTextColor() != color) dot.setTextColor(color);
+    }
     pulseDot(dot, starting || stopping || entering || restoring);
     if (activityTrack != null) {
       int track;
@@ -875,25 +874,33 @@ public class LaunchFragment extends Fragment {
         value = UiText.choose("未运行", "Stopped");
         valueTone = R.color.shell_text;
       }
-      workbench.setText(value);
-      workbench.setTextColor(requireContext().getColor(valueTone));
+      UiMotion.setTextIfChanged(workbench, value);
+      int color = root.getContext().getColor(valueTone);
+      if (workbench.getCurrentTextColor() != color) workbench.setTextColor(color);
     }
   }
 
   /** 启动/停止/进入/核对中让状态点缓慢呼吸；静默与已就绪保持静止。 */
   private void pulseDot(TextView dot, boolean active) {
-    if (dotPulse != null) {
-      dotPulse.cancel();
-      dotPulse = null;
+    if (dot == null || !active || !UiMotion.animationsEnabled(dot.getContext())) {
+      stopDotPulse();
+      return;
     }
-    if (dot == null) return;
-    dot.setAlpha(1f);
-    if (!active || !UiMotion.animationsEnabled(requireContext())) return;
+    if (dotPulse != null && dotPulse.getTarget() == dot && dotPulse.isStarted()) return;
+    stopDotPulse();
     dotPulse = android.animation.ObjectAnimator.ofFloat(dot, "alpha", 1f, 0.35f, 1f);
     dotPulse.setDuration(1500L);
     dotPulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
     dotPulse.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
     dotPulse.start();
+  }
+
+  private void stopDotPulse() {
+    if (dotPulse == null) return;
+    Object target = dotPulse.getTarget();
+    dotPulse.cancel();
+    dotPulse = null;
+    if (target instanceof View view) view.setAlpha(1f);
   }
 
   /**
@@ -1061,11 +1068,15 @@ public class LaunchFragment extends Fragment {
         candidate.candidate() != null && candidate.candidate().retiresPreviousLauncher();
     new DshaDialogBuilder(requireContext(), true)
         .setTitle(
-            com.deepseekharness.app.util.UiText.text(previous ? "放弃上一版 Web 并强制结束？" : "强制结束本次 Web？"))
+            previous
+                ? com.deepseekharness.app.util.UiText.choose(
+                    "强制结束原 Web 实例？", "Force stop the previous Web instance?")
+                : com.deepseekharness.app.util.UiText.text("强制结束本次 Web？"))
         .setMessage(
             previous
-                ? com.deepseekharness.app.util.UiText.text(
-                    "普通停止未确认上一版退出。强制结束可能中断写入。\n\n确认后先结束旧进程；身份变化会拒绝执行；取消会保留现场。")
+                ? com.deepseekharness.app.util.UiText.choose(
+                    "普通停止未确认原 Web 的启动器退出。强制结束可能中断写入。\n\n确认后先核对原 Web，再核对启动器。身份有变会停止操作。",
+                    "A normal stop could not confirm that the previous Web launcher exited. Force stopping can interrupt writes.\n\nWeb is checked first, then its launcher. An identity change cancels the operation.")
                 : com.deepseekharness.app.util.UiText.text(
                     "普通停止未确认退出。强制结束可能中断写入。\n\n确认后只结束已核验进程；取消会保留现场。"))
         .setNegativeButton(android.R.string.cancel, null)
@@ -1107,14 +1118,7 @@ public class LaunchFragment extends Fragment {
     boolean permission =
         com.deepseekharness.app.bridge.LocalNetworkAccess.granted(requireContext());
     long generation = controller.getWebGeneration();
-    boolean authenticated = LanProxyService.hasDshAuth(generation);
-    int port = LanProxyService.port(generation);
-    LanAddressPolicy.Discovery discovery =
-        enabled && permission && authenticated && port > 0
-            ? LanAddressPolicy.currentDiscovery()
-            : null;
-    return LanAccessPresentation.capture(
-        enabled, permission, generation, authenticated, port, discovery);
+    return LanProxyService.access(enabled, permission, generation);
   }
 
   /** LAN status remains visible when disabled; opening this view never enables a listener. */
@@ -1143,7 +1147,6 @@ public class LaunchFragment extends Fragment {
             .create();
     accessDialog = dialog;
     closeButton.setOnClickListener(ignored -> dialog.dismiss());
-    accessCopyButton.setOnClickListener(ignored -> copyAddressNow());
     accessLanButton.setOnClickListener(ignored -> onLanToggle());
     dialog.setOnDismissListener(
         ignored -> {
@@ -1171,32 +1174,38 @@ public class LaunchFragment extends Fragment {
             lanStatusForDisplay(access)));
     if (accessLanButton != null)
       accessLanButton.setText(
-          controller.config().isLanMode()
-              ? UiText.choose("关闭局域网", "Disable LAN")
-              : UiText.choose("开启局域网", "Enable LAN"));
+          access.state == LanAccessPresentation.State.CONFIRM_NETWORK
+              ? getString(R.string.lan_trust_network)
+              : controller.config().isLanMode()
+                  ? UiText.choose("关闭局域网", "Disable LAN")
+                  : UiText.choose("开启局域网", "Enable LAN"));
     if (accessCopyButton != null) {
-      boolean lanReady = access.state == LanAccessPresentation.State.READY;
+      boolean lanReady =
+          access.state == LanAccessPresentation.State.READY && !needsLanPassword(access);
       accessCopyButton.setText(
           lanReady
               ? UiText.choose("复制链接", "Copy LAN link")
               : UiText.choose("复制本机地址", "Copy local URL"));
       accessCopyButton.setEnabled(lanReady || !local.isEmpty());
+      accessCopyButton.setOnClickListener(ignored -> copyAddressNow(access, lanReady, local));
     }
   }
 
   /** 局域网开关：开启走既有确认流程；关闭时立刻停监听并撤销既有链接。 */
   private void onLanToggle() {
     if (!isAdded() || controller == null) return;
-    if (!controller.config().isLanMode()) {
-      onLanAction(lanAccess());
+    LanAccessPresentation access = lanAccess();
+    if (!controller.config().isLanMode()
+        || access.state == LanAccessPresentation.State.CONFIRM_NETWORK) {
+      onLanAction(access);
       return;
     }
     new DshaDialogBuilder(requireContext())
         .setTitle(UiText.choose("关闭局域网访问？", "Disable LAN access?"))
         .setMessage(
             UiText.choose(
-                "关闭后，其它设备将无法再通过局域网访问本轮 DSH，已发出的连接链接立即失效。本机访问不受影响。",
-                "Other devices lose LAN access to this DSH run and existing links stop working immediately. On-phone access is unaffected."))
+                "关闭后，其它设备将无法再通过局域网访问本轮 DSH，已登录的浏览器会话立即失效。本机访问不受影响。",
+                "Other devices lose LAN access to this DSH run and existing browser sessions end immediately. On-phone access is unaffected."))
         .setNegativeButton(android.R.string.cancel, null)
         .setPositiveButton(
             UiText.choose("关闭", "Disable"),
@@ -1213,32 +1222,32 @@ public class LaunchFragment extends Fragment {
         .show();
   }
 
-  /** 复制当前可用地址：局域网就绪时复制带凭据链接，否则复制本机链接。 */
-  private void copyAddressNow() {
+  /** Copy the entry the button displayed. A retired LAN link cannot turn into a local auth URL. */
+  private void copyAddressNow(
+      LanAccessPresentation offered, boolean lanReady, String offeredLocal) {
     if (!isAdded() || controller == null) return;
-    LanAccessPresentation access = lanAccess();
     long generation = controller.getWebGeneration();
-    if (access.state == LanAccessPresentation.State.READY && !access.services.isEmpty()) {
-      String service = access.services.get(0);
-      String token = LanProxyService.boundLanToken(generation);
-      if (!token.isEmpty() && access.stillOffers(generation, service)) {
-        copyAddr(UiText.choose("局域网地址", "LAN address"), service + "?token=" + token);
+    if (lanReady) {
+      String service = offered.services.get(0);
+      var current = lanAccess();
+      if (offered.generation == generation
+          && current.stillOffers(generation, service)
+          && !needsLanPassword(current)
+          && offered.certificateSha256.equals(current.certificateSha256)) {
+        copyAddr(UiText.choose("局域网地址", "LAN address"), service);
         return;
       }
       connectionChanged();
+      refreshLanAddr();
       return;
     }
     String local = webEntryUrl();
-    if (!local.isEmpty()) {
+    if (!local.isEmpty() && local.equals(offeredLocal) && offered.generation == generation) {
       copyAddr("DSH", local);
       return;
     }
-    Toast.makeText(
-            requireContext(),
-            UiText.choose(
-                "暂时没有可复制的地址，请等待 DSH 就绪。", "No address to copy yet; wait for DSH to be ready."),
-            Toast.LENGTH_SHORT)
-        .show();
+    connectionChanged();
+    refreshLanAddr();
   }
 
   private boolean needsLanPassword(LanAccessPresentation access) {
@@ -1249,11 +1258,14 @@ public class LaunchFragment extends Fragment {
   private String lanStatusForDisplay(LanAccessPresentation access) {
     if (needsLanPassword(access)) return getString(R.string.lan_password_required_launch);
     if (access.state == LanAccessPresentation.State.READY)
-      return getString(R.string.lan_address_overview, String.join("\n", access.services));
+      return getString(
+          R.string.lan_address_overview,
+          String.join("\n", access.services),
+          access.certificateSha256);
     return lanStatus(access);
   }
 
-  static String lanStatus(LanAccessPresentation access) {
+  private String lanStatus(LanAccessPresentation access) {
     return switch (access.state) {
       case DISABLED ->
           UiText.choose(
@@ -1263,6 +1275,7 @@ public class LaunchFragment extends Fragment {
           UiText.choose(
               "局域网访问已开启，但未获得系统本地网络权限；本机访问仍可使用。",
               "LAN access is enabled, but the system local network permission is missing. Local access is still available.");
+      case CONFIRM_NETWORK -> getString(R.string.lan_trust_required);
       case WAITING_AUTH ->
           UiText.choose(
               "局域网访问已开启，正在等待本轮 DSH 就绪并完成认证。",
@@ -1309,20 +1322,34 @@ public class LaunchFragment extends Fragment {
           .addToBackStack(null)
           .replace(R.id.fragment_container, new ConfigFragment())
           .commit();
-    } else if (access.state == LanAccessPresentation.State.DISABLED) {
-      new DshaDialogBuilder(requireContext())
-          .setTitle(UiText.choose("开启局域网访问？", "Enable LAN access?"))
-          .setMessage(R.string.lan_enable_password_notice)
-          .setNegativeButton(android.R.string.cancel, null)
-          .setPositiveButton(
-              UiText.choose("开启", "Enable"),
-              (dialog, which) -> {
-                if (!isAdded() || getView() == null || !isResumed()) return;
-                controller.config().setLanMode(true);
-                requestLanAccess();
-                refreshLanAddr();
-              })
-          .show();
+    } else if (access.state == LanAccessPresentation.State.DISABLED
+        || access.state == LanAccessPresentation.State.CONFIRM_NETWORK) {
+      var selected = com.deepseekharness.app.bridge.LocalNetworkAccess.currentLan(requireContext());
+      var confirmation =
+          new DshaDialogBuilder(requireContext())
+              .setTitle(UiText.choose("开启局域网访问？", "Enable LAN access?"))
+              .setMessage(
+                  getString(R.string.lan_enable_password_notice)
+                      + (selected == null ? "" : "\n" + selected.description()))
+              .setNegativeButton(android.R.string.cancel, null)
+              .setPositiveButton(
+                  UiText.choose("开启", "Enable"),
+                  (dialog, which) -> {
+                    if (!isAdded() || getView() == null || !isResumed()) return;
+                    LanProxyService.trustNetwork(requireContext(), selected);
+                    controller.config().setLanMode(true);
+                    requestLanAccess();
+                    refreshLanAddr();
+                  });
+      if (access.state == LanAccessPresentation.State.CONFIRM_NETWORK)
+        confirmation.setNeutralButton(
+            UiText.choose("关闭局域网", "Disable LAN"),
+            (dialog, which) -> {
+              controller.config().setLanMode(false);
+              com.deepseekharness.app.HarnessService.refreshPowerMode(requireContext());
+              refreshLanAddr();
+            });
+      confirmation.show();
     } else if (access.state == LanAccessPresentation.State.PERMISSION_REQUIRED
         || access.state == LanAccessPresentation.State.LISTENER_UNAVAILABLE) {
       requestLanAccess();
@@ -1362,21 +1389,24 @@ public class LaunchFragment extends Fragment {
   private void showLanAddress(String service) {
     if (!isAdded()) return;
     final long generation = controller.getWebGeneration();
-    if (!lanAccess().stillOffers(generation, service)) {
+    var offered = lanAccess();
+    if (!offered.stillOffers(generation, service)) {
       connectionChanged();
       return;
     }
     new DshaDialogBuilder(requireContext())
         .setTitle(UiText.choose("局域网地址", "LAN address"))
-        .setMessage(getString(R.string.lan_address_detail, service))
+        .setMessage(getString(R.string.lan_address_detail, service, offered.certificateSha256))
         .setNegativeButton(android.R.string.cancel, null)
         .setPositiveButton(
             UiText.choose("复制地址", "Copy address"),
             (dialog, which) -> {
-              if (!isAdded()
-                  || generation != controller.getWebGeneration()
+              if (!isAdded()) return;
+              var current = lanAccess();
+              if (generation != controller.getWebGeneration()
                   || !controller.config().hasLanPassword()
-                  || !lanAccess().stillOffers(generation, service)) {
+                  || !current.stillOffers(generation, service)
+                  || !offered.certificateSha256.equals(current.certificateSha256)) {
                 connectionChanged();
                 return;
               }

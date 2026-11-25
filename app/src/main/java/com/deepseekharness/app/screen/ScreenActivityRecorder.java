@@ -37,6 +37,11 @@ public final class ScreenActivityRecorder {
 
   private static final ScreenActivityFeed FEED =
       new ScreenActivityFeed(SystemClock::elapsedRealtime);
+  private static ControlTaskAuthority.Lease recordingLease;
+  private static java.util.function.BooleanSupplier leaseCurrent;
+  private static ScreenTarget approvedTarget;
+  private static long targetRevision;
+  private static java.util.function.BooleanSupplier targetAllowed;
   private static final Set<String> IGNORED = new CopyOnWriteArraySet<>();
   private static volatile long dispatchUntil;
   private static volatile long lastContentAt = -1L;
@@ -47,14 +52,60 @@ public final class ScreenActivityRecorder {
   /**
    * 标记本任务的记录开始（幂等）。身份变化时先清空上一个任务的事件，并刷新输入法/自身包名排除表。
    */
-  public static void observeTask(Context context, ControlTaskAuthority.Binding binding) {
-    if (binding == null) return;
-    if (!FEED.begin(binding.identity())) return;
+  public static synchronized void observeTask(
+      Context context,
+      ControlTaskAuthority.Lease lease,
+      java.util.function.BooleanSupplier current) {
+    if (lease == null || !current.getAsBoolean() || lease.equals(recordingLease)) return;
+    clear();
+    recordingLease = lease;
+    leaseCurrent = current;
+    FEED.begin(lease.binding().identity());
     refreshIgnored(context);
   }
 
-  /** 任务结束或服务断开：立即停止记录并清空，不保留任何事件。 */
-  public static void clear() {
+  public static synchronized void approveTarget(
+      ControlTaskAuthority.Lease lease,
+      ScreenTarget target,
+      java.util.function.BooleanSupplier allowed) {
+    if (!liveTask() || !recordingLease.equals(lease) || target == null || !allowed.getAsBoolean())
+      return;
+    if (!target.matches(approvedTarget)) {
+      targetRevision++;
+      FEED.discardTargetDetails();
+    }
+    approvedTarget = target;
+    targetAllowed = allowed;
+  }
+
+  private static boolean liveTask() {
+    if (recordingLease != null && leaseCurrent.getAsBoolean()) return true;
+    if (recordingLease != null) clear();
+    return false;
+  }
+
+  private static void discardApproval() {
+    if (approvedTarget != null) targetRevision++;
+    approvedTarget = null;
+    targetAllowed = null;
+    FEED.discardTargetDetails();
+  }
+
+  private static boolean approved(ScreenTarget target) {
+    if (!liveTask() || approvedTarget == null) return false;
+    if (!targetAllowed.getAsBoolean()) {
+      discardApproval();
+      return false;
+    }
+    return approvedTarget.matches(target);
+  }
+
+  public static synchronized void clear() {
+    targetRevision++;
+    recordingLease = null;
+    leaseCurrent = null;
+    approvedTarget = null;
+    targetAllowed = null;
     FEED.clear();
     dispatchUntil = 0L;
     lastContentAt = -1L;
@@ -64,7 +115,7 @@ public final class ScreenActivityRecorder {
   }
 
   /** 只清空指定任务的记录；别的会话的 task-end 不能清掉当前任务的活动。 */
-  public static void clearIfTask(String identity) {
+  public static synchronized void clearIfTask(String identity) {
     if (identity != null && identity.equals(FEED.taskIdentity())) clear();
   }
 
@@ -74,15 +125,22 @@ public final class ScreenActivityRecorder {
   }
 
   /** 无障碍回调线程调用；未在记录任务时零成本返回，不读节点。 */
-  public static void recordAccessibilityEvent(AccessibilityEvent event) {
-    if (event == null || !FEED.recording()) return;
+  public static synchronized void recordAccessibilityEvent(AccessibilityEvent event) {
+    if (event == null || !liveTask()) return;
     ScreenActivityPolicy.EventType type = eventType(event.getEventType());
     if (type == null) return;
     String packageName = text(event.getPackageName());
-    if (packageName.isEmpty() || IGNORED.contains(packageName)) return;
+    if (packageName.length() > 255
+        || IGNORED.contains(packageName)
+        || !("android".equals(packageName)
+            || com.deepseekharness.app.util.SelfPackageIdentity.validName(packageName))) return;
     ScreenActivityEvent.Kind kind = ScreenActivityPolicy.kind(type);
     boolean sensitive = SensitiveAppPolicy.sensitive(packageName);
     if (!ScreenActivityPolicy.recordable(kind, sensitive)) return;
+    ScreenTarget eventTarget = new ScreenTarget(0, event.getWindowId(), packageName);
+    boolean allowed = approved(eventTarget);
+    if (kind != ScreenActivityEvent.Kind.TARGET_CHANGED && !allowed) return;
+    if (kind == ScreenActivityEvent.Kind.TARGET_CHANGED && !allowed) discardApproval();
     long now = SystemClock.elapsedRealtime();
     if (kind == ScreenActivityEvent.Kind.CONTENT_CHANGED) {
       if (!ScreenActivityPolicy.contentChangeAllowed(now, lastContentAt)) return;
@@ -90,7 +148,6 @@ public final class ScreenActivityRecorder {
     }
     String activity = "";
     if (kind == ScreenActivityEvent.Kind.TARGET_CHANGED) {
-      activity = ScreenActivityPolicy.activity(event.getClassName());
       if (!ScreenActivityPolicy.targetChangeAllowed(
           now, lastTargetAt, lastTargetPackage, lastTargetActivity, packageName, activity)) return;
       lastTargetAt = now;
@@ -100,7 +157,8 @@ public final class ScreenActivityRecorder {
     NodeFacts facts = NodeFacts.EMPTY;
     if (type == ScreenActivityPolicy.EventType.VIEW_CLICKED
         || type == ScreenActivityPolicy.EventType.VIEW_SCROLLED) {
-      facts = sourceFacts(event);
+      facts = sourceFacts(event, eventTarget);
+      if (!approved(eventTarget)) return;
     }
     FEED.record(
         new ScreenActivityEvent(
@@ -121,10 +179,13 @@ public final class ScreenActivityRecorder {
   }
 
   /** 语义节点动作（点按/长按/滚动/输入）被系统接受后记录助手动作。 */
-  public static void assistantNode(String action, ScreenTarget target, AccessibilityNodeInfo node) {
+  public static synchronized void assistantNode(
+      String action, ScreenTarget target, AccessibilityNodeInfo node) {
     if (target == null || node == null || SensitiveAppPolicy.sensitive(target.packageName)) return;
-    if (!FEED.recording()) return;
+    if (!approved(target)) return;
     try {
+      if (target.windowId != node.getWindowId()
+          || !target.packageName.equals(text(node.getPackageName()))) return;
       boolean password = node.isPassword();
       String label =
           ScreenActivityPolicy.label(node.getText(), node.getContentDescription(), password);
@@ -140,17 +201,17 @@ public final class ScreenActivityRecorder {
   }
 
   /** 坐标手势被系统接受后记录助手动作；只记起始点，不保存轨迹。 */
-  public static void assistantGesture(
+  public static synchronized void assistantGesture(
       String gesture, ScreenTarget target, int x1, int y1, int x2, int y2) {
     if (target == null || SensitiveAppPolicy.sensitive(target.packageName)) return;
-    if (!FEED.recording()) return;
+    if (!approved(target)) return;
     recordAssistant(gesture, target, "", "", x1, y1, false);
   }
 
   /** 导航键被系统接受后记录助手动作。 */
-  public static void assistantKey(String key, ScreenTarget target) {
+  public static synchronized void assistantKey(String key, ScreenTarget target) {
     if (target == null || SensitiveAppPolicy.sensitive(target.packageName)) return;
-    if (!FEED.recording()) return;
+    if (!approved(target)) return;
     recordAssistant("key:" + key, target, "", "", -1, -1, false);
   }
 
@@ -162,6 +223,7 @@ public final class ScreenActivityRecorder {
       int centerX,
       int centerY,
       boolean password) {
+    if (!approved(target)) return;
     FEED.record(
         new ScreenActivityEvent(
             0L,
@@ -180,10 +242,29 @@ public final class ScreenActivityRecorder {
             action));
   }
 
+  /** Retains only the authorization identity, for the final bridge write. */
+  public static synchronized java.util.function.BooleanSupplier deliveryCheck(
+      ControlTaskAuthority.Binding task) {
+    ControlTaskAuthority.Lease lease = recordingLease;
+    ScreenTarget target = approvedTarget;
+    long revision = targetRevision;
+    return () -> {
+      synchronized (ScreenActivityRecorder.class) {
+        return liveTask()
+            && revision == targetRevision
+            && lease != null
+            && lease.equals(recordingLease)
+            && lease.binding().equals(task)
+            && (target == null ? approvedTarget == null : approved(target));
+      }
+    };
+  }
+
   /** 把最近活动附到 {@code /app/ui/*} 的 JSON 回执里；非 JSON 回执原样返回。 */
-  public static String attach(String reply, ControlTaskAuthority.Binding binding) {
+  public static synchronized String attach(String reply, ControlTaskAuthority.Binding binding) {
     if (reply == null || reply.isEmpty() || binding == null || reply.charAt(0) != '{') return reply;
     try {
+      if (liveTask() && approvedTarget != null) approved(approvedTarget);
       JSONObject value = new JSONObject(reply);
       value.put("recentActivity", recentArray(binding.identity()));
       return value.toString();
@@ -196,9 +277,10 @@ public final class ScreenActivityRecorder {
    * {@code /app/ui/history} 回执。{@code identity} 为当前任务身份；不是当前任务（未开始、已结束或暂停）时
    * 返回空 events，不返回别的任务内容。
    */
-  public static String history(String since, String limit, String identity) {
+  public static synchronized String history(String since, String limit, String identity) {
     try {
       ScreenActivityQuery.Parsed query = ScreenActivityQuery.parse(since, limit);
+      if (liveTask() && approvedTarget != null) approved(approvedTarget);
       ScreenActivityFeed.History history = FEED.history(query.since(), query.limit(), identity);
       JSONArray events = new JSONArray();
       for (ScreenActivityEvent event : history.events()) events.put(eventValue(event, true));
@@ -294,7 +376,7 @@ public final class ScreenActivityRecorder {
   }
 
   /** 只读事件的源节点；不遍历子树，异常或空源都退回无节点摘要。 */
-  private static NodeFacts sourceFacts(AccessibilityEvent event) {
+  private static NodeFacts sourceFacts(AccessibilityEvent event, ScreenTarget expected) {
     AccessibilityNodeInfo node = null;
     try {
       node = event.getSource();
@@ -303,6 +385,8 @@ public final class ScreenActivityRecorder {
     }
     if (node == null) return NodeFacts.EMPTY;
     try {
+      if (node.getWindowId() != expected.windowId
+          || !expected.packageName.equals(text(node.getPackageName()))) return NodeFacts.EMPTY;
       boolean password = node.isPassword();
       String label =
           ScreenActivityPolicy.label(node.getText(), node.getContentDescription(), password);

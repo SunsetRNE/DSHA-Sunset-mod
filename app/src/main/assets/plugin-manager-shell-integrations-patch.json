@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "dshVersion": "0.2.2-rc.5",
+  "module": "@deepseek-ai/dsh-plugin-manager/lib/index.js",
+  "sourceSha256": "33cbad2bdce9679a9f4fbebe072db87ecbb162e0ceb93237f6a627de07d3ab74",
+  "patches": [
+    {
+      "before": "//#region lib/types/bundle-detail.js",
+      "after": "//#region lib/types/bundle-detail.js",
+      "prependAsset": "shell-integration-policy.js"
+    },
+    {
+      "before": "\t\t\t])].filter((name) => name !== \"@deepseek-ai/dsh-experimental-plugin-market-bundle\");",
+      "after": "\t\t\t])].filter((name) => name !== \"@deepseek-ai/dsh-experimental-plugin-market-bundle\" && !dshaIsShellBundle(name));"
+    },
+    {
+      "before": "\t\tasync selectBundle(name, enabled) {",
+      "after": "\t\tasync selectBundle(name, enabled) {\n\t\t\tif (dshaIsShellBundle(name)) throw new ManagementFailure(\"management-required\");"
+    },
+    {
+      "before": "\t\t\t\tif (typeof row.id !== \"string\" || typeof row.name !== \"string\" || row.group === true) continue;\n\t\t\t\tconst active = live.get(row.id);",
+      "after": "\t\t\t\tif (typeof row.id !== \"string\" || typeof row.name !== \"string\" || row.group === true || dshaIsShellEntry(row.name, row.id)) continue;\n\t\t\t\tconst active = live.get(row.id);"
+    },
+    {
+      "before": "\t\t\tconst known = new Set([\n\t\t\t\t...bundleSelection(manifest),",
+      "after": "\t\t\tconst candidate = specPackageName(spec, manifest.dependencies ?? {}, this.profile.dir);\n\t\t\tif (dshaIsShellBundle(candidate)) return refused(\"shipped\", \"This integration is managed by the container.\");\n\t\t\tconst known = new Set([\n\t\t\t\t...bundleSelection(manifest),"
+    },
+    {
+      "before": "\t\t\t\t\tif (!named.bundle) return {",
+      "after": "\t\t\t\t\tif (dshaIsShellBundle(named.name)) return refused(\"shipped\", \"This integration is managed by the container.\");\n\t\t\t\t\tif (!named.bundle) return {"
+    },
+    {
+      "before": "\t\t\t\t\tif (manifest?.dsh?.bundle === void 0) throw new ManagementFailure(\"not-bundle\");\n\t\t\t\t\tconst compatibility = evaluatePluginCompatibility(manifest,",
+      "after": "\t\t\t\t\tif (manifest?.dsh?.bundle === void 0) throw new ManagementFailure(\"not-bundle\");\n\t\t\t\t\tif (dshaIsShellBundle(manifest.name)) throw new ManagementFailure(\"not-removable\");\n\t\t\t\t\tconst compatibility = evaluatePluginCompatibility(manifest,"
+    },
+    {
+      "before": "\t\t\tconst { exemptions, warnings } = readProfileCompatibility(this.profile.dir);\n\t\t\treturn {\n\t\t\t\texemptions,\n\t\t\t\twarnings",
+      "after": "\t\t\tconst { exemptions, warnings } = readProfileCompatibility(this.profile.dir);\n\t\t\treturn {\n\t\t\t\texemptions: Object.fromEntries(Object.entries(exemptions).filter(([key]) => !dshaIsShellBundle(key.slice(0, key.lastIndexOf(\"@\"))))),\n\t\t\t\twarnings"
+    },
+    {
+      "before": "\t\t\t\tawait setProfileVersionExemption(this.profile.dir, packageVersion, runtimeVersion, enabled, acceptRisk === true);",
+      "after": "\t\t\t\tif (dshaIsShellBundle(packageVersion.slice(0, packageVersion.lastIndexOf(\"@\")))) throw new ManagementFailure(\"management-required\");\n\t\t\t\tawait setProfileVersionExemption(this.profile.dir, packageVersion, runtimeVersion, enabled, acceptRisk === true);"
+    }
+  ]
+}

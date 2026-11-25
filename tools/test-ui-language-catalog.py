@@ -202,9 +202,11 @@ for (const [locale, dict] of dictionaries) disposers.push(ctx.locale.register("t
         self.assertEqual(expected, set(generated))
         rescue = json.loads((WEB.ASSETS / rescue_name).read_text(encoding='utf8'))
         self.assertEqual(recovery['dshVersion'], rescue['dshVersion'])
-        # 历史应急 recipe（0.2.1-rc.5 及更早）保留原签名前代；同版本 recipe 与正式一致。
-        if recovery['dshVersion'] != WEB.VERSION:
+        # 只有已签名的 0.2.1-rc.3 和 rc.5 配方声明旧形态。
+        if recovery['dshVersion'] in ('0.2.1-rc.3', '0.2.1-rc.5'):
             self.assertEqual(3, len(rescue['previousPatches']))
+        else:
+            self.assertNotIn('previousPatches', rescue)
         self.assertEqual(3, len(rescue['patches']))
         self.assertEqual('web-integration/language.js', rescue['patches'][0]['prependAsset'])
 

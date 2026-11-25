@@ -440,6 +440,27 @@ public final class VirtualScreenNativeControlsTest {
   }
 
   @Test
+  public void missingInitialConnectionDoesNotMaskRevokedGenerationOrReuseANewService()
+      throws Exception {
+    try (var f = new Fixture()) {
+      assertTrue(connection().disconnect(f.service));
+      try (var disconnected = f.manager.openNativeControls(f.activity.get())) {
+        assertEquals("ACCESSIBILITY_UNAVAILABLE", disconnected.tree().optString("error"));
+        connection().connect(f.service);
+        assertEquals("NATIVE_CONTROL_REVOKED", disconnected.tree().optString("error"));
+        try (var connected = f.manager.openNativeControls(f.activity.get())) {
+          assertTrue(connected.tree().optBoolean("ok"));
+        }
+        assertTrue(connection().disconnect(f.service));
+        set(f.manager, "generation", UUID.randomUUID().toString());
+        assertEquals("NATIVE_CONTROL_REVOKED", disconnected.tree().optString("error"));
+      }
+      assertEquals(0, f.actions.get());
+      assertEquals(0, f.injected.get());
+    }
+  }
+
+  @Test
   public void changedWindowAndPackageRejectBeforeAction() throws Exception {
     try (var f = new Fixture()) {
       String id = f.id();

@@ -21,6 +21,8 @@ for(const row of JSON.parse(fs.readFileSync(path.join(assets,'runtime-patches.js
 }
 const file=path.join(assets,own),recipe=JSON.parse(fs.readFileSync(file));assert.equal(recipe.sourceSha256,canonical);inputs[own]=sha(fs.readFileSync(file));
 let after=before;for(const patch of recipe.patches){assert.equal(after.split(patch.before).length,2);after=after.replace(patch.before,patch.after);}
+const managedModule=process.env.DSHA_PLUGIN_WORKERS_MANAGED_MODULE;
+if(managedModule)assert.equal(sha(fs.readFileSync(managedModule)),sha(after),'archive manager and locked recipe projection differ');
 let reversed=after;for(const patch of [...recipe.patches].reverse()){assert.equal(reversed.split(patch.after).length,2);reversed=reversed.replace(patch.after,patch.before);}assert.equal(reversed,before,'proof, classification, row projection, write and removal code outside the anchored loop must remain exact');
 const owned=fs.mkdtempSync(path.join(os.tmpdir(),'dsha-bundle-proof-workers-'));
 fs.symlinkSync(path.join(raw,'node_modules'),path.join(owned,'node_modules'),process.platform==='win32'?'junction':'dir');
@@ -43,7 +45,10 @@ const manifestPath=path.join(profileDir,'package.json');fs.writeFileSync(manifes
 const proofFile=path.join(home,'managed-package-proofs.json');fs.writeFileSync(proofFile,JSON.stringify({version:1,packages:proofs}));
 const previous=process.env.DSHA_MANAGED_PACKAGE_PROOFS_SHA256;process.env.DSHA_MANAGED_PACKAGE_PROOFS_SHA256=sha(fs.readFileSync(proofFile));
 const profile={name:'web',dir:profileDir,home,patchPath:path.join(profileDir,'cordis.patch.yml'),overlays:[],startedBundles:[],installAnchor:path.join(sdk,'package.json')};
-function manager(Type){const ctx={get:()=>undefined,emit(){},loader:{entries:()=>[]},logger:{warn(){}}},item=Object.create(Type.prototype);Object.defineProperty(item,'ctx',{value:ctx});Object.assign(item,{profile,ownerContext:ctx,managementBundles:new Set(),installedFrom:new Map(),packageOperations:new Set(),installs:new Map(),abort:new AbortController(),lockWaitMs:1000});return item;}
+const operations=[];
+function manager(Type){const ctx={get:()=>undefined,emit(){},
+ async parallel(event,operation){assert.equal(event,'plugin-manager/operation');operations.push(operation);},
+ loader:{entries:()=>[]},logger:{warn(){}}},item=Object.create(Type.prototype);Object.defineProperty(item,'ctx',{value:ctx});Object.assign(item,{profile,ownerContext:ctx,managementBundles:new Set(),installedFrom:new Map(),packageOperations:new Set(),installs:new Map(),abort:new AbortController(),lockWaitMs:1000});return item;}
 const old=manager(Before),candidate=manager(After),originalOpen=fs.promises.open;
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let measure=false,delay=0,mutation,readGate,stats;
@@ -57,7 +62,7 @@ fs.promises.open=async function(file,...args){
  handle.read=async function(buffer,...readArgs){assert(buffer.byteLength<=65536);if(readGate)await readGate.promise;if(delay)await wait(delay);const result=await read(buffer,...readArgs);stats.bytes+=result.bytesRead;if(resolved.startsWith(libraryDir+path.sep))stats.libraryBytes+=result.bytesRead;if(mutation&&result.bytesRead){const action=mutation;mutation=undefined;await action(resolved);}return result;};
  handle.close=async function(){try{return await close();}finally{stats.active--;}};return handle;
 };
-const result={schema:1,node:process.version,owned,inputs,sourceHashes:{raw:canonical,before:sha(before),after:sha(after)},inventoryDependency:dependency.evidence,scope:'real current Host methods and exact full content proofs in private fixtures; injected per-read I/O delay is an algorithmic control, not a phone benchmark',cases:[]};
+const result={schema:1,node:process.version,owned,inputs,sourceHashes:{raw:canonical,before:sha(before),after:sha(after)},comparedManagedModule:!!managedModule,inventoryDependency:dependency.evidence,scope:'real current Host methods and exact full content proofs in private fixtures; controlled per-read delay',cases:[]};
 const snapshot=()=>({...stats,files:stats.files.size,packages:[...stats.packages]});
 async function timed(label,item){reset();const start=performance.now(),rows=await item.listBundles();assert.equal(stats.active,0);const observed={label,ms:performance.now()-start,...snapshot()};assert.equal(observed.proofOpens,1);assert.equal(observed.libraryBytes,0);assert(observed.bytes>=3*1024*1024);assert.equal(rows.filter(row=>names.includes(row.name)&&row.origin==='dsh-managed').length,3);return {rows,observed};}
 let server;
@@ -74,6 +79,25 @@ try{
  result.cases.push({name:'restored-mtime-edit-directory-race-and-unauthenticated-proof-remain-rejected',ok:true});
  reset();delay=2;mutation=async()=>{throw Error('fixture-proof-read-failure');};await assert.rejects(candidate.listBundles(),/fixture-proof-read-failure/);assert.equal(stats.active,0,'error settlement must drain both workers');assert.ok(stats.packages.size<=2,'no third proof may be scheduled after the first failure');result.cases.push({name:'error-stops-new-packages-and-drains-active-handles',...snapshot()});
  reset();const cancelled=manager(After),beforeManifest=fs.readFileSync(manifestPath);mutation=async()=>cancelled.abort.abort(Error('fixture-proof-cancelled'));await assert.rejects(cancelled.listBundles(),/fixture-proof-cancelled/);assert.equal(stats.active,0);assert.deepEqual(fs.readFileSync(manifestPath),beforeManifest);result.cases.push({name:'mid-read-cancellation-drains-and-does-not-replay-writer',...snapshot()});
+ for(const [label,reason] of [['null',null],['false',false],['zero',0],['empty-string','']]){
+  reset();
+  const preAborted=manager(After);preAborted.abort.abort(reason);
+  assert.deepEqual(await preAborted.listBundles().then(()=>({resolved:true}),error=>({resolved:false,error})),{resolved:false,error:reason});
+  assert.equal(stats.active,0);assert.equal(stats.packages.size,0);
+  reset();readGate=Promise.withResolvers();
+  const midRead=manager(After);let done=false;
+  const proof=midRead.listBundles().then(()=>({resolved:true}),error=>({resolved:false,error})).finally(()=>{done=true;});
+  try{
+   for(let i=0;i<200&&stats.active<2&&!done;i++)await wait(5);
+   assert.equal(stats.active,2);
+   midRead.abort.abort(reason);
+   assert.equal(done,false);
+  }finally{readGate.resolve();readGate=undefined;}
+  assert.deepEqual(await proof,{resolved:false,error:reason});
+  assert.equal(stats.active,0);assert.equal(stats.packages.size,2);
+  assert.deepEqual(fs.readFileSync(manifestPath),beforeManifest);
+  result.cases.push({name:'pre-and-mid-read-falsy-cancellation-'+label,...snapshot()});
+ }
  reset();let active=0;
  server=http.createServer(async(req,res)=>{res.setHeader('Content-Type','application/json');if(req.url==='/ping'){res.end(JSON.stringify({scanning:active>0}));return;}active++;try{const rows=await candidate.listBundles();res.end(JSON.stringify({count:rows.length}));}catch(error){res.statusCode=500;res.end(JSON.stringify({error:error.message}));}finally{active--;}});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const port=server.address().port;
@@ -89,7 +113,11 @@ try{
  readGate.resolve();readGate=undefined;const settled=await Promise.all(burst);assert.equal(stats.active,0);assert.equal(stats.maxActive,2);assert.ok(settled.every(row=>row.ok&&row.rows===expected.length||row.error==='PACKAGE_PROOF_BUSY'));
  const afterBurst=await candidate.listBundles();assert.deepEqual(afterBurst,expected,'overload rejection cannot poison later proof sessions');
  result.cases.push({name:'18-request-burst-remains-bounded-and-recovers',requests:18,accepted:settled.filter(row=>row.ok).length,busy:settled.filter(row=>!row.ok).length,maxActive:stats.maxActive,limitation:'two proof jobs per full request can exhaust the existing 32-waiter bound earlier; the bound is not enlarged'});
- delay=0;reset();const remove=await candidate.removeBundle(names[1]);assert.equal(remove.application,'failed');assert.equal(remove.error.code,'not-removable');assert.equal(stats.proofOpens,2);assert.deepEqual([...stats.packages],[1]);assert(stats.bytes>=2*1024*1024&&stats.bytes<3*1024*1024);assert.deepEqual(fs.readFileSync(manifestPath),beforeManifest);result.cases.push({name:'removal-still-authenticates-preflight-and-locked-target-only-recheck',...snapshot()});
+ delay=0;reset();const remove=await candidate.removeBundle(names[1]);assert.equal(remove.application,'failed');assert.equal(remove.error.code,'not-removable');assert.equal(stats.proofOpens,2);assert.deepEqual([...stats.packages],[1]);assert(stats.bytes>=2*1024*1024&&stats.bytes<3*1024*1024);assert.deepEqual(fs.readFileSync(manifestPath),beforeManifest);
+ assert.deepEqual(operations.map(operation=>operation.phase),['started','settled']);
+ assert.equal(operations[0].id,operations[1].id);
+ assert.equal(operations[1].errorCode,'not-removable');
+ result.cases.push({name:'removal-still-authenticates-preflight-and-locked-target-only-recheck',...snapshot()});
 }finally{readGate?.resolve();measure=false;fs.promises.open=originalOpen;if(server)await new Promise(resolve=>server.close(resolve));if(previous===undefined)delete process.env.DSHA_MANAGED_PACKAGE_PROOFS_SHA256;else process.env.DSHA_MANAGED_PACKAGE_PROOFS_SHA256=previous;}
 const report=process.env.DSHA_PLUGIN_WORKERS_REPORT;if(report){fs.mkdirSync(path.dirname(report),{recursive:true});fs.writeFileSync(report,JSON.stringify(result,null,2)+'\n');}
 console.log('PASS: same full provenance/row order, two bounded workers, fresh request proofs, target-only scans, integrity failures, cancellation/error draining and HTTP concurrency.');

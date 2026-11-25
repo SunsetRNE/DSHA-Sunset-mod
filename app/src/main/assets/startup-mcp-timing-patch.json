@@ -1,5 +1,5 @@
 {
-  "dshVersion": "0.2.2-rc.1",
+  "dshVersion": "0.2.2-rc.5",
   "module": "@deepseek-ai/dsh-mcp-client/lib/index.js",
   "patches": [
     {
@@ -15,12 +15,12 @@
       "after": "cwd: config.cwd\n\t\t}));"
     },
     {
-      "before": "const response = client.getServerCapabilities()?.tools === void 0 ? { tools: [] } : await client.listTools(void 0, { cacheMode: \"refresh\" });",
-      "after": "const response = client.getServerCapabilities()?.tools === void 0 ? dshaStartupMcpSkip(opts) : await dshaStartupMcpCall(opts, \"mcp-list-tools\", client, client.listTools, [void 0, { cacheMode: \"refresh\" }]);"
+      "before": "const response = client.getServerCapabilities()?.tools === void 0 ? { tools: [] } : await client.listTools(void 0, {\n\t\tcacheMode: \"refresh\",\n\t\tsignal: opts.signal\n\t});",
+      "after": "const response = client.getServerCapabilities()?.tools === void 0 ? dshaStartupMcpSkip(opts) : await dshaStartupMcpCall(opts, \"mcp-list-tools\", client, client.listTools, [void 0, {\n\t\tcacheMode: \"refresh\",\n\t\tsignal: opts.signal\n\t}]);"
     },
     {
-      "before": "await generation.connect(transport);",
-      "after": "await dshaStartupMcpCall(config, \"mcp-connect\", generation, generation.connect, [transport]);"
+      "before": "await record.wire.connect(resolved, remaining());",
+      "after": "await dshaStartupMcpCall(config, \"mcp-connect\", record.wire, record.wire.connect, [resolved, remaining()]);"
     }
   ]
 }

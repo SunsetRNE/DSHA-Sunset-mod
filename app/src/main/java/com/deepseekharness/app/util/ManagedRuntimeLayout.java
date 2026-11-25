@@ -9,6 +9,7 @@ public final class ManagedRuntimeLayout {
 
   public static final String ROOT = GuestPaths.ROOT_RELATIVE + "/";
   public static final String DSH = "usr/local/lib/node_modules/@deepseek-ai/dsh";
+  public static final String RETIRED_READ_HINT = ROOT + "root/dsha-fs-read-hint";
 
   public static List<String> paths() {
     List<String> out = new ArrayList<>();
@@ -79,6 +80,8 @@ public final class ManagedRuntimeLayout {
         || path.equals("linux/.offline-extracted")) return true;
     if (path.equals("linux/.runtime-descriptor.json") || path.equals("linux/.runtime-health.json"))
       return true;
+    // Historical journals and rollback proofs still refer to the retired directory.
+    if (path.equals(RETIRED_READ_HINT)) return true;
     if (!path.startsWith(ROOT)) return false;
     String relative = path.substring(ROOT.length());
     return paths().contains(relative) || alias(relative);

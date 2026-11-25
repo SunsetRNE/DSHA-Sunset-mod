@@ -1,56 +1,31 @@
 package com.deepseekharness.app.util;
 
-import java.net.Inet4Address;
-import java.net.NetworkInterface;
-import java.util.*;
-import java.util.function.Supplier;
-
-/** Local interface identity only; no routing, credentials or remote probes. */
-public final class LanNetworkState {
-  private final Supplier<Set<String>> source;
-  private Set<String> previous;
-
-  public LanNetworkState() {
-    this(LanNetworkState::capture);
+/** Android network instance and its selected directly connected IPv4 route. */
+public record LanNetworkState(long handle, String interfaceName, String address, int prefixLength) {
+  public String description() {
+    return address + "/" + prefixLength + " (" + interfaceName + ")";
   }
 
-  LanNetworkState(Supplier<Set<String>> source) {
-    this.source = Objects.requireNonNull(source);
+  public boolean eligible() {
+    return handle != 0
+        && interfaceName != null
+        && !interfaceName.isBlank()
+        && LanAddressPolicy.privateIpv4(address)
+        && prefixLength <= 32
+        && prefixLength >= (address.startsWith("10.") ? 8 : address.startsWith("172.") ? 12 : 16);
   }
 
-  /** Unknown observations preserve the last known state and do not cause churn. */
-  public synchronized boolean poll() {
-    Set<String> current = source.get();
-    if (current == null) return false;
-    current = Set.copyOf(current);
-    boolean changed = previous != null && !previous.equals(current);
-    previous = current;
-    return changed;
+  /** Only peers on the confirmed interface subnet may start a browser session. */
+  public boolean admits(java.net.InetAddress peer) {
+    if (!(peer instanceof java.net.Inet4Address) || prefixLength < 1 || prefixLength > 32)
+      return false;
+    int mask = -1 << (32 - prefixLength);
+    return (ipv4(address) & mask) == (ipv4(peer.getHostAddress()) & mask);
   }
 
-  private static Set<String> capture() {
-    try {
-      Set<String> result = new HashSet<>();
-      Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-      if (interfaces == null) return null;
-      while (interfaces.hasMoreElements()) {
-        NetworkInterface network = interfaces.nextElement();
-        if (!network.isUp() || network.isLoopback() || network.isPointToPoint()) continue;
-        String name = network.getName();
-        if (name == null) continue;
-        // Cellular/VPN transitions do not retire a still usable LAN connection.
-        if (name.matches("(?i)(rmnet|v4-rmnet|ccmni|pdp|wwan|tun|tap|ppp).*")) continue;
-        var addresses = network.getInetAddresses();
-        while (addresses.hasMoreElements()) {
-          var address = addresses.nextElement();
-          if (address instanceof Inet4Address
-              && LanAddressPolicy.privateIpv4(address.getHostAddress()))
-            result.add(name + ":" + network.getIndex() + ":" + address.getHostAddress());
-        }
-      }
-      return result;
-    } catch (java.net.SocketException | SecurityException unknown) {
-      return null;
-    }
+  private static int ipv4(String address) {
+    int result = 0;
+    for (String octet : address.split("\\.")) result = (result << 8) | Integer.parseInt(octet);
+    return result;
   }
 }

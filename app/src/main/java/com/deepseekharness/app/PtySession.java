@@ -169,7 +169,8 @@ public final class PtySession implements TerminalSessionClient {
           throw new IllegalStateException(error.getMessage(), error);
         }
         proot.ensureAndroidGroups(); // 登录 shell 的 $(groups) 依赖 /etc/group 里有 Android GID
-        ProotBootstrap.PtyLaunch launch = proot.ptyLaunch(guestCommand);
+        ProotBootstrap.PtyLaunch launch =
+            guestCommand == null ? proot.ptyLaunch() : proot.ptyLaunch(guestCommand);
         String[] argv = launch.argv;
         ps.prootLauncher = com.deepseekharness.app.util.ProcessIdentity.isProot(argv[0]);
         String[] env = launch.environment;

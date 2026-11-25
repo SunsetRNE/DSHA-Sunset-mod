@@ -100,6 +100,54 @@ public class TarGzipExtractorTest {
   }
 
   @Test
+  public void failedStageOnlyReclaimsCurrentSingleLinkBirthAndSignedBytes() throws Exception {
+    File root = temp.newFolder();
+    Map<String, String> keys = new HashMap<>();
+    var fs =
+        new JvmBackupFileSystem() {
+          @Override
+          public Node stat(File file) throws IOException {
+            var real = super.stat(file);
+            return new Node(
+                real.type,
+                keys.getOrDefault(file.getName(), file.getPath()),
+                real.size,
+                real.modified,
+                real.device,
+                real.mode,
+                -1,
+                file.getName().equals("hard") ? 2 : 1);
+          }
+        };
+    byte[] signed = "signed".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    Map<String, BackupFileSystem.Node> born = new HashMap<>();
+    List<byte[]> members = new ArrayList<>();
+    for (String name : List.of("mine", "changed", "replaced", "other", "hard")) {
+      File file = new File(root, name);
+      Files.writeString(file.toPath(), name.equals("changed") ? "edited" : "signed");
+      if (!name.equals("other")) born.put(name, fs.stat(file));
+      members.add(entry(name, '0', "", signed));
+    }
+    keys.put("replaced", "different-inode");
+    byte[] tar = archive(members.toArray(new byte[0][]));
+    var stamp = fs.stat(root);
+    for (int i = 0; i < 2; i++) {
+      ManagedRuntimeAssets.reclaimStagedFiles(
+          fs, root, stamp, born, new ByteArrayInputStream(tar), new BackupControl(null));
+      assertFalse(new File(root, "mine").exists());
+      assertEquals("edited", Files.readString(new File(root, "changed").toPath()));
+      for (String name : List.of("replaced", "other", "hard"))
+        assertEquals("signed", Files.readString(new File(root, name).toPath()));
+    }
+    keys.put(root.getName(), "replaced-root");
+    assertThrows(
+        IOException.class,
+        () ->
+            ManagedRuntimeAssets.reclaimStagedFiles(
+                fs, root, stamp, born, new ByteArrayInputStream(tar), new BackupControl(null)));
+  }
+
+  @Test
   public void invalidStripDoesNotCreateAnExtractionSessionOrDirectory() throws Exception {
     File root = new File(temp.newFolder(), "uncreated");
     for (int strip : new int[] {-1, 65}) {

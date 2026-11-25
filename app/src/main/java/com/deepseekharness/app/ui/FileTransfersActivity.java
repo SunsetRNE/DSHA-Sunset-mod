@@ -47,6 +47,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 /**
  * 用户可控的下载记录。移除记录绝不删除已完成的目标文件。
@@ -76,7 +79,9 @@ public final class FileTransfersActivity extends AppCompatActivity
     TWO_PANE
   }
 
-  private DownloadEngine engine;
+  private static final Executor HISTORY_IO =
+      Executors.newSingleThreadExecutor(work -> new Thread(work, "dsha-transfer-history"));
+  private DownloadEngine.State currentState;
   private Layout layout;
   private String pageTitle;
   private TextView title, summary, notice;
@@ -100,6 +105,7 @@ public final class FileTransfersActivity extends AppCompatActivity
   private String statusDestination;
   private DownloadTask.Status displayedTaskStatus;
   private boolean resumed;
+  private long foregroundGeneration;
 
   public static Intent intent(Context context) {
     return new Intent(context, FileTransfersActivity.class);
@@ -139,8 +145,11 @@ public final class FileTransfersActivity extends AppCompatActivity
                       "Save as was cancelled. The verified file remains in history to save later."));
               return;
             }
-            DownloadTask current = id == null ? null : find(id);
-            if (current == null || current.status != DownloadTask.Status.WAITING_DESTINATION) {
+            DownloadTask current = find(id);
+            if (id == null
+                || currentState != null
+                    && (current == null
+                        || current.status != DownloadTask.Status.WAITING_DESTINATION)) {
               showNotice(
                   t(
                       "原下载记录已不可用，请重新选择记录。",
@@ -161,19 +170,20 @@ public final class FileTransfersActivity extends AppCompatActivity
                 data.getFlags()
                     & (Intent.FLAG_GRANT_READ_URI_PERMISSION
                         | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-            if ((data.getFlags() & Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION) != 0
-                && flags != 0) {
-              try {
-                getContentResolver().takePersistableUriPermission(uri, flags);
-              } catch (SecurityException | IllegalArgumentException unsupported) {
-                // A transient grant still permits the foreground save; the engine reports failures.
-              }
-            }
-            perform(
-                () -> {
+            boolean persist = (data.getFlags() & Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION) != 0;
+            historyWork(
+                engine -> {
+                  if (persist && flags != 0) {
+                    try {
+                      getContentResolver().takePersistableUriPermission(uri, flags);
+                    } catch (SecurityException | IllegalArgumentException unsupported) {
+                      // A transient grant can still permit this save.
+                    }
+                  }
                   engine.provideSaveTarget(id, uri);
-                  showNotice(t("正在保存文件…", "Saving file…"));
-                });
+                  return null;
+                },
+                ignored -> showNotice(t("正在保存文件…", "Saving file…")));
           });
 
   @Override
@@ -212,7 +222,6 @@ public final class FileTransfersActivity extends AppCompatActivity
         pageId = null;
       }
     }
-    engine = DownloadEngine.get(this);
     pageTitle =
         pendingAction.action().equals("share")
             ? t("分享文件", "Share file")
@@ -235,7 +244,8 @@ public final class FileTransfersActivity extends AppCompatActivity
               "Preparing to share. The system share picker will open after verification."));
     else if (!pendingAction.id().isEmpty() && pendingAction.action().equals("saveas"))
       showNotice(t("正在准备另存为，完成后请选择保存位置。", "Preparing Save as. Choose a destination when ready."));
-    engine.state().observe(this, this::render);
+    summary.setText(UiText.text("正在读取…"));
+    historyWork(engine -> engine.state(), state -> state.observe(this, this::render));
   }
 
   // ---------------------------------------------------------------- 布局骨架
@@ -380,12 +390,13 @@ public final class FileTransfersActivity extends AppCompatActivity
   protected void onPostResume() {
     super.onPostResume();
     resumed = true;
-    launchExplicitDestination(engine.state().getValue());
+    launchExplicitDestination(currentState);
   }
 
   @Override
   protected void onPause() {
     // A backgrounded request cannot surprise the user with a later picker.
+    foregroundGeneration++;
     if (resumed && !isChangingConfigurations()) retireExplicitDestination();
     resumed = false;
     super.onPause();
@@ -429,6 +440,7 @@ public final class FileTransfersActivity extends AppCompatActivity
 
   private void render(DownloadEngine.State state) {
     if (state == null) return;
+    currentState = state;
     View focused = getCurrentFocus();
     Object focusTag = focused == null ? null : focused.getTag(R.id.transfer_focus_key);
     renderHeader(state);
@@ -684,7 +696,7 @@ public final class FileTransfersActivity extends AppCompatActivity
             if (filter == value) return;
             filter = value;
             structureKey = null;
-            render(engine.state().getValue());
+            render(currentState);
             listScroll.scrollTo(0, 0);
           });
       LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -2, 1);
@@ -769,7 +781,7 @@ public final class FileTransfersActivity extends AppCompatActivity
   }
 
   private DownloadTask find(String id) {
-    return find(engine.state().getValue(), id);
+    return find(currentState, id);
   }
 
   // ---------------------------------------------------------------- 详情导航
@@ -779,14 +791,14 @@ public final class FileTransfersActivity extends AppCompatActivity
       if (id.equals(selectedId)) return;
       selectedId = id;
       for (RowHolder holder : rows.values()) holder.select();
-      render(engine.state().getValue());
+      render(currentState);
       return;
     }
     pageId = id;
     techExpanded = false;
     detailKey = null;
     closePage.setEnabled(true);
-    render(engine.state().getValue());
+    render(currentState);
     listScroll.setVisibility(View.GONE);
     detailScroll.setVisibility(View.VISIBLE);
     detailScroll.scrollTo(0, 0);
@@ -837,7 +849,7 @@ public final class FileTransfersActivity extends AppCompatActivity
       detailContent.removeAllViews();
     }
     listScroll.setVisibility(View.VISIBLE);
-    renderHeader(engine.state().getValue());
+    renderHeader(currentState);
     RowHolder holder = id == null ? null : rows.get(id);
     if (holder != null) holder.hit.requestFocus();
   }
@@ -1170,18 +1182,17 @@ public final class FileTransfersActivity extends AppCompatActivity
   private PopupMenu topMenu(View anchor) {
     PopupMenu popup = popup(anchor);
     Menu menu = popup.getMenu();
-    DownloadEngine.State state = engine.state().getValue();
-    int finished = 0;
-    if (state != null)
-      for (DownloadTask task : state.tasks)
-        if (TransferListModel.finished(task.status.name())) finished++;
+    List<String> finished = new ArrayList<>();
+    if (currentState != null)
+      for (DownloadTask task : currentState.tasks)
+        if (TransferListModel.finished(task.status.name())) finished.add(task.id);
     item(
         menu,
         1,
         t("移除已结束记录", "Remove finished records"),
         R.drawable.ic_transfer_remove,
         R.color.shell_text_secondary);
-    menu.findItem(1).setEnabled(finished > 0);
+    menu.findItem(1).setEnabled(!finished.isEmpty());
     item(
         menu,
         2,
@@ -1194,10 +1205,9 @@ public final class FileTransfersActivity extends AppCompatActivity
         t("了解下载记录", "About download history"),
         R.drawable.ic_onb_info,
         R.color.shell_text_secondary);
-    int count = finished;
     popup.setOnMenuItemClickListener(
         item -> {
-          if (item.getItemId() == 1) clearFinished(count);
+          if (item.getItemId() == 1) clearFinished(finished);
           else if (item.getItemId() == 2) systemDownloads();
           else info();
           return true;
@@ -1214,8 +1224,8 @@ public final class FileTransfersActivity extends AppCompatActivity
     switch (action) {
       case OPEN -> openFile(current);
       case SHARE -> share(current);
-      case PAUSE -> perform(() -> engine.pause(current.id));
-      case RESUME, RETRY -> perform(() -> engine.resume(current.id));
+      case PAUSE -> changeHistory(engine -> engine.pause(current.id), null);
+      case RESUME, RETRY -> changeHistory(engine -> engine.resume(current.id), null);
       case CHOOSE -> chooseDestination(current);
       case CANCEL -> cancel(current);
       case REMOVE -> remove(current);
@@ -1232,16 +1242,48 @@ public final class FileTransfersActivity extends AppCompatActivity
     techExpanded = expanded;
   }
 
-  private void perform(ThrowingAction action) {
-    try {
-      action.run();
-    } catch (Exception failed) {
-      showNotice(TransferText.error(failed.getMessage()), true);
-    }
+  private <T> void historyWork(HistoryWork<T> work, Consumer<T> success) {
+    Context app = getApplicationContext();
+    HISTORY_IO.execute(
+        () -> {
+          try {
+            T result = work.run(DownloadEngine.get(app));
+            runOnUiThread(
+                () -> {
+                  if (isFinishing() || isDestroyed()) return;
+                  try {
+                    success.accept(result);
+                  } catch (RuntimeException failed) {
+                    showNotice(TransferText.error(failed.getMessage()), true);
+                  }
+                });
+          } catch (Exception failed) {
+            runOnUiThread(
+                () -> {
+                  if (!isFinishing() && !isDestroyed())
+                    showNotice(TransferText.error(failed.getMessage()), true);
+                });
+          }
+        });
   }
 
-  private interface ThrowingAction {
-    void run() throws Exception;
+  private interface HistoryWork<T> {
+    T run(DownloadEngine engine) throws Exception;
+  }
+
+  private void changeHistory(HistoryChange change, Runnable done) {
+    historyWork(
+        engine -> {
+          change.run(engine);
+          return null;
+        },
+        ignored -> {
+          if (done != null) done.run();
+        });
+  }
+
+  private interface HistoryChange {
+    void run(DownloadEngine engine) throws Exception;
   }
 
   private void showNotice(String message) {
@@ -1271,10 +1313,8 @@ public final class FileTransfersActivity extends AppCompatActivity
 
   private void cancel(DownloadTask task) {
     Runnable stop =
-        () -> {
-          engine.cancel(task.id);
-          snack(TransferText.cancelled());
-        };
+        () ->
+            changeHistory(engine -> engine.cancel(task.id), () -> snack(TransferText.cancelled()));
     if (!TransferListModel.cancelDiscards(task.status.name(), task.downloaded)) {
       stop.run();
       return;
@@ -1312,23 +1352,23 @@ public final class FileTransfersActivity extends AppCompatActivity
             .setPositiveButton(
                 t("移除记录", "Remove record"),
                 (d, which) ->
-                    perform(
-                        () -> {
-                          engine.remove(task.id);
-                          snack(
-                              complete
-                                  ? TransferText.f(
-                                      "已移除记录，文件仍在 %s",
-                                      "Record removed. The file is still in %s", where)
-                                  : t("已移除记录", "Record removed"));
-                        }))
+                    changeHistory(
+                        engine -> engine.remove(task.id),
+                        () ->
+                            snack(
+                                complete
+                                    ? TransferText.f(
+                                        "已移除记录，文件仍在 %s",
+                                        "Record removed. The file is still in %s", where)
+                                    : t("已移除记录", "Record removed"))))
             .setNegativeButton(t("取消", "Cancel"), null)
             .show();
     danger(dialog);
   }
 
-  private void clearFinished(int count) {
-    if (count <= 0) return;
+  private void clearFinished(List<String> finished) {
+    int count = finished.size();
+    if (count == 0) return;
     AlertDialog dialog =
         new DshaDialogBuilder(this)
             .setTitle(TransferText.f("移除 %d 条已结束记录？", "Remove %d finished records?", count))
@@ -1338,29 +1378,20 @@ public final class FileTransfersActivity extends AppCompatActivity
                     "Includes completed and cancelled records. Completed files stay where they were saved. Failed, paused and active records are not affected."))
             .setPositiveButton(
                 t("移除记录", "Remove record"),
-                (d, which) -> {
-                  DownloadEngine.State state = engine.state().getValue();
-                  if (state == null) return;
-                  int removed = 0, failed = 0;
-                  for (DownloadTask task : new ArrayList<>(state.tasks)) {
-                    if (!TransferListModel.finished(task.status.name())) continue;
-                    try {
-                      engine.remove(task.id);
-                      removed++;
-                    } catch (Exception busy) {
-                      failed++;
-                    }
-                  }
-                  snack(
-                      failed == 0
-                          ? TransferText.f(
-                              "已移除 %d 条记录，文件均已保留", "Removed %d records. Files were kept.", removed)
-                          : TransferText.f(
-                              "已移除 %d 条，%d 条正在收尾，请稍后再试",
-                              "Removed %d. %d are still finishing; try again shortly.",
-                              removed,
-                              failed));
-                })
+                (d, which) ->
+                    historyWork(
+                        engine -> engine.removeFinished(finished),
+                        removed -> {
+                          int failed = count - removed;
+                          snack(
+                              failed == 0
+                                  ? TransferText.f(
+                                      "已移除 %d 条记录，文件均已保留",
+                                      "Removed %d records. Files were kept.", removed)
+                                  : TransferText.f(
+                                      "已移除 %d 条，另有 %d 条未移除",
+                                      "Removed %d records. %d were not removed.", removed, failed));
+                        }))
             .setNegativeButton(t("取消", "Cancel"), null)
             .show();
     danger(dialog);
@@ -1512,14 +1543,19 @@ public final class FileTransfersActivity extends AppCompatActivity
   }
 
   private void openFile(DownloadTask task) {
-    perform(
-        () -> {
+    long generation = foregroundGeneration;
+    historyWork(
+        ignored -> {
           Uri uri = completedUri(task);
           Intent view =
               new Intent(Intent.ACTION_VIEW)
                   .setDataAndType(uri, mime(task, uri))
                   .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
           view.setClipData(ClipData.newRawUri(TransferText.name(task), uri));
+          return view;
+        },
+        view -> {
+          if (!resumed || foregroundGeneration != generation) return;
           try {
             startActivity(view);
           } catch (android.content.ActivityNotFoundException noViewer) {
@@ -1532,13 +1568,16 @@ public final class FileTransfersActivity extends AppCompatActivity
   }
 
   private void share(DownloadTask task) {
-    perform(
-        () -> {
+    long generation = foregroundGeneration;
+    historyWork(
+        ignored -> {
           Uri uri = completedUri(task);
-          String actualMime = mime(task, uri);
-          startActivity(
-              NativeFileShare.chooser(
-                  uri, TransferText.name(task), actualMime, t("分享文件", "Share file")));
+          return NativeFileShare.chooser(
+              uri, TransferText.name(task), mime(task, uri), t("分享文件", "Share file"));
+        },
+        chooser -> {
+          if (!resumed || foregroundGeneration != generation) return;
+          startActivity(chooser);
           showNotice(
               t(
                   "已打开分享选择器，请在接收应用中完成分享。",

@@ -481,6 +481,25 @@ public final class VirtualScreenActivityNodeControlsTest {
   }
 
   @Test
+  public void openingNodesWithoutAccessibilityExplainsHowToRestoreAccess() throws Exception {
+    assertTrue(VirtualScreenNativeControlsTest.connection().disconnect(fixture.service));
+    button("节点操作").performClick();
+    assertEquals(1, pending.queued.size());
+    pending.one();
+    drain();
+
+    assertTrue(dialog().isShowing());
+    String result = ((TextView) field(panel(), "result")).getText().toString();
+    assertTrue(result, result.contains("ACCESSIBILITY_UNAVAILABLE"));
+    assertTrue(result, result.contains("请检查授权和虚拟屏"));
+    assertFalse(dialog().getButton(DialogInterface.BUTTON_NEUTRAL).isEnabled());
+    assertEquals(0, nodes().getChildCount());
+    assertTrue(pending.queued.isEmpty());
+    assertEquals(0, fixture.actions.get());
+    assertEquals(0, fixture.injected.get());
+  }
+
+  @Test
   public void revokedConnectionExplainsReopeningAndCannotRefreshOldOwner() throws Exception {
     open();
     row().performClick();

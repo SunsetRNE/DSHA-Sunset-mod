@@ -145,8 +145,8 @@ public final class RuntimePackageCommandsAndroidTest {
     System.arraycopy(data, 0, header, at, data.length);
   }
 
-  /** Single-member gzip ustar fixture, so the test does not need an extra tar dependency. */
-  private static byte[] ghArchive(String member, byte[] body) throws Exception {
+  /** Single-member ustar fixture matching the historical and current signed carriers. */
+  private static byte[] ghArchive(String member, byte[] body, boolean xz) throws Exception {
     byte[] header = new byte[512];
     putTarHeader(header, 0, member);
     putTarHeader(header, 100, "0000755");
@@ -162,8 +162,12 @@ public final class RuntimePackageCommandsAndroidTest {
     raw.write(new byte[(512 - body.length % 512) % 512]);
     raw.write(new byte[1024]);
     var compressed = new java.io.ByteArrayOutputStream();
-    try (var gzip = new java.util.zip.GZIPOutputStream(compressed)) {
-      gzip.write(raw.toByteArray());
+    try (java.io.OutputStream output =
+        xz
+            ? new org.tukaani.xz.XZOutputStream(
+                compressed, new org.tukaani.xz.LZMA2Options(1), org.tukaani.xz.XZ.CHECK_CRC64)
+            : new java.util.zip.GZIPOutputStream(compressed)) {
+      raw.writeTo(output);
     }
     return compressed.toByteArray();
   }
@@ -179,13 +183,23 @@ public final class RuntimePackageCommandsAndroidTest {
   /** gh 在 APK 内的打包名：build330 起为 gh-cli.bin，旧包与夹具仍是源名。 */
   private android.content.res.AssetManager packageAssets(boolean corruptGhDigest, String ghEntry)
       throws Exception {
+    return packageAssets(corruptGhDigest, ghEntry, false, false);
+  }
+
+  private android.content.res.AssetManager packageAssets(
+      boolean corruptGhDigest, String ghEntry, boolean xz, boolean corruptCarrierDigest)
+      throws Exception {
     Path archive = Files.createTempFile("dsha-package-assets-", ".apk");
     archive.toFile().deleteOnExit();
     byte[] ghBinary =
         "#!/bin/sh\necho fixture gh\n".getBytes(java.nio.charset.StandardCharsets.UTF_8);
-    byte[] ghTarball = ghArchive("gh_2.103.3_linux_arm64/bin/gh", ghBinary);
+    byte[] ghTarball = ghArchive("gh_2.103.3_linux_arm64/bin/gh", ghBinary, xz);
     String ghDigest = corruptGhDigest ? "0".repeat(64) : sha256Hex(ghBinary);
     var resources = new java.util.LinkedHashMap<String, String>();
+    if (xz)
+      resources.put(
+          ghEntry + ".sha256",
+          (corruptCarrierDigest ? "f".repeat(64) : sha256Hex(ghTarball)) + "\n");
     resources.put("runtime-descriptor.json", "{\"runtimeId\":\"" + ID + "\"}");
     resources.put(
         "managed-runtime-inputs.json",
@@ -401,6 +415,51 @@ public final class RuntimePackageCommandsAndroidTest {
       Path binary = root.resolve("opt/gh/bin/gh");
       assertTrue(Files.isExecutable(binary));
       assertEquals("#!/bin/sh\necho fixture gh\n", Files.readString(binary));
+    }
+  }
+
+  @Test
+  @Config(application = OwnedApplication.class, shadows = PackageFileSystem.class)
+  public void managedReleaseArchiveUpgradesFromGzipToTheSignedXzCarrier() throws Exception {
+    Files.writeString(
+        root.getParent().resolve(".runtime-descriptor.json"), "{\"runtimeId\":\"" + ID + "\"}");
+    put("root/.dsh/settings.yaml", "permissionMode: workspace-write\n");
+    Path binary = root.resolve("opt/gh/bin/gh");
+    byte[] original;
+    try (var assets = packageAssets(false, "gh-cli.bin")) {
+      RuntimeTools.prepare(context, root.toFile());
+      original = Files.readAllBytes(binary);
+    }
+    packagePath = data.resolve("new-app.apk").toString();
+    Files.writeString(Path.of(packagePath), "new APK identity");
+    try (var assets = packageAssets(false, "gh-cli.bin", true, false)) {
+      RuntimeTools.prepare(context, root.toFile());
+      assertArrayEquals(original, Files.readAllBytes(binary));
+      assertTrue(Files.isExecutable(binary));
+      assertEquals(
+          "permissionMode: workspace-write\n",
+          Files.readString(root.resolve("root/.dsh/settings.yaml")));
+    }
+  }
+
+  @Test
+  @Config(application = OwnedApplication.class, shadows = PackageFileSystem.class)
+  public void managedReleaseArchiveRejectsAnIncorrectXzCarrierDigestBeforePublish()
+      throws Exception {
+    try (var assets = packageAssets(false, "gh-cli.bin", true, true)) {
+      Files.writeString(
+          root.getParent().resolve(".runtime-descriptor.json"), "{\"runtimeId\":\"" + ID + "\"}");
+      var failure =
+          assertThrows(
+              java.io.IOException.class, () -> RuntimeTools.prepare(context, root.toFile()));
+      boolean matched = false;
+      for (Throwable cause = failure; cause != null; cause = cause.getCause())
+        if (String.valueOf(cause.getMessage()).contains("ROOTFS_ARCHIVE_SHA256")) {
+          matched = true;
+          break;
+        }
+      assertTrue("unexpected failure: " + failure, matched);
+      assertFalse(Files.exists(root.resolve("opt/gh/bin/gh")));
     }
   }
 

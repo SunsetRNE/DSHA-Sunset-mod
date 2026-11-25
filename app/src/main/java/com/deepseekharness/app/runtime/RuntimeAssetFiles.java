@@ -2,13 +2,53 @@ package com.deepseekharness.app.runtime;
 
 import android.content.Context;
 import com.deepseekharness.app.backup.*;
+import com.deepseekharness.app.util.BundledRootfsAsset;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 
-/** Write below the framework-authorized app root, with strict descendants and durable publication. */
+/** Read signed assets and publish them below the framework-authorized app root. */
 final class RuntimeAssetFiles {
   private RuntimeAssetFiles() {}
+
+  static InputStream openArchive(Context context, String name, String... historicalNames)
+      throws IOException {
+    var assets = context.getAssets();
+    InputStream metadata;
+    try {
+      metadata = assets.open(name + ".sha256");
+    } catch (FileNotFoundException absent) {
+      try {
+        return assets.open(name);
+      } catch (IOException missingPackagedName) {
+        for (String historicalName : historicalNames) {
+          try {
+            return assets.open(historicalName);
+          } catch (IOException missingHistoricalName) {
+            missingPackagedName.addSuppressed(missingHistoricalName);
+          }
+        }
+        throw missingPackagedName;
+      }
+    }
+    String expectedSha256;
+    try (metadata) {
+      expectedSha256 = BundledRootfsAsset.readSha256(metadata);
+    }
+    InputStream archive = assets.open(name);
+    try {
+      return BundledRootfsAsset.decode(archive, expectedSha256);
+    } catch (IOException | RuntimeException failed) {
+      try {
+        archive.close();
+      } catch (IOException closing) {
+        failed.addSuppressed(closing);
+      }
+      throw failed;
+    }
+  }
 
   static File root(Context context, File requested) throws IOException {
     var fs = new AndroidBackupFileSystem();

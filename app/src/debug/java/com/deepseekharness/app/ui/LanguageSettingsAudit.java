@@ -33,9 +33,6 @@ public final class LanguageSettingsAudit extends Instrumentation {
           .get(PluginFixture.class)
           .states;
     }
-
-    @Override
-    void syncInstalledState() {}
   }
 
   private FragmentSessionTestActivity page;

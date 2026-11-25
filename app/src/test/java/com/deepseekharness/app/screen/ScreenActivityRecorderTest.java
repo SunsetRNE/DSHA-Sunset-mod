@@ -38,7 +38,13 @@ public final class ScreenActivityRecorderTest {
           ControlTaskAuthority.Owner.LOCAL_DSH, "connection", "session-history", "1");
   private static final ScreenTarget TARGET = new ScreenTarget(0, 7, "com.example.app");
 
+  private static final ControlTaskAuthority.Lease LEASE = new ControlTaskAuthority.Lease(TASK, 1);
   private Context context;
+
+  private void beginApproved() {
+    ScreenActivityRecorder.observeTask(context, LEASE, () -> true);
+    ScreenActivityRecorder.approveTarget(LEASE, TARGET, () -> true);
+  }
 
   @Before
   public void setUp() {
@@ -53,7 +59,7 @@ public final class ScreenActivityRecorderTest {
 
   @Test
   public void recentActivityIsAttachedOncePerReceipt() throws Exception {
-    ScreenActivityRecorder.observeTask(context, TASK);
+    beginApproved();
     ScreenActivityRecorder.assistantGesture("tap", TARGET, 10, 20, 10, 20);
 
     String first = ScreenActivityRecorder.attach("{\"ok\":true}", TASK);
@@ -72,7 +78,7 @@ public final class ScreenActivityRecorderTest {
 
   @Test
   public void aTaskEndClearsTheHistoryAndAnotherTaskCannotReadIt() throws Exception {
-    ScreenActivityRecorder.observeTask(context, TASK);
+    beginApproved();
     ScreenActivityRecorder.assistantKey("home", TARGET);
     assertEquals(1, events(ScreenActivityRecorder.history("0", "20", TASK.identity())).length());
 
@@ -91,7 +97,7 @@ public final class ScreenActivityRecorderTest {
 
   @Test
   public void historyReportsTheDocumentedMetadata() throws Exception {
-    ScreenActivityRecorder.observeTask(context, TASK);
+    beginApproved();
     ScreenActivityRecorder.assistantGesture("swipe", TARGET, 5, 6, 7, 8);
     JSONObject history = new JSONObject(ScreenActivityRecorder.history("0", "20", TASK.identity()));
     assertTrue(history.getBoolean("ok"));
@@ -108,6 +114,30 @@ public final class ScreenActivityRecorderTest {
     assertEquals("ASSISTANT_ACTION", event.getString("kind"));
     assertEquals("swipe", event.getString("action"));
     assertTrue(event.has("t"));
+  }
+
+  @Test
+  public void detailedEventsRequireCurrentLeaseAndApprovedWindowAtCollectionAndDelivery()
+      throws Exception {
+    var live = new java.util.concurrent.atomic.AtomicBoolean(true);
+    var allowed = new java.util.concurrent.atomic.AtomicBoolean(true);
+    ScreenActivityRecorder.observeTask(context, LEASE, live::get);
+    ScreenActivityRecorder.assistantGesture("tap", TARGET, 1, 2, 1, 2);
+    ScreenActivityRecorder.approveTarget(LEASE, TARGET, allowed::get);
+    ScreenActivityRecorder.assistantKey("back", new ScreenTarget(0, 8, TARGET.packageName));
+    assertEquals(0, events(ScreenActivityRecorder.history("0", "20", TASK.identity())).length());
+    ScreenActivityRecorder.assistantKey("back", TARGET);
+    allowed.set(false);
+    assertEquals(0, events(ScreenActivityRecorder.history("0", "20", TASK.identity())).length());
+    allowed.set(true);
+    ScreenActivityRecorder.approveTarget(LEASE, TARGET, allowed::get);
+    ScreenActivityRecorder.assistantKey("back", TARGET);
+    live.set(false);
+    assertEquals(
+        0,
+        new JSONObject(ScreenActivityRecorder.attach("{}", TASK))
+            .getJSONArray("recentActivity")
+            .length());
   }
 
   @Test

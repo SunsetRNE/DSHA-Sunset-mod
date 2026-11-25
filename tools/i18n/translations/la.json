@@ -417,7 +417,7 @@
   "m0417": "Permissio retis localis non data; primum concede",
   "m0418": "Textum mandatorum in invocationibus instrumentorum ostende",
   "m0419": "Servatum: ",
-  "m0420": "Servatum. Colloquium iterum aperi ad optiones ostentationis interretialis adhibendas. Mutationes portus et exsecutionis ministerium interretiale denuo incipiendum requirunt.",
+  "m0420": "Servatum. Optio dispositionis computatralis adhibetur cum nova pagina interretialis spatii operis creatur. In spatium operis rediens eandem paginam vides. Mutationes portus vel ambitus exsecutionis requirunt ut ministerium interretiale denuo incipiatur.",
   "m0421": "Ad terminale simplex mutatum. Sessiones PTY in recessu pergunt.",
   "m0422": "Interruptum",
   "m0423": "Depositio aut conservatio interrupta",
@@ -2967,7 +2967,7 @@
   "ui2_ws2_1": "Localiter proteguntur et ex exemplaribus subsidiariis excluduntur nisi aliter eligitur.",
   "ui2_w2_2": "Actiones instrumenti",
   "ui2_ws2_2": "Root, Shizuku, ADB et SMS potestates separatas habent.",
-  "ui2_online_notice": "Exemplaria per rete nuntios et adiuncta accipiunt quae mittere eligis.",
+  "ui2_online_notice": "Exemplar per rete electum nuntios, adiuncta et eventus instrumentorum accipere potest, velut textum aut imagines scrinii.",
   "ui2_meet": "DSHA cognosce",
   "ui2_skip": "Prooemium praetermitte",
   "ui2_install_environment": "Installatio et exsecutio",
@@ -3197,7 +3197,7 @@
   "build156_15334f885418": "[ERR] Directorium creari non potuit %s",
   "build156_6ecf1c33fed9": "OK Imago veli servata: %s(%sx%s)",
   "build156_91fa78a28abb": "[ERR] Fasciculus imaginis veli scribi non potuit: %s",
-  "build156_d1da9750dbcf": "Procurator LAN inceptus: 0.0.0.0:%s -> 127.0.0.1:%s",
+  "build156_d1da9750dbcf": "Procurator LAN inceptus: %s -> 127.0.0.1:%s",
   "build156_30301968b328": "Conexio accipi non potuit: %s",
   "build156_ced8b809645f": "Coniunctio procuratoris LAN defecit: %s",
   "build156_07854ff2bfe5": "Conexio ab %s",
@@ -3775,5 +3775,6 @@
   "m9513": "Index imperfectus",
   "m9514": "Nulli moduli",
   "m9515": "Ablatio exspectatur",
-  "m9516": "Inactivus"
+  "m9516": "Inactivus",
+  "m9517": "Android petitionem exemplaris tutelaris non accepit. Postea iterum conare."
 }

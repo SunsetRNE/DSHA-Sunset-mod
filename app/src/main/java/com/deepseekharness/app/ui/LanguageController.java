@@ -25,7 +25,7 @@ public final class LanguageController {
   /** Apply the resolved language to background resources and Activity delegates. */
   public static void apply(Context context) {
     String language = new ConfigStore(context).getUiLanguage();
-    applyResources(context, language);
+    UiText.setLanguage(language);
     Context app = context.getApplicationContext();
     AppLocaleDispatch.apply(
         Build.VERSION.SDK_INT,
@@ -38,15 +38,13 @@ public final class LanguageController {
 
           @Override
           public void compat(String value) {
+            applyLegacyResources(context, value);
             AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(value));
           }
         });
   }
 
-  private static void applyResources(Context context, String language) {
-    if (!UiLanguagePreference.isSupportedLanguage(language))
-      throw new IllegalArgumentException("UI_LANGUAGE");
-    UiText.setLanguage(language);
+  private static void applyLegacyResources(Context context, String language) {
     Locale locale = Locale.forLanguageTag(language);
     Locale.setDefault(locale);
     Context app = context.getApplicationContext();
@@ -73,7 +71,11 @@ public final class LanguageController {
       if (Build.VERSION.SDK_INT < 33) throw new IllegalStateException("LOCALE_MANAGER_API");
       android.app.LocaleManager manager = context.getSystemService(android.app.LocaleManager.class);
       if (manager == null) throw new IllegalStateException("LOCALE_MANAGER_UNAVAILABLE");
-      manager.setApplicationLocales(new android.os.LocaleList(Locale.forLanguageTag(language)));
+      android.os.LocaleList desired = new android.os.LocaleList(Locale.forLanguageTag(language));
+      if (!desired.equals(manager.getApplicationLocales())) {
+        // Android owns resource and default-locale delivery on this path.
+        manager.setApplicationLocales(desired);
+      }
     }
   }
 
@@ -87,7 +89,8 @@ public final class LanguageController {
     if (!UiLanguagePreference.supported(preference)) return;
     ConfigStore config = new ConfigStore(context);
     if (preference.equals(config.getUiLanguagePreference())) return;
+    String previous = config.getUiLanguage();
     config.setUiLanguage(preference);
-    apply(context);
+    if (!previous.equals(config.getUiLanguage())) apply(context);
   }
 }

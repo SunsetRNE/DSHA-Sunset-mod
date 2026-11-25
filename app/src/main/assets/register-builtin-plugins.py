@@ -179,11 +179,22 @@ def runtime_links_stamp():
         managed = local(BUILTIN_DIRECTORIES[name])
         paths.extend([managed, os.path.join(managed, 'package.json'), os.path.join(managed, 'node_modules')])
     stamp = []
+    resolved = {}
     for path in sorted(paths):
         try:
-            stat = os.lstat(path)
-            stamp.append([path, stat.st_dev, stat.st_ino, stat.st_mtime_ns, stat.st_ctime_ns,
-                          stat.st_size, os.path.realpath(path)])
+            node = os.lstat(path)
+            if os.name == 'posix' and not stat.S_ISLNK(node.st_mode):
+                # lstat already resolved the ancestors. Reuse their spelling for
+                # siblings only within this observation; links still resolve in full.
+                parent, name = os.path.split(path)
+                if parent not in resolved:
+                    resolved[parent] = os.path.realpath(parent)
+                canonical = os.path.join(resolved[parent], name)
+            else:
+                canonical = os.path.realpath(path)
+            resolved[path] = canonical
+            stamp.append([path, node.st_dev, node.st_ino, node.st_mtime_ns, node.st_ctime_ns,
+                          node.st_size, canonical])
         except FileNotFoundError:
             stamp.append([path, None])
     return stamp
@@ -768,6 +779,19 @@ def entity_dir(name, discovered=None):
     return found["directory"] if found else None
 
 
+def opened_path_stat(path, flags):
+    """Match the identity fields collected from the already-open file."""
+    if os.name != 'nt':
+        return os.stat(path)
+    # Windows CPython may return a different ctime from stat(path) and fstat(fd)
+    # for the same file; compare with the same API instead.
+    descriptor = os.open(path, flags)
+    try:
+        return os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+
+
 def discover_plugins(home_directory=None, include_global=True, provenance=None):
     """只读枚举常用安装位置；仅识别带可读取 bundle patch 的插件，不把运行时依赖当插件。"""
     roots = [(NODE_MODULES, "Web 配置"), (os.path.join(DSH_HOME, "plugin-src"), "本地导入"),
@@ -804,29 +828,56 @@ def discover_plugins(home_directory=None, include_global=True, provenance=None):
                 provenance.check_cancel()
             if not valid_name(name) or name in reserved:
                 continue
-            directory = os.path.realpath(os.path.join(path, name))
+            candidate = os.path.join(path, name)
+            manifest = os.path.join(candidate, 'package.json')
+            try:
+                # Most entries are ordinary dependencies. Read their bounded
+                # manifest before resolving every path component under PRoot.
+                flags = os.O_RDONLY | getattr(os, 'O_NONBLOCK', 0) | getattr(os, 'O_BINARY', 0)
+                with os.fdopen(os.open(manifest, flags), 'rb') as stream:
+                    before = os.fstat(stream.fileno())
+                    if not stat.S_ISREG(before.st_mode) or before.st_size > 1024 * 1024:
+                        continue
+                    raw = stream.read(1024 * 1024 + 1)
+                    if len(raw) > 1024 * 1024:
+                        continue
+                    package = json.loads(raw.decode('utf-8'))
+                    patch = package.get('dsh', {}).get('bundle', {}).get('patch')
+                    patches = [patch] if isinstance(patch, str) else patch
+                    if (package.get('name') != name or not isinstance(patches, list) or not patches
+                            or any(not isinstance(item, str) or not item for item in patches)):
+                        continue
+                    after = os.fstat(stream.fileno())
+            except (OSError, ValueError, TypeError, AttributeError):
+                continue
+            directory = os.path.realpath(candidate)
+            try:
+                canonical = opened_path_stat(os.path.join(directory, 'package.json'), flags)
+            except OSError as error:
+                raise ValueError('PLUGIN_DISCOVERY_CHANGED') from error
+            node_id = lambda node: (node.st_dev, node.st_ino, node.st_mode, node.st_size,
+                                    node.st_mtime_ns, node.st_ctime_ns)
+            if node_id(before) != node_id(after) or node_id(after) != node_id(canonical):
+                raise ValueError('PLUGIN_DISCOVERY_CHANGED')
             identity = (name, directory)
             if identity in observed:
                 if observed[identity] and name in found and location not in found[name]['locations']:
                     found[name]['locations'].append(location)
                 continue
             observed[identity] = False
-            manifest = os.path.join(directory, 'package.json')
             try:
-                if os.path.getsize(manifest) > 1024 * 1024:
+                contained = True
+                for item in patches:
+                    if os.path.isabs(item) or '\\' in item:
+                        contained = False
+                        break
+                    resolved = os.path.realpath(os.path.join(directory, item))
+                    if os.path.commonpath([directory, resolved]) != directory or not os.path.isfile(resolved):
+                        contained = False
+                        break
+                if not contained:
                     continue
-                with open(manifest, encoding='utf-8') as stream:
-                    package = json.load(stream)
-                patch = package.get('dsh', {}).get('bundle', {}).get('patch')
-                patches = [patch] if isinstance(patch, str) else patch
-                if (package.get('name') != name or not isinstance(patches, list) or not patches
-                        or any(not isinstance(item, str) or not item for item in patches)):
-                    continue
-                if any(os.path.isabs(item) or '\\' in item
-                        or os.path.commonpath([directory, os.path.realpath(os.path.join(directory, item))]) != directory
-                        or not os.path.isfile(os.path.realpath(os.path.join(directory, item))) for item in patches):
-                    continue
-            except (OSError, ValueError, TypeError, AttributeError):
+            except (OSError, ValueError, TypeError):
                 continue
             # Ordinary runtime dependencies are not plugins. Only after the
             # actual bundle and contained patch paths are validated do we read
@@ -1237,6 +1288,67 @@ def disable_plugin(name):
 
 # ================= 注册主流程 =================
 
+def retire_read_hint_selection(doc):
+    """Discard the APK's old Web selection and alias after its managed tree was retired."""
+    name, guest = 'dsh-fs-read-hint', '/root/dsha-fs-read-hint'
+    target, profile, modules = local(guest), local(PROFILE), local(NODE_MODULES)
+    if (os.path.lexists(target) or os.path.islink(profile)
+            or os.path.islink(modules) or os.path.islink(local(MANIFEST))):
+        return False
+
+    alias = os.path.join(modules, name)
+    try:
+        link = os.readlink(alias) if os.path.islink(alias) else None
+    except FileNotFoundError:
+        link = None
+    relative = os.path.relpath(target, modules) if link is not None else ''
+    old_alias = link in (guest, relative, relative.replace(os.sep, '/'))
+    dependencies = (doc or {}).get('dependencies') or {}
+    old_dependency = dependencies.get(name) == 'link:' + guest
+    if not old_alias and not old_dependency:
+        return False
+
+    # The identifier alone does not prove who owns a selection or marker. Keep them if a
+    # same-named package or another dependency declaration can replace the retired APK alias.
+    custom = (os.path.lexists(alias) and not old_alias
+              or name in dependencies and not old_dependency
+              or any(name in ((doc or {}).get(key) or {}) for key in (
+                  'devDependencies', 'optionalDependencies', 'peerDependencies')))
+    if not custom:
+        custom = entity_dir(name) is not None
+    if not custom:
+        marker = marker_path(name)
+        # 373 wrote either an empty native marker or the exact Web marker. Unknown bytes
+        # and symbolic links are left alone, even alongside a proven APK dependency.
+        try:
+            before = os.lstat(marker)
+            expected = WEB_BUILTIN_DISABLED_MARKER.encode('ascii')
+            if stat.S_ISREG(before.st_mode) and before.st_size in (0, len(expected)):
+                flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0)
+                identity = lambda node: (node.st_dev, node.st_ino, node.st_mode, node.st_size,
+                                         node.st_mtime_ns, node.st_ctime_ns)
+                with os.fdopen(os.open(marker, flags), 'rb') as stream:
+                    content = stream.read(len(expected) + 1)
+                    verified = identity(before) == identity(os.fstat(stream.fileno()))
+                if verified and content in (b'', expected) and identity(before) == identity(os.lstat(marker)):
+                    os.unlink(marker)
+        except FileNotFoundError:
+            pass
+
+    if doc is not None:
+        selection = ((doc.get('dsh') or {}).get('profile') or {})
+        bundles = selection.get('bundles') or []
+        if old_dependency:
+            dependencies.pop(name)
+        if not custom and name in bundles:
+            selection['bundles'] = [bundle for bundle in bundles if bundle != name]
+        if old_dependency or not custom and name in bundles:
+            write_manifest(doc)
+    if old_alias and os.path.islink(alias) and os.readlink(alias) == link:
+        os.unlink(alias)
+    return True
+
+
 def default_disabled_intent_path(name):
     """独立来源记录；不复用旧 .disabled / .enabled 的内容或键名。"""
     return os.path.join(local(NODE_MODULES), name + '.default-disabled.json')
@@ -1379,6 +1491,9 @@ def register():
 
     try:
         apply_default_disabled()
+        doc = read_manifest()
+        if retire_read_hint_selection(doc):
+            lines.append('已清理旧随包读取提示的 Web 注册')
     except (OSError, RuntimeError) as error:
         lines.append(str(error))
         _write_log(lines, ok=False)
@@ -1482,7 +1597,8 @@ def register():
 
     changed = []
     try:
-        doc = read_manifest()
+        if missing or disabled:
+            doc = read_manifest()
         if doc is None:
             ensure_profile_files()
             doc = new_manifest(present)
@@ -1554,7 +1670,21 @@ def main():
             print("BUILTIN_REGISTER_FAIL: 无效插件名")
             return 1
         return enable_plugin(args[1]) if args[0] == "--enable" else disable_plugin(args[1])
-    return register()
+    result = register()
+    if result == 0 and args == ['--startup-legacy-review-proof']:
+        # An unavailable proof falls back to the standalone review, with the
+        # successful registration result preserved.
+        try:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(
+                'startup_plugin_lifecycle', Path(__file__).with_name('plugin-lifecycle.py'))
+            lifecycle = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(lifecycle)
+            if lifecycle.prove_no_legacy_reviews(builtin=sys.modules[__name__]):
+                print('STARTUP_LEGACY_REVIEW_CLEAR_V1')
+        except Exception:
+            pass
+    return result
 
 
 if __name__ == "__main__":

@@ -104,6 +104,7 @@ public final class BackupManager {
       throw new IOException("BACKUP_PRIVATE_DESTINATION");
     var selection = new com.deepseekharness.app.backup.NativeDataLocations.Selection();
     selection.includeApiKey = controller.config().isBackupKey();
+    selection.includeProviderCredentials = true;
     var control = com.deepseekharness.app.core.BackupTask.currentControl(null);
     var located =
         new com.deepseekharness.app.backup.NativeDataLocations(controller.context())
@@ -153,6 +154,7 @@ public final class BackupManager {
         throw new IOException(com.deepseekharness.app.util.UiText.text("待恢复文件已变化"));
     }
     try {
+      HttpShellService.requireTokenRotation(controller.context(), "legacy");
       controller.config().beginRestoreSettings();
       JSONObject result =
           run(
@@ -211,6 +213,7 @@ public final class BackupManager {
         hash = FileIntegrity.copy(in, out, MAX_ARCHIVE).sha256;
       }
       files().syncDirectory(input.getParentFile());
+      HttpShellService.requireTokenRotation(controller.context(), "legacy");
       // 原生偏好及 Keystore 保持原位；只恢复容器数据，避免维护引入跨层设置事务。
       JSONObject result =
           run(
@@ -222,6 +225,7 @@ public final class BackupManager {
         if (!hash.equals(FileIntegrity.copy(in, null, MAX_ARCHIVE).sha256))
           throw new IOException(com.deepseekharness.app.util.UiText.text("安全归档发生变化"));
       }
+      HttpShellService.resetTokenAfterRestore(controller.context());
     } finally {
       if (!files().stat(input).type.equals("MISSING")) files().delete(input);
     }
@@ -263,8 +267,8 @@ public final class BackupManager {
         new com.deepseekharness.app.backup.HostDataTransaction(
             fs, operation, mapping, mapping, null);
     transaction.prepare(roots, plan.before, proposed, control);
-    transaction.commit(control);
-    com.deepseekharness.app.HttpShellService.resetTokenAfterRestore(controller.context());
+    com.deepseekharness.app.backup.NativeBackupJobs.commitRestore(
+        controller.context(), fs, transaction, control);
   }
 
   public static String backupToExternal(Context ctx, HarnessController controller) {
@@ -424,6 +428,8 @@ public final class BackupManager {
                   .optBoolean("complete");
       if (journal.isFile()) run(controller, "recover");
       controller.config().finishRestoreSettings(interrupted);
+      if (HttpShellService.legacyTokenRotationPending(controller.context()))
+        HttpShellService.resetTokenAfterRestore(controller.context());
     }
   }
 
@@ -548,6 +554,7 @@ public final class BackupManager {
                 if (controller.isWebRunning())
                   throw new IOException(
                       com.deepseekharness.app.util.UiText.text("Web 尚未停止，现有数据未覆盖，请稍后重试"));
+                HttpShellService.requireTokenRotation(controller.context(), "legacy");
                 controller.config().beginRestoreSettings();
                 JSONObject result =
                     run(
@@ -559,17 +566,11 @@ public final class BackupManager {
                             + " --defer-commit");
                 if (!result.optBoolean("committed"))
                   throw new IOException(com.deepseekharness.app.util.UiText.text("恢复尚未提交"));
-                // 恢复出来的 .dsh 可能带着【备份那台机器】的本机凭据：
-                //   · .bridge_token —— 3090 桥的共享凭据（新版备份已排除，但老备份仍带）
-                //   · browser-session —— 登录 cookie 的签名密钥（新版按字段剔除）
-                // 与本机内存里的值不一致时桥会拒绝所有请求，用户看到「需要 token，
-                // 请在 DSHA 应用内打开」。这里在提交之后立即让本机凭据重新对齐。
-                com.deepseekharness.app.HttpShellService.resetTokenAfterRestore(
-                    controller.context());
                 JSONObject nativeConfig = result.optJSONObject("nativeConfig");
                 if (nativeConfig != null) controller.config().importBackupSettings(nativeConfig);
                 run(controller, "finalize");
                 controller.config().finishRestoreSettings(false);
+                HttpShellService.resetTokenAfterRestore(controller.context());
                 return restoreMessage(
                     controller.config(),
                     com.deepseekharness.app.util.UiText.format(

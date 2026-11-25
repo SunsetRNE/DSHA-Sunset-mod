@@ -1,5 +1,5 @@
 // Retirement proof for file-upload-resolver-lifecycle-patch.json (DSHA_FILE_UPLOAD_RESOLVER_LIFETIME_V1).
-// 0.2.2-rc.1 upstream keeps the cold-Session resolver in a stable data object
+// 0.2.2-rc.5 upstream keeps the cold-Session resolver in a stable data object
 // (`agentResolution = { resolver }`), so the raw locked module must pass the same real
 // Cordis/Commands/attachment-store and isolated CLI workspace-HMR checks without any recipe.
 // Shared raw/managed fixtures and their proofs are read-only.
@@ -17,13 +17,14 @@ const output=path.resolve(process.env.DSHA_FILE_UPLOAD_OUTPUT||path.join(root,'a
 fs.mkdirSync(output,{recursive:true});
 const base=fs.mkdtempSync(path.join(root,'app/build/file-upload-resolver-'));
 const pointerFile=path.join(root,'app/build/test-runtimes/current.json');
-const pointerBytes=fs.readFileSync(pointerFile);
-const runtime=path.resolve(process.env.DSHA_FILE_UPLOAD_TEST_RUNTIME||process.env.DSHA_TEST_RUNTIME||JSON.parse(pointerBytes).raw);
+const explicitRuntime=process.env.DSHA_FILE_UPLOAD_TEST_RUNTIME||process.env.DSHA_TEST_RUNTIME;
+const pointerBytes=explicitRuntime?undefined:fs.readFileSync(pointerFile);
+const runtime=path.resolve(explicitRuntime||JSON.parse(pointerBytes).raw);
 const markerFile=path.join(runtime,'dsha-test-runtime.json'),markerBytes=fs.readFileSync(markerFile),proof=JSON.parse(markerBytes);
 const sha=value=>createHash('sha256').update(value).digest('hex');
-const recipe={dshVersion:'0.2.2-rc.1',module:'@deepseek-ai/dsh-client-file-upload/lib/index.js',
+const recipe={dshVersion:'0.2.2-rc.5',module:'@deepseek-ai/dsh-client-file-upload/lib/index.js',
   sourceSha256:'b17e3621ce127ceb4f68919acdeeac64c54cf64c5d42429be8a7a65b5d20bbfe',
-  packageIntegrity:'sha512-MipvUhc+bLgexDff+vFNUZodd3WQ9Q+OZnYW8kAv6MU6ieSRUeVxgGOlNsM5rKVZNjxDmmzXaXeXq2d5VnvTTA=='};
+  packageIntegrity:'sha512-hUk7u45A7QQ4e10jYznuqgqkra9yC3THowhJKRK0NRAQG+lieNrqxjFKJrxQn4Lj0SMOAOhmn1cqseRpW+uc9w=='};
 const lockFile=path.join(root,'tools/dsh-runtime/package-lock.json'),lock=JSON.parse(fs.readFileSync(lockFile,'utf8'));
 assert.equal(proof.kind,'raw');assert.equal(proof.dshVersion,recipe.dshVersion);
 assert.deepEqual(proof.platform,{os:process.platform,cpu:process.arch});
@@ -168,7 +169,7 @@ try{
     });
   }
   assert.deepEqual(fs.readFileSync(markerFile),markerBytes,'shared raw proof never changed');
-  assert.deepEqual(fs.readFileSync(pointerFile),pointerBytes,'shared current pointer never changed');
+  if(pointerBytes)assert.deepEqual(fs.readFileSync(pointerFile),pointerBytes,'shared current pointer never changed');
   assert.equal(sha(fs.readFileSync(sourceFile)),recipe.sourceSha256,'shared module never changed');
   const result={schema:1,status:'PASS',retiredRecipe:'file-upload-resolver-lifecycle-patch.json',rawModuleSha256:recipe.sourceSha256,module:recipe.module,
     upstreamAbsorbed:true,fixture:base,records,scope:'Actual locked Cordis/Commands/attachment store and isolated CLI Host RPC with synthetic data; no Android, model request or user data; focused module/lock checks only, final complete runtime proof belongs to coordinator.'};

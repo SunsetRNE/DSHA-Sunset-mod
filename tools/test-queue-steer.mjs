@@ -13,9 +13,8 @@ const apply = (source, recipe) => recipe.patches.reduce((value, patch) => {
 }, source);
 
 const dock = apply(readFileSync(path.join(runtime, 'node_modules/@deepseek-ai/dsh-client-ui-conversation/lib/client.js'), 'utf8'), assets('queue-dock-patch.json'));
-assert.match(dock, /label: t\("queue\.steer"\)[\s\S]{0,300}disabled: false/);
-assert.match(dock, /title: void 0/);
-assert.match(dock, /disabled: busy !== null/);
+assert.match(dock, /label:t\(`queue\.steer`\),side:`bottom`,delayMs:500,disabled: false/);
+assert.match(dock, /"aria-label":t\(`queue\.steer`\),title: void 0,disabled: busy !== null/);
 
 const agent = apply(readFileSync(path.join(runtime, 'node_modules/@deepseek-ai/dsh-api-session-controller/lib/index.js'), 'utf8'), assets('queue-agent-patch.json'));
 assert.match(agent, /only next-turn queue items can be sent/);

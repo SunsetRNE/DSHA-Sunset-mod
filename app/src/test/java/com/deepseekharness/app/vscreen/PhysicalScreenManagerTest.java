@@ -1,13 +1,13 @@
 package com.deepseekharness.app.vscreen;
 
 import static org.junit.Assert.*;
+
 import android.content.Context;
 import com.deepseekharness.app.device.DeviceTransportIdentity;
 import com.deepseekharness.app.device.DeviceTransportResult;
 import com.deepseekharness.app.util.VirtualScreenHandshake;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,6 +22,18 @@ public final class PhysicalScreenManagerTest {
   private static final String TOKEN = "0123456789abcdef0123456789abcdef0123456789abcdef";
   private static final String INSTANCE = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
   private static final String GENERATION = "gen-1";
+
+  private static final com.deepseekharness.app.control.ControlTaskAuthority.Lease LEASE =
+      new com.deepseekharness.app.control.ControlTaskAuthority.Lease(
+          new com.deepseekharness.app.control.ControlTaskAuthority.Binding(
+              com.deepseekharness.app.control.ControlTaskAuthority.Owner.LOCAL_DSH,
+              "run",
+              "session",
+              "1"),
+          1);
+  private static final PhysicalScreenManager.Access ACCESS =
+      new PhysicalScreenManager.Access(
+          LEASE, () -> true, pkg -> "com.game".equals(pkg) ? null : "SCREEN_CONFIRMATION_REQUIRED");
 
   private static final class FakeChannel implements VirtualScreenChannel {
     int starts;
@@ -54,87 +66,28 @@ public final class PhysicalScreenManagerTest {
 
   private static final class FakeTransport implements PhysicalScreenManager.Transport {
     final List<String> routes = new ArrayList<>();
-    final List<String> queries = new ArrayList<>();
-    long frameSeq = 1;
-    String observation = uuid();
-    boolean omitObservationOnTap;
-    boolean failTapUnknown;
     boolean failRead;
-    int tapCalls;
+    String infoPackage = "com.game";
+    String pixels = "fixture-game-pixels";
 
     public JSONObject request(VirtualScreenHandshake endpoint, String route, String query) {
       routes.add(route);
-      queries.add(query);
       if (failRead) return failure("VSCREEN_TRANSPORT_UNAVAILABLE", false);
-      if (route.equals("/priv/info")) {
-        JSONObject info = receipt("/priv/info");
-        info.remove("observationId");
-        info.remove("observation");
-        return info;
-      }
-      if (route.equals("/priv/frame")) return receipt("/priv/frame");
-      if (route.equals("/priv/tap")) {
-        tapCalls++;
-        if (failTapUnknown) {
-          JSONObject value = failure("INPUT_RESULT_UNKNOWN", true);
-          return value;
-        }
-        frameSeq++;
-        if (!omitObservationOnTap) observation = uuid();
-        JSONObject value = receipt("/priv/tap");
-        if (omitObservationOnTap) {
-          value.remove("observationId");
-          value.remove("observation");
-        }
-        return value;
-      }
-      if (route.equals("/priv/close")) {
-        try {
-          return new JSONObject().put("ok", true);
-        } catch (Exception impossible) {
-          throw new IllegalStateException(impossible);
-        }
-      }
-      return failure("UNKNOWN_ROUTE", false);
-    }
-
-    private JSONObject receipt(String route) {
       try {
-        JSONObject observationJson =
-            new JSONObject()
-                .put("kind", "dsha-priv-frame-v1")
-                .put("observationId", observation)
-                .put("frameSeq", frameSeq)
-                .put("generation", GENERATION)
-                .put("coreInstance", INSTANCE)
-                .put("width", 100)
-                .put("height", 200);
-        JSONObject value =
-            new JSONObject()
-                .put("ok", true)
-                .put("state", "COMPLETED")
-                .put("active", true)
-                .put("physical", true)
-                .put("displayId", 0)
-                .put("coreInstance", INSTANCE)
-                .put("generation", GENERATION)
-                .put("frameSeq", frameSeq)
-                .put("observationId", observation)
-                .put("observation", observationJson)
-                .put("width", 100)
-                .put("height", 200)
-                .put("screenWidth", 1000)
-                .put("screenHeight", 2000)
-                .put("package", "com.game")
-                .put("packageVerified", true)
-                .put(
-                    "frameConfig",
-                    new JSONObject().put("maxWidth", 1280).put("jpegQuality", 60).put("maxFps", 6))
-                .put("accessibilityRequired", false);
-        if (route.equals("/priv/tap")) value.put("inputMs", 7).put("frameWaitMs", 11);
-        return value;
-      } catch (Exception impossible) {
-        throw new IllegalStateException(impossible);
+        return new JSONObject()
+            .put("ok", true)
+            .put("coreInstance", INSTANCE)
+            .put("generation", GENERATION)
+            .put("package", infoPackage)
+            .put("packageVerified", true)
+            .put("width", 100)
+            .put("height", 200)
+            .put("previewB64", pixels)
+            .put("observationId", "fixture-credential")
+            .put("observation", new JSONObject().put("extra", pixels))
+            .put("frameConfig", new JSONObject().put("maxWidth", 1280).put("extra", pixels));
+      } catch (org.json.JSONException invalid) {
+        throw new AssertionError(invalid);
       }
     }
 
@@ -150,25 +103,9 @@ public final class PhysicalScreenManagerTest {
     }
   }
 
-  private static String uuid() {
-    return UUID.randomUUID().toString();
-  }
-
   private PhysicalScreenManager manager(FakeChannel channel, FakeTransport transport) {
     return new PhysicalScreenManager(
-        RuntimeEnvironment.getApplication(),
-        context -> channel,
-        transport,
-        android.os.SystemClock::elapsedRealtime);
-  }
-
-  private static String param(String query, String key) {
-    for (String pair : query.split("&")) {
-      String[] item = pair.split("=", 2);
-      if (item.length == 2 && item[0].equals(key))
-        return java.net.URLDecoder.decode(item[1], java.nio.charset.StandardCharsets.UTF_8);
-    }
-    return "";
+        RuntimeEnvironment.getApplication(), context -> channel, transport);
   }
 
   @Test
@@ -176,7 +113,7 @@ public final class PhysicalScreenManagerTest {
     FakeChannel channel = new FakeChannel();
     FakeTransport transport = new FakeTransport();
     PhysicalScreenManager manager = manager(channel, transport);
-    JSONObject info = manager.info();
+    JSONObject info = manager.info(ACCESS);
     assertTrue(info.optBoolean("ok"));
     assertEquals(1, channel.starts);
     assertTrue(channel.command.contains("--launch --physical --port 0 --package"));
@@ -189,106 +126,121 @@ public final class PhysicalScreenManagerTest {
   }
 
   @Test
-  public void actionRequiresAnObservationAndConsumesItOnce() {
-    FakeChannel channel = new FakeChannel();
-    FakeTransport transport = new FakeTransport();
-    PhysicalScreenManager manager = manager(channel, transport);
-    JSONObject blind = manager.tap(10, 20, 0);
-    assertFalse(blind.optBoolean("ok"));
-    assertEquals("PRIV_FRAME_NOT_OBSERVED", blind.optString("error"));
-    assertEquals("NOT_SENT", blind.optString("state"));
-    assertEquals(0, transport.tapCalls);
-
-    assertTrue(manager.frame().optBoolean("ok"));
-    assertTrue(manager.tap(10, 20, 0).optBoolean("ok"));
-    assertEquals(1, transport.tapCalls);
-    // 回执未签发新观察：旧凭据已消费，下一步必须重新取帧，绝不重放。
-    transport.omitObservationOnTap = true;
-    assertTrue(manager.frame().optBoolean("ok"));
-    assertTrue(manager.tap(10, 20, 0).optBoolean("ok"));
-    JSONObject reused = manager.tap(10, 20, 0);
-    assertFalse(reused.optBoolean("ok"));
-    assertEquals("PRIV_FRAME_NOT_OBSERVED", reused.optString("error"));
-    assertEquals(2, transport.tapCalls);
+  public void compositeAndActionReceiptsAreRejectedBeforeReadingOrDispatching() throws Exception {
+    var channel = new FakeChannel();
+    var transport = new FakeTransport();
+    var manager = manager(channel, transport);
+    var task = visibleTask("com.game", 0);
+    for (boolean overlay : new boolean[] {false, true}) {
+      // A non-task overlay changes the composited image without adding an activity task.
+      transport.pixels = overlay ? "fixture-overlay-pixels" : "fixture-game-pixels";
+      assertEquals("com.game", PhysicalScreenCore.singleVisiblePackage(List.of(task)));
+      for (String verb : List.of("frame", "tap", "swipe", "key", "benchmark")) {
+        assertTrue(
+            com.deepseekharness.app.util.PrivilegedScreenRoutes.needsMirrorObservation(verb));
+        var reply = manager.windowSourceRequired(ACCESS);
+        assertEquals("NOT_SENT", reply.getString("state"));
+        assertEquals("PRIV_AUTHORIZED_WINDOW_SOURCE_REQUIRED", reply.getString("error"));
+        assertFalse(reply.has("previewB64"));
+        assertFalse(reply.has("observationId"));
+        if (!verb.equals("benchmark")) {
+          var core =
+              PhysicalScreenCore.route(
+                  "/priv/" + verb, java.util.Map.of("expectedPackage", "com.game"));
+          assertEquals("NOT_SENT", core.getString("state"));
+          assertFalse(core.has("previewB64"));
+          assertFalse(core.has("observation"));
+        }
+      }
+    }
+    assertEquals(0, channel.starts);
+    assertTrue(transport.routes.isEmpty());
   }
 
   @Test
-  public void unknownTapIsReportedUnknownAndNeverRetried() {
-    FakeChannel channel = new FakeChannel();
-    FakeTransport transport = new FakeTransport();
-    PhysicalScreenManager manager = manager(channel, transport);
-    assertTrue(manager.frame().optBoolean("ok"));
-    transport.failTapUnknown = true;
-    JSONObject unknown = manager.tap(10, 20, 250);
-    assertEquals("EXECUTION_UNKNOWN", unknown.optString("state"));
-    assertTrue(unknown.optBoolean("executionUnknown"));
-    assertFalse(unknown.optBoolean("retryable", true));
-    assertEquals("INPUT_RESULT_UNKNOWN", unknown.optString("coreError"));
-    JSONObject next = manager.tap(10, 20, 250);
-    assertEquals("NOT_SENT", next.optString("state"));
-    assertEquals(1, transport.tapCalls);
+  public void disconnectedWindowPipelineIdentifiesItsRequiredAccessibilitySetting()
+      throws Exception {
+    assertEquals(
+        "screenshot",
+        com.deepseekharness.app.util.PrivilegedScreenRoutes.windowOperation(
+            "frame", "", false, 34));
+    var reply = com.deepseekharness.app.screen.ScreenReply.unavailable();
+    assertEquals("NOT_SENT", reply.getString("state"));
+    assertTrue(reply.getBoolean("accessibilityRequired"));
+    assertEquals("OPEN_ACCESSIBILITY_SETTINGS", reply.getString("nextAction"));
+    assertEquals(
+        android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS, reply.getString("settingsAction"));
+    assertFalse(reply.has("data"));
   }
 
   @Test
-  public void tapBindsTheObservedTargetAndGeneration() {
-    FakeChannel channel = new FakeChannel();
-    FakeTransport transport = new FakeTransport();
-    PhysicalScreenManager manager = manager(channel, transport);
-    assertTrue(manager.frame().optBoolean("ok"));
-    assertTrue(manager.tap(10, 20, 0).optBoolean("ok"));
-    String tapQuery = transport.queries.get(transport.queries.size() - 1);
-    assertEquals("com.game", param(tapQuery, "expectedPackage"));
-    assertEquals(GENERATION, param(tapQuery, "generation"));
-    assertEquals("10.0", param(tapQuery, "x"));
-    assertFalse(param(tapQuery, "observationId").isEmpty());
-  }
-
-  @Test
-  public void benchmarkRepeatsActionsAndReportsEveryPercentile() {
-    FakeChannel channel = new FakeChannel();
-    FakeTransport transport = new FakeTransport();
-    PhysicalScreenManager manager = manager(channel, transport);
-    JSONObject report = manager.benchmark(3, 10, 20, 0);
-    assertTrue(report.optBoolean("ok"));
-    JSONObject benchmark = report.optJSONObject("benchmark");
-    assertNotNull(benchmark);
-    assertEquals(3, benchmark.optInt("completedSamples"));
-    assertEquals(3, benchmark.optJSONArray("rows").length());
-    assertEquals(3, benchmark.optJSONObject("roundTripMs").optInt("count"));
-    assertEquals(3, benchmark.optJSONObject("inputMs").optInt("count"));
-    assertEquals(3, benchmark.optJSONObject("frameWaitMs").optInt("count"));
-    assertTrue(benchmark.optJSONObject("roundTripMs").optLong("p95", -1) >= 0);
-    assertFalse(benchmark.optBoolean("accessibilityRequired", true));
-    assertEquals(3, transport.tapCalls);
-    for (int i = 2; i < transport.routes.size(); i++)
-      assertEquals("/priv/tap", transport.routes.get(i));
-  }
-
-  @Test
-  public void unavailableTransportOnReadDropsTheEndpointForTheNextRequest() {
-    FakeChannel channel = new FakeChannel();
-    FakeTransport transport = new FakeTransport();
-    PhysicalScreenManager manager = manager(channel, transport);
-    assertTrue(manager.frame().optBoolean("ok"));
-    transport.failRead = true;
-    JSONObject failed = manager.frame();
-    assertFalse(failed.optBoolean("ok"));
-    assertEquals("PRIV_CORE_UNREACHABLE", failed.optString("error"));
-    assertEquals("NOT_SENT", failed.optString("state"));
-    transport.failRead = false;
-    assertTrue(manager.frame().optBoolean("ok"));
-    assertEquals(2, channel.starts);
-  }
-
-  @Test
-  public void closeClearsTheConnectionWithoutReplayingAnything() {
-    FakeChannel channel = new FakeChannel();
-    FakeTransport transport = new FakeTransport();
-    PhysicalScreenManager manager = manager(channel, transport);
-    assertTrue(manager.frame().optBoolean("ok"));
-    JSONObject closed = manager.close();
-    assertTrue(closed.optBoolean("ok"));
-    assertEquals(0, transport.tapCalls);
+  public void metadataRepliesFromOlderCoresCannotAttachImagesOrNestedObservations()
+      throws Exception {
+    var channel = new FakeChannel();
+    var transport = new FakeTransport();
+    var manager = manager(channel, transport);
+    for (boolean overlay : new boolean[] {false, true}) {
+      transport.pixels = overlay ? "fixture-overlay-pixels" : "fixture-game-pixels";
+      var info = manager.info(ACCESS);
+      assertTrue(info.getBoolean("ok"));
+      assertTrue(manager.resultCurrent(ACCESS, "com.game", GENERATION));
+      assertFalse(info.toString().contains(transport.pixels));
+      assertFalse(info.has("previewB64"));
+      assertFalse(info.has("observation"));
+      assertFalse(info.has("observationId"));
+      assertEquals(1280, info.getJSONObject("frameConfig").getInt("maxWidth"));
+      var config = manager.configure(ACCESS, 640, 60, 6);
+      assertTrue(config.getBoolean("ok"));
+      assertFalse(config.toString().contains(transport.pixels));
+    }
+    transport.infoPackage = "com.other";
+    assertFalse(manager.resultCurrent(ACCESS, "com.game", GENERATION));
+    assertTrue(manager.close(ACCESS).getBoolean("ok"));
     assertFalse(manager.running());
+  }
+
+  private static android.app.ActivityManager.RunningTaskInfo visibleTask(String pkg, int display) {
+    var task = new android.app.ActivityManager.RunningTaskInfo();
+    task.topActivity = new android.content.ComponentName(pkg, pkg + ".Main");
+    org.robolectric.util.ReflectionHelpers.setField(task, "displayId", display);
+    org.robolectric.util.ReflectionHelpers.setField(task, "isVisible", true);
+    return task;
+  }
+
+  @Test
+  public void fullDisplayFrameRequiresOneVisibleApplicationOwner() {
+    var first = visibleTask("com.first", 0);
+    var second = visibleTask("com.second", 0);
+    assertEquals(
+        "com.first",
+        PhysicalScreenCore.singleVisiblePackage(List.of(first, visibleTask("com.other", 1))));
+    assertEquals("", PhysicalScreenCore.singleVisiblePackage(List.of(first, second)));
+    assertEquals("", PhysicalScreenCore.singleVisiblePackage(List.of()));
+  }
+
+  @Test
+  public void saturatedTaskQueryCannotProveExclusiveOwnership() {
+    var tasks = new java.util.ArrayList<android.app.ActivityManager.RunningTaskInfo>();
+    tasks.add(visibleTask("com.first", 0));
+    var background = visibleTask("com.background", 0);
+    org.robolectric.util.ReflectionHelpers.setField(background, "isVisible", false);
+    for (int index = 1; index < 99; index++) tasks.add(background);
+    assertEquals("com.first", PhysicalScreenCore.singleVisiblePackage(tasks));
+    tasks.add(background);
+    assertEquals("", PhysicalScreenCore.singleVisiblePackage(tasks));
+    assertEquals("", PhysicalScreenCore.singleVisiblePackage(null));
+  }
+
+  @Test
+  public void unavailableMetadataTransportDropsTheEndpointWithoutReplay() {
+    var channel = new FakeChannel();
+    var transport = new FakeTransport();
+    var manager = manager(channel, transport);
+    assertTrue(manager.info(ACCESS).optBoolean("ok"));
+    transport.failRead = true;
+    assertEquals("PRIV_CORE_UNREACHABLE", manager.info(ACCESS).optString("error"));
+    transport.failRead = false;
+    assertTrue(manager.info(ACCESS).optBoolean("ok"));
+    assertEquals(2, channel.starts);
   }
 }

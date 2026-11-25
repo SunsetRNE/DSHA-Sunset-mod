@@ -36,7 +36,7 @@ build361 真机覆盖验收：[回执](releases/build361-acceptance-20261113.md)
 | [DNS配置](dns-configuration.md) | auto/ipv4/native的真实差异、Node窄lookup重试、glibc no-aaaa与用户选择 |
 | [切网后回收失效的外网连接（T37，实验性）](network-switch-connection-recycle.md) | 切网/切后台后模型请求卡满 300 秒的原因、网络代次与 net-epoch.cjs 回收规则、开关与范围；未真机验证 |
 | [虚拟屏架构](virtual-screen-architecture.md) | Core/Manager/工具路由、帧/节点/anchor证据、采集输入、关闭恢复与修改回归 |
-| [实体屏特权执行核心（T130 Phase A，实验）](privileged-screen-core.md) | display 0 镜像抓帧 + 固定动词注入、一次性帧/动作凭据、能力/任务/确认三道门、低延迟 benchmark、无无障碍依赖与未真机验收边界 |
+| [实体屏特权执行核心（T130 Phase A，实验）](privileged-screen-core.md) | Android 14+ 按窗口截屏及一次性坐标凭据、Android 11–13 语义操作、特权通道状态与拒绝原因 |
 | [任务状态上岛](island-status.md) | 实时活动/胶囊两代判据、岛位选举、完成态、心跳收敛与验证范围 |
 | [ADR0001](adr/0001-build154-boundaries.md) / [ADR0002](adr/0002-current-threat-model.md) / [ADR0003](adr/0003-virtual-screen-lifecycle-and-input.md) / [ADR0004](adr/0004-kotlin-rust-direction.md) | 架构取舍、权限与数据边界、虚拟屏生命周期及后果、Kotlin 引入与 Rust 引擎方向（Accepted 2026-11-12） |
 | [Kotlin 工具链](kotlin-toolchain.md) | AGP 9.1.1 built-in Kotlin + 固定 KGP 2.2.10、依赖校验增量、ktfmt 0.64 格式门禁、迁移规则与回退；首批 `util/ShellQuote` 试点 |
@@ -89,7 +89,6 @@ build361 真机覆盖验收：[回执](releases/build361-acceptance-20261113.md)
 | 设备通道、3090协议、LAN、文件与系统文档入口 | [设备通道](device-channels.md)、[桥与文件](bridge-and-files.md)、[LAN](lan.md)、[Web文件](web-file-sharing.md) |
 | 一键/手动/自动备份、恢复、快照与独立应急 | [备份与恢复](backup-and-restore.md)、[配置快照](config-snapshots.md)、[独立应急](emergency-recovery.md)、[v5格式](backup-format-v5.md) |
 | 插件安装、系统/用户分层、协议、权限与重启 | [插件操作](plugins.md)、[插件运行与权限](plugin-runtime-and-permissions.md) |
-| 临时内置修复：`file has not been read` 读取提示（上游 #11977）与撤除条件 | [dsh-fs-read-hint](fs-read-hint-plugin.md) |
 | 临时内置修复：glob 跳过嵌套 git 工作树（T45）与撤除条件 | [dsh-fs-search-scope](fs-search-scope-plugin.md) |
 | 内置移动 Web 适配、dsh-web-mobile 上游 3.3.5 与宿主集成最小集（服务端鉴权 / 安全区 / 齿轮几何让位 / 齿轮单实例 / 文件传输 / 多语言）；宽屏触屏会话行挤压（上游 3.3.1 已接管） | [移动 Web 适配补丁](web-mobile-patches.md)、[侧栏设置齿轮单实例不变式](mobile-sidebar-settings-gear.md)、[平板会话行挤压（上游 #255）](web-mobile-tablet-rows-20261031.md) |
 | 首次连接提示补丁（T58）：为什么归档、不合并；切页返回黄标的真实行为与再修边界 | [T58 首次连接提示归档](design/first-connect-indicator-20261106/README.md) |

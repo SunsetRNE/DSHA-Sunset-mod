@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="plugin_catalog_reading">プラグイン一覧を読み込み中…</string>
+    <string name="plugin_catalog_rechecking">プラグインを確認中…</string>
+    <string name="plugin_catalog_cached">前回のプラグイン一覧を表示しています</string>
+    <string name="plugin_catalog_configured">設定から表示 · 確認待ち</string>
+    <string name="plugin_catalog_failed">プラグイン一覧を確認できませんでした</string>
+    <string name="plugin_catalog_unconfirmed">プラグイン一覧は未確認です</string>
+    <string name="plugin_catalog_verified">プラグイン一覧を確認済み</string>
+    <string name="plugin_catalog_queued">プラグイン確認は順番待ち</string>
+</resources>
