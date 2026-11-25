@@ -1,0 +1,19 @@
+{
+  "command": [
+    "wsl.exe",
+    "-d",
+    "DSHA-build172",
+    "--",
+    "env",
+    "DSHA_TEST_RUNTIME=/root/dsha-build374-official-posix-fixture/app/build/test-runtimes/0.2.2-rc.5-linux-arm64-bcf258eee8e3/raw",
+    "python3",
+    "-B",
+    "/mnt/f/DSHA_RESTART/source/build377-local/tools/verify-dsh-upgrade-apk.py",
+    "/mnt/f/DSHA_RESTART/artifacts/build377-local/local-release/dsha-0.2.2-rc.5.apk"
+  ],
+  "startedAt": "2026-11-25T09:56:30.394754+00:00",
+  "finishedAt": "2026-11-25T09:57:08.745543+00:00",
+  "elapsedSeconds": 38.344,
+  "exitCode": 0,
+  "logSha256": "33aacb4e8ef787e0daef0b9a21b3b9ddb16a3a1706c169ead4c62c49d557aa01"
+}

@@ -1,0 +1,9 @@
+built_seconds 11.985
+Performing Incremental Install
+Performing Streamed Install
+Success
+
+INSTRUMENTATION_RESULT: keystore_tls=non-exportable, SAN, reopen, TLS1.2 and TLS1.3, 42/43, renewed IP
+INSTRUMENTATION_CODE: -1
+
+instrument_seconds 0.906

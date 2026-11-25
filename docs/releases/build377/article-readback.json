@@ -1,0 +1,33 @@
+{
+  "article": "${REFERENCE_ARTICLE}",
+  "articleSha256": "2b33e2eb0cae70b1e18eae404232a82dba01de79ecefca71bed6f9ee0d920833",
+  "commit": "15e7fcc285121d67efdfad11ce688fc0a81dd392",
+  "apk": "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed\\dsha-0.2.2-rc.5.apk",
+  "apkSha256": "2e6f0324ebe4b52b143dcb2bf04800b1ce73c106a53b567de1afdafca5dba3d9",
+  "runtimeSha256": "2cbc3aba49cfb256a01afd9dd68eeb7b72e8c01f35d88745cdb2648ec6333bed",
+  "startedUtc": "2026-11-25T08:12:53.701372+00:00",
+  "finishedUtc": "2026-11-25T08:12:57.192876+00:00",
+  "firstApkIdentitySeconds": 0.203,
+  "totalSeconds": 3.484,
+  "sourceTextRoots": [
+    "app/src/main/java",
+    "app/src/main/kotlin",
+    "app/src/main/res",
+    "app/src/main/assets",
+    "app/build.gradle",
+    "gradle/libs.versions.toml"
+  ],
+  "sourceTextMatchingFiles": {
+    "live2d": [],
+    "cubism": [],
+    "voice[ _-]?clon": [],
+    "声音克隆": [],
+    "sillytavern": []
+  },
+  "memberNamePattern": "live2d|cubism|sillytavern|voice[ _-]?clon|\\.moc3$|\\.model3\\.json$",
+  "apkMemberCount": 1890,
+  "matchingApkNames": [],
+  "runtimeMemberCount": 21033,
+  "matchingRuntimeNames": [],
+  "scope": "Tracked nonbinary Android inputs and member names only. Excludes runtime-loaded plugins, remote services, content supplied by users, and renamed or embedded features."
+}

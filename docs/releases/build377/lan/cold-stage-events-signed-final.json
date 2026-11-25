@@ -1,0 +1,264 @@
+{
+  "sourceName": "DSHA-diagnostics-20261125-085144-79594900-a59f-4290-b283-d8164e8cd4f9.tar.gz",
+  "archiveSha256": "187571beadf13d33101f9fd7c834881dea4bd83068f31b096409f41755188a57",
+  "events": [
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:13:13",
+      "sequenceInExport": 5,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Checking installation prerequisites"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:13:13",
+      "sequenceInExport": 6,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Prepare extraction"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:13:13",
+      "sequenceInExport": 7,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Extract Ubuntu and Node"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:14:02",
+      "sequenceInExport": 8,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Install Python and pnpm"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:14:06",
+      "sequenceInExport": 9,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Prepare app tools"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:14:11",
+      "sequenceInExport": 10,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Install offline curl, git and certificates"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:14:18",
+      "sequenceInExport": 11,
+      "stage": "COLD_INSTALL",
+      "message": "CAPABILITY · proroot=true isolation=true preferProroot=false automaticCold=false supervisor=<app-path> "
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:14:18",
+      "sequenceInExport": 12,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Checking cold-install runtime: PROOT"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:14:18",
+      "sequenceInExport": 13,
+      "stage": "COLD_INSTALL",
+      "message": "EXEC · runtime=proot isolated=true prootNoSeccomp=false staticLoader=false argv=[<app-path> --link2symlink, -b, <app-path>"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:14:52",
+      "sequenceInExport": 14,
+      "stage": "COLD_INSTALL",
+      "message": "FAILED · Checking cold-install runtime: PROOT java.io.IOException: Stream closed"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:14:52",
+      "sequenceInExport": 15,
+      "stage": "MAINTENANCE_TASK_FAILED",
+      "message": "DSHA_UPDATE_RUNTIME_V1:Stream closed"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:17:07",
+      "sequenceInExport": 18,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Checking installation prerequisites"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:17:07",
+      "sequenceInExport": 19,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Prepare extraction"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:17:07",
+      "sequenceInExport": 20,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Extract Ubuntu and Node"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:17:52",
+      "sequenceInExport": 21,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Install Python and pnpm"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:17:55",
+      "sequenceInExport": 22,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Prepare app tools"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:17:59",
+      "sequenceInExport": 23,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Install offline curl, git and certificates"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:18:05",
+      "sequenceInExport": 24,
+      "stage": "COLD_INSTALL",
+      "message": "CAPABILITY · proroot=true isolation=true preferProroot=false automaticCold=false supervisor=<app-path> "
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:18:05",
+      "sequenceInExport": 25,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Checking cold-install runtime: PROOT"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:18:05",
+      "sequenceInExport": 26,
+      "stage": "COLD_INSTALL",
+      "message": "EXEC · runtime=proot isolated=true prootNoSeccomp=false staticLoader=false argv=[<app-path> --link2symlink, -b, <app-path>"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:18:20",
+      "sequenceInExport": 27,
+      "stage": "COLD_INSTALL",
+      "message": "FAILED · Checking cold-install runtime: PROOT java.io.IOException: Stream closed"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:18:20",
+      "sequenceInExport": 28,
+      "stage": "MAINTENANCE_TASK_FAILED",
+      "message": "DSHA_UPDATE_RUNTIME_V1:Stream closed"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:21:14",
+      "sequenceInExport": 31,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Checking installation prerequisites"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:21:14",
+      "sequenceInExport": 32,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Prepare extraction"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:21:14",
+      "sequenceInExport": 33,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Extract Ubuntu and Node"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:22:00",
+      "sequenceInExport": 34,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Install Python and pnpm"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:22:04",
+      "sequenceInExport": 35,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Prepare app tools"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:22:09",
+      "sequenceInExport": 36,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Install offline curl, git and certificates"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:22:15",
+      "sequenceInExport": 37,
+      "stage": "COLD_INSTALL",
+      "message": "CAPABILITY · proroot=true isolation=true preferProroot=true automaticCold=false supervisor=<app-path> "
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:22:15",
+      "sequenceInExport": 38,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Checking cold-install runtime: PROROOT"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:22:15",
+      "sequenceInExport": 39,
+      "stage": "COLD_INSTALL",
+      "message": "EXEC · runtime=proroot isolated=true prootNoSeccomp=false staticLoader=true argv=[<app-path> --static-loader, -r, <app-path>"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:22:39",
+      "sequenceInExport": 40,
+      "stage": "COLD_INSTALL",
+      "message": "FAILED · Checking cold-install runtime: PROROOT java.io.IOException: Stream closed"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:22:39",
+      "sequenceInExport": 41,
+      "stage": "MAINTENANCE_TASK_FAILED",
+      "message": "DSHA_UPDATE_RUNTIME_V1:Stream closed"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:49:54",
+      "sequenceInExport": 45,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Checking installation prerequisites"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:49:54",
+      "sequenceInExport": 46,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Prepare extraction"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:49:54",
+      "sequenceInExport": 47,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Extract Ubuntu and Node"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:50:42",
+      "sequenceInExport": 48,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Install Python and pnpm"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:50:46",
+      "sequenceInExport": 49,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Prepare app tools"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:50:50",
+      "sequenceInExport": 50,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Install offline curl, git and certificates"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:50:57",
+      "sequenceInExport": 51,
+      "stage": "COLD_INSTALL",
+      "message": "CAPABILITY · proroot=true isolation=true preferProroot=true automaticCold=false supervisor=<app-path> "
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:50:57",
+      "sequenceInExport": 52,
+      "stage": "COLD_INSTALL",
+      "message": "STAGE · Checking cold-install runtime: PROROOT"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:50:57",
+      "sequenceInExport": 53,
+      "stage": "COLD_INSTALL",
+      "message": "EXEC · runtime=proroot isolated=true prootNoSeccomp=false staticLoader=true argv=[<app-path> --static-loader, -r, <app-path>"
+    },
+    {
+      "recordedTimeWithoutYearOrZone": "11-25 08:51:31",
+      "sequenceInExport": 54,
+      "stage": "COLD_INSTALL",
+      "message": "FAILED · Checking cold-install runtime: PROROOT java.io.IOException: Could not send the start confirmation. The installation supervisor exited with code 137. This Android system uses x86. This build supports ARM64 Android. Diagnostics are available in Settings."
+    }
+  ]
+}

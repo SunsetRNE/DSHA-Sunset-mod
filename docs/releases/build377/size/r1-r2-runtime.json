@@ -1,0 +1,27 @@
+{
+  "startedUtc": "2026-11-25T06:50:08.055507+00:00",
+  "finishedUtc": "2026-11-25T06:50:14.514114+00:00",
+  "old": "artifacts\\build377-local\\runtime\\r1\\npm-arm64-a\\dsh-runtime.bin",
+  "r2Sources": [
+    "artifacts\\build377-local\\runtime\\r2\\npm-arm64-a\\dsh-runtime.bin",
+    "artifacts\\build377-local\\runtime\\r2\\npm-arm64-b\\dsh-runtime.bin"
+  ],
+  "oldBytes": 143239135,
+  "newBytes": 141564262,
+  "oldSha256": "b911179b6cb1e453b97039021e50b64358c96435e3283ff79bad2a630dc666a0",
+  "newSha256": "ac087ee46389c4c4716245478c4d3becd91cc3ce50a1f4488a96a974e735f458",
+  "firstOldInventorySeconds": 2.8364690000307746,
+  "completeSeconds": 6.542093400028534,
+  "identicalEntireTarRecords": 21033,
+  "newPositions": 20347,
+  "structuralProof": {
+    "entries": 21033,
+    "links": 679,
+    "regular": 20354,
+    "regularBytes": 486140313,
+    "dsh": "usr/local/lib/node_modules/@deepseek-ai/dsh/lib/bin.js",
+    "impliedDirectories": 4057,
+    "allLinkEndpointsSha256": "71560e31f77a9534095043cc67a46775bc6d0206f75e14b03c1abfeed47a4132"
+  },
+  "note": "Each record hash includes exact original headers/PAX, mode, uid/gid, mtime, entire uncompressed member and padding."
+}

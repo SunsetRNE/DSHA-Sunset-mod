@@ -1,0 +1,7 @@
+START	2026-11-25T06:52:08.190158900Z	com.deepseekharness.app.MixedClientsTest.build376ClientToBuild377Stub
+FINISH	2026-11-25T06:52:10.246026800Z	com.deepseekharness.app.MixedClientsTest.build376ClientToBuild377Stub
+START	2026-11-25T06:52:10.246026800Z	com.deepseekharness.app.MixedClientsTest.build377ClientToBuild376Stub
+FINISH	2026-11-25T06:52:10.288225400Z	com.deepseekharness.app.MixedClientsTest.build377ClientToBuild376Stub
+CASE	PASS	com.deepseekharness.app.MixedClientsTest.build376ClientToBuild377Stub
+CASE	PASS	com.deepseekharness.app.MixedClientsTest.build377ClientToBuild376Stub
+TOTAL	2	0	0	0

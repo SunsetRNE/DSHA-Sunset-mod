@@ -1,0 +1,1 @@
+{"startedAt":"2026-11-25T09:44:47.708Z","at":"2026-11-25T09:44:49.392Z","className":"com.deepseekharness.app.backup.AutomaticBackupPrunerGoldenTest","name":"invalidEligibleCopyAbortsBeforeAnyDeletion","status":"SUCCESS","durationMs":1684}

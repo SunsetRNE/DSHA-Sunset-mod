@@ -1,0 +1,21 @@
+{
+  "atUtc": "2026-11-25T09:24:44.556719+00:00",
+  "sha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+  "flow": "rescue",
+  "cancelBounds": [
+    114,
+    428,
+    282,
+    525
+  ],
+  "imeBounds": [
+    0,
+    686,
+    720,
+    1280
+  ],
+  "firstVisibleCancelWithImeSeconds": 12.407,
+  "dialogClosedWithoutPicker": true,
+  "reopenedWithTwoEmptyFields": true,
+  "completeSeconds": 24.86
+}

@@ -1,0 +1,171 @@
+{
+  "startedUtc": "2026-11-25T09:19:56.245057+00:00",
+  "argv": [
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\size\\check_tool_readback.py",
+    "F:\\DSHA_RESTART\\artifacts\\build376-formal-20261125\\signed\\dsha-0.2.2-rc.5.apk",
+    "F:\\DSHA_RESTART\\source\\build377-local",
+    "F:\\DSHA_RESTART\\source\\build376-local\\app\\src\\main\\assets",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\final3\\size\\java-final.json",
+    "--candidate-apk",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-final\\dsha-0.2.2-rc.5.apk"
+  ],
+  "baselineApkSha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+  "encoderSha256": "38f8dab910f5f672ef9abc62ae3253031979ce62161a1ec73e98daa6198bc235",
+  "sourceHead": "0efbf4d26a86d5cb99b4c22d56aa6e6971fd1d61",
+  "javaInputs": {
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\util\\BundledRootfsAsset.java": "8733f7bc8633a31b230b23f1b16d960afdc2a6758e7ce357ce368bf2b3b6d341",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\LegacyTarReader.java": "0adfc1ea64a94eff4ef2a0bc49198734fc4f1a96eb01a84fa30c5f1b2cc0f212",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\StrictGzipInputStream.java": "0f0104879021fe6b2f1be3c15fd26419a67cedd45f6335eeec08b7188da6526d",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\BackupLimits.java": "20ea4d678002c82fd6d1b815383a0d242fd66abcfd25688bda3aeb4d9cb2c1d9",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\BackupControl.java": "4ead9fa1e423963c9d4bba7165f9035453cb979369de6743a39fd6a3dc105cf7",
+    "F:\\DSHA\\_toolchains\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.tukaani\\xz\\1.12\\bb9703ba3753ab8665f65e6a25b3ddc7b09b1caf\\xz-1.12.jar": "3e158a87bd73d8afb4b6e8239c013b7d049c48563f45860ce99cd2e448cf4a6b",
+    "F:\\DSHA_RESTART\\artifacts\\build374-local\\size\\java-classes\\reader-cp-minimal.jar": "9bacadf45ce607bd611be2714f6752b37061731a364b0bda219463fbfe3e3505",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\size\\ToolReadback.java": "ba001bcd1c9f27f8e88c495d246516b143ad1a7a543989038133ccdff87413dc"
+  },
+  "javaVersion": "java version \"25.0.4\" 2026-07-21 LTS\nJava(TM) SE Runtime Environment (build 25.0.4+7-LTS-189)\nJava HotSpot(TM) 64-Bit Server VM (build 25.0.4+7-LTS-189, mixed mode, sharing)\n",
+  "candidateApkSha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+  "tools": {
+    "gh-cli.bin": {
+      "fixedGzip": "ee32df2323c8847f5fac6cb6b4b69ca75828e9329a8f22f677021f7b3306ce63",
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51",
+      "oldBytes": 9592508,
+      "oldSha256": "80c8f97512689a81261ad9e6f45c54798b188a00a255b55082a0d13bfd10fa20",
+      "newBytes": 9516188,
+      "newSha256": "555df99fe461665a093fa184bf379e6e76d9f988f83617f4b6b2e3e0cfd11a94"
+    },
+    "glibc-python.bin": {
+      "fixedGzip": "d3f472848bf56dc856f23bc7a20d546703075b4851fd3de9cb07936b52feba9d",
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd",
+      "oldBytes": 4774024,
+      "oldSha256": "f627e3d6ac38703a7ff9c9c5a733c6d628bfd1866c32660873c661a670613882",
+      "newBytes": 4748448,
+      "newSha256": "c74f239e9b2a4ab88d38f89beaaa2be39d35866c8680d17197dbd9335e5d5084"
+    }
+  },
+  "trials": [
+    {
+      "round": 1,
+      "name": "gh-cli.bin",
+      "variant": "build376",
+      "firstTarEntryMs": 117.8027,
+      "verifiedEofMs": 656.9906,
+      "entries": 238,
+      "regularBytes": 38538163,
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51"
+    },
+    {
+      "round": 1,
+      "name": "gh-cli.bin",
+      "variant": "candidate",
+      "firstTarEntryMs": 36.2686,
+      "verifiedEofMs": 566.8343,
+      "entries": 238,
+      "regularBytes": 38538163,
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51"
+    },
+    {
+      "round": 2,
+      "name": "gh-cli.bin",
+      "variant": "candidate",
+      "firstTarEntryMs": 34.3615,
+      "verifiedEofMs": 576.3652,
+      "entries": 238,
+      "regularBytes": 38538163,
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51"
+    },
+    {
+      "round": 2,
+      "name": "gh-cli.bin",
+      "variant": "build376",
+      "firstTarEntryMs": 36.8872,
+      "verifiedEofMs": 577.9975,
+      "entries": 238,
+      "regularBytes": 38538163,
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51"
+    },
+    {
+      "round": 3,
+      "name": "gh-cli.bin",
+      "variant": "build376",
+      "firstTarEntryMs": 36.3569,
+      "verifiedEofMs": 586.4379,
+      "entries": 238,
+      "regularBytes": 38538163,
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51"
+    },
+    {
+      "round": 3,
+      "name": "gh-cli.bin",
+      "variant": "candidate",
+      "firstTarEntryMs": 36.6333,
+      "verifiedEofMs": 579.1207,
+      "entries": 238,
+      "regularBytes": 38538163,
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51"
+    },
+    {
+      "round": 1,
+      "name": "glibc-python.bin",
+      "variant": "build376",
+      "firstTarEntryMs": 44.4175,
+      "verifiedEofMs": 311.5506,
+      "entries": 677,
+      "regularBytes": 23775137,
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd"
+    },
+    {
+      "round": 1,
+      "name": "glibc-python.bin",
+      "variant": "candidate",
+      "firstTarEntryMs": 40.5938,
+      "verifiedEofMs": 304.7524,
+      "entries": 677,
+      "regularBytes": 23775137,
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd"
+    },
+    {
+      "round": 2,
+      "name": "glibc-python.bin",
+      "variant": "candidate",
+      "firstTarEntryMs": 41.0565,
+      "verifiedEofMs": 306.8816,
+      "entries": 677,
+      "regularBytes": 23775137,
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd"
+    },
+    {
+      "round": 2,
+      "name": "glibc-python.bin",
+      "variant": "build376",
+      "firstTarEntryMs": 43.0754,
+      "verifiedEofMs": 304.2846,
+      "entries": 677,
+      "regularBytes": 23775137,
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd"
+    },
+    {
+      "round": 3,
+      "name": "glibc-python.bin",
+      "variant": "build376",
+      "firstTarEntryMs": 43.5636,
+      "verifiedEofMs": 306.8605,
+      "entries": 677,
+      "regularBytes": 23775137,
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd"
+    },
+    {
+      "round": 3,
+      "name": "glibc-python.bin",
+      "variant": "candidate",
+      "firstTarEntryMs": 43.8972,
+      "verifiedEofMs": 327.2843,
+      "entries": 677,
+      "regularBytes": 23775137,
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd"
+    }
+  ],
+  "firstResultSeconds": 12.113753699988592,
+  "finishedUtc": "2026-11-25T09:20:19.866290+00:00",
+  "completeSeconds": 23.620427299989387,
+  "volumeFreeAtEnd": 312175177728
+}

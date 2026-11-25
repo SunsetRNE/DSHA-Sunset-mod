@@ -1,0 +1,396 @@
+{
+  "node": "v24.18.0",
+  "rounds": [
+    {
+      "variant": "before",
+      "archiveSha256": "5e09123a2515764c1b9731de800da5b4a5c40d43838149bc8e4c87b991bab086",
+      "startMs": 405,
+      "firstServerReadyMs": 5888,
+      "rootCacheControl": "no-store",
+      "expanded": {
+        "pageTitle": "DeepSeek Harness",
+        "sidebar": "DSH Local Build0.2.2-rc.5-3f85d88",
+        "marks": 0,
+        "whaleHeroes": 0,
+        "appleTitle": "DSH",
+        "manifestPath": "/manifest.webmanifest"
+      },
+      "collapsed": {
+        "mark": false,
+        "toggleStillPresent": true
+      },
+      "copiedVersion": "0.2.2-rc.5-3f85d88",
+      "assets": {
+        "name": "DeepSeek Harness",
+        "short": "DSH",
+        "start_url": "./",
+        "scope": "./",
+        "display": "standalone",
+        "rows": [
+          {
+            "path": "/manifest.webmanifest",
+            "query": "",
+            "kind": "manifest",
+            "status": 200,
+            "etag": "W/\"oBOQpKdso6QFNsFQeocQd7P41Sw\"",
+            "cacheControl": "no-cache",
+            "sha256": "0684508930a5e3b36e43afc1dc89252a95893a3d66cdfaccb453cc675012715b",
+            "bytes": 567,
+            "currentEtag": {
+              "status": 304,
+              "bytes": 0,
+              "etag": "W/\"oBOQpKdso6QFNsFQeocQd7P41Sw\""
+            }
+          },
+          {
+            "path": "/favicon-dark.svg",
+            "query": "",
+            "kind": "favicon",
+            "media": "(prefers-color-scheme: dark)",
+            "dimensions": [
+              50,
+              50
+            ],
+            "status": 200,
+            "etag": "W/\"aeftbgsECkzBp-iE9TN55fyKE3Q\"",
+            "cacheControl": "no-cache",
+            "sha256": "dde7db781f41e7aeb4709ff5485af2bdcf7f4b4ea81b4500cfd5df44efdbd817",
+            "bytes": 3634,
+            "currentEtag": {
+              "status": 304,
+              "bytes": 0,
+              "etag": "W/\"aeftbgsECkzBp-iE9TN55fyKE3Q\""
+            }
+          },
+          {
+            "path": "/favicon.svg",
+            "query": "",
+            "kind": "favicon",
+            "media": "(prefers-color-scheme: light)",
+            "dimensions": [
+              50,
+              50
+            ],
+            "status": 200,
+            "etag": "W/\"VThcPuYkIGDO7AD5DsVr17CfcC8\"",
+            "cacheControl": "no-cache",
+            "sha256": "9e983b4f649c25c6ca0623a50be1a6e705fd8f49f756638b980fa13b40575ab6",
+            "bytes": 3634,
+            "currentEtag": {
+              "status": 304,
+              "bytes": 0,
+              "etag": "W/\"VThcPuYkIGDO7AD5DsVr17CfcC8\""
+            }
+          },
+          {
+            "path": "/apple-touch-icon.png",
+            "query": "",
+            "kind": "apple",
+            "dimensions": [
+              180,
+              180
+            ],
+            "status": 200,
+            "etag": "W/\"a0YzfsGHmWdyfdjFVkT3m4c-HNw\"",
+            "cacheControl": "no-cache",
+            "sha256": "30a68c6871fc3974968cd285c63c42ddc80aa0e4d37a349cb4dbe824fa52ab92",
+            "bytes": 19258,
+            "currentEtag": {
+              "status": 304,
+              "bytes": 0,
+              "etag": "W/\"a0YzfsGHmWdyfdjFVkT3m4c-HNw\""
+            }
+          },
+          {
+            "path": "/icon-192.png",
+            "query": "",
+            "kind": "pwa",
+            "purpose": "any",
+            "declared": "192x192",
+            "dimensions": [
+              192,
+              192
+            ],
+            "status": 200,
+            "etag": "W/\"CVRf41fFctF7VG4KVHVxKZtbCiM\"",
+            "cacheControl": "no-cache",
+            "sha256": "dfbf42e79fa2a44fedb67497efa81e897e446f64b313531738f32974a117602c",
+            "bytes": 21220,
+            "currentEtag": {
+              "status": 304,
+              "bytes": 0,
+              "etag": "W/\"CVRf41fFctF7VG4KVHVxKZtbCiM\""
+            }
+          },
+          {
+            "path": "/icon-512.png",
+            "query": "",
+            "kind": "pwa",
+            "purpose": "any",
+            "declared": "512x512",
+            "dimensions": [
+              512,
+              512
+            ],
+            "status": 200,
+            "etag": "W/\"9yBSYJbhPgJJezIlIS5Kik47_wY\"",
+            "cacheControl": "no-cache",
+            "sha256": "0aa6ff8cac04541957b937465341e1840e0323d6076f0c7f3c61ff937b7e6d63",
+            "bytes": 80224,
+            "currentEtag": {
+              "status": 304,
+              "bytes": 0,
+              "etag": "W/\"9yBSYJbhPgJJezIlIS5Kik47_wY\""
+            }
+          },
+          {
+            "path": "/icon-maskable-512.png",
+            "query": "",
+            "kind": "pwa",
+            "purpose": "maskable",
+            "declared": "512x512",
+            "dimensions": [
+              512,
+              512
+            ],
+            "status": 200,
+            "etag": "W/\"9Yyy5NZQObFXwuFbIElILNmfHLk\"",
+            "cacheControl": "no-cache",
+            "sha256": "0b80994078a417bf33370e6c4e5b6174313bbece29ce7f3e8c6dc538d6ec46eb",
+            "bytes": 66105,
+            "currentEtag": {
+              "status": 304,
+              "bytes": 0,
+              "etag": "W/\"9Yyy5NZQObFXwuFbIElILNmfHLk\""
+            }
+          }
+        ]
+      },
+      "browserManifestErrors": [],
+      "completeMs": 9933
+    },
+    {
+      "variant": "final",
+      "archiveSha256": "ac087ee46389c4c4716245478c4d3becd91cc3ce50a1f4488a96a974e735f458",
+      "startMs": 9969,
+      "firstServerReadyMs": 15127,
+      "rootCacheControl": "no-store",
+      "expanded": {
+        "pageTitle": "DSHA",
+        "sidebar": "DSHA0.2.2-rc.5-3f85d88",
+        "marks": 1,
+        "whaleHeroes": 0,
+        "appleTitle": "DSHA",
+        "manifestPath": "/manifest.webmanifest"
+      },
+      "collapsed": {
+        "mark": true,
+        "toggleStillPresent": true
+      },
+      "copiedVersion": "0.2.2-rc.5-3f85d88",
+      "assets": {
+        "name": "DSHA",
+        "short": "DSHA",
+        "start_url": "./",
+        "scope": "./",
+        "display": "standalone",
+        "rows": [
+          {
+            "path": "/manifest.webmanifest",
+            "query": "",
+            "kind": "manifest",
+            "status": 200,
+            "etag": "W/\"PV9APJH61T7JrhD0c6yrP8T-HCI\"",
+            "cacheControl": "no-cache",
+            "sha256": "5d8dde9bf3d84d966ec068e50480d9f08a2380165f9f4e64129bf631759b1633",
+            "bytes": 595,
+            "legacyUrlOldEtag": {
+              "status": 200,
+              "bytes": 595,
+              "etag": "W/\"PV9APJH61T7JrhD0c6yrP8T-HCI\""
+            },
+            "currentEtag": {
+              "status": 304,
+              "bytes": 0,
+              "etag": "W/\"PV9APJH61T7JrhD0c6yrP8T-HCI\""
+            }
+          },
+          {
+            "path": "/favicon-dark.svg",
+            "query": "?dsha-brand=1",
+            "kind": "favicon",
+            "media": "(prefers-color-scheme: dark)",
+            "dimensions": [
+              150,
+              150
+            ],
+            "status": 200,
+            "etag": "W/\"BCQyoQn_2SFc4V3QJBf3q20cOxw\"",
+            "cacheControl": "no-cache",
+            "sha256": "5e964861a1d1099c8c60de1fcb06dff3f71c8c1d6dadbadd2a8d936dded12a86",
+            "bytes": 255,
+            "legacyUrlOldEtag": {
+              "status": 200,
+              "bytes": 255,
+              "etag": "W/\"BCQyoQn_2SFc4V3QJBf3q20cOxw\""
+            },
+            "currentEtag": {
+              "status": 304,
+              "bytes": 0,
+              "etag": "W/\"BCQyoQn_2SFc4V3QJBf3q20cOxw\""
+            }
+          },
+          {
+            "path": "/favicon.svg",
+            "query": "?dsha-brand=1",
+            "kind": "favicon",
+            "media": "(prefers-color-scheme: light)",
+            "dimensions": [
+              150,
+              150
+            ],
+            "status": 200,
+            "etag": "W/\"BCQyoQn_2SFc4V3QJBf3q20cOxw\"",
+            "cacheControl": "no-cache",
+            "sha256": "5e964861a1d1099c8c60de1fcb06dff3f71c8c1d6dadbadd2a8d936dded12a86",
+            "bytes": 255,
+            "legacyUrlOldEtag": {
+              "status": 200,
+              "bytes": 255,
+              "etag": "W/\"BCQyoQn_2SFc4V3QJBf3q20cOxw\""
+            },
+            "currentEtag": {
+              "status": 304,
+              "bytes": 0,
+              "etag": "W/\"BCQyoQn_2SFc4V3QJBf3q20cOxw\""
+            }
+          },
+          {
+            "path": "/apple-touch-icon.png",
+            "query": "?dsha-brand=1",
+            "kind": "apple",
+            "dimensions": [
+              180,
+              180
+            ],
+            "status": 200,
+            "etag": "W/\"0-xe8GJRQICmHW4S4PXBBaWs_TY\"",
+            "cacheControl": "no-cache",
+            "sha256": "e3326e0590a7101270116b89093cbdfcb1b42ff5d9677f0eb7168b231e98c06e",
+            "bytes": 4662,
+            "legacyUrlOldEtag": {
+              "status": 200,
+              "bytes": 4662,
+              "etag": "W/\"0-xe8GJRQICmHW4S4PXBBaWs_TY\""
+            },
+            "currentEtag": {
+              "status": 304,
+              "bytes": 0,
+              "etag": "W/\"0-xe8GJRQICmHW4S4PXBBaWs_TY\""
+            }
+          },
+          {
+            "path": "/icon-192.png",
+            "query": "?dsha-brand=1",
+            "kind": "pwa",
+            "purpose": "any",
+            "declared": "192x192",
+            "dimensions": [
+              192,
+              192
+            ],
+            "status": 200,
+            "etag": "W/\"26pXDFM3Tte3nYXNHrstyM3Oofc\"",
+            "cacheControl": "no-cache",
+            "sha256": "78220e55f1c06975ee062a99f39a6d165c4e754c21ca12bc589387786d3bce93",
+            "bytes": 6116,
+            "legacyUrlOldEtag": {
+              "status": 200,
+              "bytes": 6116,
+              "etag": "W/\"26pXDFM3Tte3nYXNHrstyM3Oofc\""
+            },
+            "currentEtag": {
+              "status": 304,
+              "bytes": 0,
+              "etag": "W/\"26pXDFM3Tte3nYXNHrstyM3Oofc\""
+            }
+          },
+          {
+            "path": "/icon-512.png",
+            "query": "?dsha-brand=1",
+            "kind": "pwa",
+            "purpose": "any",
+            "declared": "512x512",
+            "dimensions": [
+              512,
+              512
+            ],
+            "status": 200,
+            "etag": "W/\"IxpvBny-ddGGXYvFc-DsVio0SUM\"",
+            "cacheControl": "no-cache",
+            "sha256": "2bec0ccb55508f03f83c789a9c0a6989eccd1567db15c59fc648d66674373f4c",
+            "bytes": 18517,
+            "legacyUrlOldEtag": {
+              "status": 200,
+              "bytes": 18517,
+              "etag": "W/\"IxpvBny-ddGGXYvFc-DsVio0SUM\""
+            },
+            "currentEtag": {
+              "status": 304,
+              "bytes": 0,
+              "etag": "W/\"IxpvBny-ddGGXYvFc-DsVio0SUM\""
+            }
+          },
+          {
+            "path": "/icon-maskable-512.png",
+            "query": "?dsha-brand=1",
+            "kind": "pwa",
+            "purpose": "maskable",
+            "declared": "512x512",
+            "dimensions": [
+              512,
+              512
+            ],
+            "status": 200,
+            "etag": "W/\"e-nW3ND43EIOOkpR0CuNinhUSfU\"",
+            "cacheControl": "no-cache",
+            "sha256": "32e6d1b7119c0a956992b5170908fabde96a92ddb1e2d57c5979a6856ec351b2",
+            "bytes": 14354,
+            "legacyUrlOldEtag": {
+              "status": 200,
+              "bytes": 14354,
+              "etag": "W/\"e-nW3ND43EIOOkpR0CuNinhUSfU\""
+            },
+            "currentEtag": {
+              "status": 304,
+              "bytes": 0,
+              "etag": "W/\"e-nW3ND43EIOOkpR0CuNinhUSfU\""
+            }
+          }
+        ]
+      },
+      "browserManifestErrors": [],
+      "completeMs": 18762
+    }
+  ],
+  "chrome": "156.0.8078.4",
+  "accountPromptButtons": [
+    {
+      "text": "",
+      "aria": "Close",
+      "title": ""
+    },
+    {
+      "text": "Add API Key",
+      "aria": null,
+      "title": ""
+    },
+    {
+      "text": "Sign in",
+      "aria": null,
+      "title": ""
+    }
+  ],
+  "visibleButtons": [],
+  "elapsedMs": 18787
+}

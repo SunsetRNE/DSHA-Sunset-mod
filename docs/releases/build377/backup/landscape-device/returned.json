@@ -1,0 +1,11 @@
+{
+  "time": "2026-11-25T17:43:28.710266+08:00",
+  "settings": "Physical size: 720x1280\nPhysical density: 320\nnull\n1\n0",
+  "foreground": "mResumedActivity: ActivityRecord{656864e u0 dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity t28}",
+  "installedExactFixtureSha256": "34d7921894d79af32c44759cdbe3888ae939c623c86efc887c6d8ce8c5c5fd16",
+  "originalSettings": {
+    "accelerometer_rotation": "1",
+    "user_rotation": "0",
+    "font_scale": "null"
+  }
+}

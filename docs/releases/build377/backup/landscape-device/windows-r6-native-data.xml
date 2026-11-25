@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.deepseekharness.app.ui.NativeDataChoicesTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-25T09:52:46.348Z" hostname="DESKTOP-AP3I92F" time="11.674">
+  <properties/>
+  <testcase name="tallBackupDialogRetainsWrapHeightAndStandardTabletWidthAfterSizing" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="1.651"/>
+  <testcase name="cancellingPickerWipesPasswordAndCompatibilityRequiresExplicitCheckbox" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="1.678"/>
+  <testcase name="losingTheProcessDuringSafNeverFallsBackToPlaintext" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="0.255"/>
+  <testcase name="safResultAfterRotationUsesProtectedOperationAndWipesPendingPassword" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="0.254"/>
+  <testcase name="rotationDuringFilenameLookupBindsNewPageAndFreshOwnerRestoresOnlyChoices" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="0.458"/>
+  <testcase name="displayedScopesChooseIndependentJobArguments" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="0.213"/>
+  <testcase name="compactFormsKeepAFullPasswordRowAndBothLabelledActionsAboveIme" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="4.958"/>
+  <testcase name="compactStandardAndRescueFormsKeepBothActionsWithinTheViewport" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="1.992"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+System.logW: A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+java.lang.Throwable: Explicit termination method 'SQLiteConnection.close' not called
+	at dalvik.system.CloseGuard.$$robo$$dalvik_system_CloseGuard$openWithCallSite(CloseGuard.java:288)
+	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java)
+	at dalvik.system.CloseGuard.$$robo$$dalvik_system_CloseGuard$open(CloseGuard.java:257)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.robolectric.shadows.ShadowCloseGuard$CloseGuardReflector$$Reflector905.open(Unknown Source)
+	at org.robolectric.shadows.ShadowCloseGuard.open(ShadowCloseGuard.java:38)
+	at dalvik.system.CloseGuard.open(CloseGuard.java)
+	at android.database.sqlite.SQLiteConnection.$$robo$$android_database_sqlite_SQLiteConnection$__constructor__(SQLiteConnection.java:182)
+	at android.database.sqlite.SQLiteConnection.<init>(SQLiteConnection.java:173)
+	at android.database.sqlite.SQLiteConnection.$$robo$$android_database_sqlite_SQLiteConnection$open(SQLiteConnection.java:202)
+	at android.database.sqlite.SQLiteConnection.open(SQLiteConnection.java)
+	at android.database.sqlite.SQLiteConnectionPool.$$robo$$android_database_sqlite_SQLiteConnectionPool$openConnectionLocked(SQLiteConnectionPool.java:528)
+	at android.database.sqlite.SQLiteConnectionPool.openConnectionLocked(SQLiteConnectionPool.java)
+	at android.database.sqlite.SQLiteConnectionPool.$$robo$$android_database_sqlite_SQLiteConnectionPool$open(SQLiteConnectionPool.java:215)
+	at android.database.sqlite.SQLiteConnectionPool.open(SQLiteConnectionPool.java)
+	at android.database.sqlite.SQLiteConnectionPool.$$robo$$android_database_sqlite_SQLiteConnectionPool$open(SQLiteConnectionPool.java:207)
+	at android.database.sqlite.SQLiteConnectionPool.open(SQLiteConnectionPool.java)
+	at android.database.sqlite.SQLiteDatabase.$$robo$$android_database_sqlite_SQLiteDatabase$openInner(SQLiteDatabase.java:1087)
+	at android.database.sqlite.SQLiteDatabase.openInner(SQLiteDatabase.java)
+	at android.database.sqlite.SQLiteDatabase.$$robo$$android_database_sqlite_SQLiteDatabase$open(SQLiteDatabase.java:1067)
+	at android.database.sqlite.SQLiteDatabase.open(SQLiteDatabase.java)
+	at android.database.sqlite.SQLiteDatabase.$$robo$$android_database_sqlite_SQLiteDatabase$openDatabase(SQLiteDatabase.java:958)
+	at android.database.sqlite.SQLiteDatabase.openDatabase(SQLiteDatabase.java)
+	at android.database.sqlite.SQLiteDatabase.$$robo$$android_database_sqlite_SQLiteDatabase$openDatabase(SQLiteDatabase.java:905)
+	at android.database.sqlite.SQLiteDatabase.openDatabase(SQLiteDatabase.java)
+	at android.database.sqlite.SQLiteDatabase.$$robo$$android_database_sqlite_SQLiteDatabase$create(SQLiteDatabase.java:1111)
+	at android.database.sqlite.SQLiteDatabase.create(SQLiteDatabase.java)
+	at org.robolectric.fakes.FakeMediaProvider.lambda$onCreate$0(FakeMediaProvider.java:105)
+	at com.google.common.base.Suppliers$NonSerializableMemoizingSupplier.get(Suppliers.java:198)
+	at org.robolectric.fakes.FakeMediaProvider.query(FakeMediaProvider.java:152)
+	at org.robolectric.fakes.FakeMediaProvider.query(FakeMediaProvider.java:117)
+	at org.robolectric.shadows.ShadowContentResolver.query(ShadowContentResolver.java:323)
+	at android.content.ContentResolver.query(ContentResolver.java)
+	at com.deepseekharness.app.backup.ExternalBackupScanner.$$robo$$com_deepseekharness_app_backup_ExternalBackupScanner$scan(ExternalBackupScanner.java:105)
+	at com.deepseekharness.app.backup.ExternalBackupScanner.scan(ExternalBackupScanner.java)
+	at com.deepseekharness.app.ui.MainActivity.lambda$maybePromptExternalRestore$25(MainActivity.java:1190)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+
+System.logW: A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+java.lang.Throwable: Explicit termination method 'SQLiteConnectionPool.close' not called
+	at dalvik.system.CloseGuard.$$robo$$dalvik_system_CloseGuard$openWithCallSite(CloseGuard.java:288)
+	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java)
+	at dalvik.system.CloseGuard.$$robo$$dalvik_system_CloseGuard$open(CloseGuard.java:257)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.robolectric.shadows.ShadowCloseGuard$CloseGuardReflector$$Reflector905.open(Unknown Source)
+	at org.robolectric.shadows.ShadowCloseGuard.open(ShadowCloseGuard.java:38)
+	at dalvik.system.CloseGuard.open(CloseGuard.java)
+	at android.database.sqlite.SQLiteConnectionPool.$$robo$$android_database_sqlite_SQLiteConnectionPool$open(SQLiteConnectionPool.java:226)
+	at android.database.sqlite.SQLiteConnectionPool.open(SQLiteConnectionPool.java)
+	at android.database.sqlite.SQLiteConnectionPool.$$robo$$android_database_sqlite_SQLiteConnectionPool$open(SQLiteConnectionPool.java:207)
+	at android.database.sqlite.SQLiteConnectionPool.open(SQLiteConnectionPool.java)
+	at android.database.sqlite.SQLiteDatabase.$$robo$$android_database_sqlite_SQLiteDatabase$openInner(SQLiteDatabase.java:1087)
+	at android.database.sqlite.SQLiteDatabase.openInner(SQLiteDatabase.java)
+	at android.database.sqlite.SQLiteDatabase.$$robo$$android_database_sqlite_SQLiteDatabase$open(SQLiteDatabase.java:1067)
+	at android.database.sqlite.SQLiteDatabase.open(SQLiteDatabase.java)
+	at android.database.sqlite.SQLiteDatabase.$$robo$$android_database_sqlite_SQLiteDatabase$openDatabase(SQLiteDatabase.java:958)
+	at android.database.sqlite.SQLiteDatabase.openDatabase(SQLiteDatabase.java)
+	at android.database.sqlite.SQLiteDatabase.$$robo$$android_database_sqlite_SQLiteDatabase$openDatabase(SQLiteDatabase.java:905)
+	at android.database.sqlite.SQLiteDatabase.openDatabase(SQLiteDatabase.java)
+	at android.database.sqlite.SQLiteDatabase.$$robo$$android_database_sqlite_SQLiteDatabase$create(SQLiteDatabase.java:1111)
+	at android.database.sqlite.SQLiteDatabase.create(SQLiteDatabase.java)
+	at org.robolectric.fakes.FakeMediaProvider.lambda$onCreate$0(FakeMediaProvider.java:105)
+	at com.google.common.base.Suppliers$NonSerializableMemoizingSupplier.get(Suppliers.java:198)
+	at org.robolectric.fakes.FakeMediaProvider.query(FakeMediaProvider.java:152)
+	at org.robolectric.fakes.FakeMediaProvider.query(FakeMediaProvider.java:117)
+	at org.robolectric.shadows.ShadowContentResolver.query(ShadowContentResolver.java:323)
+	at android.content.ContentResolver.query(ContentResolver.java)
+	at com.deepseekharness.app.backup.ExternalBackupScanner.$$robo$$com_deepseekharness_app_backup_ExternalBackupScanner$scan(ExternalBackupScanner.java:105)
+	at com.deepseekharness.app.backup.ExternalBackupScanner.scan(ExternalBackupScanner.java)
+	at com.deepseekharness.app.ui.MainActivity.lambda$maybePromptExternalRestore$25(MainActivity.java:1190)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+
+System.logW: A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+java.lang.Throwable: Explicit termination method 'close' not called
+	at dalvik.system.CloseGuard.$$robo$$dalvik_system_CloseGuard$openWithCallSite(CloseGuard.java:288)
+	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java)
+	at dalvik.system.CloseGuard.$$robo$$dalvik_system_CloseGuard$open(CloseGuard.java:257)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.robolectric.shadows.ShadowCloseGuard$CloseGuardReflector$$Reflector905.open(Unknown Source)
+	at org.robolectric.shadows.ShadowCloseGuard.open(ShadowCloseGuard.java:38)
+	at dalvik.system.CloseGuard.open(CloseGuard.java)
+	at android.database.sqlite.SQLiteDatabase.$$robo$$android_database_sqlite_SQLiteDatabase$openInner(SQLiteDatabase.java:1088)
+	at android.database.sqlite.SQLiteDatabase.openInner(SQLiteDatabase.java)
+	at android.database.sqlite.SQLiteDatabase.$$robo$$android_database_sqlite_SQLiteDatabase$open(SQLiteDatabase.java:1067)
+	at android.database.sqlite.SQLiteDatabase.open(SQLiteDatabase.java)
+	at android.database.sqlite.SQLiteDatabase.$$robo$$android_database_sqlite_SQLiteDatabase$openDatabase(SQLiteDatabase.java:958)
+	at android.database.sqlite.SQLiteDatabase.openDatabase(SQLiteDatabase.java)
+	at android.database.sqlite.SQLiteDatabase.$$robo$$android_database_sqlite_SQLiteDatabase$openDatabase(SQLiteDatabase.java:905)
+	at android.database.sqlite.SQLiteDatabase.openDatabase(SQLiteDatabase.java)
+	at android.database.sqlite.SQLiteDatabase.$$robo$$android_database_sqlite_SQLiteDatabase$create(SQLiteDatabase.java:1111)
+	at android.database.sqlite.SQLiteDatabase.create(SQLiteDatabase.java)
+	at org.robolectric.fakes.FakeMediaProvider.lambda$onCreate$0(FakeMediaProvider.java:105)
+	at com.google.common.base.Suppliers$NonSerializableMemoizingSupplier.get(Suppliers.java:198)
+	at org.robolectric.fakes.FakeMediaProvider.query(FakeMediaProvider.java:152)
+	at org.robolectric.fakes.FakeMediaProvider.query(FakeMediaProvider.java:117)
+	at org.robolectric.shadows.ShadowContentResolver.query(ShadowContentResolver.java:323)
+	at android.content.ContentResolver.query(ContentResolver.java)
+	at com.deepseekharness.app.backup.ExternalBackupScanner.$$robo$$com_deepseekharness_app_backup_ExternalBackupScanner$scan(ExternalBackupScanner.java:105)
+	at com.deepseekharness.app.backup.ExternalBackupScanner.scan(ExternalBackupScanner.java)
+	at com.deepseekharness.app.ui.MainActivity.lambda$maybePromptExternalRestore$25(MainActivity.java:1190)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+]]></system-err>
+</testsuite>

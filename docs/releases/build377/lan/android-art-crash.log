@@ -1,0 +1,25 @@
+
+11-25 06:52:22.834  1886  1886 F libc    : Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0xffffff84a6b4a009 in tid 1886 (mediaextractor), pid 1886 (mediaextractor)
+11-25 06:52:23.529  1857  1857 F libc    : Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0xffffff8e15161009 in tid 1857 (storaged), pid 1857 (storaged)
+11-25 06:52:24.018  1835  1835 F libc    : Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0xffffff8df24bf009 in tid 1835 (main), pid 1835 (main)
+11-25 06:52:24.985  1818  1818 F DEBUG   : ABI: 'arm64'
+11-25 06:52:24.997  1818  1818 F DEBUG   : pid: 1804, tid: 1804, name: app_process64  >>> /system/bin/app_process64 <<<
+11-25 06:52:25.003  1818  1818 F DEBUG   : signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0xffffff86b8174009
+11-25 06:52:27.037  1908  1908 F libc    : Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0xffffff8ff83a0009 in tid 1908 (mediaswcodec), pid 1908 (mediaswcodec)
+11-25 06:52:28.851  1829  1829 F DEBUG   : ABI: 'arm64'
+11-25 06:52:28.870  1829  1829 F DEBUG   : signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0xffffff877ab7a009
+11-25 06:52:29.503  1891  1891 F DEBUG   : ABI: 'arm64'
+11-25 06:52:29.523  1891  1891 F DEBUG   : signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0xffffff84a6b4a009
+11-25 06:52:34.121  1920  1920 F libc    : Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0xffffff921f4fb009 in tid 1920 (app_process64), pid 1920 (app_process64)
+11-25 06:52:37.126  1923  1923 F libc    : Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0xffffff8acc20d009 in tid 1923 (mediaserver), pid 1923 (mediaserver)
+11-25 06:52:37.187  1922  1922 F libc    : Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0xffffff850dd61009 in tid 1922 (cameraserver), pid 1922 (cameraserver)
+11-25 06:52:39.732  1901  1901 F DEBUG   : ABI: 'arm64'
+11-25 06:52:39.747  1901  1901 F DEBUG   : pid: 1835, tid: 1835, name: main  >>> dalvikvm64 <<<
+11-25 06:52:39.753  1901  1901 F DEBUG   : signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0xffffff8df24bf009
+11-25 06:52:40.118  1901  1901 F DEBUG   :       #14 pc 000000000038b970  /apex/com.android.art/lib64/libart.so (JNI_CreateJavaVM+732) (BuildId: b628ec1e4df42966356fcd82bcb1136d)
+11-25 06:52:40.122  1901  1901 F DEBUG   :       #15 pc 0000000000003214  /apex/com.android.art/bin/dalvikvm64 (art::dalvikvm(int, char**)+432) (BuildId: 090b3d76bd8031faab54937fe1b779df)
+11-25 06:52:40.125  1901  1901 F DEBUG   :       #16 pc 000000000000305c  /apex/com.android.art/bin/dalvikvm64 (main+8) (BuildId: 090b3d76bd8031faab54937fe1b779df)
+11-25 06:52:43.769  1978  1978 F libc    : Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0xffffff85fceb5009 in tid 1978 (mediaextractor), pid 1978 (mediaextractor)
+11-25 06:52:45.804  1902  1902 F DEBUG   : ABI: 'arm64'
+11-25 06:52:45.839  1902  1902 F DEBUG   : signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0xffffff8e15161009
+

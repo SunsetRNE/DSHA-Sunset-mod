@@ -1,0 +1,9 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8 -Duser.language=en -Duser.country=US
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8 -Duser.language=en -Duser.country=US
+.................................................................................................
+Time: 6.904
+
+OK (97 tests)
+
+tests=97 failures=0 skipped=0 elapsed_ms=6904
+PASS production TLS listener/leaf, HTTP, auth and dispatch over loopback. AndroidKeyStore custody, Android network and context are host stubs.

@@ -1,0 +1,23 @@
+{
+  "at": "2026-11-25T06:56:56.742313+00:00",
+  "volume": "F:\\",
+  "totalBytes": 959067451392,
+  "availableBytes": 347229933568,
+  "files": [
+    {
+      "path": "F:\\DSHA_RESTART\\release\\0.2.2-rc.5\\dsha-0.2.2-rc.5.apk",
+      "logicalBytes": 257781425,
+      "allocatedBytes": 257781760
+    },
+    {
+      "path": "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\assets\\dsh-runtime.bin",
+      "logicalBytes": 141564262,
+      "allocatedBytes": 141565952
+    },
+    {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\settings\\107项续验.json",
+      "logicalBytes": 122191,
+      "allocatedBytes": 122880
+    }
+  ]
+}

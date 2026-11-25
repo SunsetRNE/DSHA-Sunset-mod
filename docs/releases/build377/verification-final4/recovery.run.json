@@ -1,0 +1,13 @@
+{
+  "command": [
+    "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+    "-B",
+    "tools/verify-recovery-apk.py",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\local-release\\dsha-0.2.2-rc.5.apk"
+  ],
+  "startedAt": "2026-11-25T09:56:30.991975+00:00",
+  "finishedAt": "2026-11-25T09:56:31.490565+00:00",
+  "elapsedSeconds": 0.5,
+  "exitCode": 0,
+  "logSha256": "4353d29b97d3ac792c0c0331c80a3a39eb166f11415b5fdca12b935a5b1143fa"
+}

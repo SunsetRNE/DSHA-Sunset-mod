@@ -1,0 +1,1120 @@
+{
+  "start": "2026-11-25T17:33:38.285964+08:00",
+  "fixture": "0cb59e991b79a5fef76a2a3b6c0f3be3513019c433da976f5b671bbc3f1aae7d",
+  "rows": [
+    {
+      "flow": "rescue",
+      "scale": "1.3",
+      "rotation": "1",
+      "source": "compact-check-r3-rescue-1.3-1",
+      "seconds": 55.859,
+      "frames": [
+        {
+          "stage": "first-ime",
+          "ink": [
+            2826,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Backup password",
+          "visibleArea": 99120,
+          "fullArea": 99120,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 5
+        },
+        {
+          "stage": "second-ime",
+          "ink": [
+            2826,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 99120,
+          "fullArea": 99120,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "steady-1",
+          "ink": [
+            2826,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 99120,
+          "fullArea": 99120,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "steady-2",
+          "ink": [
+            2826,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 99120,
+          "fullArea": 99120,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "final-click-ime",
+          "ink": [
+            2826,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 99120,
+          "fullArea": 99120,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        }
+      ]
+    },
+    {
+      "flow": "normal",
+      "scale": "1.3",
+      "rotation": "0",
+      "source": "compact-check-r3-normal-1.3-0",
+      "seconds": 54.547,
+      "frames": [
+        {
+          "stage": "first-ime",
+          "ink": [
+            2825,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Backup password",
+          "visibleArea": 57120,
+          "fullArea": 57120,
+          "maskedGlyphs": 19,
+          "imeFullscreen": false,
+          "editorAction": 5
+        },
+        {
+          "stage": "second-ime",
+          "ink": [
+            2825,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 57120,
+          "fullArea": 57120,
+          "maskedGlyphs": 19,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "steady-1",
+          "ink": [
+            2825,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 57120,
+          "fullArea": 57120,
+          "maskedGlyphs": 19,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "steady-2",
+          "ink": [
+            2825,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 57120,
+          "fullArea": 57120,
+          "maskedGlyphs": 19,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "final-click-ime",
+          "ink": [
+            2825,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 57120,
+          "fullArea": 57120,
+          "maskedGlyphs": 19,
+          "imeFullscreen": false,
+          "editorAction": 6
+        }
+      ]
+    },
+    {
+      "flow": "normal",
+      "scale": "1.0",
+      "rotation": "1",
+      "source": "compact-check-r3-normal-1.0-1",
+      "seconds": 55.031,
+      "frames": [
+        {
+          "stage": "first-ime",
+          "ink": [
+            1729,
+            618
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Backup password",
+          "visibleArea": 85904,
+          "fullArea": 85904,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 5
+        },
+        {
+          "stage": "second-ime",
+          "ink": [
+            1729,
+            618
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 85904,
+          "fullArea": 85904,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "steady-1",
+          "ink": [
+            1729,
+            618
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 85904,
+          "fullArea": 85904,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "steady-2",
+          "ink": [
+            1729,
+            618
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 85904,
+          "fullArea": 85904,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "final-click-ime",
+          "ink": [
+            1729,
+            618
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 85904,
+          "fullArea": 85904,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        }
+      ]
+    },
+    {
+      "flow": "rescue",
+      "scale": "1.0",
+      "rotation": "0",
+      "source": "compact-check-r3-rescue-1.0-0",
+      "seconds": 52.969,
+      "frames": [
+        {
+          "stage": "first-ime",
+          "ink": [
+            1726,
+            616
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Backup password",
+          "visibleArea": 49504,
+          "fullArea": 49504,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 5
+        },
+        {
+          "stage": "second-ime",
+          "ink": [
+            1726,
+            616
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 49504,
+          "fullArea": 49504,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "steady-1",
+          "ink": [
+            1726,
+            616
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 49504,
+          "fullArea": 49504,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "steady-2",
+          "ink": [
+            1726,
+            616
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 49504,
+          "fullArea": 49504,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "final-click-ime",
+          "ink": [
+            1726,
+            616
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 49504,
+          "fullArea": 49504,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        }
+      ]
+    },
+    {
+      "flow": "normal",
+      "scale": "1.3",
+      "rotation": "1",
+      "source": "compact-check-r3-normal-1.3-1",
+      "seconds": 55.891,
+      "frames": [
+        {
+          "stage": "first-ime",
+          "ink": [
+            2826,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Backup password",
+          "visibleArea": 99120,
+          "fullArea": 99120,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 5
+        },
+        {
+          "stage": "second-ime",
+          "ink": [
+            2826,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 99120,
+          "fullArea": 99120,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "steady-1",
+          "ink": [
+            2826,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 99120,
+          "fullArea": 99120,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "steady-2",
+          "ink": [
+            2826,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 99120,
+          "fullArea": 99120,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "final-click-ime",
+          "ink": [
+            2826,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 99120,
+          "fullArea": 99120,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        }
+      ]
+    },
+    {
+      "flow": "rescue",
+      "scale": "1.3",
+      "rotation": "0",
+      "source": "compact-check-r3-rescue-1.3-0",
+      "seconds": 53.203,
+      "frames": [
+        {
+          "stage": "first-ime",
+          "ink": [
+            2825,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Backup password",
+          "visibleArea": 57120,
+          "fullArea": 57120,
+          "maskedGlyphs": 19,
+          "imeFullscreen": false,
+          "editorAction": 5
+        },
+        {
+          "stage": "second-ime",
+          "ink": [
+            2825,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 57120,
+          "fullArea": 57120,
+          "maskedGlyphs": 19,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "steady-1",
+          "ink": [
+            2825,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 57120,
+          "fullArea": 57120,
+          "maskedGlyphs": 19,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "steady-2",
+          "ink": [
+            2825,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 57120,
+          "fullArea": 57120,
+          "maskedGlyphs": 19,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "final-click-ime",
+          "ink": [
+            2825,
+            1000
+          ],
+          "inkRows": [
+            27,
+            27
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            106,
+            106
+          ],
+          "buttonVisibleHeights": [
+            106,
+            106
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 57120,
+          "fullArea": 57120,
+          "maskedGlyphs": 19,
+          "imeFullscreen": false,
+          "editorAction": 6
+        }
+      ]
+    },
+    {
+      "flow": "rescue",
+      "scale": "1.0",
+      "rotation": "1",
+      "source": "compact-check-r3-rescue-1.0-1",
+      "seconds": 53.219,
+      "frames": [
+        {
+          "stage": "first-ime",
+          "ink": [
+            1729,
+            618
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Backup password",
+          "visibleArea": 85904,
+          "fullArea": 85904,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 5
+        },
+        {
+          "stage": "second-ime",
+          "ink": [
+            1729,
+            618
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 85904,
+          "fullArea": 85904,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "steady-1",
+          "ink": [
+            1729,
+            618
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 85904,
+          "fullArea": 85904,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "steady-2",
+          "ink": [
+            1729,
+            618
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 85904,
+          "fullArea": 85904,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "final-click-ime",
+          "ink": [
+            1729,
+            618
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 85904,
+          "fullArea": 85904,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        }
+      ]
+    },
+    {
+      "flow": "normal",
+      "scale": "1.0",
+      "rotation": "0",
+      "source": "compact-check-r3-normal-1.0-0",
+      "seconds": 54.281,
+      "frames": [
+        {
+          "stage": "first-ime",
+          "ink": [
+            1726,
+            616
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Backup password",
+          "visibleArea": 49504,
+          "fullArea": 49504,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 5
+        },
+        {
+          "stage": "second-ime",
+          "ink": [
+            1726,
+            616
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 49504,
+          "fullArea": 49504,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "steady-1",
+          "ink": [
+            1726,
+            616
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 49504,
+          "fullArea": 49504,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "steady-2",
+          "ink": [
+            1726,
+            616
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 49504,
+          "fullArea": 49504,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        },
+        {
+          "stage": "final-click-ime",
+          "ink": [
+            1726,
+            616
+          ],
+          "inkRows": [
+            21,
+            21
+          ],
+          "sameGlyphMasks": true,
+          "buttonFullHeights": [
+            97,
+            97
+          ],
+          "buttonVisibleHeights": [
+            97,
+            97
+          ],
+          "focus": "Confirm backup password",
+          "visibleArea": 49504,
+          "fullArea": 49504,
+          "maskedGlyphs": 24,
+          "imeFullscreen": false,
+          "editorAction": 6
+        }
+      ]
+    }
+  ],
+  "status": "passed",
+  "end": "2026-11-25T17:41:01.194516+08:00"
+}

@@ -1,0 +1,23 @@
+{
+  "at": "2026-11-25T06:52:54.142401+00:00",
+  "volume": "F:\\",
+  "totalBytes": 959067451392,
+  "availableBytes": 351627206656,
+  "files": [
+    {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\runtime\\r1\\npm-arm64-a\\dsh-runtime.bin",
+      "logicalBytes": 143239135,
+      "allocatedBytes": 143241216
+    },
+    {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\runtime\\r2\\npm-arm64-a\\dsh-runtime.bin",
+      "logicalBytes": 141564262,
+      "allocatedBytes": 141565952
+    },
+    {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\runtime\\r2\\npm-arm64-b\\dsh-runtime.bin",
+      "logicalBytes": 141564262,
+      "allocatedBytes": 141565952
+    }
+  ]
+}

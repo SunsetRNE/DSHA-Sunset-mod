@@ -1,0 +1,30 @@
+{
+  "apk": "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed\\dsha-0.2.2-rc.5.apk",
+  "environment": "google/sdk_gphone_arm64/emulator_arm64:11/RSR1.240422.006/12134477:userdebug/dev-keys\narm64-v8a\n0\naarch64\nEnforcing\nuid=2000(shell) gid=2000(shell) groups=2000(shell),1004(input),1007(log),1011(adb),1015(sdcard_rw),1028(sdcard_r),3001(net_bt_admin),3002(net_bt),3003(inet),3006(net_bw_stats),3009(readproc),3011(uhid) context=u:r:shell:s0",
+  "deviceHashes": "12ace2a08056105a663f0ebc492e568d8322a6b252550a16bc05668ed9a58ed5  /data/local/tmp/dsha377_birth_cb49109611634151963090607d71010e/exact\n223c4018974b8c95b1e15ce2f64a97902a305e98488a25a517cb149115ca9097  /data/local/tmp/dsha377_birth_cb49109611634151963090607d71010e/observed",
+  "cases": [
+    {
+      "mode": "exact",
+      "expectedGuestCode": 0,
+      "command": "echo HARNESS_PARENT=$$; /data/local/tmp/dsha377_birth_cb49109611634151963090607d71010e/exact --birth-handshake /system/bin/sh -c 'echo enter > /data/local/tmp/dsha377_birth_cb49109611634151963090607d71010e/entered0; echo SHELL_ENTER; IFS= read -r word || { echo READ_EOF; exit 125; }; echo MARK_$word; exit 0'; rc=$?; echo LEADER_EXIT=$rc; exit $rc",
+      "lines": [
+        "HARNESS_PARENT=604",
+        "DSHA_SESSION_STAT_V1 617 (exact) R 604 617 617 0 -1 4194304 336 0 0 0 22 32 0 0 20 0 1 0 13493 11029196800 609 18446744073709551615 407418093568 407418114448 549633994592 0 0 0 0 0 1073792248 0 0 0 17 2 0 0 0 0 0 407418147984 407418147984 407600644096 549633996044 549633996328 549633996328 549633998771 0",
+        "SHELL_ENTER",
+        "MARK_DSHA_START",
+        "Killed",
+        "LEADER_EXIT=137"
+      ],
+      "harnessForce": false,
+      "birthPid": 617,
+      "parent": 604,
+      "beforeStart": "617 (exact) S 604 617 617 0 -1 4194304 346 0 0 0 23 33 0 0 20 0 1 0 13493 11029196800 609 18446744073709551615 407418093568 407418114448 549633994592 0 0 0 0 0 1073792248 1 0 0 17 2 0 0 0 0 0 407418147984 407418147984 407600644096 549633996044 549633996328 549633996328 549633998771 0\nps: bad -o 'PID,PPID,PGID,SID,NAME'\n                          ^",
+      "starttime": "13493",
+      "finalState": "enter\nleaderPresentCode=1\nps: bad -o 'PID,PPID,PGID,SID,NAME'\n                          ^",
+      "adbReturn": 137,
+      "guestReached": true,
+      "pass": false
+    }
+  ],
+  "seconds": 54.891
+}

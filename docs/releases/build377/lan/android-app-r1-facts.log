@@ -1,0 +1,8 @@
+
+11-25 06:54:36.590  4959  4981 I System.out: probe_started sdk=30
+11-25 06:54:36.591  4959  4981 I System.out: keystore_loaded
+11-25 06:54:36.744  4959  4981 I System.out: key_nonexportable same_address_reopen_same_fingerprint
+11-25 06:54:36.770  4959  4981 I System.out: loopback=TLSv1.2 hostname_verified=true exact_leaf=true exchange=42/43
+11-25 06:54:36.781  4959  4981 I System.out: loopback=TLSv1.3 hostname_verified=true exact_leaf=true exchange=42/43
+11-25 06:54:36.814  4959  4981 I System.out: reissue_new_ip=true DONE
+

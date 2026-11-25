@@ -1,0 +1,46 @@
+{
+  "version": "candidate-lan",
+  "rounds": [
+    {
+      "step": "compile",
+      "command": [
+        "F:\\DSHA\\_toolchains\\jdk-17\\bin\\javac.exe",
+        "@F:\\DSHA_RESTART\\artifacts\\build377-local\\settings\\native-final-r1\\compile.args"
+      ],
+      "startedUtc": "2026-11-25T06:55:30.135002+00:00",
+      "completedUtc": "2026-11-25T06:55:32.582005+00:00",
+      "durationMs": 2454,
+      "exit": 0
+    },
+    {
+      "step": "junit",
+      "command": [
+        "F:\\DSHA\\_toolchains\\jdk-17\\bin\\java.exe",
+        "@F:\\DSHA_RESTART\\artifacts\\build377-local\\settings\\native-final-r1\\junit.args"
+      ],
+      "startedUtc": "2026-11-25T06:55:32.583390+00:00",
+      "completedUtc": "2026-11-25T06:55:42.815203+00:00",
+      "durationMs": 10234,
+      "exit": 0
+    }
+  ],
+  "files": {
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\ui\\ConfigFragment.java": "d47a071441c53450dc6d10fc466b604b32dcdd2ee0fd5daefc569700a323f1c5",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\util\\ConfigDraft.java": "f2c99f38e0caf37d0e2c56fccc4a1b2694ef7019da5b749f9def6b4b01277f65",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\util\\LanNetworkState.java": "416503f0ad9a798d74501eb2d0397d0da78518a85fcf3225c14becf5ba456a25",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\ui\\AboutFragment.java": "a2460c8f5e6ff4b3d5ac1453892e32edf4ebce1bcb60f6f80c99248a99de9ebe",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\ui\\AboutDialog.java": "6482adf2e08eb6b884b7523dfe4d9e65e9da9844e13f48e87315256558cef13a",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\ui\\AboutFragmentTest.java": "ffd732850c802e811cafabd75e0b04f531001b6cc2c49312d5d49e7e2684c5e7",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\ui\\ConfigFragmentSaveTest.java": "442a758d417a9baed0ce066f8b171fa7b73f6eae5a0fcb055afe6a1cb7072f87",
+    "F:\\DSHA_RESTART\\artifacts\\build375-local\\tests\\MatrixJUnit.java": "b3d9c1c20b64773fbe2d5420ae9d0eb5454703948fd1c93239d4d2931ec579b7",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\LanProxyService.java": "f1bf28f68657d0b52d9940b9c769840362d23c0776c8885f248104198c6bae9f",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\LanAuth.java": "bad0b252427fb487c17338c413220cffbad9bdd11741d4ba04caf4b58f6b52a9",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\AndroidLanIdentity.java": "d2b36d8646e1c0b0b16106905dea95f01fd341251af77adf27b0a1fb30158bcd",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\LanTlsIdentity.java": "ef182cddb182cad4a5181b3d90637ea104c3675886b5fbd8e97b6afc9d7b232d",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\bridge\\LocalNetworkAccess.java": "c5475f8bf1f1a6aee8d0f3ff6e71077c93725962aba84ed497aaf5337bc6aad7",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\util\\LanAccessPresentation.java": "9cbe0ba278d943c4c2f27055732678303e1384e9e5e7d7539163a81aa72d3f67",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\util\\LanFailureResponse.java": "51e1dd3fe438889d530306cef2ee305bff93f8570fe8c2d424681e3f46dd5fa1",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\util\\LanPortPolicy.java": "0b946b6b14638b290af2b34c3fde436fbad874557f045dff1ba801d419fb2bfe",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\ui\\ConfigLanApprovalTest.java": "b2417ab99b6512118bafa5e70185795292a2421d0f7a99e67b815d380944e77d"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "provider": "com.android.externalstorage.documents",
+  "providerPackage": "com.android.externalstorage",
+  "sdk": 30,
+  "abi": "x86_64",
+  "initial": {
+    "logicalBytes": 0,
+    "allocatedBytes": 4096,
+    "targetVolumeAvailableBytes": 7767191552,
+    "appVolumeAvailableBytes": 7767187456
+  },
+  "firstUsableMs": 3475,
+  "firstSaved": {
+    "logicalBytes": 257,
+    "allocatedBytes": 8192,
+    "targetVolumeAvailableBytes": 7767195648,
+    "appVolumeAvailableBytes": 7767195648
+  },
+  "firstSha": "372ba698636900ff0355561cdc6a7dbe60cfc3232710174b1cd6f299a85e9b55",
+  "failure": "java.lang.NoClassDefFoundError: Failed resolution of: Lcom/deepseekharness/app/util/LinuxOpenFlags;\n\tat com.deepseekharness.app.backup.AndroidBackupFileSystem.syncDirectory(AndroidBackupFileSystem.java:543)\n\tat com.deepseekharness.app.backup.AndroidBackupFileSystem.directory(AndroidBackupFileSystem.java:300)\n\tat com.deepseekharness.app.transfer.SelectedDocumentSave.directory(SelectedDocumentSave.java:100)\n\tat com.deepseekharness.app.transfer.SelectedDocumentSave.retain(SelectedDocumentSave.java:124)\n\tat com.deepseekharness.app.transfer.SelectedDocumentSave.write(SelectedDocumentSave.java:55)\n\tat org.dsha.fixture.saf.SafProbeActivity.write(SafProbeActivity.java:99)\n\tat org.dsha.fixture.saf.SafProbeActivity.run(SafProbeActivity.java:63)\n\tat org.dsha.fixture.saf.SafProbeActivity.lambda$onActivityResult$0(SafProbeActivity.java:38)\n\tat org.dsha.fixture.saf.SafProbeActivity.$r8$lambda$z89ezI2OXNcc-YpcHKZNG5Q5iH4(Unknown Source:0)\n\tat org.dsha.fixture.saf.SafProbeActivity$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)\n\tat java.lang.Thread.run(Thread.java:923)\nCaused by: java.lang.ClassNotFoundException: Didn't find class \"com.deepseekharness.app.util.LinuxOpenFlags\" on path: DexPathList[[zip file \"/data/app/~~z76VKjf0j7jhZLzuAi5jjQ==/org.dsha.fixture.saf377r1-zgQo9E8qf-hvvpjdNYN7Xw==/base.apk\"],nativeLibraryDirectories=[/data/app/~~z76VKjf0j7jhZLzuAi5jjQ==/org.dsha.fixture.saf377r1-zgQo9E8qf-hvvpjdNYN7Xw==/lib/x86_64, /system/lib64, /system_ext/lib64]]\n\tat dalvik.system.BaseDexClassLoader.findClass(BaseDexClassLoader.java:207)\n\tat java.lang.ClassLoader.loadClass(ClassLoader.java:379)\n\tat java.lang.ClassLoader.loadClass(ClassLoader.java:312)\n\t... 11 more\n"
+}

@@ -1,0 +1,23 @@
+{
+  "class": "Lcom/deepseekharness/app/runtime/IsolatedInstallProcess;",
+  "source": "app/src/main/java/com/deepseekharness/app/runtime/IsolatedInstallProcess.java",
+  "results": [
+    {
+      "round": "R2",
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-retry\\dsha-0.2.2-rc.5.apk",
+      "commit": "5d952dafd13c3193f07e7efbc97b65c0c2c8bea7",
+      "sourceGitBlob": "28126c7f4b2c7f8948554d877daacf1a6c2396a2",
+      "classDex": "classes.dex",
+      "dexSHA256": "b9a84322477977fb8428c300424534770ca0620a77a84de64ed66f231ba4061e"
+    },
+    {
+      "round": "R3",
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-final\\dsha-0.2.2-rc.5.apk",
+      "commit": "0efbf4d26a86d5cb99b4c22d56aa6e6971fd1d61",
+      "sourceGitBlob": "28126c7f4b2c7f8948554d877daacf1a6c2396a2",
+      "classDex": "classes.dex",
+      "dexSHA256": "e35f35d8e273750ff975c307e36ac8c91b3954e9a845cd1f8497ad2f653b6336"
+    }
+  ],
+  "containerDexByteEqual": false
+}

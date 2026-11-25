@@ -1,0 +1,28 @@
+START	2026-11-25T06:55:33.321680900Z	com.deepseekharness.app.ui.ConfigFragmentSaveTest.successfulFixedPortSaveRendersPersistedNumber
+FACT normalized-port value=4217 field=4217 undoVisibility=8
+FINISH	2026-11-25T06:55:37.764014400Z	com.deepseekharness.app.ui.ConfigFragmentSaveTest.successfulFixedPortSaveRendersPersistedNumber
+START	2026-11-25T06:55:37.765415700Z	com.deepseekharness.app.ui.ConfigFragmentSaveTest.recreatingTheOlderFormKeepsOnlyItsEdits
+FACT recreated-save desktop=true dns=native
+FINISH	2026-11-25T06:55:38.634627500Z	com.deepseekharness.app.ui.ConfigFragmentSaveTest.recreatingTheOlderFormKeepsOnlyItsEdits
+START	2026-11-25T06:55:38.634627500Z	com.deepseekharness.app.ui.ConfigFragmentSaveTest.expandedTechnicalSummaryUpdatesAfterSavingThePort
+FACT expanded-summary containsSavedPort=true
+FINISH	2026-11-25T06:55:38.852425400Z	com.deepseekharness.app.ui.ConfigFragmentSaveTest.expandedTechnicalSummaryUpdatesAfterSavingThePort
+START	2026-11-25T06:55:38.852425400Z	com.deepseekharness.app.ui.ConfigFragmentSaveTest.savingDnsInOlderFormPreservesNewDesktopAndFixedPort
+FACT stale-save desktop=true port=42173 dns=ipv4
+FINISH	2026-11-25T06:55:39.382749300Z	com.deepseekharness.app.ui.ConfigFragmentSaveTest.savingDnsInOlderFormPreservesNewDesktopAndFixedPort
+START	2026-11-25T06:55:39.389008Z	com.deepseekharness.app.ui.AboutFragmentTest.noticesRowOpensTheRepositoryDocumentInABrowser
+FINISH	2026-11-25T06:55:39.582943100Z	com.deepseekharness.app.ui.AboutFragmentTest.noticesRowOpensTheRepositoryDocumentInABrowser
+START	2026-11-25T06:55:39.582943100Z	com.deepseekharness.app.ui.AboutFragmentTest.issueTrackerSelectionOpensTheProjectIssuesPage
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+FINISH	2026-11-25T06:55:39.817201900Z	com.deepseekharness.app.ui.AboutFragmentTest.issueTrackerSelectionOpensTheProjectIssuesPage
+START	2026-11-25T06:55:39.872984500Z	com.deepseekharness.app.ui.ConfigLanApprovalTest.saveAfterNetworkChangeEnablesPreferenceButRequiresFreshNetworkApproval
+FINISH	2026-11-25T06:55:42.586701100Z	com.deepseekharness.app.ui.ConfigLanApprovalTest.saveAfterNetworkChangeEnablesPreferenceButRequiresFreshNetworkApproval
+CASE	PASS	com.deepseekharness.app.ui.ConfigFragmentSaveTest.successfulFixedPortSaveRendersPersistedNumber
+CASE	PASS	com.deepseekharness.app.ui.ConfigFragmentSaveTest.recreatingTheOlderFormKeepsOnlyItsEdits
+CASE	PASS	com.deepseekharness.app.ui.ConfigFragmentSaveTest.expandedTechnicalSummaryUpdatesAfterSavingThePort
+CASE	PASS	com.deepseekharness.app.ui.ConfigFragmentSaveTest.savingDnsInOlderFormPreservesNewDesktopAndFixedPort
+CASE	PASS	com.deepseekharness.app.ui.AboutFragmentTest.noticesRowOpensTheRepositoryDocumentInABrowser
+CASE	PASS	com.deepseekharness.app.ui.AboutFragmentTest.issueTrackerSelectionOpensTheProjectIssuesPage
+CASE	PASS	com.deepseekharness.app.ui.ConfigLanApprovalTest.saveAfterNetworkChangeEnablesPreferenceButRequiresFreshNetworkApproval
+TOTAL	7	0	0	0

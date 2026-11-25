@@ -1,0 +1,65 @@
+...........................................................................EEE...E.......................E.......F.................................
+======================================================================
+ERROR: test_artifact_library_receipt_and_parent_symlinks (rust_test_apk_injection.RustApkInjectionTests.test_artifact_library_receipt_and_parent_symlinks) (path='libdsha_rs.so')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 247, in test_artifact_library_receipt_and_parent_symlinks
+    path.symlink_to(real)
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\pathlib.py", line 1198, in symlink_to
+    os.symlink(target, self, target_is_directory)
+OSError: [WinError 1314] �ͻ���û���������Ȩ��: '${USERPROFILE}\\AppData\\Local\\Temp\\dsha-rust-injection-test-vmfi_v9b\\libdsha_rs.so.real' -> '${USERPROFILE}\\AppData\\Local\\Temp\\dsha-rust-injection-test-vmfi_v9b\\artifact\\libdsha_rs.so'
+
+======================================================================
+ERROR: test_artifact_library_receipt_and_parent_symlinks (rust_test_apk_injection.RustApkInjectionTests.test_artifact_library_receipt_and_parent_symlinks) (path='rust-receipt.json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 247, in test_artifact_library_receipt_and_parent_symlinks
+    path.symlink_to(real)
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\pathlib.py", line 1198, in symlink_to
+    os.symlink(target, self, target_is_directory)
+OSError: [WinError 1314] �ͻ���û���������Ȩ��: '${USERPROFILE}\\AppData\\Local\\Temp\\dsha-rust-injection-test-vmfi_v9b\\rust-receipt.json.real' -> '${USERPROFILE}\\AppData\\Local\\Temp\\dsha-rust-injection-test-vmfi_v9b\\artifact\\rust-receipt.json'
+
+======================================================================
+ERROR: test_artifact_library_receipt_and_parent_symlinks (rust_test_apk_injection.RustApkInjectionTests.test_artifact_library_receipt_and_parent_symlinks)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 253, in test_artifact_library_receipt_and_parent_symlinks
+    linked.symlink_to(self.inputs, target_is_directory=True)
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\pathlib.py", line 1198, in symlink_to
+    os.symlink(target, self, target_is_directory)
+OSError: [WinError 1314] �ͻ���û���������Ȩ��: '${USERPROFILE}\\AppData\\Local\\Temp\\dsha-rust-injection-test-vmfi_v9b\\artifact' -> '${USERPROFILE}\\AppData\\Local\\Temp\\dsha-rust-injection-test-vmfi_v9b\\linked'
+
+======================================================================
+ERROR: test_budget_only_never_reports_apk_pass (rust_test_apk_injection.RustApkInjectionTests.test_budget_only_never_reports_apk_pass)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 625, in test_budget_only_never_reports_apk_pass
+    self.assertEqual("FAIL", json.loads(report.read_text())["status"])
+                                        ^^^^^^^^^^^^^^^^^^
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\pathlib.py", line 1059, in read_text
+    return f.read()
+           ^^^^^^^^
+UnicodeDecodeError: 'gbk' codec can't decode byte 0xaa in position 101: illegal multibyte sequence
+
+======================================================================
+ERROR: test_output_symlink_unknown_member_and_wrong_abi (rust_test_apk_injection.RustApkInjectionTests.test_output_symlink_unknown_member_and_wrong_abi)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 270, in test_output_symlink_unknown_member_and_wrong_abi
+    linked.symlink_to(self.directory, target_is_directory=True)
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\pathlib.py", line 1198, in symlink_to
+    os.symlink(target, self, target_is_directory)
+OSError: [WinError 1314] �ͻ���û���������Ȩ��: '${USERPROFILE}\\AppData\\Local\\Temp\\dsha-rust-injection-test-4javkq99' -> '${USERPROFILE}\\AppData\\Local\\Temp\\dsha-rust-injection-test-4javkq99\\jni\\arm64-v8a'
+
+======================================================================
+FAIL: test_unknown_abi_library_and_noncanonical_zip_names (rust_test_apk_injection.RustApkInjectionTests.test_unknown_abi_library_and_noncanonical_zip_names) (name='assets\\evil')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 591, in test_unknown_abi_library_and_noncanonical_zip_names
+    with self.assertRaises(artifact.GateError):
+AssertionError: GateError not raised
+
+----------------------------------------------------------------------
+Ran 145 tests in 70.081s
+
+FAILED (failures=1, errors=5)

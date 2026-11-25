@@ -1,0 +1,562 @@
+........................................................................FF..EEEFFFFFE....EEE..FFFFFFFFFFF.FEEFF.FF..F...EE....FFFF..EEE.FF............................
+======================================================================
+ERROR: test_artifact_library_receipt_and_parent_symlinks (rust_test_apk_injection.RustApkInjectionTests.test_artifact_library_receipt_and_parent_symlinks) (path='libdsha_rs.so')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 247, in test_artifact_library_receipt_and_parent_symlinks
+    path.symlink_to(real)
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\pathlib.py", line 1198, in symlink_to
+    os.symlink(target, self, target_is_directory)
+OSError: [WinError 1314] �ͻ���û���������Ȩ��: '${USERPROFILE}\\AppData\\Local\\Temp\\dsha-rust-injection-test-mrdsj3yp\\libdsha_rs.so.real' -> '${USERPROFILE}\\AppData\\Local\\Temp\\dsha-rust-injection-test-mrdsj3yp\\artifact\\libdsha_rs.so'
+
+======================================================================
+ERROR: test_artifact_library_receipt_and_parent_symlinks (rust_test_apk_injection.RustApkInjectionTests.test_artifact_library_receipt_and_parent_symlinks) (path='rust-receipt.json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 247, in test_artifact_library_receipt_and_parent_symlinks
+    path.symlink_to(real)
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\pathlib.py", line 1198, in symlink_to
+    os.symlink(target, self, target_is_directory)
+OSError: [WinError 1314] �ͻ���û���������Ȩ��: '${USERPROFILE}\\AppData\\Local\\Temp\\dsha-rust-injection-test-mrdsj3yp\\rust-receipt.json.real' -> '${USERPROFILE}\\AppData\\Local\\Temp\\dsha-rust-injection-test-mrdsj3yp\\artifact\\rust-receipt.json'
+
+======================================================================
+ERROR: test_artifact_library_receipt_and_parent_symlinks (rust_test_apk_injection.RustApkInjectionTests.test_artifact_library_receipt_and_parent_symlinks)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 253, in test_artifact_library_receipt_and_parent_symlinks
+    linked.symlink_to(self.inputs, target_is_directory=True)
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\pathlib.py", line 1198, in symlink_to
+    os.symlink(target, self, target_is_directory)
+OSError: [WinError 1314] �ͻ���û���������Ȩ��: '${USERPROFILE}\\AppData\\Local\\Temp\\dsha-rust-injection-test-mrdsj3yp\\artifact' -> '${USERPROFILE}\\AppData\\Local\\Temp\\dsha-rust-injection-test-mrdsj3yp\\linked'
+
+======================================================================
+ERROR: test_budget_only_never_reports_apk_pass (rust_test_apk_injection.RustApkInjectionTests.test_budget_only_never_reports_apk_pass)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 625, in test_budget_only_never_reports_apk_pass
+    self.assertEqual("FAIL", json.loads(report.read_text())["status"])
+                                        ^^^^^^^^^^^^^^^^^^
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\pathlib.py", line 1059, in read_text
+    return f.read()
+           ^^^^^^^^
+UnicodeDecodeError: 'gbk' codec can't decode byte 0xaa in position 101: illegal multibyte sequence
+
+======================================================================
+ERROR: test_compressed_and_stored_rust_members (rust_test_apk_injection.RustApkInjectionTests.test_compressed_and_stored_rust_members) (compression=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 608, in test_compressed_and_stored_rust_members
+    self.assertEqual("PASS", self.verify()["status"])
+                             ^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 153, in verify
+    return artifact.verify_apk(self.apk, **options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 720, in verify_apk
+    info = validate_receipt(receipt, data, identity=identity, budget=budget, root=root)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 505, in validate_receipt
+    assert_committed_inputs(sources, identity["commit"], root=root)
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 241, in assert_committed_inputs
+    raise GateError("RUST_INPUT_NOT_COMMITTED: modified " + name)
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+======================================================================
+ERROR: test_compressed_and_stored_rust_members (rust_test_apk_injection.RustApkInjectionTests.test_compressed_and_stored_rust_members) (compression=8)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 608, in test_compressed_and_stored_rust_members
+    self.assertEqual("PASS", self.verify()["status"])
+                             ^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 153, in verify
+    return artifact.verify_apk(self.apk, **options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 720, in verify_apk
+    info = validate_receipt(receipt, data, identity=identity, budget=budget, root=root)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 505, in validate_receipt
+    assert_committed_inputs(sources, identity["commit"], root=root)
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 241, in assert_committed_inputs
+    raise GateError("RUST_INPUT_NOT_COMMITTED: modified " + name)
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+======================================================================
+ERROR: test_default_assets_output_is_a_separate_directory (rust_test_apk_injection.RustApkInjectionTests.test_default_assets_output_is_a_separate_directory)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 184, in test_default_assets_output_is_a_separate_directory
+    self.stage(assets_out=None)
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 133, in stage
+    return artifact.stage(**options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 636, in stage
+    info = validate_receipt(receipt, data, identity=identity, budget=load_budget(root), root=root)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 505, in validate_receipt
+    assert_committed_inputs(sources, identity["commit"], root=root)
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 241, in assert_committed_inputs
+    raise GateError("RUST_INPUT_NOT_COMMITTED: modified " + name)
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+======================================================================
+ERROR: test_freshness_inclusive_boundaries (rust_test_apk_injection.RustApkInjectionTests.test_freshness_inclusive_boundaries) (age=datetime.timedelta(days=-1))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 388, in test_freshness_inclusive_boundaries
+    info = artifact.validate_receipt(self.receipt, self.library, identity=self.identity,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 505, in validate_receipt
+    assert_committed_inputs(sources, identity["commit"], root=root)
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 241, in assert_committed_inputs
+    raise GateError("RUST_INPUT_NOT_COMMITTED: modified " + name)
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+======================================================================
+ERROR: test_freshness_inclusive_boundaries (rust_test_apk_injection.RustApkInjectionTests.test_freshness_inclusive_boundaries) (age=datetime.timedelta(seconds=300))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 388, in test_freshness_inclusive_boundaries
+    info = artifact.validate_receipt(self.receipt, self.library, identity=self.identity,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 505, in validate_receipt
+    assert_committed_inputs(sources, identity["commit"], root=root)
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 241, in assert_committed_inputs
+    raise GateError("RUST_INPUT_NOT_COMMITTED: modified " + name)
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+======================================================================
+ERROR: test_off_refuses_library_or_receipt_in_staging_or_artifact (rust_test_apk_injection.RustApkInjectionTests.test_off_refuses_library_or_receipt_in_staging_or_artifact)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 303, in test_off_refuses_library_or_receipt_in_staging_or_artifact
+    self.stage()
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 133, in stage
+    return artifact.stage(**options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 636, in stage
+    info = validate_receipt(receipt, data, identity=identity, budget=load_budget(root), root=root)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 505, in validate_receipt
+    assert_committed_inputs(sources, identity["commit"], root=root)
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 241, in assert_committed_inputs
+    raise GateError("RUST_INPUT_NOT_COMMITTED: modified " + name)
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+======================================================================
+ERROR: test_output_symlink_unknown_member_and_wrong_abi (rust_test_apk_injection.RustApkInjectionTests.test_output_symlink_unknown_member_and_wrong_abi)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 270, in test_output_symlink_unknown_member_and_wrong_abi
+    linked.symlink_to(self.directory, target_is_directory=True)
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\pathlib.py", line 1198, in symlink_to
+    os.symlink(target, self, target_is_directory)
+OSError: [WinError 1314] �ͻ���û���������Ȩ��: '${USERPROFILE}\\AppData\\Local\\Temp\\dsha-rust-injection-test-sfqvhk32' -> '${USERPROFILE}\\AppData\\Local\\Temp\\dsha-rust-injection-test-sfqvhk32\\jni\\arm64-v8a'
+
+======================================================================
+ERROR: test_unsigned_and_signed_shape_use_same_static_gate (rust_test_apk_injection.RustApkInjectionTests.test_unsigned_and_signed_shape_use_same_static_gate)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 191, in test_unsigned_and_signed_shape_use_same_static_gate
+    first = self.verify()
+            ^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 153, in verify
+    return artifact.verify_apk(self.apk, **options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 720, in verify_apk
+    info = validate_receipt(receipt, data, identity=identity, budget=budget, root=root)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 505, in validate_receipt
+    assert_committed_inputs(sources, identity["commit"], root=root)
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 241, in assert_committed_inputs
+    raise GateError("RUST_INPUT_NOT_COMMITTED: modified " + name)
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+======================================================================
+ERROR: test_valid_stage_is_exact_and_read_back (rust_test_apk_injection.RustApkInjectionTests.test_valid_stage_is_exact_and_read_back)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 172, in test_valid_stage_is_exact_and_read_back
+    result = self.stage()
+             ^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 133, in stage
+    return artifact.stage(**options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 636, in stage
+    info = validate_receipt(receipt, data, identity=identity, budget=load_budget(root), root=root)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 505, in validate_receipt
+    assert_committed_inputs(sources, identity["commit"], root=root)
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 241, in assert_committed_inputs
+    raise GateError("RUST_INPUT_NOT_COMMITTED: modified " + name)
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+======================================================================
+ERROR: test_verify_artifact_directory_matches_embedded_bytes (rust_test_apk_injection.RustApkInjectionTests.test_verify_artifact_directory_matches_embedded_bytes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 215, in test_verify_artifact_directory_matches_embedded_bytes
+    self.assertEqual("PASS", self.verify(receipt_path=None, artifact_dir=self.inputs)["status"])
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 153, in verify
+    return artifact.verify_apk(self.apk, **options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 720, in verify_apk
+    info = validate_receipt(receipt, data, identity=identity, budget=budget, root=root)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 505, in validate_receipt
+    assert_committed_inputs(sources, identity["commit"], root=root)
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\artifact.py", line 241, in assert_committed_inputs
+    raise GateError("RUST_INPUT_NOT_COMMITTED: modified " + name)
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+======================================================================
+FAIL: test_apk_reuses_elf_symbols_and_needed_checks (rust_test_apk_injection.RustApkInjectionTests.test_apk_reuses_elf_symbols_and_needed_checks) (sha='275677507341497d7857d385a68818a687aec230694837ab801cd6a0d964ea86')
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 565, in test_apk_reuses_elf_symbols_and_needed_checks
+    with self.assertRaisesRegex(artifact.GateError, "ELF_SYMBOLS|ELF_NEEDED"):
+AssertionError: "ELF_SYMBOLS|ELF_NEEDED" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_apk_reuses_elf_symbols_and_needed_checks (rust_test_apk_injection.RustApkInjectionTests.test_apk_reuses_elf_symbols_and_needed_checks) (sha='588f9f1c0e7df8a4351b73026008134cc5414451651d9234c676c82186ba0406')
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 565, in test_apk_reuses_elf_symbols_and_needed_checks
+    with self.assertRaisesRegex(artifact.GateError, "ELF_SYMBOLS|ELF_NEEDED"):
+AssertionError: "ELF_SYMBOLS|ELF_NEEDED" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_artifact_size_budget (rust_test_apk_injection.RustApkInjectionTests.test_artifact_size_budget)
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 534, in test_artifact_size_budget
+    with self.assertRaisesRegex(artifact.GateError, "ARTIFACT_BUDGET"):
+AssertionError: "ARTIFACT_BUDGET" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_bad_apk_library_sha_with_valid_external_receipt (rust_test_apk_injection.RustApkInjectionTests.test_bad_apk_library_sha_with_valid_external_receipt)
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 555, in test_bad_apk_library_sha_with_valid_external_receipt
+    with self.assertRaisesRegex(artifact.GateError, "RECEIPT_ARTIFACT"):
+AssertionError: "RECEIPT_ARTIFACT" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_bad_sha_and_size_are_rejected_before_staging (rust_test_apk_injection.RustApkInjectionTests.test_bad_sha_and_size_are_rejected_before_staging) (field='sha256', value='0000000000000000000000000000000000000000000000000000000000000000')
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 398, in test_bad_sha_and_size_are_rejected_before_staging
+    with self.assertRaisesRegex(artifact.GateError, "RECEIPT_ARTIFACT"):
+AssertionError: "RECEIPT_ARTIFACT" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_bad_sha_and_size_are_rejected_before_staging (rust_test_apk_injection.RustApkInjectionTests.test_bad_sha_and_size_are_rejected_before_staging) (field='size', value=12289)
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 398, in test_bad_sha_and_size_are_rejected_before_staging
+    with self.assertRaisesRegex(artifact.GateError, "RECEIPT_ARTIFACT"):
+AssertionError: "RECEIPT_ARTIFACT" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_bad_sha_and_size_are_rejected_before_staging (rust_test_apk_injection.RustApkInjectionTests.test_bad_sha_and_size_are_rejected_before_staging) (field='size', value=True)
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 398, in test_bad_sha_and_size_are_rejected_before_staging
+    with self.assertRaisesRegex(artifact.GateError, "RECEIPT_ARTIFACT"):
+AssertionError: "RECEIPT_ARTIFACT" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_empty_missing_and_malformed_load_relro_dynamic (rust_test_apk_injection.RustApkInjectionTests.test_empty_missing_and_malformed_load_relro_dynamic) (name='no-load')
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 527, in test_empty_missing_and_malformed_load_relro_dynamic
+    with self.assertRaisesRegex(artifact.GateError, "ELF_STRUCTURE|ELF_INVALID"):
+AssertionError: "ELF_STRUCTURE|ELF_INVALID" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_empty_missing_and_malformed_load_relro_dynamic (rust_test_apk_injection.RustApkInjectionTests.test_empty_missing_and_malformed_load_relro_dynamic) (name='empty-load')
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 527, in test_empty_missing_and_malformed_load_relro_dynamic
+    with self.assertRaisesRegex(artifact.GateError, "ELF_STRUCTURE|ELF_INVALID"):
+AssertionError: "ELF_STRUCTURE|ELF_INVALID" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_empty_missing_and_malformed_load_relro_dynamic (rust_test_apk_injection.RustApkInjectionTests.test_empty_missing_and_malformed_load_relro_dynamic) (name='filesz-over-memsz')
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 527, in test_empty_missing_and_malformed_load_relro_dynamic
+    with self.assertRaisesRegex(artifact.GateError, "ELF_STRUCTURE|ELF_INVALID"):
+AssertionError: "ELF_STRUCTURE|ELF_INVALID" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_empty_missing_and_malformed_load_relro_dynamic (rust_test_apk_injection.RustApkInjectionTests.test_empty_missing_and_malformed_load_relro_dynamic) (name='unaligned')
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 527, in test_empty_missing_and_malformed_load_relro_dynamic
+    with self.assertRaisesRegex(artifact.GateError, "ELF_STRUCTURE|ELF_INVALID"):
+AssertionError: "ELF_STRUCTURE|ELF_INVALID" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_empty_missing_and_malformed_load_relro_dynamic (rust_test_apk_injection.RustApkInjectionTests.test_empty_missing_and_malformed_load_relro_dynamic) (name='no-relro')
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 527, in test_empty_missing_and_malformed_load_relro_dynamic
+    with self.assertRaisesRegex(artifact.GateError, "ELF_STRUCTURE|ELF_INVALID"):
+AssertionError: "ELF_STRUCTURE|ELF_INVALID" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_empty_missing_and_malformed_load_relro_dynamic (rust_test_apk_injection.RustApkInjectionTests.test_empty_missing_and_malformed_load_relro_dynamic) (name='empty-relro')
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 527, in test_empty_missing_and_malformed_load_relro_dynamic
+    with self.assertRaisesRegex(artifact.GateError, "ELF_STRUCTURE|ELF_INVALID"):
+AssertionError: "ELF_STRUCTURE|ELF_INVALID" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_empty_missing_and_malformed_load_relro_dynamic (rust_test_apk_injection.RustApkInjectionTests.test_empty_missing_and_malformed_load_relro_dynamic) (name='unmapped-relro')
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 527, in test_empty_missing_and_malformed_load_relro_dynamic
+    with self.assertRaisesRegex(artifact.GateError, "ELF_STRUCTURE|ELF_INVALID"):
+AssertionError: "ELF_STRUCTURE|ELF_INVALID" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_empty_missing_and_malformed_load_relro_dynamic (rust_test_apk_injection.RustApkInjectionTests.test_empty_missing_and_malformed_load_relro_dynamic) (name='no-dynamic')
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 527, in test_empty_missing_and_malformed_load_relro_dynamic
+    with self.assertRaisesRegex(artifact.GateError, "ELF_STRUCTURE|ELF_INVALID"):
+AssertionError: "ELF_STRUCTURE|ELF_INVALID" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_empty_missing_and_malformed_load_relro_dynamic (rust_test_apk_injection.RustApkInjectionTests.test_empty_missing_and_malformed_load_relro_dynamic) (name='unterminated-dynamic')
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 527, in test_empty_missing_and_malformed_load_relro_dynamic
+    with self.assertRaisesRegex(artifact.GateError, "ELF_STRUCTURE|ELF_INVALID"):
+AssertionError: "ELF_STRUCTURE|ELF_INVALID" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_empty_missing_and_malformed_load_relro_dynamic (rust_test_apk_injection.RustApkInjectionTests.test_empty_missing_and_malformed_load_relro_dynamic) (name='dynsym-section-disagrees')
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 527, in test_empty_missing_and_malformed_load_relro_dynamic
+    with self.assertRaisesRegex(artifact.GateError, "ELF_STRUCTURE|ELF_INVALID"):
+AssertionError: "ELF_STRUCTURE|ELF_INVALID" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_empty_missing_and_malformed_load_relro_dynamic (rust_test_apk_injection.RustApkInjectionTests.test_empty_missing_and_malformed_load_relro_dynamic) (name='truncated')
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 527, in test_empty_missing_and_malformed_load_relro_dynamic
+    with self.assertRaisesRegex(artifact.GateError, "ELF_STRUCTURE|ELF_INVALID"):
+AssertionError: "ELF_STRUCTURE|ELF_INVALID" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_failed_check_replaces_old_pass_report (rust_test_apk_injection.RustApkInjectionTests.test_failed_check_replaces_old_pass_report)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 632, in test_failed_check_replaces_old_pass_report
+    self.assertEqual(0, result.returncode, result.stderr)
+AssertionError: 0 != 1 : FAIL RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+
+======================================================================
+FAIL: test_hidden_and_internal_jni_visibility_rejected_in_stage_and_apk (rust_test_apk_injection.RustApkInjectionTests.test_hidden_and_internal_jni_visibility_rejected_in_stage_and_apk) (visibility=1)
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 488, in test_hidden_and_internal_jni_visibility_rejected_in_stage_and_apk
+    with self.assertRaisesRegex(artifact.GateError, "export visibility"):
+AssertionError: "export visibility" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_hidden_and_internal_jni_visibility_rejected_in_stage_and_apk (rust_test_apk_injection.RustApkInjectionTests.test_hidden_and_internal_jni_visibility_rejected_in_stage_and_apk) (visibility=2)
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 488, in test_hidden_and_internal_jni_visibility_rejected_in_stage_and_apk
+    with self.assertRaisesRegex(artifact.GateError, "export visibility"):
+AssertionError: "export visibility" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_legacy_require_optional_flags_and_python_wrapper (rust_test_apk_injection.RustApkInjectionTests.test_legacy_require_optional_flags_and_python_wrapper)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 656, in test_legacy_require_optional_flags_and_python_wrapper
+    self.assertEqual(0, result.returncode, result.stderr)
+AssertionError: 0 != 1 : FAIL RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+
+======================================================================
+FAIL: test_local_provenance_allowed_only_without_ci_expectation (rust_test_apk_injection.RustApkInjectionTests.test_local_provenance_allowed_only_without_ci_expectation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 363, in test_local_provenance_allowed_only_without_ci_expectation
+    self.assertEqual(0, result.returncode, result.stderr)
+AssertionError: 0 != 1 : FAIL RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+
+======================================================================
+FAIL: test_needed_whitelist (rust_test_apk_injection.RustApkInjectionTests.test_needed_whitelist)
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 498, in test_needed_whitelist
+    with self.assertRaisesRegex(artifact.GateError, "ELF_NEEDED"):
+AssertionError: "ELF_NEEDED" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_stage_and_both_apk_clis (rust_test_apk_injection.RustApkInjectionTests.test_stage_and_both_apk_clis)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 203, in test_stage_and_both_apk_clis
+    self.assertEqual(0, staged.returncode, staged.stderr)
+AssertionError: 0 != 1 : FAIL RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+
+======================================================================
+FAIL: test_symbols_exact_not_merely_count (rust_test_apk_injection.RustApkInjectionTests.test_symbols_exact_not_merely_count) (symbols=['Java_com_deepseekharness_app_util_RustNative_abiVersion', 'Java_com_deepseekharness_app_util_RustNative_archivePackAbort', 'Java_com_deepseekharness_app_util_RustNative_archivePackCreate', 'Java_com_deepseekharness_app_util_RustNative_archivePackFinish', 'Java_com_deepseekharness_app_util_RustNative_archivePackUpdate', 'Java_com_deepseekharness_app_util_RustNative_archiveUnpackAbort', 'Java_com_deepseekharness_app_util_RustNative_archiveUnpackCreate', 'Java_com_deepseekharness_app_util_RustNative_archiveUnpackRead', 'Java_com_deepseekharness_app_util_RustNative_archiveUnpackWrite', 'Java_com_deepseekharness_app_util_RustNative_digest'])
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 479, in test_symbols_exact_not_merely_count
+    with self.assertRaisesRegex(artifact.GateError, "ELF_SYMBOLS"):
+AssertionError: "ELF_SYMBOLS" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_symbols_exact_not_merely_count (rust_test_apk_injection.RustApkInjectionTests.test_symbols_exact_not_merely_count) (symbols=['Java_wrong_symbol', 'Java_com_deepseekharness_app_util_RustNative_archivePackAbort', 'Java_com_deepseekharness_app_util_RustNative_archivePackCreate', 'Java_com_deepseekharness_app_util_RustNative_archivePackFinish', 'Java_com_deepseekharness_app_util_RustNative_archivePackUpdate', 'Java_com_deepseekharness_app_util_RustNative_archiveUnpackAbort', 'Java_com_deepseekharness_app_util_RustNative_archiveUnpackCreate', 'Java_com_deepseekharness_app_util_RustNative_archiveUnpackRead', 'Java_com_deepseekharness_app_util_RustNative_archiveUnpackWrite', 'Java_com_deepseekharness_app_util_RustNative_digest', 'Java_com_deepseekharness_app_util_RustNative_verifyPlan'])
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 479, in test_symbols_exact_not_merely_count
+    with self.assertRaisesRegex(artifact.GateError, "ELF_SYMBOLS"):
+AssertionError: "ELF_SYMBOLS" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_symbols_exact_not_merely_count (rust_test_apk_injection.RustApkInjectionTests.test_symbols_exact_not_merely_count) (symbols=['Java_com_deepseekharness_app_util_RustNative_abiVersion', 'Java_com_deepseekharness_app_util_RustNative_archivePackAbort', 'Java_com_deepseekharness_app_util_RustNative_archivePackCreate', 'Java_com_deepseekharness_app_util_RustNative_archivePackFinish', 'Java_com_deepseekharness_app_util_RustNative_archivePackUpdate', 'Java_com_deepseekharness_app_util_RustNative_archiveUnpackAbort', 'Java_com_deepseekharness_app_util_RustNative_archiveUnpackCreate', 'Java_com_deepseekharness_app_util_RustNative_archiveUnpackRead', 'Java_com_deepseekharness_app_util_RustNative_archiveUnpackWrite', 'Java_com_deepseekharness_app_util_RustNative_digest', 'Java_com_deepseekharness_app_util_RustNative_verifyPlan', 'extra_export'])
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 479, in test_symbols_exact_not_merely_count
+    with self.assertRaisesRegex(artifact.GateError, "ELF_SYMBOLS"):
+AssertionError: "ELF_SYMBOLS" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_wrong_machine_and_exec_elf_rejected (rust_test_apk_injection.RustApkInjectionTests.test_wrong_machine_and_exec_elf_rejected) (sha='6eaa0a7c16f1f92bb0a95b918ba9b449079a5b2740f5602be7cefb6c7a7ee659')
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 506, in test_wrong_machine_and_exec_elf_rejected
+    with self.assertRaisesRegex(artifact.GateError, "ELF_MACHINE|ET_DYN"):
+AssertionError: "ELF_MACHINE|ET_DYN" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+======================================================================
+FAIL: test_wrong_machine_and_exec_elf_rejected (rust_test_apk_injection.RustApkInjectionTests.test_wrong_machine_and_exec_elf_rejected) (sha='f1f5e92b259d8160474975968863b288c1cfbf53bd4e2a903fadf35a5c1a4d36')
+----------------------------------------------------------------------
+artifact.GateError: RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\rust\test_apk_injection.py", line 506, in test_wrong_machine_and_exec_elf_rejected
+    with self.assertRaisesRegex(artifact.GateError, "ELF_MACHINE|ET_DYN"):
+AssertionError: "ELF_MACHINE|ET_DYN" does not match "RUST_INPUT_NOT_COMMITTED: modified .github/workflows/_node-contracts.yml"
+
+----------------------------------------------------------------------
+Ran 145 tests in 64.301s
+
+FAILED (failures=30, errors=14)

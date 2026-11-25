@@ -1,0 +1,132 @@
+[
+  {
+    "file": "app/src/main/res/values/backup_portable.xml",
+    "keys": 15,
+    "args": [
+      "F:/DSHA_RESTART/toolchains/current/android-sdk/build-tools/36.0.0/aapt2.exe",
+      "compile",
+      "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\res\\values\\backup_portable.xml",
+      "-o",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\aapt2"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "app/src/main/res/values-ar/backup_portable.xml",
+    "keys": 15,
+    "args": [
+      "F:/DSHA_RESTART/toolchains/current/android-sdk/build-tools/36.0.0/aapt2.exe",
+      "compile",
+      "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\res\\values-ar\\backup_portable.xml",
+      "-o",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\aapt2"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "app/src/main/res/values-b+zh+Hant/backup_portable.xml",
+    "keys": 15,
+    "args": [
+      "F:/DSHA_RESTART/toolchains/current/android-sdk/build-tools/36.0.0/aapt2.exe",
+      "compile",
+      "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\res\\values-b+zh+Hant\\backup_portable.xml",
+      "-o",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\aapt2"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "app/src/main/res/values-en/backup_portable.xml",
+    "keys": 15,
+    "args": [
+      "F:/DSHA_RESTART/toolchains/current/android-sdk/build-tools/36.0.0/aapt2.exe",
+      "compile",
+      "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\res\\values-en\\backup_portable.xml",
+      "-o",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\aapt2"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "app/src/main/res/values-fr/backup_portable.xml",
+    "keys": 15,
+    "args": [
+      "F:/DSHA_RESTART/toolchains/current/android-sdk/build-tools/36.0.0/aapt2.exe",
+      "compile",
+      "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\res\\values-fr\\backup_portable.xml",
+      "-o",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\aapt2"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "app/src/main/res/values-ja/backup_portable.xml",
+    "keys": 15,
+    "args": [
+      "F:/DSHA_RESTART/toolchains/current/android-sdk/build-tools/36.0.0/aapt2.exe",
+      "compile",
+      "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\res\\values-ja\\backup_portable.xml",
+      "-o",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\aapt2"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "app/src/main/res/values-ko/backup_portable.xml",
+    "keys": 15,
+    "args": [
+      "F:/DSHA_RESTART/toolchains/current/android-sdk/build-tools/36.0.0/aapt2.exe",
+      "compile",
+      "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\res\\values-ko\\backup_portable.xml",
+      "-o",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\aapt2"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "app/src/main/res/values-la/backup_portable.xml",
+    "keys": 15,
+    "args": [
+      "F:/DSHA_RESTART/toolchains/current/android-sdk/build-tools/36.0.0/aapt2.exe",
+      "compile",
+      "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\res\\values-la\\backup_portable.xml",
+      "-o",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\aapt2"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "app/src/main/res/values-pt/backup_portable.xml",
+    "keys": 15,
+    "args": [
+      "F:/DSHA_RESTART/toolchains/current/android-sdk/build-tools/36.0.0/aapt2.exe",
+      "compile",
+      "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\res\\values-pt\\backup_portable.xml",
+      "-o",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\aapt2"
+    ],
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "app/src/main/res/values-ru/backup_portable.xml",
+    "keys": 15,
+    "args": [
+      "F:/DSHA_RESTART/toolchains/current/android-sdk/build-tools/36.0.0/aapt2.exe",
+      "compile",
+      "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\res\\values-ru\\backup_portable.xml",
+      "-o",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\aapt2"
+    ],
+    "exit": 0,
+    "output": ""
+  }
+]

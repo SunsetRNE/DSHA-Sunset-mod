@@ -1,0 +1,69 @@
+{
+  "start": "2026-11-25T14:50:51.925353+08:00",
+  "base_head": "12efafd7d3530b412d48ccb66fb657c6bd7cc8ac",
+  "free_start": 351720198144,
+  "old_inputs": {
+    "app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\BackupArchive.java": "ef6b08347ac06646bf34467343b46277ceb8cf8cc14d79111156be8b54a200c9",
+    "app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\PortableBackupCrypto.java": "a31635746c069395514d1c221b0ed30a1143cf7ff698eb648aedb7bc77db2b93",
+    "app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\PortableBackupEnvelope.java": "3af6815c8b20275b569bc4ec4a09e89ae295cd3ae0fefb443ef52f6386673430",
+    "app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\PasswordFreeBackupExport.java": "027cc1074c61b24fcfda35d44217e4f7544c9878de6eb360b1f891a1fb18676a",
+    "app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\RestoreStaging.java": "fcec29c2601199cee44877198aea64d74ac7ad607b0050efb842d46a5998900c",
+    "app\\src\\test\\java\\com\\deepseekharness\\app\\backup\\PasswordFreeBackupExportTest.java": "4047c4809a5a4720a9d90d8f859cefd8af4ace9cbf6bc8539ebdb163c2929a22"
+  },
+  "new_inputs": {
+    "app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\BackupArchive.java": "aea5baf142555df76fc03445aa7e2c6d72888b3ca7ae8ac55593dabdcbf01dc4",
+    "app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\PortableBackupCrypto.java": "d35e4c4098d89b068530a265f6a7c5b5383bbabc4ea02a0f5c85ca701f8c2f7f",
+    "app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\PortableBackupEnvelope.java": "8efbb86749e8e1def9f9d9b3e049770450d7a0694dc321ae8039d176fd9b75c8",
+    "app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\PasswordFreeBackupExport.java": "1e2797b339bb22918ba754954c184a600e6f72f0229f9c270a26598987cfbc86",
+    "app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\RestoreStaging.java": "478d98b1fecdf9c303a1a80dd560f2b60279cc228fd29618bd0180d0a6afc787",
+    "app\\src\\test\\java\\com\\deepseekharness\\app\\backup\\PasswordFreeBackupExportTest.java": "894a19e518d276500377b74c847b205dc62d55fbf2413fb3dc395bbc0729866c"
+  },
+  "exports": {
+    "376": {
+      "sha256": "7331a3daa9bdf0c246bcef3cfb469f0dc74d9f67bd9e3f66b89beb9c146ddf31",
+      "storage": {
+        "logical": 50348077,
+        "allocated_windows": 50352128,
+        "free_same_volume": 351669833728
+      },
+      "members": {
+        "portable.dshbak": {
+          "length": 50332459,
+          "synthetic_chat_marker": true,
+          "synthetic_attachment_marker": true,
+          "first_eight_hex": "4453484144415441"
+        },
+        "README.txt": {
+          "length": 252,
+          "synthetic_chat_marker": false,
+          "synthetic_attachment_marker": false,
+          "first_eight_hex": "4453484120617070"
+        }
+      }
+    },
+    "377": {
+      "sha256": "fe5a06889069f45cd64a6111458f88420e605e9305cb1ecd50ef64b9ddfdd641",
+      "storage": {
+        "logical": 50348393,
+        "allocated_windows": 50352128,
+        "free_same_volume": 351619182592
+      },
+      "members": {
+        "portable.dshbak": {
+          "length": 50332530,
+          "synthetic_chat_marker": false,
+          "synthetic_attachment_marker": false,
+          "first_eight_hex": "4453484142414b35"
+        },
+        "README.txt": {
+          "length": 294,
+          "synthetic_chat_marker": false,
+          "synthetic_attachment_marker": false,
+          "first_eight_hex": "4453484120617070"
+        }
+      }
+    }
+  },
+  "free_end": 351611416576,
+  "end": "2026-11-25T14:51:30.035535+08:00"
+}

@@ -1,0 +1,26 @@
+{
+  "sourceCommit": "365719301ebf8c35f87edc24bdce4edb503c46d5",
+  "apk": "F:\\DSHA_RESTART\\artifacts\\build377-local\\local-release\\dsha-0.2.2-rc.5.apk",
+  "bytes": 255591272,
+  "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+  "runtimeSha256": "2cbc3aba49cfb256a01afd9dd68eeb7b72e8c01f35d88745cdb2648ec6333bed",
+  "inputs": {
+    "assets/web-brand-entry-patch.json": "6f6e6d96cbfb3b40e06f9482b23050ded83666650bd89a2d38980cb03278f385",
+    "assets/web-brand-manifest-patch.json": "f771a36c14b0254e2d2da453da46fb863e5b30b78be2053aed9fb245e44b4399",
+    "assets/web-brand-run-indicator-patch.json": "86f4862b3c9d4b1a358b79fa0ffcb2d71a438c00b7d90c9a2fb9bc598312e26d",
+    "assets/web-brand-sidebar-patch.json": "ed657942c9d31216b4d32f9f7eb89696ba43414572d659fc7634376d62223cd8",
+    "assets/web-brand-title-patch.json": "07cbb608b0078f9ad314e7bf3b66f2572f5747848bc7cd3bf8c88dcd0b39087e",
+    "assets/web-brand-viewer-patch.json": "354ef4b54bfa1928fd6a966d5b54b92c02d91ee3492dca757708dc5be0c15d89",
+    "assets/lan-mux-authorization-patch.json": "d26ccde9f1a0e2eae41db40a1041b22596f73ce7b0136424b98a626f823b12c8",
+    "assets/lan-mux-client-patch.json": "b3a66f09a423b2ee74214cf3f8c69a667eee761321cfd826745929bac51d031a",
+    "assets/web-brand/apple-touch-icon.png": "e3326e0590a7101270116b89093cbdfcb1b42ff5d9677f0eb7168b231e98c06e",
+    "assets/web-brand/favicon-dark.svg": "5e964861a1d1099c8c60de1fcb06dff3f71c8c1d6dadbadd2a8d936dded12a86",
+    "assets/web-brand/favicon.svg": "5e964861a1d1099c8c60de1fcb06dff3f71c8c1d6dadbadd2a8d936dded12a86",
+    "assets/web-brand/icon-192.png": "78220e55f1c06975ee062a99f39a6d165c4e754c21ca12bc589387786d3bce93",
+    "assets/web-brand/icon-512.png": "2bec0ccb55508f03f83c789a9c0a6989eccd1567db15c59fc648d66674373f4c",
+    "assets/web-brand/icon-maskable-512.png": "32e6d1b7119c0a956992b5170908fabde96a92ddb1e2d57c5979a6856ec351b2",
+    "assets/web-default-brand-patch.json": "44a2c5cff89794221a298c335cb3f4d74e5c65381ae550900f1280f18a4b95bb",
+    "assets/runtime-patches.json": "8ab29fd976c88a5f19f045b8bcfb749291645c88759b07d6b4607409657905f7",
+    "assets/managed-runtime-inputs.json": "39c165d5c381d1028180a3ea887b4d9408b0e749d42fa603c251cbc4dd9b9f73"
+  }
+}

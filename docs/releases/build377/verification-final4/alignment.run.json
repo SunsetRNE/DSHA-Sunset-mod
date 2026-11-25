@@ -1,0 +1,15 @@
+{
+  "command": [
+    "F:\\DSHA_RESTART\\toolchains\\current\\android-sdk\\build-tools\\36.0.0\\zipalign.exe",
+    "-c",
+    "-P",
+    "16",
+    "4",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\local-release\\dsha-0.2.2-rc.5.apk"
+  ],
+  "startedAt": "2026-11-25T09:56:29.191360+00:00",
+  "finishedAt": "2026-11-25T09:56:29.229661+00:00",
+  "elapsedSeconds": 0.031,
+  "exitCode": 0,
+  "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

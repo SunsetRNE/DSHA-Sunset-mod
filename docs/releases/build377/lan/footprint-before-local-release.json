@@ -1,0 +1,30 @@
+{
+  "atUtc": "2026-11-25T09:46:52.909825+00:00",
+  "volumeAvailableBytes": 307431387136,
+  "roots": [
+    {
+      "root": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan",
+      "files": 2122,
+      "logicalBytes": 43446619,
+      "allocatedBytes": 47210848,
+      "skippedLinks": 0,
+      "metadataErrors": []
+    },
+    {
+      "root": "F:\\DSHA_RESTART\\cache\\build377-lan-emulator",
+      "files": 40,
+      "logicalBytes": 18105749143,
+      "allocatedBytes": 9593243984,
+      "skippedLinks": 0,
+      "metadataErrors": []
+    },
+    {
+      "root": "F:\\DSHA_RESTART\\cache\\build377-lan-browsers",
+      "files": 352,
+      "logicalBytes": 181080497,
+      "allocatedBytes": 181523176,
+      "skippedLinks": 0,
+      "metadataErrors": []
+    }
+  ]
+}

@@ -1,0 +1,1044 @@
+{
+  "scope": "local APKs in release and release-experimental; ZIP native entries plus named assets up to 100 KiB; no remote distribution or complete legal determination",
+  "firstApkSeconds": 15.531958699983079,
+  "totalSeconds": 42.147222300001886,
+  "freeStart": 351593259008,
+  "freeEnd": 351582248960,
+  "upstreamLicenseHistory": {
+    "65a28b7f8af182f3bde0c75156c39a30b82bc0ec": {
+      "url": "https://raw.githubusercontent.com/coderredlab/proroot/65a28b7f8af182f3bde0c75156c39a30b82bc0ec/LICENSE",
+      "sha256": "4ebf32d7d7103f063d2f152cc1a54505501405fd2f12fc44fd16d1ad1fa12669",
+      "bytes": 1190,
+      "mentionsLibldlinux": true,
+      "requiresAttribution": false
+    },
+    "2f175a7e36dbeb2548ef771d2091257da0442488": {
+      "url": "https://raw.githubusercontent.com/coderredlab/proroot/2f175a7e36dbeb2548ef771d2091257da0442488/LICENSE",
+      "sha256": "fb9b8fb22fb20bfc63dbef07622849a2b84ab53644d44bf6157d3621de18d36d",
+      "bytes": 1375,
+      "mentionsLibldlinux": true,
+      "requiresAttribution": true
+    },
+    "c04b1ed1563d432f9ec727272979de98f68c8031": {
+      "url": "https://raw.githubusercontent.com/coderredlab/proroot/c04b1ed1563d432f9ec727272979de98f68c8031/LICENSE",
+      "sha256": "0576d93d18783c1dd677c1d412757a20a3098a2585590b760e444201a3ff565e",
+      "bytes": 1173,
+      "mentionsLibldlinux": false,
+      "requiresAttribution": true
+    },
+    "14b72a764490d0280eee3915ecfa3e8a132b392e": {
+      "url": "https://raw.githubusercontent.com/coderredlab/proroot/14b72a764490d0280eee3915ecfa3e8a132b392e/LICENSE",
+      "sha256": "0576d93d18783c1dd677c1d412757a20a3098a2585590b760e444201a3ff565e",
+      "bytes": 1173,
+      "mentionsLibldlinux": false,
+      "requiresAttribution": true
+    }
+  },
+  "original": {
+    "libproroot.so": "a4e74d75b66cdc02b080adfe863dbf9951c3b30610d77beddc95488d5fe5de01",
+    "libproroot-bridge.so": "1c5bc9537a270e8bf8b1c70222813f57b60b828bfb5503ddf8fe37685092de2f",
+    "libproroot-runtime.so": "8c47a0a7db32d84c179ebb5bf3640f655a3181860ece5886ae44d92858730c34",
+    "libproroot-stub-loader.so": "06c6624db3bdc45b9ced151cd781df439a37b47731d244b93e9d6a58cd48cde0",
+    "libproroot-linker.so": "51a0ec5bfed00e572a0de09e22d9057e2befc386b78e426613d3e0ab03f4ecee"
+  },
+  "stripped": {
+    "libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62",
+    "libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+    "libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+    "libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+    "libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0"
+  },
+  "counts": {
+    "v1.2.8-llvm-strip-unneeded": 55,
+    "no-matching-native-name": 14,
+    "v1.2.8-original": 7
+  },
+  "withNotice": 1,
+  "rows": [
+    {
+      "path": "release/0.1.5-rc1/dsha-0.1.5-rc1.apk",
+      "bytes": 184607144,
+      "sha256": "3f099d4c4d9946968e64813fbc4532b9d98e34426923beb203687f64d60b93f3",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.5-rc1/dsha-0.1.5-rc1low.apk",
+      "bytes": 265103710,
+      "sha256": "0979d209da950e6ee580ce5b2e8d88c1ae87174308ca3886e70d3df5956ea448",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.5-rc1.1/dsha-0.1.5-rc1.1.apk",
+      "bytes": 184781670,
+      "sha256": "8ab400bdd5d66098e599c36ee6e67090d5c49d4b4cd1953033364abf6faa555e",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.5-rc1.1/dsha-0.1.5-rc1.1low.apk",
+      "bytes": 265244168,
+      "sha256": "b1181f889713d312bb10a97becbdf463858ab10121b35cba7a63bc760054c872",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.5-rc2/dsha-0.1.5-rc2.apk",
+      "bytes": 185267651,
+      "sha256": "85cb7c7213681ced654788f940b16313b3b5e2b662add87432ede95446a30658",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.5-rc2/dsha-0.1.5-rc2low.apk",
+      "bytes": 265534244,
+      "sha256": "5bb7602cfd55d3bf9e8789e5b49e45d864841424f4814237ee7d3c54298d3536",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.5-rc2.1/dsha-0.1.5-rc2.1.apk",
+      "bytes": 192813150,
+      "sha256": "b8627520334f685a00f4e9e62cf31b4fa5b79b0ac87f0d5b40456b77317c93d8",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.5-rc2.1/dsha-0.1.5-rc2.1low.apk",
+      "bytes": 269307506,
+      "sha256": "d25a4b9e4bf27c526c081d7a503fba0863aa283cb287144e4e24225c5d75832c",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.6-alpha1/dsha-0.1.6-alpha1.apk",
+      "bytes": 216990132,
+      "sha256": "1aa3312dff54f0661e2772217d1203ebf1255e016b34be8a9ff81426d07a9185",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.6-alpha1/dsha-0.1.6-alpha1low.apk",
+      "bytes": 293401592,
+      "sha256": "195e05f9d1a961951ed38a4ca4639fb657a65ca4e01f71fab0a5d2d587eeedd3",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.6-alpha2/dsha-0.1.6-alpha2.apk",
+      "bytes": 256898677,
+      "sha256": "c2b21cc54594f88580107ad72c374fff2f703440194781c841fdb7151fea4485",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.6-alpha2/dsha-0.1.6-alpha2low.apk",
+      "bytes": 333261873,
+      "sha256": "cf9c0333a7cec8df8fd847739a2091947ae2f2d1ddbc385b1b3eefd9e9722d2e",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.6-alpha2.1/dsha-0.1.6-alpha2.1.apk",
+      "bytes": 257026006,
+      "sha256": "a49c45885a737c081ed6c497bbdb1b2d9406cdcd5687e095369d1baa4097e99e",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.6-alpha2.1/dsha-0.1.6-alpha2.1low.apk",
+      "bytes": 333347178,
+      "sha256": "e44c1c0b44089c1607312f6f9136c785ffb53013fca67c11a78e1e8642218d15",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.7-alpha1/dsha-0.1.7-alpha1.apk",
+      "bytes": 272907964,
+      "sha256": "5fb1d0a82b36a7b0b93b1c17d6998ad726164b8a78fbcafb8bae083371cb5a68",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.7-alpha1/dsha-0.1.7-alpha1low.apk",
+      "bytes": 349228075,
+      "sha256": "6ef091d9ae4a3e2f2c2a1f2928c057c2711443634bcd51db888641dc8b3fb329",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.7-alpha2/dsha-0.1.7-alpha2.apk",
+      "bytes": 272933762,
+      "sha256": "3258884ae654740f00cf43988b246e6c26483fd43a2f08ec703e98a333aa8b18",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.7-alpha2/dsha-0.1.7-alpha2low.apk",
+      "bytes": 349253412,
+      "sha256": "3ee540f491b027c4bfc4284a7cc8df3908ef1f0fb7d944dd8938dd9c6421e82e",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.7-rc1/dsha-0.1.7-rc1.apk",
+      "bytes": 273117630,
+      "sha256": "e6c4984597335bcfed91f62064de6b47f4c8a5226dc1e942bfcd2657de25fc08",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.7-rc1/dsha-0.1.7-rc1low.apk",
+      "bytes": 349406776,
+      "sha256": "8e41f10079cb29f6f714e19ac793edacf168e6b626f2baee8452548027519edb",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.7-rc2/dsha-0.1.7-rc2.apk",
+      "bytes": 273621504,
+      "sha256": "f8115ddffa119479f6378653b78e9adb1b23b5abf819a3f0f2602463f64d9b75",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.7-rc2/dsha-0.1.7-rc2low.apk",
+      "bytes": 349864634,
+      "sha256": "b7b778291239a09149c712327c52cb5257001df4448bfb04d5b1ea04db43e64b",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.7-rc2.1/dsha-0.1.7-rc2.1.apk",
+      "bytes": 273619827,
+      "sha256": "cec69b41f4f012b481b01e14877254106d9554de260634d36c2f959716c16944",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.1.7-rc2.1/dsha-0.1.7-rc2.1low.apk",
+      "bytes": 349864196,
+      "sha256": "b137ba8af0008343c77d770da689baaf687bddc857521d0be6fecf5be6978ad2",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.0-rc2/dsha-0.2.0-rc2.apk",
+      "bytes": 286371170,
+      "sha256": "1fedf883d431af658d89c28b86d85974cc1d11b74e0c5d46ef3d3cf8650b1961",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.0-rc2/dsha-0.2.0-rc2low.apk",
+      "bytes": 362039043,
+      "sha256": "a191501597cf389c90ef90a5444b397660fdb2434d705ae0bf1eff641cd8d0a7",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.0-rc2.1/dsha-0.2.0-rc2.1.apk",
+      "bytes": 288209314,
+      "sha256": "e216b839d56b4648c7d0e0579ae98df61e850abc3c877dba316f894ea6b18766",
+      "memberHashes": {},
+      "recognizedNotice": [],
+      "state": "no-matching-native-name"
+    },
+    {
+      "path": "release/0.2.0-rc2.1/dsha-0.2.0-rc2.1low.apk",
+      "bytes": 486296267,
+      "sha256": "97c740f46a5e2d78f5a5ca260ed33129c61652920a1197e1df183d4c963af756",
+      "memberHashes": {},
+      "recognizedNotice": [],
+      "state": "no-matching-native-name"
+    },
+    {
+      "path": "release/0.2.1-rc.2/dsha-0.2.1-rc.2.apk",
+      "bytes": 292361240,
+      "sha256": "e85159a8b57b65584969d3eeb61f8ee140d94d3a369837c62ac6f451fa496f13",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.1-rc.3/dsha-0.2.1-rc.3-build205.apk",
+      "bytes": 298130448,
+      "sha256": "110bb4cf3e57faf7bd6cd0927bc193c02a38cf695ca4bf7886a92fe0b7121f70",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.1-rc.3/dsha-0.2.1-rc.3-build206.apk",
+      "bytes": 298334678,
+      "sha256": "04f78f6106945adee0e0e1165f8a48980a8597bfecf318b0e1d38931ed25b792",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.1-rc.3/dsha-0.2.1-rc.3.apk",
+      "bytes": 307703892,
+      "sha256": "5cd635ab68ea61e74822e5d25a0b7ddc66ce21d03ea4412faa045c070a90f244",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.1-rc.3/history/build206-326f3d89-before-lanfix.apk",
+      "bytes": 298298125,
+      "sha256": "326f3d89db359d845d6e987e8522995968b73f8ccbfa606ab8e284462112f7be",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.1-rc.5/dsha-0.2.1-rc.5.apk",
+      "bytes": 299238103,
+      "sha256": "1deb2744d0ec29004c89186bcfe0e1f6526579e83346d19e4347385e56e9b221",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.1-rc.5/history/build279-before-build294-20261103/dsha-0.2.1-rc.5.apk",
+      "bytes": 298881369,
+      "sha256": "d35f150b7d708a8c7ada1df912bb822c895c193a83f3d53e0c7e459db08cb514",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.1-rc.5/history/build279-before-size-optimization-20261103/dsha-0.2.1-rc.5.apk",
+      "bytes": 426556088,
+      "sha256": "3dde770fa12ed8c82cb335298509daf000c4752c2a616a12698143a5bae2e5b1",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.1-rc.5/history/build294-before-build295-20261103/dsha-0.2.1-rc.5.apk",
+      "bytes": 299197792,
+      "sha256": "40308b00b9df3ccee33226881dcc67fc0449ac60415471624d2fc123e52a4222",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.1-rc.5/history/build295-before-build307-20261104/dsha-0.2.1-rc.5.apk",
+      "bytes": 299209105,
+      "sha256": "3eb9583a25bf2a0522d27de8a118d4e49f1714d1ce2b2ad143af99477da51c6e",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.1-rc.5/history/build307-before-build308-20261104/dsha-0.2.1-rc.5.apk",
+      "bytes": 299234040,
+      "sha256": "8f020b78d8973701921355290e25859c94da08bfe7b2e16fc4cd44a833fe3ad6",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.2-rc.5/dsha-0.2.2-rc.5.apk",
+      "bytes": 257781425,
+      "sha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "1c5bc9537a270e8bf8b1c70222813f57b60b828bfb5503ddf8fe37685092de2f",
+        "lib/arm64-v8a/libproroot-linker.so": "51a0ec5bfed00e572a0de09e22d9057e2befc386b78e426613d3e0ab03f4ecee",
+        "lib/arm64-v8a/libproroot-runtime.so": "8c47a0a7db32d84c179ebb5bf3640f655a3181860ece5886ae44d92858730c34",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "06c6624db3bdc45b9ced151cd781df439a37b47731d244b93e9d6a58cd48cde0",
+        "lib/arm64-v8a/libproroot.so": "a4e74d75b66cdc02b080adfe863dbf9951c3b30610d77beddc95488d5fe5de01"
+      },
+      "recognizedNotice": [
+        {
+          "member": "assets/licenses/proroot-v1.2.8-LICENSE.txt",
+          "sha256": "0576d93d18783c1dd677c1d412757a20a3098a2585590b760e444201a3ff565e"
+        }
+      ],
+      "state": "v1.2.8-original"
+    },
+    {
+      "path": "release/0.2.2-rc.5/history/0.2.1-rc.5-build370/dsha-0.2.1-rc.5.apk",
+      "bytes": 299391533,
+      "sha256": "82387594ce353a31620ba81391a6a896378fbe2c7ffaf46ebac568f7c6ad4e1a",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.2-rc.5/history/0.2.2-rc.5-build371/dsha-0.2.2-rc.5.apk",
+      "bytes": 283308289,
+      "sha256": "89b0660dce1fb619aba2bb7276e6d296dd5e035ed920717793ce8fe0736250f5",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.2-rc.5/history/0.2.2-rc.5-build372/dsha-0.2.2-rc.5.apk",
+      "bytes": 277825492,
+      "sha256": "71d10fed1d0cfc9876f73a02f745d61a95f4c1381e8bd84245d27883db2c3113",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.2-rc.5/history/0.2.2-rc.5-build373/dsha-0.2.2-rc.5.apk",
+      "bytes": 263655223,
+      "sha256": "d2983eb9364a41a18edc0a10f75c556b914a040a3470670cea916ef075a30422",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.2-rc.5/history/0.2.2-rc.5-build374/dsha-0.2.2-rc.5.apk",
+      "bytes": 259560606,
+      "sha256": "8f1187dd7196d39bb68a6cf601edd5b351dc21246f7f04709e840c1eecfe7d34",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/0.2.2-rc.5/history/0.2.2-rc.5-build375/dsha-0.2.2-rc.5.apk",
+      "bytes": 257886093,
+      "sha256": "d4e044ba4788252e4bedc32ca5c38459bb7fb76dc14db6e700f4e842c446815d",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/1.2.0-alpha.4-vc105/dsha-1.2.0-alpha.4-vc105.apk",
+      "bytes": 289565848,
+      "sha256": "7ed97c18e530896e046e6227059b188cdb29319941b607569f950ac13df40a90",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "1c5bc9537a270e8bf8b1c70222813f57b60b828bfb5503ddf8fe37685092de2f",
+        "lib/arm64-v8a/libproroot-linker.so": "51a0ec5bfed00e572a0de09e22d9057e2befc386b78e426613d3e0ab03f4ecee",
+        "lib/arm64-v8a/libproroot-runtime.so": "8c47a0a7db32d84c179ebb5bf3640f655a3181860ece5886ae44d92858730c34",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "06c6624db3bdc45b9ced151cd781df439a37b47731d244b93e9d6a58cd48cde0",
+        "lib/arm64-v8a/libproroot.so": "a4e74d75b66cdc02b080adfe863dbf9951c3b30610d77beddc95488d5fe5de01"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-original"
+    },
+    {
+      "path": "release/1.2.0-alpha.5-vc106/dsha-1.2.0-alpha.5-vc106.apk",
+      "bytes": 423508004,
+      "sha256": "135caf9689dca2a06aaea3a52a1b81d4c94ff43b8ed7e50d1fe5b8126dcb9dee",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "1c5bc9537a270e8bf8b1c70222813f57b60b828bfb5503ddf8fe37685092de2f",
+        "lib/arm64-v8a/libproroot-linker.so": "51a0ec5bfed00e572a0de09e22d9057e2befc386b78e426613d3e0ab03f4ecee",
+        "lib/arm64-v8a/libproroot-runtime.so": "8c47a0a7db32d84c179ebb5bf3640f655a3181860ece5886ae44d92858730c34",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "06c6624db3bdc45b9ced151cd781df439a37b47731d244b93e9d6a58cd48cde0",
+        "lib/arm64-v8a/libproroot.so": "a4e74d75b66cdc02b080adfe863dbf9951c3b30610d77beddc95488d5fe5de01"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-original"
+    },
+    {
+      "path": "release/1.2.0-alpha.5-vc106/dsha-1.2.0-alpha.5-vc106low.apk",
+      "bytes": 423662255,
+      "sha256": "ebaf22e5eb37088274728f55fed510d50975b690d5857b9e312a840565f2b6ac",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "1c5bc9537a270e8bf8b1c70222813f57b60b828bfb5503ddf8fe37685092de2f",
+        "lib/arm64-v8a/libproroot-linker.so": "51a0ec5bfed00e572a0de09e22d9057e2befc386b78e426613d3e0ab03f4ecee",
+        "lib/arm64-v8a/libproroot-runtime.so": "8c47a0a7db32d84c179ebb5bf3640f655a3181860ece5886ae44d92858730c34",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "06c6624db3bdc45b9ced151cd781df439a37b47731d244b93e9d6a58cd48cde0",
+        "lib/arm64-v8a/libproroot.so": "a4e74d75b66cdc02b080adfe863dbf9951c3b30610d77beddc95488d5fe5de01"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-original"
+    },
+    {
+      "path": "release/1.2.0-rc1/dsha-1.2.0-rc1.apk",
+      "bytes": 434510493,
+      "sha256": "8d7df38e5fd1ff9c5c9d957e09462c83c2d62b4cec8458787dcf18c9bdc41a68",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "1c5bc9537a270e8bf8b1c70222813f57b60b828bfb5503ddf8fe37685092de2f",
+        "lib/arm64-v8a/libproroot-linker.so": "51a0ec5bfed00e572a0de09e22d9057e2befc386b78e426613d3e0ab03f4ecee",
+        "lib/arm64-v8a/libproroot-runtime.so": "8c47a0a7db32d84c179ebb5bf3640f655a3181860ece5886ae44d92858730c34",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "06c6624db3bdc45b9ced151cd781df439a37b47731d244b93e9d6a58cd48cde0",
+        "lib/arm64-v8a/libproroot.so": "a4e74d75b66cdc02b080adfe863dbf9951c3b30610d77beddc95488d5fe5de01"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-original"
+    },
+    {
+      "path": "release/1.2.0-rc1.1/dsha-1.2.0-rc1.1.apk",
+      "bytes": 222706119,
+      "sha256": "bdc62ffa5c278ede82b50537f03a6b438c42b4bf91a4a36e53c36ebd6ebaa05b",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/1.2.0-rc1.1/dsha-1.2.0-rc1.1low.apk",
+      "bytes": 303521988,
+      "sha256": "509072d2001d5d4e38ca6103dc8a110fb1da11bd8698772265ef86ea51bca263",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/1.2.0-rc1.2/dsha-1.2.0-rc1.2.apk",
+      "bytes": 222706812,
+      "sha256": "4a33cef0f718ceddb249478d5402aab39a33d9fb4175cfd35831d687b1734796",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/1.2.0-rc1.2/dsha-1.2.0-rc1.2low.apk",
+      "bytes": 303522074,
+      "sha256": "dcc64d925ea1697e930753378e95724125cd4688dd58335348bd0c3887928403",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/1.2.0-rc1.3/dsha-1.2.0-rc1.3.apk",
+      "bytes": 222768679,
+      "sha256": "609d09a9d1a954b07903da8f88da16a31660a9007e2cbbba5110b34c33ea3340",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/1.2.0-rc1.3/dsha-1.2.0-rc1.3low.apk",
+      "bytes": 303555606,
+      "sha256": "445144f08fd93bc518395b9e9a6620aaac5619c5d58e7a672acff141da49a6ba",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/1.2.0-rc1.4/dsha-1.2.0-rc1.4.apk",
+      "bytes": 223208350,
+      "sha256": "2431f5ced86d7de16c65d8b7ca48b3ab4ab7b5977fc2551cb794dfe72d84b450",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/1.2.0-rc1.4/dsha-1.2.0-rc1.4low.apk",
+      "bytes": 303760199,
+      "sha256": "bc28e4f893bc2cfa3c4adafa5a59e2e6452d9e9fcedfb28b3118efac9c187c06",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/1.5-alpha.1/dsha-1.5-alpha.1.apk",
+      "bytes": 184154766,
+      "sha256": "2869dd502241cc0457c2a8019d7644e5ef2ea38bae80686c6d46fe195551eff0",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/1.5-alpha.1/dsha-1.5-alpha.1low.apk",
+      "bytes": 264677458,
+      "sha256": "549abc65b59fdb2e14e23b7c8cd98d2eeafda5fe82a9c7fb41f1edc528a7b8f4",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/1.5-alpha.2/dsha-1.5-alpha.2.apk",
+      "bytes": 184562486,
+      "sha256": "d9371eb22343c3abe89df6d4f2e7cf9b82d989ea8700188f6ea6d4ce4d6872eb",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release/1.5-alpha.2/dsha-1.5-alpha.2low.apk",
+      "bytes": 265059030,
+      "sha256": "4e764e554f468729bac449f7018abe3166c75adaa3885d7067cac7e0d5452355",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "aba4a3b070feedbfa939bae72d598f7c2caf412a7c4aaf49193adfb2e7c76e89",
+        "lib/arm64-v8a/libproroot-linker.so": "8f20b1a155f029dc038d66485f18d036b0cf8be4275aebf76fe6702e91dd4de0",
+        "lib/arm64-v8a/libproroot-runtime.so": "0903cea45424eccc71e00339c9124932b587694d49fc7c6ddbfc05e3fe10a966",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "baeb2df0f6fccbc4cb8b9b2af114686f1e638f5eb8e4ad6d91a897a45b853c31",
+        "lib/arm64-v8a/libproroot.so": "5745ba3afaf3a74e57eb638cf40f3e627b7c3a683e55f3a2e88f373b68117b62"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-llvm-strip-unneeded"
+    },
+    {
+      "path": "release-experimental/dsha-experimental-0.1.0.apk",
+      "bytes": 411108563,
+      "sha256": "c9feb9f7d2ad578b6df0f5aa3dc1318204d4ced14ad4d6ea42b69083928e90ee",
+      "memberHashes": {},
+      "recognizedNotice": [],
+      "state": "no-matching-native-name"
+    },
+    {
+      "path": "release-experimental/dsha-experimental-0.1.1.apk",
+      "bytes": 411145453,
+      "sha256": "11480a9d930802d074607d85d1fdd0de2ad12a41ad7163fb3e68045cf9b81198",
+      "memberHashes": {},
+      "recognizedNotice": [],
+      "state": "no-matching-native-name"
+    },
+    {
+      "path": "release-experimental/dsha-experimental-0.1.10.apk",
+      "bytes": 437202982,
+      "sha256": "bf1ebf7729f53e6956e9bcfc1674b2f620ac8dcb64c239e382da957109491410",
+      "memberHashes": {},
+      "recognizedNotice": [],
+      "state": "no-matching-native-name"
+    },
+    {
+      "path": "release-experimental/dsha-experimental-0.1.12.apk",
+      "bytes": 437470627,
+      "sha256": "6a42946e5e277ba97fb598922e098ee1d83dcb5fc213448a562280a08248730d",
+      "memberHashes": {},
+      "recognizedNotice": [],
+      "state": "no-matching-native-name"
+    },
+    {
+      "path": "release-experimental/dsha-experimental-0.1.13.apk",
+      "bytes": 437802802,
+      "sha256": "376c040b0e24552569d62f7678c114fb2e7771d0aeaab0a7beaf595b6cf8d9a5",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "1c5bc9537a270e8bf8b1c70222813f57b60b828bfb5503ddf8fe37685092de2f",
+        "lib/arm64-v8a/libproroot-linker.so": "51a0ec5bfed00e572a0de09e22d9057e2befc386b78e426613d3e0ab03f4ecee",
+        "lib/arm64-v8a/libproroot-runtime.so": "8c47a0a7db32d84c179ebb5bf3640f655a3181860ece5886ae44d92858730c34",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "06c6624db3bdc45b9ced151cd781df439a37b47731d244b93e9d6a58cd48cde0",
+        "lib/arm64-v8a/libproroot.so": "a4e74d75b66cdc02b080adfe863dbf9951c3b30610d77beddc95488d5fe5de01"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-original"
+    },
+    {
+      "path": "release-experimental/dsha-experimental-0.1.14.apk",
+      "bytes": 437802802,
+      "sha256": "1d18b79c92c667874aafd6c695b4740537fcdb3fb0a5c912c17ce3ff3aaf2256",
+      "memberHashes": {
+        "lib/arm64-v8a/libproroot-bridge.so": "1c5bc9537a270e8bf8b1c70222813f57b60b828bfb5503ddf8fe37685092de2f",
+        "lib/arm64-v8a/libproroot-linker.so": "51a0ec5bfed00e572a0de09e22d9057e2befc386b78e426613d3e0ab03f4ecee",
+        "lib/arm64-v8a/libproroot-runtime.so": "8c47a0a7db32d84c179ebb5bf3640f655a3181860ece5886ae44d92858730c34",
+        "lib/arm64-v8a/libproroot-stub-loader.so": "06c6624db3bdc45b9ced151cd781df439a37b47731d244b93e9d6a58cd48cde0",
+        "lib/arm64-v8a/libproroot.so": "a4e74d75b66cdc02b080adfe863dbf9951c3b30610d77beddc95488d5fe5de01"
+      },
+      "recognizedNotice": [],
+      "state": "v1.2.8-original"
+    },
+    {
+      "path": "release-experimental/dsha-experimental-0.1.2.apk",
+      "bytes": 437042668,
+      "sha256": "416a8c2f77ac7778a70321ddc72a2d683c60c76f8d69fedfdbf21a712327484c",
+      "memberHashes": {},
+      "recognizedNotice": [],
+      "state": "no-matching-native-name"
+    },
+    {
+      "path": "release-experimental/dsha-experimental-0.1.3.apk",
+      "bytes": 437042777,
+      "sha256": "7b48cdf15373c1b20aaae1c7d355f3ed1898efd472c1a2e57810ae58f13cd2e1",
+      "memberHashes": {},
+      "recognizedNotice": [],
+      "state": "no-matching-native-name"
+    },
+    {
+      "path": "release-experimental/dsha-experimental-0.1.4.apk",
+      "bytes": 437044371,
+      "sha256": "5e5905e27e52dfa2f4266aba315dc75a3c7b017c6a5bc125aeb01d93b331c09e",
+      "memberHashes": {},
+      "recognizedNotice": [],
+      "state": "no-matching-native-name"
+    },
+    {
+      "path": "release-experimental/dsha-experimental-0.1.5.apk",
+      "bytes": 437044821,
+      "sha256": "7f202b63c8b34c73e0013beb5ed62c5d476f1bf117ae32171ad313683b6e6f72",
+      "memberHashes": {},
+      "recognizedNotice": [],
+      "state": "no-matching-native-name"
+    },
+    {
+      "path": "release-experimental/dsha-experimental-0.1.6.apk",
+      "bytes": 437045453,
+      "sha256": "7dc0a18d969914713e09ae343e054c0a49d43f9b7921c05a141ddb58b3e161ce",
+      "memberHashes": {},
+      "recognizedNotice": [],
+      "state": "no-matching-native-name"
+    },
+    {
+      "path": "release-experimental/dsha-experimental-0.1.7.apk",
+      "bytes": 437057799,
+      "sha256": "0bce71688d19a1d969879a21d57caa6d3ee3ee51c0f2e08f15995e08b41a6210",
+      "memberHashes": {},
+      "recognizedNotice": [],
+      "state": "no-matching-native-name"
+    },
+    {
+      "path": "release-experimental/dsha-experimental-0.1.8.apk",
+      "bytes": 437141148,
+      "sha256": "b77873493260c39c49d67be6eb3008df82aa7b901e5cc618e98a9d3f9ec4793c",
+      "memberHashes": {},
+      "recognizedNotice": [],
+      "state": "no-matching-native-name"
+    },
+    {
+      "path": "release-experimental/dsha-experimental-0.1.9.apk",
+      "bytes": 437153184,
+      "sha256": "34ed21b4621d61ac712410eda792766b2a3b0c9904f2eb487e480bc4f3f4afab",
+      "memberHashes": {},
+      "recognizedNotice": [],
+      "state": "no-matching-native-name"
+    }
+  ]
+}

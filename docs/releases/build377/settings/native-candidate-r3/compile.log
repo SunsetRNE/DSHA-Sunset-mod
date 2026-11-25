@@ -1,0 +1,8 @@
+F:\DSHA_RESTART\source\build377-local\app\src\main\java\com\deepseekharness\app\ui\ConfigFragment.java:473: 错误: 找不到符号
+        + (selectedLan == null ? "" : "\n" + selectedLan.description()));
+                                                        ^
+  符号:   方法 description()
+  位置: 类型为LanNetworkState的变量 selectedLan
+注: F:\DSHA_RESTART\source\build377-local\app\src\main\java\com\deepseekharness\app\ui\ConfigFragment.java使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+1 个错误

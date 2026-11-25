@@ -1,0 +1,71 @@
+{
+  "commit": "15e7fcc285121d67efdfad11ce688fc0a81dd392",
+  "windows": {
+    "methods": 5839,
+    "counts": {
+      "SUCCESS": 5839
+    },
+    "raw": "F:\\DSHA_RESTART\\artifacts\\build377-local\\windows-r3\\method-results.jsonl",
+    "firstResult": {
+      "startedAt": "2026-11-25T07:57:26.983Z",
+      "at": "2026-11-25T07:57:32.689Z",
+      "className": "com.deepseekharness.app.ui.NativeDataChoicesTest",
+      "name": "cancellingPickerWipesPasswordAndCompatibilityRequiresExplicitCheckbox",
+      "status": "SUCCESS",
+      "durationMs": 5706
+    },
+    "firstPass": {
+      "startedAt": "2026-11-25T07:57:26.983Z",
+      "at": "2026-11-25T07:57:32.689Z",
+      "className": "com.deepseekharness.app.ui.NativeDataChoicesTest",
+      "name": "cancellingPickerWipesPasswordAndCompatibilityRequiresExplicitCheckbox",
+      "status": "SUCCESS",
+      "durationMs": 5706
+    },
+    "gradleElapsedSeconds": 767.659,
+    "gradleExitCode": 0,
+    "firstRunFailures": [],
+    "retryResolved": {},
+    "failures": [],
+    "passedAfterRetries": 5839,
+    "skipped": []
+  },
+  "lint": {
+    "severity": {
+      "Warning": 649,
+      "Hint": 30
+    },
+    "report": "F:\\DSHA_RESTART\\artifacts\\build377-local\\windows-r3\\lint-results-standardRelease.xml",
+    "errors": 0
+  },
+  "linux": {
+    "methods": 144,
+    "counts": {
+      "PASS": 144
+    },
+    "windowsOverlap": [],
+    "raw": "F:\\DSHA_RESTART\\artifacts\\build377-local\\linux-tools\\linux-r3\\summary.json",
+    "batches": {
+      "posix": {
+        "firstResult": {
+          "finishedAt": "2026-11-25T08:00:18.244847004Z",
+          "method": "com.deepseekharness.app.ExternalDeviceImportRootTest.leafSymlinkStillRejected"
+        },
+        "durationSeconds": 47.112,
+        "finishedAt": "2026-11-25T08:00:37.641253+00:00",
+        "exitCode": 0
+      },
+      "native": {
+        "firstResult": {
+          "finishedAt": "2026-11-25T08:00:45.732778655Z",
+          "method": "com.deepseekharness.app.util.PlanViewDifferentialTest.reEncodedViewsGiveTheSameVerdictOnBothImplementations"
+        },
+        "durationSeconds": 13.515,
+        "finishedAt": "2026-11-25T08:00:51.161019+00:00",
+        "exitCode": 0
+      }
+    }
+  },
+  "distinctMethods": 5983,
+  "status": "PASS"
+}

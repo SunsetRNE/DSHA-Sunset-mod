@@ -1,0 +1,252 @@
+{
+  "admission-before-r1": {
+    "streamAdmissionTrace": [],
+    "sseRemainingAtProcessEnd": 2,
+    "pages": [
+      {
+        "engine": "chromium",
+        "round": 1,
+        "busy": 0,
+        "http5xx": 0,
+        "firstDocumentMs": 469,
+        "verifiedMs": 1125,
+        "sent": 6,
+        "received": 14
+      },
+      {
+        "engine": "chromium",
+        "round": 2,
+        "busy": 0,
+        "http5xx": 0,
+        "firstDocumentMs": 109,
+        "verifiedMs": 453,
+        "sent": 5,
+        "received": 5
+      }
+    ]
+  },
+  "admission-before-r2": {
+    "streamAdmissionTrace": [
+      {
+        "sseAgesSec": [
+          7.437,
+          5.706,
+          2.491,
+          0.786
+        ],
+        "raw": "324260605519500 REJECT stream active=8 queued=0 complete=92 admitted=10"
+      },
+      {
+        "sseAgesSec": [
+          8.082,
+          6.351,
+          3.136,
+          1.431
+        ],
+        "raw": "324261250247700 REJECT stream active=8 queued=0 complete=98 admitted=10"
+      },
+      {
+        "sseAgesSec": [
+          9.139,
+          7.408,
+          4.193,
+          2.488,
+          1.052
+        ],
+        "raw": "324262307159100 REJECT stream active=8 queued=0 complete=124 admitted=10"
+      },
+      {
+        "sseAgesSec": [
+          9.143,
+          7.412,
+          4.197,
+          2.492,
+          1.056
+        ],
+        "raw": "324262311195800 REJECT stream active=8 queued=0 complete=124 admitted=11"
+      },
+      {
+        "sseAgesSec": [
+          9.498,
+          7.767,
+          4.553,
+          2.848,
+          1.412
+        ],
+        "raw": "324262666862600 REJECT stream active=8 queued=0 complete=130 admitted=11"
+      },
+      {
+        "sseAgesSec": [
+          9.498,
+          7.768,
+          4.553,
+          2.848,
+          1.412
+        ],
+        "raw": "324262666997700 REJECT stream active=8 queued=0 complete=130 admitted=11"
+      },
+      {
+        "sseAgesSec": [
+          9.553,
+          7.823,
+          4.608,
+          2.903,
+          1.467,
+          0.052
+        ],
+        "raw": "324262722015700 REJECT stream active=7 queued=0 complete=140 admitted=12"
+      },
+      {
+        "sseAgesSec": [
+          9.562,
+          7.831,
+          4.616,
+          2.911,
+          1.475,
+          0.06
+        ],
+        "raw": "324262730291200 REJECT stream active=8 queued=0 complete=140 admitted=12"
+      },
+      {
+        "sseAgesSec": [
+          9.591,
+          7.86,
+          4.645,
+          2.94,
+          1.505,
+          0.09
+        ],
+        "raw": "324262759674000 REJECT stream active=8 queued=0 complete=140 admitted=11"
+      }
+    ],
+    "sseRemainingAtProcessEnd": 6,
+    "pages": [
+      {
+        "engine": "firefox",
+        "round": 1,
+        "busy": 0,
+        "http5xx": 0,
+        "firstDocumentMs": 1204,
+        "verifiedMs": 1750,
+        "sent": 6,
+        "received": 14
+      },
+      {
+        "engine": "firefox",
+        "round": 2,
+        "busy": 0,
+        "http5xx": 0,
+        "firstDocumentMs": 359,
+        "verifiedMs": 953,
+        "sent": 5,
+        "received": 5
+      },
+      {
+        "engine": "webkit",
+        "round": 1,
+        "busy": 0,
+        "http5xx": 0,
+        "firstDocumentMs": 484,
+        "verifiedMs": 2078,
+        "sent": 5,
+        "received": 5
+      },
+      {
+        "engine": "webkit",
+        "round": 2,
+        "busy": 0,
+        "http5xx": 0,
+        "firstDocumentMs": 219,
+        "verifiedMs": 875,
+        "sent": 5,
+        "received": 5
+      },
+      {
+        "engine": "chromium",
+        "round": 1,
+        "busy": 1,
+        "http5xx": 1,
+        "firstDocumentMs": 218,
+        "verifiedMs": 1031,
+        "sent": 6,
+        "received": 6
+      },
+      {
+        "engine": "chromium",
+        "round": 2,
+        "busy": 5,
+        "http5xx": 5,
+        "firstDocumentMs": 140,
+        "verifiedMs": 484,
+        "sent": 5,
+        "received": 5
+      }
+    ]
+  },
+  "admission-after-r1": {
+    "streamAdmissionTrace": [],
+    "sseRemainingAtProcessEnd": 0,
+    "pages": [
+      {
+        "engine": "firefox",
+        "round": 1,
+        "busy": 0,
+        "http5xx": 0,
+        "firstDocumentMs": 1156,
+        "verifiedMs": 1844,
+        "sent": 6,
+        "received": 14
+      },
+      {
+        "engine": "firefox",
+        "round": 2,
+        "busy": 0,
+        "http5xx": 0,
+        "firstDocumentMs": 390,
+        "verifiedMs": 984,
+        "sent": 5,
+        "received": 5
+      },
+      {
+        "engine": "webkit",
+        "round": 1,
+        "busy": 0,
+        "http5xx": 0,
+        "firstDocumentMs": 453,
+        "verifiedMs": 1891,
+        "sent": 5,
+        "received": 5
+      },
+      {
+        "engine": "webkit",
+        "round": 2,
+        "busy": 0,
+        "http5xx": 0,
+        "firstDocumentMs": 219,
+        "verifiedMs": 1047,
+        "sent": 5,
+        "received": 5
+      },
+      {
+        "engine": "chromium",
+        "round": 1,
+        "busy": 0,
+        "http5xx": 0,
+        "firstDocumentMs": 219,
+        "verifiedMs": 906,
+        "sent": 6,
+        "received": 6
+      },
+      {
+        "engine": "chromium",
+        "round": 2,
+        "busy": 0,
+        "http5xx": 0,
+        "firstDocumentMs": 94,
+        "verifiedMs": 453,
+        "sent": 5,
+        "received": 5
+      }
+    ]
+  }
+}

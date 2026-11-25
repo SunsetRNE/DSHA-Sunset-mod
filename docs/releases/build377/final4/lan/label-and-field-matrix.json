@@ -1,0 +1,400 @@
+{
+  "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+  "attempts": [
+    {
+      "route": "default-landscape",
+      "flow": "normal",
+      "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+      "samples": [
+        {
+          "stage": "first-password-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 9,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-landscape-normal-1795600723-first-password-keyboard-shown.png"
+        },
+        {
+          "stage": "confirmation-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 9,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-landscape-normal-1795600723-confirmation-keyboard-shown.png"
+        },
+        {
+          "stage": "static-keyboard-2",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 9,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-landscape-normal-1795600723-static-keyboard-2.png"
+        },
+        {
+          "stage": "reopened-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 9,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-landscape-normal-1795600723-reopened-keyboard-shown.png"
+        }
+      ],
+      "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+      "actualScale": 1.0,
+      "actualSubmitWithIme": true,
+      "createDocumentAndCancel": true,
+      "firstUsableSeconds": 5.406,
+      "completeSeconds": 66.031,
+      "rotatedAndReentered": true,
+      "input": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-landscape-normal-1795600723.json",
+      "pixels": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\default-landscape-normal-1795600723-pixels.json",
+      "ok": true
+    },
+    {
+      "route": "default-landscape",
+      "flow": "rescue",
+      "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+      "samples": [
+        {
+          "stage": "first-password-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 9,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-landscape-rescue-1795600793-first-password-keyboard-shown.png"
+        },
+        {
+          "stage": "confirmation-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 9,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-landscape-rescue-1795600793-confirmation-keyboard-shown.png"
+        },
+        {
+          "stage": "static-keyboard-2",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 9,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-landscape-rescue-1795600793-static-keyboard-2.png"
+        },
+        {
+          "stage": "reopened-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 9,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-landscape-rescue-1795600793-reopened-keyboard-shown.png"
+        }
+      ],
+      "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+      "actualScale": 1.0,
+      "actualSubmitWithIme": true,
+      "createDocumentAndCancel": true,
+      "firstUsableSeconds": 5.406,
+      "completeSeconds": 43.969,
+      "rotatedAndReentered": false,
+      "input": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-landscape-rescue-1795600793.json",
+      "pixels": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\default-landscape-rescue-1795600793-pixels.json",
+      "ok": true
+    },
+    {
+      "route": "default-portrait",
+      "flow": "normal",
+      "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+      "samples": [
+        {
+          "stage": "first-password-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 9,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-normal-1795600841-first-password-keyboard-shown.png"
+        },
+        {
+          "stage": "confirmation-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 9,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-normal-1795600841-confirmation-keyboard-shown.png"
+        },
+        {
+          "stage": "static-keyboard-2",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 9,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-normal-1795600841-static-keyboard-2.png"
+        },
+        {
+          "stage": "reopened-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 9,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-normal-1795600841-reopened-keyboard-shown.png"
+        }
+      ],
+      "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+      "actualScale": 1.0,
+      "actualSubmitWithIme": true,
+      "createDocumentAndCancel": true,
+      "firstUsableSeconds": 5.422,
+      "completeSeconds": 43.812,
+      "rotatedAndReentered": false,
+      "input": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-normal-1795600841.json",
+      "pixels": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\default-portrait-normal-1795600841-pixels.json",
+      "ok": true
+    },
+    {
+      "route": "default-portrait",
+      "flow": "rescue",
+      "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+      "samples": [
+        {
+          "stage": "first-password-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 9,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-rescue-1795600889-first-password-keyboard-shown.png"
+        },
+        {
+          "stage": "confirmation-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 9,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-rescue-1795600889-confirmation-keyboard-shown.png"
+        },
+        {
+          "stage": "static-keyboard-2",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 9,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-rescue-1795600889-static-keyboard-2.png"
+        },
+        {
+          "stage": "reopened-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 9,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-rescue-1795600889-reopened-keyboard-shown.png"
+        }
+      ],
+      "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+      "actualScale": 1.0,
+      "actualSubmitWithIme": true,
+      "createDocumentAndCancel": true,
+      "firstUsableSeconds": 5.563,
+      "completeSeconds": 44.594,
+      "rotatedAndReentered": false,
+      "input": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-rescue-1795600889.json",
+      "pixels": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\default-portrait-rescue-1795600889-pixels.json",
+      "ok": true
+    },
+    {
+      "route": "large-landscape",
+      "flow": "normal",
+      "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+      "samples": [
+        {
+          "stage": "first-password-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 12,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-landscape-normal-1795600675-first-password-keyboard-shown.png"
+        },
+        {
+          "stage": "confirmation-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 12,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-landscape-normal-1795600675-confirmation-keyboard-shown.png"
+        },
+        {
+          "stage": "static-keyboard-2",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 12,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-landscape-normal-1795600675-static-keyboard-2.png"
+        },
+        {
+          "stage": "reopened-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 12,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-landscape-normal-1795600675-reopened-keyboard-shown.png"
+        }
+      ],
+      "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+      "actualScale": 1.3,
+      "actualSubmitWithIme": true,
+      "createDocumentAndCancel": true,
+      "firstUsableSeconds": 5.469,
+      "completeSeconds": 44.032,
+      "rotatedAndReentered": false,
+      "input": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-landscape-normal-1795600675.json",
+      "pixels": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\large-landscape-normal-1795600675-pixels.json",
+      "ok": true
+    },
+    {
+      "route": "large-landscape",
+      "flow": "rescue",
+      "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+      "samples": [
+        {
+          "stage": "first-password-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 12,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-landscape-rescue-1795600623-first-password-keyboard-shown.png"
+        },
+        {
+          "stage": "confirmation-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 12,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-landscape-rescue-1795600623-confirmation-keyboard-shown.png"
+        },
+        {
+          "stage": "static-keyboard-2",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 12,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-landscape-rescue-1795600623-static-keyboard-2.png"
+        },
+        {
+          "stage": "reopened-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 24,
+          "focusedMaskInkRows": 12,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-landscape-rescue-1795600623-reopened-keyboard-shown.png"
+        }
+      ],
+      "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+      "actualScale": 1.3,
+      "actualSubmitWithIme": true,
+      "createDocumentAndCancel": true,
+      "firstUsableSeconds": 5.5,
+      "completeSeconds": 47.297,
+      "rotatedAndReentered": false,
+      "input": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-landscape-rescue-1795600623.json",
+      "pixels": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\large-landscape-rescue-1795600623-pixels.json",
+      "ok": true
+    },
+    {
+      "route": "large-portrait",
+      "flow": "normal",
+      "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+      "samples": [
+        {
+          "stage": "first-password-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 19,
+          "focusedMaskInkRows": 12,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-portrait-normal-1795600937-first-password-keyboard-shown.png"
+        },
+        {
+          "stage": "confirmation-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 19,
+          "focusedMaskInkRows": 12,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-portrait-normal-1795600937-confirmation-keyboard-shown.png"
+        },
+        {
+          "stage": "static-keyboard-2",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 19,
+          "focusedMaskInkRows": 12,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-portrait-normal-1795600937-static-keyboard-2.png"
+        },
+        {
+          "stage": "reopened-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 19,
+          "focusedMaskInkRows": 12,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-portrait-normal-1795600937-reopened-keyboard-shown.png"
+        }
+      ],
+      "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+      "actualScale": 1.3,
+      "actualSubmitWithIme": true,
+      "createDocumentAndCancel": true,
+      "firstUsableSeconds": 5.453,
+      "completeSeconds": 44.203,
+      "rotatedAndReentered": false,
+      "input": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-portrait-normal-1795600937.json",
+      "pixels": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\large-portrait-normal-1795600937-pixels.json",
+      "ok": true
+    },
+    {
+      "route": "large-portrait",
+      "flow": "rescue",
+      "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+      "samples": [
+        {
+          "stage": "first-password-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 19,
+          "focusedMaskInkRows": 12,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-portrait-rescue-1795600985-first-password-keyboard-shown.png"
+        },
+        {
+          "stage": "confirmation-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 19,
+          "focusedMaskInkRows": 12,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-portrait-rescue-1795600985-confirmation-keyboard-shown.png"
+        },
+        {
+          "stage": "static-keyboard-2",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 19,
+          "focusedMaskInkRows": 12,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-portrait-rescue-1795600985-static-keyboard-2.png"
+        },
+        {
+          "stage": "reopened-keyboard-shown",
+          "chooseTextByteIdentical": true,
+          "cancelTextByteIdentical": true,
+          "focusedMaskGlyphRuns": 19,
+          "focusedMaskInkRows": 12,
+          "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-portrait-rescue-1795600985-reopened-keyboard-shown.png"
+        }
+      ],
+      "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+      "actualScale": 1.3,
+      "actualSubmitWithIme": true,
+      "createDocumentAndCancel": true,
+      "firstUsableSeconds": 5.437,
+      "completeSeconds": 44.125,
+      "rotatedAndReentered": false,
+      "input": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-portrait-rescue-1795600985.json",
+      "pixels": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\large-portrait-rescue-1795600985-pixels.json",
+      "ok": true
+    }
+  ],
+  "passingUnique": 8,
+  "expectedUnique": 8,
+  "complete": true
+}

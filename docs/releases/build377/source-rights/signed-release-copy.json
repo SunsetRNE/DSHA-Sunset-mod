@@ -1,0 +1,11 @@
+{
+  "apkSha256": "2e6f0324ebe4b52b143dcb2bf04800b1ce73c106a53b567de1afdafca5dba3d9",
+  "sourceSha256": "bebb78e0ebdb74b494e3c160f0bee57f15eb34bf7bf1800e56fac03af5bbad27",
+  "sourceBytes": 1191235,
+  "libraries": {
+    "libproot.so": "c16957450ab9a1da67d4784cf0667b90ad786e7939aa46aeb9796d7d384b7692",
+    "libprootloader.so": "004c1de722687a59052bf472207f99536849a911b5135fe5937bfa1711a69f10",
+    "libprootloader32.so": "a781049d8437fc3a48bd2014e924259babd2610f15979bdba27251278d57a7be",
+    "libtalloc.so": "718d7e738d7fbad261a4c73bc8f947633380c57136ccacf8b49f3d3661413ef0"
+  }
+}

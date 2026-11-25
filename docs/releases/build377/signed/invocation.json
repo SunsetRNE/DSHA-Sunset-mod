@@ -1,0 +1,23 @@
+{
+  "commit": "15e7fcc285121d67efdfad11ce688fc0a81dd392",
+  "unsignedSha256": "f7b5c266675294118d57d505523a5392f6732c00710d01b26f31f22bef52b141",
+  "certificateSha256": "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5",
+  "startedAt": "2026-11-25T08:12:00.007763+00:00",
+  "completedAt": "2026-11-25T08:12:04.645125+00:00",
+  "exitCode": 0,
+  "command": [
+    "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+    "-B",
+    "tools/sign-release-apks.py",
+    "--apk",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\build\\outputs\\apk\\standard\\release\\app-standard-release-unsigned.apk",
+    "--identity",
+    "upstream",
+    "--metadata",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\build\\outputs\\apk\\standard\\release\\output-metadata.json",
+    "--name",
+    "dsha-0.2.2-rc.5.apk",
+    "--output-dir",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed"
+  ]
+}

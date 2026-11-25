@@ -1,0 +1,6 @@
+START	2026-11-25T07:09:58.015446200Z	com.deepseekharness.app.vscreen.MirrorComparison.sameVisibleTaskDifferentCompositeLayers
+SYNTHETIC_MIRROR visibleTasks=1 sameOwner=true overlay=false readCalls=0 imageFields=0 credentials=0 reason=PRIV_AUTHORIZED_WINDOW_SOURCE_REQUIRED
+SYNTHETIC_MIRROR visibleTasks=1 sameOwner=true overlay=true readCalls=0 imageFields=0 credentials=0 reason=PRIV_AUTHORIZED_WINDOW_SOURCE_REQUIRED
+FINISH	2026-11-25T07:09:59.836093400Z	com.deepseekharness.app.vscreen.MirrorComparison.sameVisibleTaskDifferentCompositeLayers
+CASE	PASS	com.deepseekharness.app.vscreen.MirrorComparison.sameVisibleTaskDifferentCompositeLayers
+TOTAL	1	0	0	0

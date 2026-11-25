@@ -1,0 +1,225 @@
+{
+  "oldCommit": "12efafd7d3530b412d48ccb66fb657c6bd7cc8ac",
+  "oldApkSha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+  "candidateSourceCommit": "b0ee539dd28511c8ef78dccfbdb22f20d8d365fc",
+  "candidateApk": "bind against final signing receipt",
+  "files": {
+    "app/src/main/java/com/deepseekharness/app/HttpShellService.java": {
+      "sha256": "9ca4a8c17b98f774ad983c11597a5aaa1db4e9b0165323dfbe9e288de12ba928",
+      "gitBlob": "43f5e8012add1dde2e1e6c6a63d68c60509b1c40",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/main/java/com/deepseekharness/app/screen/MainScreenActions.java": {
+      "sha256": "f62e44b52629d13e07b7ebd5408c7a97d5ced1d3422fc1f63e1e795ef0f2c946",
+      "gitBlob": "7f8f976dbd5ab6c55d858bd0244afc2d4cef5285",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/main/java/com/deepseekharness/app/screen/ScreenScreenshotCapture.java": {
+      "sha256": "430f4314423261b8ce2b113bb6e00e9794f0c0bdf8a50a77532a24fc0cdae45a",
+      "gitBlob": "0a36631ac5c759ebf2eaa1e1b67a29bf7a517e98",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/main/java/com/deepseekharness/app/screen/ScreenTargetResolver.java": {
+      "sha256": "b089cc615248866634ab4ee7b00bc350c941804c9e05754e714d1b499a69a303",
+      "gitBlob": "674f9e8cd2eb82f16c42133a18a062b3e2ae4914",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/main/java/com/deepseekharness/app/util/VirtualScreenWindowEvidence.java": {
+      "sha256": "7612a5ebbc8ba7353298eb55f944d741f486ef62003e22e8042e0acae8daf027",
+      "gitBlob": "676c5de0792a777da4bf3856050c861a78e87211",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/main/java/com/deepseekharness/app/util/PrivilegedScreenRoutes.java": {
+      "sha256": "6744bc7ab473f76a6a350102435a3027be8923a1e5885646c5870f402ae674ea",
+      "gitBlob": "c9c31933b9a7f1706185d52f7f7b9302a1179c2a",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/main/java/com/deepseekharness/app/vscreen/PhysicalScreenCore.java": {
+      "sha256": "ff258ebf0f16d176d0087304fb29f5de23b4692e46e2d0d9de28dc695ab11685",
+      "gitBlob": "0ef1f80b28fb84ef0ce1e42bd54b67bbff3bd77c",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/main/java/com/deepseekharness/app/vscreen/PhysicalScreenDisplaySession.java": {
+      "sha256": "38b1523977a390254f1944ca8f3cc0cd9500be28f1dcb91120ec4e2305a75f86",
+      "gitBlob": "51b6173c03ea64622cf21814e0d93bcb773079e5",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/main/java/com/deepseekharness/app/vscreen/PhysicalScreenManager.java": {
+      "sha256": "0da6852db53ef0b9a6bd7abd70fe94e57161eb76d4a62cba7d090fbdb493a489",
+      "gitBlob": "2f0972eb2105562dbfe5bb5e338766175141b7da",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/main/java/com/deepseekharness/app/vscreen/VirtualScreenCore.java": {
+      "sha256": "84080a30afe1e11addd53a0dda6249fe2ddb28542f4a75c221376ccc754b8a58",
+      "gitBlob": "893b4fc2225401aa890473a970f92b20699b9dac",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/main/java/com/deepseekharness/app/ui/DeviceGrantsFragment.java": {
+      "sha256": "360b9dc73c9a4fefaccea12e3ce28d51201466cf09ab71a49edde57952361f4e",
+      "gitBlob": "2fcd4b57390ee08d1da7d0c47dd4f956769ed598",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/test/java/com/deepseekharness/app/screen/ScreenScreenshotPrivacyTest.java": {
+      "sha256": "00ad06e1fac242ca4bc0e8ea3f9384463bca91789f55de2ff9fa52704c482af9",
+      "gitBlob": "a0942d4b606413f9bc4836b30178a6f9d895c222",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/test/java/com/deepseekharness/app/screen/ScreenTargetResolverEvidenceTest.java": {
+      "sha256": "c368dbd3e5c2b85a61570dd517df441458c43ba0ee057c96749a22d874464f1a",
+      "gitBlob": "01e75e13138cc62f68edb05d4b1b993b6cbccd81",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/test/java/com/deepseekharness/app/util/VirtualScreenWindowEvidenceTest.java": {
+      "sha256": "b3d6b0ce5ec62cd132007df93f7c8ac345df30541c94975ad34209fb12d68b58",
+      "gitBlob": "47490c5fdb32211c418944544cd34762a10cfb95",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/test/java/com/deepseekharness/app/util/VirtualScreenObservationHintTest.java": {
+      "sha256": "6133338d8cc6f9191560a4908ddc21e8c0b4f4f1acd9de8af33190aba76b98e8",
+      "gitBlob": "180847cb9bafd5102375d7235715c74564da736c",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/test/java/com/deepseekharness/app/util/PrivilegedScreenRoutesTest.java": {
+      "sha256": "1b15980a965894688a8088b900fdfbbad13770d57e54bda9a1318f5197f080e5",
+      "gitBlob": "45220ef0a7a9949adfb7cd4289122a39c4d4ceca",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/test/java/com/deepseekharness/app/vscreen/PhysicalScreenManagerTest.java": {
+      "sha256": "25171e58dde1c1ce05191d0a8020411bfd6be1d7baa9121e6cf86b33200f5512",
+      "gitBlob": "c95ad3bee0636395835a01279483402fbd1e544d",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/main/assets/builtin-plugins/dsh-computer-use-android/lib/server.cjs": {
+      "sha256": "b145ae1e3d4476eae27c5d3e75b05aea882ec58d2bf426755576acdef37055dc",
+      "gitBlob": "625aaadd251ad168b835e54647af1e2f3385e450",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "docs/virtual-screen-architecture.md": {
+      "sha256": "b8c3ed5681eaacb027957559b2f2de15d117458b4dce34a2bfcee792683bb815",
+      "gitBlob": "09c8a585390a5dbd2e05173b69b323676b0f15c6",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "docs/en/virtual-screen-architecture.md": {
+      "sha256": "3d9366756438c2c767d650e028351e527bdc9582976fcf541d6fc6a36a6eb674",
+      "gitBlob": "1c254242810e6e899e7a8211e93cbdd9eadd4f93",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "docs/security-model.md": {
+      "sha256": "f398773f9bee9cb10212443e56cd7cc9254a0f065eafc8cc0d42adc5a5760707",
+      "gitBlob": "c19ceee8c7fcf1f4f39db19d635376cff0e84323",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "docs/en/security-model.md": {
+      "sha256": "9553da8c3f29b66b7d81a865a1b0d42491df2794c74c9ebd7c20de9069feda48",
+      "gitBlob": "873414c2ec3431f8dee515d188c45ffb8ba7ced6",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "docs/privileged-screen-core.md": {
+      "sha256": "149a65cb39a114e3720ffc83f94548a7ff5315e54a836536d4f83ece746cafd6",
+      "gitBlob": "256172137b3d1205fbd1a88863b0259a8d7ea981",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "docs/documentation-index.md": {
+      "sha256": "03618ec5c6bfe0206c9fd645a7248f7b0b02cc48d1e3a4c26fdd4d210a6d03dc",
+      "gitBlob": "e99491b838cdbb063e0f6da6d1931fea9237866e",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "tools/i18n/messages-extra.json": {
+      "sha256": "f355d8469cf98425a562022556f50d43cf277d5a1ddfc530444988121a6c81a1",
+      "gitBlob": "534638e7f1285dd5c1f166b915583f7412247b4b",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "tools/test-physical-screen-flow.py": {
+      "sha256": "6fb3de8887424d5d4704c02658e30874394887d7c56932704699085037f28dff",
+      "gitBlob": "fa50e8f9959b45500c18cce5060f3b36cb692636",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "tools/fixtures/physical-screen/com/deepseekharness/app/screen/PhysicalScreenFlowTest.java": {
+      "sha256": "4146ee3d0b9e31fe0858c675ddd8102102600d09be314c7bb3926bc3a4291dac",
+      "gitBlob": "9d797ebf3ffe3ba112f5df57da66bc298b114d0c",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "tools/i18n/translations-extra/ar.json": {
+      "sha256": "a55d625640df52755368da2676988ddaa57a87963bfa09fef45ec921a455c230",
+      "gitBlob": "4ee3e32f39c42900287db447a855c737c4955839",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "tools/i18n/translations-extra/fr.json": {
+      "sha256": "9b0352ed498b306cea6359ca6bbfdc5a357c222f35dbb203a6242f9702f8c14d",
+      "gitBlob": "fb9d3eead2a14e3b91cb795660054a07e4eb3acd",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "tools/i18n/translations-extra/ja.json": {
+      "sha256": "fdd7a0fa2d31f348847816668723620dab3044535ceee6e8c4e4881db5422628",
+      "gitBlob": "ad9d789f79f5043bbd295427f1256f135c739b85",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "tools/i18n/translations-extra/ko.json": {
+      "sha256": "76239f5bbdafadc2a41452cb6bbef9e6e8ad3df52dac1cb5c957a7e4cd193b0b",
+      "gitBlob": "7106c2c5fdd8dbb3ce47165164d2bf6bfe5c2617",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "tools/i18n/translations-extra/la.json": {
+      "sha256": "0b689a7417d7267b80178e193d5580bfa867eb414c7fbd28284f52208a39c76d",
+      "gitBlob": "52dd9cb4b2a352201d9c7f03cd01a631b72a62ab",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "tools/i18n/translations-extra/pt.json": {
+      "sha256": "45886b18edcdb2ffae55b9e9670e4fd37783b9457c81f4d59884e7fcbab25ff9",
+      "gitBlob": "e4e819bef47acd2c6590050195d7c5de54c7530a",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "tools/i18n/translations-extra/ru.json": {
+      "sha256": "9b47d3f89e363620ba4358081e9c28da254949541b212556c1ea84e9ce76692c",
+      "gitBlob": "272efe1ca92981b970c61a01bfe85fb6bca4ceec",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "tools/i18n/translations-extra/zh-Hant.json": {
+      "sha256": "b9ab81829a6eff803908e3db5f1d377933498308506a5c656b0936e2dd809e6b",
+      "gitBlob": "6e398e8521fcb7e621e7374604addc3c2e65913c",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    },
+    "app/src/main/java/com/deepseekharness/app/screen/ScreenReply.java": {
+      "sha256": "51099ac07339bf76a8b240c7f84f0b5a9da894a6af5986a9352dd584742d23a7",
+      "gitBlob": "0be2656ef37ebfbae02e0a2574506b271631762e",
+      "matchesCandidateCommit": true,
+      "matchesRegisteredCommit": true
+    }
+  },
+  "registeredFixtureCommit": "c3777e8debd2575ecaa5f4d6f0a2d41fe0df8d87"
+}

@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "tool": "google-java-format",
+  "version": "1.22.0",
+  "artifactSha256": "16b2a1ee938686c8b1d88abf19eb83dfd0d623cee9de6fc6d09980214f816d3f",
+  "javaVersion": "openjdk version \"17.0.20.1\" 2026-08-18\r\nOpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)\r\nOpenJDK 64-Bit Server VM Temurin-17.0.20.1+1 (build 17.0.20.1+1, mixed mode, sharing)",
+  "mode": "check",
+  "files": [
+    {
+      "file": "app/src/test/java/com/deepseekharness/app/ui/NativeDataChoicesTest.java",
+      "beforeSha256": "dfcc3b025dc390348a1fd1ca873a02a5940de00d7bbda4c393d37dbb5aaab5a1",
+      "formattedSha256": "dfcc3b025dc390348a1fd1ca873a02a5940de00d7bbda4c393d37dbb5aaab5a1",
+      "javaTokenSha256": "da1621937a546bc16accd32f1ee4a6e9d3c03f62aca068699b4f7aecb176f762",
+      "needsFormatting": false,
+      "diff": ""
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "command": [
+    "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+    "-B",
+    "tools/verify-third-party-apk.py",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\local-release\\dsha-0.2.2-rc.5.apk",
+    "--output",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\verification-final4\\licenses.json"
+  ],
+  "startedAt": "2026-11-25T09:56:31.345711+00:00",
+  "finishedAt": "2026-11-25T09:56:33.829388+00:00",
+  "elapsedSeconds": 2.485,
+  "exitCode": 0,
+  "logSha256": "55b80b3a1bc9d17812ebbf4f52972adebeb66f91f69900859223eb9d7a95dd4b"
+}

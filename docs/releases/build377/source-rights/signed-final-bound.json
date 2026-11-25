@@ -1,0 +1,331 @@
+{
+  "python": "3.9.13 (tags/v3.9.13:6de2ca5, May 17 2022, 16:36:42) [MSC v.1929 64 bit (AMD64)]",
+  "ndk": "F:\\DSHA_RESTART\\toolchains\\current\\android-sdk\\ndk\\26.3.11579264",
+  "baseCommit": "12efafd7d3530b412d48ccb66fb657c6bd7cc8ac",
+  "repoHead": "15e7fcc285121d67efdfad11ce688fc0a81dd392",
+  "rounds": [
+    {
+      "label": "create fixture companion",
+      "command": [
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\source-rights\\python39\\python.exe",
+        "-B",
+        "F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py",
+        "--apk",
+        "<fresh-dir>\\synthetic-apk.zip",
+        "--write-source",
+        "<fresh-dir>\\companion.zip"
+      ],
+      "returnCode": 0,
+      "seconds": 0.09833350000000002,
+      "stdout": "{\n  \"apkSha256\": \"11fd1347c3ed7480119e2f0c4e086dd6198d31c84e73848a41bdb9c234b6ab32\",\n  \"sourceSha256\": \"bebb78e0ebdb74b494e3c160f0bee57f15eb34bf7bf1800e56fac03af5bbad27\",\n  \"sourceBytes\": 1191235,\n  \"libraries\": {\n    \"libproot.so\": \"c16957450ab9a1da67d4784cf0667b90ad786e7939aa46aeb9796d7d384b7692\",\n    \"libprootloader.so\": \"004c1de722687a59052bf472207f99536849a911b5135fe5937bfa1711a69f10\",\n    \"libprootloader32.so\": \"a781049d8437fc3a48bd2014e924259babd2610f15979bdba27251278d57a7be\",\n    \"libtalloc.so\": \"718d7e738d7fbad261a4c73bc8f947633380c57136ccacf8b49f3d3661413ef0\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "label": "retry identical",
+      "command": [
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\source-rights\\python39\\python.exe",
+        "-B",
+        "F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py",
+        "--apk",
+        "<fresh-dir>\\synthetic-apk.zip",
+        "--write-source",
+        "<fresh-dir>\\companion.zip"
+      ],
+      "returnCode": 0,
+      "seconds": 0.10920800000000003,
+      "stdout": "{\n  \"apkSha256\": \"11fd1347c3ed7480119e2f0c4e086dd6198d31c84e73848a41bdb9c234b6ab32\",\n  \"sourceSha256\": \"bebb78e0ebdb74b494e3c160f0bee57f15eb34bf7bf1800e56fac03af5bbad27\",\n  \"sourceBytes\": 1191235,\n  \"libraries\": {\n    \"libproot.so\": \"c16957450ab9a1da67d4784cf0667b90ad786e7939aa46aeb9796d7d384b7692\",\n    \"libprootloader.so\": \"004c1de722687a59052bf472207f99536849a911b5135fe5937bfa1711a69f10\",\n    \"libprootloader32.so\": \"a781049d8437fc3a48bd2014e924259babd2610f15979bdba27251278d57a7be\",\n    \"libtalloc.so\": \"718d7e738d7fbad261a4c73bc8f947633380c57136ccacf8b49f3d3661413ef0\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "label": "read back",
+      "command": [
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\source-rights\\python39\\python.exe",
+        "-B",
+        "F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py",
+        "--apk",
+        "<fresh-dir>\\synthetic-apk.zip",
+        "--check-source",
+        "<fresh-dir>\\companion.zip"
+      ],
+      "returnCode": 0,
+      "seconds": 0.09825650000000008,
+      "stdout": "{\n  \"apkSha256\": \"11fd1347c3ed7480119e2f0c4e086dd6198d31c84e73848a41bdb9c234b6ab32\",\n  \"sourceSha256\": \"bebb78e0ebdb74b494e3c160f0bee57f15eb34bf7bf1800e56fac03af5bbad27\",\n  \"sourceBytes\": 1191235,\n  \"libraries\": {\n    \"libproot.so\": \"c16957450ab9a1da67d4784cf0667b90ad786e7939aa46aeb9796d7d384b7692\",\n    \"libprootloader.so\": \"004c1de722687a59052bf472207f99536849a911b5135fe5937bfa1711a69f10\",\n    \"libprootloader32.so\": \"a781049d8437fc3a48bd2014e924259babd2610f15979bdba27251278d57a7be\",\n    \"libtalloc.so\": \"718d7e738d7fbad261a4c73bc8f947633380c57136ccacf8b49f3d3661413ef0\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "label": "reject truncated companion",
+      "command": [
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\source-rights\\python39\\python.exe",
+        "-B",
+        "F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py",
+        "--apk",
+        "<fresh-dir>\\synthetic-apk.zip",
+        "--check-source",
+        "<fresh-dir>\\companion.zip"
+      ],
+      "returnCode": 1,
+      "seconds": 0.09054949999999995,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py\", line 100, in <module>\n    main()\n  File \"F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py\", line 89, in main\n    raise ValueError('PROOT_SOURCE_COMPANION_BYTES')\nValueError: PROOT_SOURCE_COMPANION_BYTES\n"
+    },
+    {
+      "label": "repair truncated companion",
+      "command": [
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\source-rights\\python39\\python.exe",
+        "-B",
+        "F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py",
+        "--apk",
+        "<fresh-dir>\\synthetic-apk.zip",
+        "--write-source",
+        "<fresh-dir>\\companion.zip"
+      ],
+      "returnCode": 0,
+      "seconds": 0.09255919999999995,
+      "stdout": "{\n  \"apkSha256\": \"11fd1347c3ed7480119e2f0c4e086dd6198d31c84e73848a41bdb9c234b6ab32\",\n  \"sourceSha256\": \"bebb78e0ebdb74b494e3c160f0bee57f15eb34bf7bf1800e56fac03af5bbad27\",\n  \"sourceBytes\": 1191235,\n  \"libraries\": {\n    \"libproot.so\": \"c16957450ab9a1da67d4784cf0667b90ad786e7939aa46aeb9796d7d384b7692\",\n    \"libprootloader.so\": \"004c1de722687a59052bf472207f99536849a911b5135fe5937bfa1711a69f10\",\n    \"libprootloader32.so\": \"a781049d8437fc3a48bd2014e924259babd2610f15979bdba27251278d57a7be\",\n    \"libtalloc.so\": \"718d7e738d7fbad261a4c73bc8f947633380c57136ccacf8b49f3d3661413ef0\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "label": "missing 32-bit loader",
+      "command": [
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\source-rights\\python39\\python.exe",
+        "-B",
+        "F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py",
+        "--apk",
+        "<fresh-dir>\\synthetic-apk.zip",
+        "--check-source",
+        "<fresh-dir>\\companion.zip"
+      ],
+      "returnCode": 1,
+      "seconds": 0.12368450000000009,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py\", line 100, in <module>\n    main()\n  File \"F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py\", line 84, in main\n    verify_apk(apk, lock)\n  File \"F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py\", line 65, in verify_apk\n    raise ValueError('PROOT_APK_MEMBERS: ' + str(actual))\nValueError: PROOT_APK_MEMBERS: Counter({'lib/arm64-v8a/libproot.so': 1, 'lib/arm64-v8a/libprootloader.so': 1, 'lib/arm64-v8a/libtalloc.so': 1, 'assets/licenses/proot-COPYING.txt': 1, 'assets/licenses/talloc-2.4.3-LICENSE.txt': 1, 'assets/licenses/GPL-3.0.txt': 1, 'assets/licenses/LGPL-3.0.txt': 1, 'assets/licenses/libandroid-shmem-0.7-copyright.txt': 1})\n"
+    },
+    {
+      "label": "unknown second ABI",
+      "command": [
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\source-rights\\python39\\python.exe",
+        "-B",
+        "F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py",
+        "--apk",
+        "<fresh-dir>\\synthetic-apk.zip",
+        "--check-source",
+        "<fresh-dir>\\companion.zip"
+      ],
+      "returnCode": 1,
+      "seconds": 0.11262980000000011,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py\", line 100, in <module>\n    main()\n  File \"F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py\", line 84, in main\n    verify_apk(apk, lock)\n  File \"F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py\", line 65, in verify_apk\n    raise ValueError('PROOT_APK_MEMBERS: ' + str(actual))\nValueError: PROOT_APK_MEMBERS: Counter({'lib/arm64-v8a/libproot.so': 1, 'lib/arm64-v8a/libprootloader.so': 1, 'lib/arm64-v8a/libprootloader32.so': 1, 'lib/arm64-v8a/libtalloc.so': 1, 'assets/licenses/proot-COPYING.txt': 1, 'assets/licenses/talloc-2.4.3-LICENSE.txt': 1, 'assets/licenses/GPL-3.0.txt': 1, 'assets/licenses/LGPL-3.0.txt': 1, 'assets/licenses/libandroid-shmem-0.7-copyright.txt': 1, 'lib/x86/libproot.so': 1})\n"
+    },
+    {
+      "label": "duplicate loader",
+      "command": [
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\source-rights\\python39\\python.exe",
+        "-B",
+        "F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py",
+        "--apk",
+        "<fresh-dir>\\synthetic-apk.zip",
+        "--check-source",
+        "<fresh-dir>\\companion.zip"
+      ],
+      "returnCode": 1,
+      "seconds": 0.11568550000000011,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py\", line 100, in <module>\n    main()\n  File \"F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py\", line 84, in main\n    verify_apk(apk, lock)\n  File \"F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py\", line 65, in verify_apk\n    raise ValueError('PROOT_APK_MEMBERS: ' + str(actual))\nValueError: PROOT_APK_MEMBERS: Counter({'lib/arm64-v8a/libprootloader32.so': 2, 'lib/arm64-v8a/libproot.so': 1, 'lib/arm64-v8a/libprootloader.so': 1, 'lib/arm64-v8a/libtalloc.so': 1, 'assets/licenses/proot-COPYING.txt': 1, 'assets/licenses/talloc-2.4.3-LICENSE.txt': 1, 'assets/licenses/GPL-3.0.txt': 1, 'assets/licenses/LGPL-3.0.txt': 1, 'assets/licenses/libandroid-shmem-0.7-copyright.txt': 1})\n"
+    },
+    {
+      "label": "changed loader",
+      "command": [
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\source-rights\\python39\\python.exe",
+        "-B",
+        "F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py",
+        "--apk",
+        "<fresh-dir>\\synthetic-apk.zip",
+        "--check-source",
+        "<fresh-dir>\\companion.zip"
+      ],
+      "returnCode": 1,
+      "seconds": 0.10706309999999997,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py\", line 100, in <module>\n    main()\n  File \"F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py\", line 84, in main\n    verify_apk(apk, lock)\n  File \"F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py\", line 68, in verify_apk\n    raise ValueError('PROOT_APK_BYTES: ' + name)\nValueError: PROOT_APK_BYTES: lib/arm64-v8a/libprootloader32.so\n"
+    },
+    {
+      "label": "changed license",
+      "command": [
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\source-rights\\python39\\python.exe",
+        "-B",
+        "F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py",
+        "--apk",
+        "<fresh-dir>\\synthetic-apk.zip",
+        "--check-source",
+        "<fresh-dir>\\companion.zip"
+      ],
+      "returnCode": 1,
+      "seconds": 0.09128289999999994,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py\", line 100, in <module>\n    main()\n  File \"F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py\", line 84, in main\n    verify_apk(apk, lock)\n  File \"F:\\DSHA_RESTART\\source\\build377-local\\tools\\proot_source_distribution.py\", line 68, in verify_apk\n    raise ValueError('PROOT_APK_BYTES: ' + name)\nValueError: PROOT_APK_BYTES: assets/licenses/talloc-2.4.3-LICENSE.txt\n"
+    },
+    {
+      "label": "rebuild from extracted companion",
+      "command": [
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\source-rights\\python39\\python.exe",
+        "-B",
+        "<fresh-dir>\\source\\build.py",
+        "--ndk",
+        "F:\\DSHA_RESTART\\toolchains\\current\\android-sdk\\ndk\\26.3.11579264",
+        "--output",
+        "<fresh-dir>\\rebuilt"
+      ],
+      "returnCode": 0,
+      "seconds": 4.89757,
+      "stdout": "{\n  \"libproot.so\": \"c16957450ab9a1da67d4784cf0667b90ad786e7939aa46aeb9796d7d384b7692\",\n  \"libprootloader.so\": \"004c1de722687a59052bf472207f99536849a911b5135fe5937bfa1711a69f10\",\n  \"libprootloader32.so\": \"a781049d8437fc3a48bd2014e924259babd2610f15979bdba27251278d57a7be\",\n  \"libtalloc.so\": \"718d7e738d7fbad261a4c73bc8f947633380c57136ccacf8b49f3d3661413ef0\"\n}\n",
+      "stderr": "                                                                                 ^\nproot-5.1.107.91/src/extension/port_switch/port_switch.c:145:121: note: declared here\nvoid mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, struct sockaddr_storage *my_sockaddr, long socketcall_arg2[]) {   \n                                                                                                                        ^\n4 warnings generated.\nproot-5.1.107.91/src/extension/sysvipc/sysvipc_shm.c:814:10: warning: 'mktemp' is deprecated: mktemp is unsafe, use mkstemp or tmpfile instead [-Wdeprecated-declarations]\n                (void) mktemp(path);\n                       ^\nF:/DSHA/_toolchains/android-sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/windows-x86_64/bin/../sysroot/usr/include/stdlib.h:68:66: note: 'mktemp' has been explicitly marked deprecated here\nchar* _Nullable mktemp(char* _Nonnull __template) __attribute__((deprecated(\"mktemp is unsafe, use mkstemp or tmpfile instead\")));\n                                                                 ^\n1 warning generated.\n"
+    }
+  ],
+  "components": [
+    {
+      "component": "libproot.so",
+      "beforeApkBytes": 268976,
+      "beforeApkSha": "cbde86eb01b58413f9e4673e182caca5440e8fc4af8482a0e23d0faa0846f721",
+      "after": {
+        "name": "libproot.so",
+        "bytes": 239920,
+        "allocated": 241664,
+        "sha256": "c16957450ab9a1da67d4784cf0667b90ad786e7939aa46aeb9796d7d384b7692"
+      },
+      "linux": {
+        "component": "libproot.so",
+        "allNamesMatch": true,
+        "sections": 26,
+        "differingSections": [
+          ".comment"
+        ],
+        "allocatedSectionDifferences": []
+      }
+    },
+    {
+      "component": "libprootloader.so",
+      "beforeApkBytes": 67736,
+      "beforeApkSha": "a2cbccfc776e23225b75e6700dd1990fcd505d2e973f5bfa19c76642d4e41c7d",
+      "after": {
+        "name": "libprootloader.so",
+        "bytes": 18000,
+        "allocated": 20480,
+        "sha256": "004c1de722687a59052bf472207f99536849a911b5135fe5937bfa1711a69f10"
+      },
+      "linux": {
+        "component": "libprootloader.so",
+        "allNamesMatch": true,
+        "sections": 5,
+        "differingSections": [
+          ".comment"
+        ],
+        "allocatedSectionDifferences": []
+      }
+    },
+    {
+      "component": "libprootloader32.so",
+      "beforeApkBytes": 67216,
+      "beforeApkSha": "9e0628acbe52bd5f7fda706581d6fa99f6336782a2452879d9d321875c638952",
+      "after": {
+        "name": "libprootloader32.so",
+        "bytes": 17920,
+        "allocated": 20480,
+        "sha256": "a781049d8437fc3a48bd2014e924259babd2610f15979bdba27251278d57a7be"
+      },
+      "linux": {
+        "component": "libprootloader32.so",
+        "allNamesMatch": true,
+        "sections": 6,
+        "differingSections": [
+          ".comment"
+        ],
+        "allocatedSectionDifferences": []
+      }
+    },
+    {
+      "component": "libtalloc.so",
+      "beforeApkBytes": 31440,
+      "beforeApkSha": "3c9b207c0a6ea2896b7523e03f55d9ab0d9e88baa115d4c32b84058ff4246fbb",
+      "after": {
+        "name": "libtalloc.so",
+        "bytes": 37352,
+        "allocated": 40960,
+        "sha256": "718d7e738d7fbad261a4c73bc8f947633380c57136ccacf8b49f3d3661413ef0"
+      },
+      "linux": {
+        "component": "libtalloc.so",
+        "allNamesMatch": true,
+        "sections": 24,
+        "differingSections": [
+          ".comment"
+        ],
+        "allocatedSectionDifferences": []
+      }
+    }
+  ],
+  "checks": [
+    {
+      "case": "reject old formal APK",
+      "detail": "PROOT_APK_MEMBERS: Counter({'lib/arm64-v8a/libproot.so': 1, 'lib/arm64-v8a/libprootloader.so': 1, 'lib/arm64-v8a/libprootloader32.so': 1, 'lib/arm64-v8a/libtalloc.so': 1, 'assets/licenses/GPL-3.0.txt': 1, 'assets/licenses/LGPL-3.0.txt': 1, 'assets/licenses/libandroid-shmem-0.7-copyright.txt': 1, 'assets/licenses/proot-COPYING.txt': 1})"
+    },
+    {
+      "case": "reject altered build recipe",
+      "detail": "PROOT_SOURCE_CHANGED: build.py"
+    }
+  ],
+  "startFreeBytes": 337501126656,
+  "baselineApk": {
+    "name": "dsha-0.2.2-rc.5.apk",
+    "bytes": 257781425,
+    "allocated": 257781760,
+    "sha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc"
+  },
+  "firstSeconds": 0.2233912,
+  "sourceRebuildSeconds": 4.8992681000000005,
+  "companion": {
+    "name": "dsha-proot-talloc-source.zip",
+    "bytes": 1191235,
+    "allocated": 1191936,
+    "sha256": "bebb78e0ebdb74b494e3c160f0bee57f15eb34bf7bf1800e56fac03af5bbad27"
+  },
+  "afterVerifiedMembers": {
+    "lib/arm64-v8a/libproot.so": "c16957450ab9a1da67d4784cf0667b90ad786e7939aa46aeb9796d7d384b7692",
+    "lib/arm64-v8a/libprootloader.so": "004c1de722687a59052bf472207f99536849a911b5135fe5937bfa1711a69f10",
+    "lib/arm64-v8a/libprootloader32.so": "a781049d8437fc3a48bd2014e924259babd2610f15979bdba27251278d57a7be",
+    "lib/arm64-v8a/libtalloc.so": "718d7e738d7fbad261a4c73bc8f947633380c57136ccacf8b49f3d3661413ef0",
+    "assets/licenses/proot-COPYING.txt": "0ffa6454acbe7e410ac6f0007df83b9b3161fe55484c1f4b87487c0f2d228a6d",
+    "assets/licenses/talloc-2.4.3-LICENSE.txt": "ceae1f4086f6f4e92db0900b9c31ece50e04341726176b9caab5cd8d6a0d2660",
+    "assets/licenses/GPL-3.0.txt": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "assets/licenses/LGPL-3.0.txt": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118",
+    "assets/licenses/libandroid-shmem-0.7-copyright.txt": "0dd43abe17196b0224cb0b159819af798cd508a82a21e5870126fff4e899a7eb"
+  },
+  "embeddedCommit": "15e7fcc285121d67efdfad11ce688fc0a81dd392",
+  "compressedApkMembers": {
+    "lib/arm64-v8a/libproot.so": 103740,
+    "lib/arm64-v8a/libprootloader.so": 1180,
+    "lib/arm64-v8a/libprootloader32.so": 1102,
+    "lib/arm64-v8a/libtalloc.so": 15936,
+    "assets/licenses/proot-COPYING.txt": 7268,
+    "assets/licenses/talloc-2.4.3-LICENSE.txt": 3058,
+    "assets/licenses/GPL-3.0.txt": 12112,
+    "assets/licenses/LGPL-3.0.txt": 2618,
+    "assets/licenses/libandroid-shmem-0.7-copyright.txt": 801
+  },
+  "gitArchiveInputs": {
+    "build.py": "77472b2bbc8c8d576107fcece0d7ddbc571bffae7aad48a740f962524837c877",
+    "inputs/libandroid-shmem-0.7.tar.gz": "48e80a854df55dd8eb2a5026cb3cc90a10165aae68c591acdabad24488ce621f",
+    "inputs/libandroid-shmem_0.7_aarch64.deb": "0da3a24d558b93c92bcf8d611e0826a99ff96e396b148e6cdf33b47c47c57ff6",
+    "inputs/proot-5.1.107.91.zip": "a7bc2fab34bf9a39073e8291f08a662e848c61a67494e59f5f84f5ca10690128",
+    "inputs/talloc-2.4.3.tar.gz": "dc46c40b9f46bb34dd97fe41f548b0e8b247b77a918576733c528e83abd854dd",
+    "README.md": "525f0eec7f3d3e6d1fa85721a60d4a97d99b25cf962562a362748b06b89e47d7",
+    "talloc-config/replace.h": "cb6a9ce87dc9cd23a7102bd5810c3b3b9f6f3be82bf4db911c6e36f00f67b253"
+  },
+  "afterApk": {
+    "name": "dsha-0.2.2-rc.5.apk",
+    "bytes": 255587176,
+    "allocated": 255590400,
+    "sha256": "2e6f0324ebe4b52b143dcb2bf04800b1ce73c106a53b567de1afdafca5dba3d9"
+  },
+  "endFreeBytes": 337283182592,
+  "totalSeconds": 6.5830935
+}

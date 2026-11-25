@@ -1,0 +1,25 @@
+test_agp_gunzip_survivor_gh_cli_tar_is_rejected (__main__.ManagedApkAssetsGate.test_agp_gunzip_survivor_gh_cli_tar_is_rejected) ... ok
+test_complete_packaged_apk_passes_with_the_renamed_gh_archive (__main__.ManagedApkAssetsGate.test_complete_packaged_apk_passes_with_the_renamed_gh_archive) ... ok
+test_crc64_xz_carrier_has_the_same_complete_tar_and_pinned_gh (__main__.ManagedApkAssetsGate.test_crc64_xz_carrier_has_the_same_complete_tar_and_pinned_gh) ... ok
+test_generated_member_is_compared_with_the_build_directory (__main__.ManagedApkAssetsGate.test_generated_member_is_compared_with_the_build_directory) ... ok
+test_gh_archive_must_be_gzip (__main__.ManagedApkAssetsGate.test_gh_archive_must_be_gzip) ... ok
+test_gh_member_digest_is_checked_when_sizes_match (__main__.ManagedApkAssetsGate.test_gh_member_digest_is_checked_when_sizes_match) ... ok
+test_gh_member_digest_mismatch_is_rejected (__main__.ManagedApkAssetsGate.test_gh_member_digest_mismatch_is_rejected) ... ok
+test_lock_and_managed_install_row_must_share_the_member_digest (__main__.ManagedApkAssetsGate.test_lock_and_managed_install_row_must_share_the_member_digest) ... ok
+test_managed_bytes_must_equal_the_repository_source (__main__.ManagedApkAssetsGate.test_managed_bytes_must_equal_the_repository_source) ... ok
+test_managed_inputs_manifest_must_match_the_repository_copy (__main__.ManagedApkAssetsGate.test_managed_inputs_manifest_must_match_the_repository_copy) ... ok
+test_managed_inputs_without_a_gh_install_row_is_rejected (__main__.ManagedApkAssetsGate.test_managed_inputs_without_a_gh_install_row_is_rejected) ... ok
+test_managed_tree_member_cannot_disappear (__main__.ManagedApkAssetsGate.test_managed_tree_member_cannot_disappear) ... ok
+test_missing_apk_is_rejected (__main__.ManagedApkAssetsGate.test_missing_apk_is_rejected) ... ok
+test_missing_packaged_gh_name_is_rejected_even_when_the_source_name_exists (__main__.ManagedApkAssetsGate.test_missing_packaged_gh_name_is_rejected_even_when_the_source_name_exists) ... ok
+test_rename_target_must_stay_a_generated_file (__main__.ManagedApkAssetsGate.test_rename_target_must_stay_a_generated_file) ... ok
+test_source_name_leaking_into_the_apk_is_rejected (__main__.ManagedApkAssetsGate.test_source_name_leaking_into_the_apk_is_rejected) ... ok
+test_xz_carrier_with_matching_pins_but_different_tar_is_rejected (__main__.ManagedApkAssetsGate.test_xz_carrier_with_matching_pins_but_different_tar_is_rejected) ... ok
+test_xz_carrier_with_trailing_data_is_rejected (__main__.ManagedApkAssetsGate.test_xz_carrier_with_trailing_data_is_rejected) ... ok
+test_xz_carrier_with_wrong_check_is_rejected (__main__.ManagedApkAssetsGate.test_xz_carrier_with_wrong_check_is_rejected) ... ok
+test_xz_carrier_with_wrong_sidecar_is_rejected (__main__.ManagedApkAssetsGate.test_xz_carrier_with_wrong_sidecar_is_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 0.639s
+
+OK

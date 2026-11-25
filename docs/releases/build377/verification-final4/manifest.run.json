@@ -1,0 +1,13 @@
+{
+  "command": [
+    "F:\\DSHA_RESTART\\toolchains\\current\\android-sdk\\build-tools\\36.0.0\\aapt2.exe",
+    "dump",
+    "badging",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\local-release\\dsha-0.2.2-rc.5.apk"
+  ],
+  "startedAt": "2026-11-25T09:56:29.191360+00:00",
+  "finishedAt": "2026-11-25T09:56:29.268134+00:00",
+  "elapsedSeconds": 0.078,
+  "exitCode": 0,
+  "logSha256": "79b089b5890217d942aba45402b538f7105e79add49d81a825d781f391467f05"
+}

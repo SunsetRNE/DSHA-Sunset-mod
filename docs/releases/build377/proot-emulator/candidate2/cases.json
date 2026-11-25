@@ -1,0 +1,208 @@
+{
+  "emulator": [
+    "DSHA_build377_proot_api30_arm64",
+    "OK"
+  ],
+  "environment": "google/sdk_gphone_arm64/emulator_arm64:11/RSR1.240422.006/12134477:userdebug/dev-keys\narm64-v8a\n30\naarch64\nuid=2000(shell) gid=2000(shell) groups=2000(shell),1004(input),1007(log),1011(adb),1015(sdcard_rw),1028(sdcard_r),3001(net_bt_admin),3002(net_bt),3003(inet),3006(net_bw_stats),3009(readproc),3011(uhid) context=u:r:shell:s0\nEnforcing\nSeccomp:\t0",
+  "serial": "emulator-5672",
+  "port": 5077,
+  "at": 1795589315.9876175,
+  "sourceApk": null,
+  "apkSha256": null,
+  "sha256": {
+    "libproot.so": "c16957450ab9a1da67d4784cf0667b90ad786e7939aa46aeb9796d7d384b7692",
+    "libprootloader.so": "004c1de722687a59052bf472207f99536849a911b5135fe5937bfa1711a69f10",
+    "libprootloader32.so": "a781049d8437fc3a48bd2014e924259babd2610f15979bdba27251278d57a7be",
+    "libtalloc.so": "718d7e738d7fbad261a4c73bc8f947633380c57136ccacf8b49f3d3661413ef0",
+    "libandroidshmem.so": "84475798e07c8174dbbfaec70a827fdb02f19ffa69a589380c13e7507fd0e731"
+  },
+  "commandLog": [
+    {
+      "argv": [
+        "F:\\DSHA_RESTART\\toolchains\\current\\android-sdk\\ndk\\26.3.11579264\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang.exe",
+        "--target=aarch64-linux-android30",
+        "-O2",
+        "-static",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\proot-emulator\\guest.c",
+        "-o",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\proot-emulator\\candidate2\\input\\root\\guest64"
+      ],
+      "result": "",
+      "status": 0
+    },
+    {
+      "argv": [
+        "F:\\DSHA_RESTART\\toolchains\\current\\android-sdk\\ndk\\26.3.11579264\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\llvm-readelf.exe",
+        "--file-header",
+        "--program-headers",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\proot-emulator\\candidate2\\input\\root\\guest64"
+      ],
+      "result": "ELF Header:\n  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00\n  Class:                             ELF64\n  Data:                              2's complement, little endian\n  Version:                           1 (current)\n  OS/ABI:                            UNIX - System V\n  ABI Version:                       0\n  Type:                              EXEC (Executable file)\n  Machine:                           AArch64\n  Version:                           0x1\n  Entry point address:               0x221B80\n  Start of program headers:          64 (bytes into file)\n  Start of section headers:          3491104 (bytes into file)\n  Flags:                             0x0\n  Size of this header:               64 (bytes)\n  Size of program headers:           56 (bytes)\n  Number of program headers:         10\n  Size of section headers:           64 (bytes)\n  Number of section headers:         28\n  Section header string table index: 26\n\nElf file type is EXEC (Executable file)\nEntry point 0x221b80\nThere are 10 program headers, starting at offset 64\n\nProgram Headers:\n  Type           Offset   VirtAddr           PhysAddr           FileSiz  MemSiz   Flg Align\n  PHDR           0x000040 0x0000000000200040 0x0000000000200040 0x000230 0x000230 R   0x8\n  LOAD           0x000000 0x0000000000200000 0x0000000000200000 0x020b70 0x020b70 R   0x1000\n  LOAD           0x020b80 0x0000000000221b80 0x0000000000221b80 0x082250 0x082250 R E 0x1000\n  LOAD           0x0a2e00 0x00000000002a4e00 0x00000000002a4e00 0x0036e0 0x0036e0 RW  0x1000\n  LOAD           0x0a64e0 0x00000000002a94e0 0x00000000002a94e0 0x001d60 0x214f00 RW  0x1000\n  TLS            0x0a2e00 0x00000000002a4e00 0x00000000002a4e00 0x000008 0x000008 R   0x40\n  GNU_RELRO      0x0a2e00 0x00000000002a4e00 0x00000000002a4e00 0x0036e0 0x004200 R   0x1\n  GNU_EH_FRAME   0x008950 0x0000000000208950 0x0000000000208950 0x003bdc 0x003bdc R   0x4\n  GNU_STACK      0x000000 0x0000000000000000 0x0000000000000000 0x000000 0x000000 RW  0x0\n  NOTE           0x000270 0x0000000000200270 0x0000000000200270 0x000098 0x000098 R   0x4\n\n Section to Segment mapping:\n  Segment Sections...\n   00     \n   01     .note.android.ident .rodata .eh_frame_hdr .eh_frame \n   02     .text \n   03     .tdata .preinit_array .init_array .fini_array .data.rel.ro .got \n   04     .data .bss \n   05     .tdata \n   06     .tdata .preinit_array .init_array .fini_array .data.rel.ro .got \n   07     .eh_frame_hdr \n   08     \n   09     .note.android.ident \n   None   .comment .debug_loclists .debug_abbrev .debug_info .debug_rnglists .debug_str_offsets .debug_str .debug_addr .debug_line .debug_line_str .debug_aranges .symtab .shstrtab .strtab \n",
+      "status": 0
+    },
+    {
+      "argv": [
+        "F:\\DSHA_RESTART\\toolchains\\current\\android-sdk\\ndk\\26.3.11579264\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang.exe",
+        "--target=armv7a-linux-androideabi30",
+        "-O2",
+        "-static",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\proot-emulator\\guest.c",
+        "-o",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\proot-emulator\\candidate2\\input\\root\\guest32"
+      ],
+      "result": "",
+      "status": 0
+    },
+    {
+      "argv": [
+        "F:\\DSHA_RESTART\\toolchains\\current\\android-sdk\\ndk\\26.3.11579264\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\llvm-readelf.exe",
+        "--file-header",
+        "--program-headers",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\proot-emulator\\candidate2\\input\\root\\guest32"
+      ],
+      "result": "ELF Header:\n  Magic:   7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00\n  Class:                             ELF32\n  Data:                              2's complement, little endian\n  Version:                           1 (current)\n  OS/ABI:                            UNIX - System V\n  ABI Version:                       0\n  Type:                              EXEC (Executable file)\n  Machine:                           ARM\n  Version:                           0x1\n  Entry point address:               0x1C610\n  Start of program headers:          52 (bytes into file)\n  Start of section headers:          2952588 (bytes into file)\n  Flags:                             0x5000200\n  Size of this header:               52 (bytes)\n  Size of program headers:           32 (bytes)\n  Number of program headers:         11\n  Size of section headers:           40 (bytes)\n  Number of section headers:         32\n  Section header string table index: 30\n\nElf file type is EXEC (Executable file)\nEntry point 0x1c610\nThere are 11 program headers, starting at offset 52\n\nProgram Headers:\n  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align\n  PHDR           0x000034 0x00010034 0x00010034 0x00160 0x00160 R   0x4\n  LOAD           0x000000 0x00010000 0x00010000 0x0b60c 0x0b60c R   0x1000\n  LOAD           0x00b610 0x0001c610 0x0001c610 0x5b9e0 0x5b9e0 R E 0x1000\n  LOAD           0x067000 0x00079000 0x00079000 0x01bb4 0x01bb4 RW  0x1000\n  LOAD           0x068bc0 0x0007bbc0 0x0007bbc0 0x00ecc 0x0df18 RW  0x1000\n  TLS            0x067000 0x00079000 0x00079000 0x00008 0x00008 R   0x20\n  GNU_RELRO      0x067000 0x00079000 0x00079000 0x01bb4 0x02000 R   0x1\n  GNU_EH_FRAME   0x009668 0x00019668 0x00019668 0x007b4 0x007b4 R   0x4\n  GNU_STACK      0x000000 0x00000000 0x00000000 0x00000 0x00000 RW  0x0\n  NOTE           0x000194 0x00010194 0x00010194 0x00098 0x00098 R   0x4\n  EXIDX          0x00022c 0x0001022c 0x0001022c 0x029d0 0x029d0 R   0x4\n\n Section to Segment mapping:\n  Segment Sections...\n   00     \n   01     .note.android.ident .ARM.exidx .rodata .ARM.extab .eh_frame_hdr .eh_frame \n   02     .text \n   03     .tdata .preinit_array .init_array .fini_array .data.rel.ro .got \n   04     .data .bss \n   05     .tdata \n   06     .tdata .preinit_array .init_array .fini_array .data.rel.ro .got \n   07     .eh_frame_hdr \n   08     \n   09     .note.android.ident \n   10     .ARM.exidx \n   None   .comment .ARM.attributes .debug_loclists .debug_abbrev .debug_info .debug_rnglists .debug_str_offsets .debug_str .debug_addr .debug_frame .debug_line .debug_line_str .debug_aranges .symtab .shstrtab .strtab \n",
+      "status": 0
+    },
+    {
+      "argv": [
+        "F:\\DSHA_RESTART\\cache\\build372-android-jni\\sdk\\platform-tools\\adb.exe",
+        "-H",
+        "127.0.0.1",
+        "-P",
+        "5077",
+        "-s",
+        "emulator-5672",
+        "shell",
+        "mkdir /data/local/tmp/dsha377_candidate2"
+      ],
+      "result": "",
+      "status": 0
+    },
+    {
+      "argv": [
+        "F:\\DSHA_RESTART\\cache\\build372-android-jni\\sdk\\platform-tools\\adb.exe",
+        "-H",
+        "127.0.0.1",
+        "-P",
+        "5077",
+        "-s",
+        "emulator-5672",
+        "push",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\proot-emulator\\candidate2\\input/.",
+        "/data/local/tmp/dsha377_candidate2/"
+      ],
+      "result": "F:\\DSHA_RESTART\\artifacts\\build377-local\\proot-emulator\\candidate2\\input/.\\: 8 files pushed, 0 skipped. 2.6 MB/s (6774404 bytes in 2.515s)\n",
+      "status": 0
+    },
+    {
+      "argv": [
+        "F:\\DSHA_RESTART\\cache\\build372-android-jni\\sdk\\platform-tools\\adb.exe",
+        "-H",
+        "127.0.0.1",
+        "-P",
+        "5077",
+        "-s",
+        "emulator-5672",
+        "shell",
+        "cd /data/local/tmp/dsha377_candidate2 && chmod 755 lib*.so root/guest* && mkdir tmp && ln -s libtalloc.so libtalloc.so.2 && ln -s libandroidshmem.so libandroid-shmem.so && sha256sum lib*.so"
+      ],
+      "result": "84475798e07c8174dbbfaec70a827fdb02f19ffa69a589380c13e7507fd0e731  libandroid-shmem.so\n84475798e07c8174dbbfaec70a827fdb02f19ffa69a589380c13e7507fd0e731  libandroidshmem.so\nc16957450ab9a1da67d4784cf0667b90ad786e7939aa46aeb9796d7d384b7692  libproot.so\n004c1de722687a59052bf472207f99536849a911b5135fe5937bfa1711a69f10  libprootloader.so\na781049d8437fc3a48bd2014e924259babd2610f15979bdba27251278d57a7be  libprootloader32.so\n718d7e738d7fbad261a4c73bc8f947633380c57136ccacf8b49f3d3661413ef0  libtalloc.so\n",
+      "status": 0
+    }
+  ],
+  "cases": [
+    {
+      "name": "version",
+      "command": "./libproot.so --version",
+      "exit": 0,
+      "seconds": 1.4228091999539174,
+      "marker": "proot",
+      "negative": false,
+      "passed": true,
+      "output": " _____ _____              ___\n|  __ \\  __ \\_____  _____|   |_\n|   __/     /  _  \\/  _  \\    _|\n|__|  |__|__\\_____/\\_____/\\____| v5.1.107.91-dsha\n\nbuilt-in accelerators: process_vm = yes, seccomp_filter = yes\n\nVisit http://proot.me for help, bug reports, suggestions, patchs, ...\nCopyright (C) 2015 STMicroelectronics, licensed under GPL v2 or later.\n"
+    },
+    {
+      "name": "bionic-shell-compat",
+      "command": "export PROOT_NO_SECCOMP=1; ./libproot.so -0 -r / -w / /system/bin/sh -c 'printf DSHA_BIONIC_SHELL_OK'",
+      "exit": 0,
+      "seconds": 13.385405300010461,
+      "marker": "DSHA_BIONIC_SHELL_OK",
+      "negative": false,
+      "passed": true,
+      "output": "DSHA_BIONIC_SHELL_OK"
+    },
+    {
+      "name": "static-64-compat",
+      "command": "export PROOT_NO_SECCOMP=1; ./libproot.so -0 -r root -w / /guest64",
+      "exit": 0,
+      "seconds": 2.435671999992337,
+      "marker": "DSHA_PROOT_GUEST abi=64 uid=0 proof=ok",
+      "negative": false,
+      "passed": true,
+      "output": "DSHA_PROOT_GUEST abi=64 uid=0 proof=ok\n"
+    },
+    {
+      "name": "static-32-compat",
+      "command": "export PROOT_NO_SECCOMP=1; ./libproot.so -0 -r root -w / /guest32",
+      "exit": 0,
+      "seconds": 2.056749400042463,
+      "marker": "DSHA_PROOT_GUEST abi=32 uid=0 proof=ok",
+      "negative": false,
+      "passed": true,
+      "output": "DSHA_PROOT_GUEST abi=32 uid=0 proof=ok\n"
+    },
+    {
+      "name": "bionic-shell-normal",
+      "command": "unset PROOT_NO_SECCOMP; ./libproot.so -0 -r / -w / /system/bin/sh -c 'printf DSHA_BIONIC_SHELL_OK'",
+      "exit": 0,
+      "seconds": 5.55345289997058,
+      "marker": "DSHA_BIONIC_SHELL_OK",
+      "negative": false,
+      "passed": true,
+      "output": "DSHA_BIONIC_SHELL_OK"
+    },
+    {
+      "name": "static-64-normal",
+      "command": "unset PROOT_NO_SECCOMP; ./libproot.so -0 -r root -w / /guest64",
+      "exit": 0,
+      "seconds": 1.36551309999777,
+      "marker": "DSHA_PROOT_GUEST abi=64 uid=0 proof=ok",
+      "negative": false,
+      "passed": true,
+      "output": "DSHA_PROOT_GUEST abi=64 uid=0 proof=ok\n"
+    },
+    {
+      "name": "static-32-normal",
+      "command": "unset PROOT_NO_SECCOMP; ./libproot.so -0 -r root -w / /guest32",
+      "exit": 0,
+      "seconds": 1.2796042999834754,
+      "marker": "DSHA_PROOT_GUEST abi=32 uid=0 proof=ok",
+      "negative": false,
+      "passed": true,
+      "output": "DSHA_PROOT_GUEST abi=32 uid=0 proof=ok\n"
+    },
+    {
+      "name": "missing-64-loader",
+      "command": "export PROOT_NO_SECCOMP=1; export PROOT_LOADER=/data/local/tmp/dsha377_candidate2/absent; ./libproot.so -0 -r root -w / /guest64",
+      "exit": 1,
+      "seconds": 0.9648390000220388,
+      "marker": "DSHA_PROOT_GUEST abi=64",
+      "negative": true,
+      "passed": true,
+      "output": "proot error: execve(\"/guest64\"): No such file or directory\nproot info: possible causes:\n  * the program is a script but its interpreter (eg. /bin/sh) was not found;\n  * the program is an ELF but its interpreter (eg. ld-linux.so) was not found;\n  * the program is a foreign binary but qemu was not specified;\n  * qemu does not work correctly (if specified);\n  * the loader was not found or doesn't work.\nfatal error: see `libproot.so --help`.\n"
+    },
+    {
+      "name": "missing-32-loader",
+      "command": "export PROOT_NO_SECCOMP=1; export PROOT_LOADER_32=/data/local/tmp/dsha377_candidate2/absent; ./libproot.so -0 -r root -w / /guest32",
+      "exit": 1,
+      "seconds": 0.6381370999733917,
+      "marker": "DSHA_PROOT_GUEST abi=32",
+      "negative": true,
+      "passed": true,
+      "output": "proot error: execve(\"/guest32\"): No such file or directory\nproot info: possible causes:\n  * the program is a script but its interpreter (eg. /bin/sh) was not found;\n  * the program is an ELF but its interpreter (eg. ld-linux.so) was not found;\n  * the program is a foreign binary but qemu was not specified;\n  * qemu does not work correctly (if specified);\n  * the loader was not found or doesn't work.\nfatal error: see `libproot.so --help`.\n"
+    }
+  ],
+  "elapsedSeconds": 37.93610399996396,
+  "firstResultSeconds": 10.251408799958881,
+  "passed": true
+}

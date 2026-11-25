@@ -1,0 +1,6 @@
+START	2026-11-25T07:10:53.447219600Z	com.deepseekharness.app.screen.MetadataComparison.unreadableWindowDiagnosticsAndTaskLimit
+SYNTHETIC_METADATA rootAvailable=false titleIncluded=true applicationWindowCount=1
+SYNTHETIC_TASKS limit=100 returned=100 attributed=true belowLimit99=true
+FINISH	2026-11-25T07:10:55.382599Z	com.deepseekharness.app.screen.MetadataComparison.unreadableWindowDiagnosticsAndTaskLimit
+CASE	PASS	com.deepseekharness.app.screen.MetadataComparison.unreadableWindowDiagnosticsAndTaskLimit
+TOTAL	1	0	0	0

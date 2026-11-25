@@ -1,0 +1,243 @@
+{
+  "status": "LOCAL_BUILD377_VERIFIED",
+  "commit": "365719301ebf8c35f87edc24bdce4edb503c46d5",
+  "tree": "d074ba67a971f2e16697483b5fb345e661e946e9",
+  "finishedAtUtc": "2026-11-25T10:06:23.862737+00:00",
+  "baseline": "12efafd7d3530b412d48ccb66fb657c6bd7cc8ac",
+  "officialLocalVersion": 376,
+  "versionCode": 377,
+  "versionName": "0.2.2-rc.5-20261125.1442-dsh0.2.2-rc.5",
+  "packageName": "dsh.android.client",
+  "certificateSha256": "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5",
+  "schemes": {
+    "v1": true,
+    "v2": true,
+    "v3": true,
+    "v3.1": false,
+    "v4": false
+  },
+  "apk": {
+    "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\local-release\\dsha-0.2.2-rc.5.apk",
+    "logicalBytes": 255591272,
+    "allocatedBytes": 255594496,
+    "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2"
+  },
+  "sourceCompanion": {
+    "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\local-release\\dsha-proot-talloc-source.zip",
+    "logicalBytes": 1191235,
+    "allocatedBytes": 1191936,
+    "sha256": "bebb78e0ebdb74b494e3c160f0bee57f15eb34bf7bf1800e56fac03af5bbad27"
+  },
+  "previousApk": {
+    "path": "F:\\DSHA_RESTART\\release\\0.2.2-rc.5\\dsha-0.2.2-rc.5.apk",
+    "bytes": 257781425,
+    "sha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc"
+  },
+  "archivedBuild375": {
+    "path": "F:\\DSHA_RESTART\\release\\0.2.2-rc.5\\history\\0.2.2-rc.5-build375\\dsha-0.2.2-rc.5.apk",
+    "bytes": 257886093,
+    "sha256": "d4e044ba4788252e4bedc32ca5c38459bb7fb76dc14db6e700f4e842c446815d"
+  },
+  "netApkBytes": -2190153,
+  "volumeAvailableBytes": 305403670528,
+  "runtimeSha256": "2cbc3aba49cfb256a01afd9dd68eeb7b72e8c01f35d88745cdb2648ec6333bed",
+  "baselineStorage": {
+    "at": "2026-11-25T06:43:06.230888+00:00",
+    "volume": "F:\\",
+    "totalBytes": 959067451392,
+    "availableBytes": 357555646464,
+    "files": [
+      {
+        "path": "F:\\DSHA_RESTART\\release\\0.2.2-rc.5\\dsha-0.2.2-rc.5.apk",
+        "logicalBytes": 257781425,
+        "allocatedBytes": 257781760
+      }
+    ]
+  },
+  "firstSoftwareResult": {
+    "startedAt": "2026-11-25T09:44:47.708Z",
+    "at": "2026-11-25T09:44:49.392Z",
+    "className": "com.deepseekharness.app.backup.AutomaticBackupPrunerGoldenTest",
+    "name": "invalidEligibleCopyAbortsBeforeAnyDeletion",
+    "status": "SUCCESS",
+    "durationMs": 1684
+  },
+  "apkFirstAvailableAt": "2026-11-25T09:55:30.889065+00:00",
+  "software": {
+    "commit": "365719301ebf8c35f87edc24bdce4edb503c46d5",
+    "windows": {
+      "methods": 5845,
+      "counts": {
+        "SUCCESS": 5845
+      },
+      "raw": "F:\\DSHA_RESTART\\artifacts\\build377-local\\windows-r6\\method-results.jsonl",
+      "firstResult": {
+        "startedAt": "2026-11-25T09:44:47.708Z",
+        "at": "2026-11-25T09:44:49.392Z",
+        "className": "com.deepseekharness.app.backup.AutomaticBackupPrunerGoldenTest",
+        "name": "invalidEligibleCopyAbortsBeforeAnyDeletion",
+        "status": "SUCCESS",
+        "durationMs": 1684
+      },
+      "firstPass": {
+        "startedAt": "2026-11-25T09:44:47.708Z",
+        "at": "2026-11-25T09:44:49.392Z",
+        "className": "com.deepseekharness.app.backup.AutomaticBackupPrunerGoldenTest",
+        "name": "invalidEligibleCopyAbortsBeforeAnyDeletion",
+        "status": "SUCCESS",
+        "durationMs": 1684
+      },
+      "gradleElapsedSeconds": 692.322,
+      "gradleExitCode": 0,
+      "firstRunFailures": [],
+      "retryResolved": {},
+      "failures": [],
+      "passedAfterRetries": 5845,
+      "skipped": []
+    },
+    "lint": {
+      "severity": {
+        "Warning": 649,
+        "Hint": 30
+      },
+      "report": "F:\\DSHA_RESTART\\artifacts\\build377-local\\windows-r6\\lint-results-standardRelease.xml",
+      "errors": 0
+    },
+    "linux": {
+      "methods": 144,
+      "counts": {
+        "PASS": 144
+      },
+      "windowsOverlap": [],
+      "raw": "F:\\DSHA_RESTART\\artifacts\\build377-local\\linux-tools\\linux-r6\\summary.json",
+      "batches": {
+        "posix": {
+          "firstResult": {
+            "finishedAt": "2026-11-25T09:46:53.339098677Z",
+            "method": "com.deepseekharness.app.ExternalDeviceImportRootTest.leafSymlinkStillRejected"
+          },
+          "durationSeconds": 37.421,
+          "finishedAt": "2026-11-25T09:47:09.432210+00:00",
+          "exitCode": 0
+        },
+        "native": {
+          "firstResult": {
+            "finishedAt": "2026-11-25T09:47:15.631193753Z",
+            "method": "com.deepseekharness.app.util.PlanViewDifferentialTest.reEncodedViewsGiveTheSameVerdictOnBothImplementations"
+          },
+          "durationSeconds": 10.55,
+          "finishedAt": "2026-11-25T09:47:19.987271+00:00",
+          "exitCode": 0
+        }
+      }
+    },
+    "distinctMethods": 5989,
+    "status": "PASS"
+  },
+  "exactApkChecks": [
+    "signature",
+    "manifest",
+    "alignment",
+    "size",
+    "fixed-assets",
+    "runtime",
+    "recovery",
+    "licenses",
+    "archive-recipes",
+    "elf",
+    "rust",
+    "images"
+  ],
+  "qemu": {
+    "file": "F:\\DSHA_RESTART\\artifacts\\build377-local\\qemu-04\\receipt.json",
+    "formalReadySeconds": 19.455,
+    "recoveryReadySeconds": 14.749
+  },
+  "exactDomainEvidence": {
+    "lan/signed-final.json": {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\signed-final.json",
+      "sha256": "621639bfe22a5ac8b765d70a7619b49d1661d9a52bb5d3276fba7233187aaff5"
+    },
+    "proot-emulator/signed-final.json": {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\proot-emulator\\signed-final.json",
+      "sha256": "7064d2a5cd183e012cb1028a40f8af2381d28014245991bdb617e3044a15a705"
+    },
+    "source-rights/signed-final.json": {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\source-rights\\signed-final.json",
+      "sha256": "4239007039d7b96180309c3c87723a8201d5c5216663367a1addc2f7a02e7886"
+    },
+    "source-rights/signed-final-bound.json": {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\source-rights\\signed-final-bound.json",
+      "sha256": "7a1712bea23468c8d41bca7a8b1a269a192317ed732e4295476b77dffd79fd54"
+    },
+    "source-rights/signed-release-copy.json": {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\source-rights\\signed-release-copy.json",
+      "sha256": "8d6907ad7e20441f50a19ba413fe7cecb1e577c92efa07b88072967f7c54c8ee"
+    },
+    "size/signed-size.json": {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\size\\signed-size.json",
+      "sha256": "599f5a5860bb64a726d389eae9ae38bfba10e6b4940ad5610659aeebd056475e"
+    },
+    "size/java-final.json": {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\size\\java-final.json",
+      "sha256": "1fc6133200db1215c5676f6afee99052420d54317c2371314b68f0ce11ffc3e9"
+    },
+    "web-identity/signed-binding.json": {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\web-identity\\signed-binding.json",
+      "sha256": "c6b8277d5e54980150a0eeff4e1ef99a77b4ef61c19f75774b15e48e31cf9a54"
+    },
+    "settings/r4/signed-binding.json": {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\settings\\r4\\signed-binding.json",
+      "sha256": "5f985d85b5fbefb0fbedee1efbebc5cb856f958c3cb7de3113b33b28498add54"
+    },
+    "article-readback.json": {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\article-readback.json",
+      "sha256": "b99c7d02ca6ece5cda3e7fdf6c28c607c410c380d679a227180bcdd5fee2e272"
+    },
+    "signed-source-companion.json": {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\signed-source-companion.json",
+      "sha256": "8d6907ad7e20441f50a19ba413fe7cecb1e577c92efa07b88072967f7c54c8ee"
+    },
+    "upgrade/direct.json": {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\upgrade\\direct.json",
+      "sha256": "4fd18605dc21ef8b7647af46ab35c9cf6d433148f8bdcb7b450a6650399c65f2"
+    },
+    "lan/label-and-field-matrix.json": {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\label-and-field-matrix.json",
+      "sha256": "fe3feeb9600f69bfbea9e32f345b040228026a046e86a202ad92bc50d3e8aee8"
+    }
+  },
+  "evidenceDirectory": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4",
+  "dailyDocuments": {
+    "AGENTS.md": {
+      "path": "F:\\DSHA_RESTART\\source\\build198\\AGENTS.md",
+      "bytes": 35130,
+      "sha256": "0fa4cb6ba76ea837b98d5b0a0885da88733b15b3c72c5029760e552505c1b01b"
+    },
+    "README.md": {
+      "path": "F:\\DSHA_RESTART\\source\\build198\\README.md",
+      "bytes": 9700,
+      "sha256": "f31cadbaf3ef4ceaf0ddc0685475b16c0f533b0dd0fb61395f7778facc0dd74d"
+    },
+    "docs/releases/v0.2.1-rc.5-build295-performance-20261103.md": {
+      "path": "F:\\DSHA_RESTART\\source\\build198\\docs\\releases\\v0.2.1-rc.5-build295-performance-20261103.md",
+      "bytes": 15843,
+      "sha256": "ca81317cf7aec72b32fc3d4d52646e3960c354c218ec6d9eab79b02af1257a22"
+    }
+  },
+  "settingsRowsPendingOriginalDomain": 107,
+  "agents": {
+    "count": 10,
+    "model": "gpt-6.2-astra",
+    "reasoning": "xhigh",
+    "serviceTier": "not selectable on subagent API"
+  },
+  "physicalDeviceActions": 0,
+  "githubUploaded": false,
+  "report": "F:\\DSHA_RESTART\\artifacts\\build377-local\\本地验收.md",
+  "reportSha256": "b00abd36f3a05d1c094b6c128da8db90dc40629312cf413bdc21793a18e61df6",
+  "androidReport": {
+    "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\成品系统实测.md",
+    "sha256": "d618e06af5795599b0b5ef49a899931b76379c3d5d37f3f51ea5a3675670b6d6"
+  }
+}

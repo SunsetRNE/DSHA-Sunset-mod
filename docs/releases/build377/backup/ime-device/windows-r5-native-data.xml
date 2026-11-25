@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.deepseekharness.app.ui.NativeDataChoicesTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-25T09:16:30.155Z" hostname="DESKTOP-AP3I92F" time="14.865">
+  <properties/>
+  <testcase name="tallBackupDialogRetainsWrapHeightAndStandardTabletWidthAfterSizing" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="2.433"/>
+  <testcase name="cancellingPickerWipesPasswordAndCompatibilityRequiresExplicitCheckbox" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="2.669"/>
+  <testcase name="losingTheProcessDuringSafNeverFallsBackToPlaintext" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="0.39"/>
+  <testcase name="safResultAfterRotationUsesProtectedOperationAndWipesPendingPassword" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="0.351"/>
+  <testcase name="rotationDuringFilenameLookupBindsNewPageAndFreshOwnerRestoresOnlyChoices" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="0.633"/>
+  <testcase name="displayedScopesChooseIndependentJobArguments" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="0.212"/>
+  <testcase name="compactStandardAndRescueFormsKeepBothActionsWithinTheViewport" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="7.904"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+]]></system-err>
+</testsuite>

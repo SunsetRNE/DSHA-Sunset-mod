@@ -1,0 +1,7 @@
+START	2026-11-25T06:46:38.737318500Z	com.deepseekharness.app.screen.Comparison.sameSyntheticSplitBitmap
+SYNTHETIC_PIXELS target=16 foreign=32 black=0 total=48
+SYNTHETIC_GEOMETRY unknown admitted=true
+SYNTHETIC_GEOMETRY obscured admitted=true
+FINISH	2026-11-25T06:46:43.505922800Z	com.deepseekharness.app.screen.Comparison.sameSyntheticSplitBitmap
+CASE	PASS	com.deepseekharness.app.screen.Comparison.sameSyntheticSplitBitmap
+TOTAL	1	0	0	0

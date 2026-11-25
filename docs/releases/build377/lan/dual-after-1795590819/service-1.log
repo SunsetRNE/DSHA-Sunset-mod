@@ -1,0 +1,18 @@
+OBS http basic=false own_session=false
+OBS http basic=true own_session=false
+KDF login
+OBS http basic=true own_session=true
+OBS wss basic=true own_session=true
+OBS http basic=true own_session=true
+OBS http basic=true own_session=true
+OBS wss basic=true own_session=true
+END chromium
+OBS http basic=false own_session=false
+OBS http basic=true own_session=false
+KDF login
+OBS http basic=true own_session=true
+OBS wss basic=true own_session=true
+OBS http basic=true own_session=true
+OBS http basic=true own_session=true
+OBS wss basic=true own_session=true
+END firefox

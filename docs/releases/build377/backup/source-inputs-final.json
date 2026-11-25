@@ -1,0 +1,125 @@
+{
+  "commit": "365719301ebf8c35f87edc24bdce4edb503c46d5",
+  "files": {
+    "app/src/main/java/com/deepseekharness/app/backup/BackupArchive.java": {
+      "sha256": "aea5baf142555df76fc03445aa7e2c6d72888b3ca7ae8ac55593dabdcbf01dc4",
+      "gitBlob": "bee418d8bd6cc7ea9f91f8d43b5c26378be8328b"
+    },
+    "app/src/main/java/com/deepseekharness/app/backup/NativeBackupJobs.java": {
+      "sha256": "5fcec3242e6a7d3a74432b206c8b4949ecc25e0d4f11b0f1956f47b88689c46f",
+      "gitBlob": "f7d26cf2bdab1f8d252e244a5177a54177859a08"
+    },
+    "app/src/main/java/com/deepseekharness/app/backup/OneClickBackup.java": {
+      "sha256": "258bdce32b997c6f7a77002802ff8764b47f5086fb7ef174a575bbc6567a4bbd",
+      "gitBlob": "380f99d9608be4d72cdc49f389d102ad18e057d5"
+    },
+    "app/src/main/java/com/deepseekharness/app/backup/PasswordFreeBackupExport.java": {
+      "sha256": "1e2797b339bb22918ba754954c184a600e6f72f0229f9c270a26598987cfbc86",
+      "gitBlob": "bf2cd6ee313d03558cb6cbb5b0139474aeed4dc7"
+    },
+    "app/src/main/java/com/deepseekharness/app/backup/PortableBackupCrypto.java": {
+      "sha256": "d35e4c4098d89b068530a265f6a7c5b5383bbabc4ea02a0f5c85ca701f8c2f7f",
+      "gitBlob": "3888a5a22388847781f3ce34148a0ea46b3903a4"
+    },
+    "app/src/main/java/com/deepseekharness/app/backup/PortableBackupEnvelope.java": {
+      "sha256": "8efbb86749e8e1def9f9d9b3e049770450d7a0694dc321ae8039d176fd9b75c8",
+      "gitBlob": "ee773955edacbd6219061c4e9ad7689c0222f601"
+    },
+    "app/src/main/java/com/deepseekharness/app/backup/RestoreStaging.java": {
+      "sha256": "478d98b1fecdf9c303a1a80dd560f2b60279cc228fd29618bd0180d0a6afc787",
+      "gitBlob": "ba9d06f313d4948b5b942bf90ec85e21f6f98581"
+    },
+    "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java": {
+      "sha256": "e1f8e08054a3bc5ea6ccbe3dd9ffc34193879c167fcbecfc2409195f777dba5e",
+      "gitBlob": "071447ab423b1ed0b135b8eb96dd011f8f43da25"
+    },
+    "app/src/main/java/com/deepseekharness/app/ui/AutomaticBackupActivity.java": {
+      "sha256": "07f6377fdacc4a4ff43048ad98309161ee32cc30e929b2918f64c80aaee08882",
+      "gitBlob": "7b9f70d40659d0db34aa95c2059bf521af07a252"
+    },
+    "app/src/main/java/com/deepseekharness/app/ui/PortablePasswordFields.java": {
+      "sha256": "50ae2a4071fac55adce41037bf3bd74de81a5f0688fb4c87bf3f37549747ecfb",
+      "gitBlob": "246345ef3a0f18f81134936313416fc7ba6a0c71"
+    },
+    "app/src/main/java/com/deepseekharness/app/ui/WorkspaceFragment.java": {
+      "sha256": "1aed0c64354f4b3b76ec93a03226b526caefad5ae87f077c8be28d2ca3a59ff3",
+      "gitBlob": "8b1eb6bffaffe1ee73697eee06557a5523ad1010"
+    },
+    "app/src/main/java/com/deepseekharness/app/util/BackupExportGuidance.kt": {
+      "sha256": "8713a85a0e117ab76967a3bd4f37665abe832c3eaadc44f5aa9af3d6ba72e80d",
+      "gitBlob": "53c3a0f8effaa77100257080a73ee4c3b8ba5366"
+    },
+    "app/src/test/java/com/deepseekharness/app/ui/NativeDataChoicesTest.java": {
+      "sha256": "c8c77808f17f14452b0b23c2b82d17f8a292863bf2070d3fed888056c0955513",
+      "gitBlob": "841bcbe0687549c20a9627aef7c22907b95789d7"
+    },
+    "app/src/test/java/com/deepseekharness/app/backup/OneClickBackupLifecycleTest.java": {
+      "sha256": "fedf79c47af2234704c068a82a976d19093b82a3e48e4513859d0f314efdf8f1",
+      "gitBlob": "ded6cdbd56f0ec99b5e926fa2d62d46830b53a9d"
+    },
+    "app/src/test/java/com/deepseekharness/app/backup/PasswordFreeBackupExportTest.java": {
+      "sha256": "894a19e518d276500377b74c847b205dc62d55fbf2413fb3dc395bbc0729866c",
+      "gitBlob": "588c03bd939e232670e705f82c2cd1c0231085f6"
+    },
+    "app/src/main/res/values/backup_portable.xml": {
+      "sha256": "73d4470f30f41212fe6634bb51bbf7fb0eafc8a09ac73b24f9233dc602833b08",
+      "gitBlob": "ae5af8a625d292dcc859f1d9d928b4938aadfd6a"
+    },
+    "app/src/main/res/values-ar/backup_portable.xml": {
+      "sha256": "8c094093c0d1dbaaf7fcc6270378aff363af8190b5bb6b34d6d37d3fe1ec42c3",
+      "gitBlob": "224000a28785ff63b151288266cc7b841b7e15b0"
+    },
+    "app/src/main/res/values-b+zh+Hant/backup_portable.xml": {
+      "sha256": "22695b564704b91a61faddd577e049f977864a7585173c22686d31d7b305183f",
+      "gitBlob": "6f4f68d15d583ffb0c19d1250833441a585936fd"
+    },
+    "app/src/main/res/values-en/backup_portable.xml": {
+      "sha256": "125614c5b1e00e580a704d8549b4c4acab3dee9234c20a3de825523b477bd027",
+      "gitBlob": "f883c72011fe937fa81dd2af9b769110018cd354"
+    },
+    "app/src/main/res/values-fr/backup_portable.xml": {
+      "sha256": "d0b8ebdedff06d3326c1bdd467eb5b79e5515154ff41bdceecead4ed1fc9e77a",
+      "gitBlob": "4303b04d9eed30ab28deeef975e39eba94881753"
+    },
+    "app/src/main/res/values-ja/backup_portable.xml": {
+      "sha256": "41f83fea391b781825ffafe7004e972528cf9f7aca86ba7da3d1d9d76b0a04a0",
+      "gitBlob": "670953fc3e89638c7b0ff2bb44bf24d5bd92ea26"
+    },
+    "app/src/main/res/values-ko/backup_portable.xml": {
+      "sha256": "ca7ab778ebd805eb3b15841a17e589899d0e9a5625d8509a809190b8d2cf05f1",
+      "gitBlob": "b2fbdec41788dbb76b10aa4efa0191350e2d43aa"
+    },
+    "app/src/main/res/values-la/backup_portable.xml": {
+      "sha256": "e275c877957c76c95a59c1bb3241bab268938df413412d261977e52020e1190f",
+      "gitBlob": "acb23d914a44ce192587cf7337330438332386cb"
+    },
+    "app/src/main/res/values-pt/backup_portable.xml": {
+      "sha256": "d94dc2a8b777e478d7c6ba8bff2680855c559a509c56a6f2286848051360f107",
+      "gitBlob": "3f2f15489b49f35e698f104689053bb42ca55f83"
+    },
+    "app/src/main/res/values-ru/backup_portable.xml": {
+      "sha256": "89123849bc1f2be168b81ffeb1130abc313fab1d2139129bfe314aff185112a8",
+      "gitBlob": "df589700fc9613d6c094607b0ff4620d8c263edb"
+    },
+    "docs/backup-format-v5.md": {
+      "sha256": "e29d5f592534c4693a6de03feae428fccc0fc0e47f7d515b6f91d8fbe3550454",
+      "gitBlob": "eb66ed665f4ad0c8fa5003c145c23545696c2e0c"
+    },
+    "docs/en/backup-format-v5.md": {
+      "sha256": "578510f6fe8caf4302f3c31c0008870f8d4065ee4dd90d2163261753068370ba",
+      "gitBlob": "2a4cbb03d3465211ca15534fad7fb5aa4dea624e"
+    },
+    "docs/backup-and-restore.md": {
+      "sha256": "0dff2710d6f47303cf2415f607e97f91ea5734539e4ed2c753c99b5893260ae0",
+      "gitBlob": "548e23f5d98c055a2db8b3e2727db50d2ec45899"
+    },
+    "docs/en/backup-and-restore.md": {
+      "sha256": "115a47c5903385f67680890e1039b2bbf05404552728cc58b5061e53c718fd2b",
+      "gitBlob": "7a2cfa5e54a52cd4652861a5e114d5dda8b8fdf3"
+    },
+    "app/src/main/java/com/deepseekharness/app/ui/DshaDialogBuilder.java": {
+      "sha256": "643d0fa0fc8d532c39f50162700cff942097b9aef09640b2f914ba7b80e1bb48",
+      "gitBlob": "8f7dbf0545180356a93baeaec19d66f8bdac7376"
+    }
+  }
+}

@@ -1,0 +1,49 @@
+...................................................................E..EEE...........................
+======================================================================
+ERROR: test_receipt_rejects_dirty_source_matching_its_current_fingerprint (rust_test_apk_injection.CommittedInputTests.test_receipt_rejects_dirty_source_matching_its_current_fingerprint)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/mnt/f/DSHA_RESTART/source/build377-local/tools/rust/test_apk_injection.py", line 774, in test_receipt_rejects_dirty_source_matching_its_current_fingerprint
+    budget = artifact.load_budget(ROOT)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/f/DSHA_RESTART/source/build377-local/tools/rust/artifact.py", line 315, in load_budget
+    raise GateError("RUST_BUDGET_BASELINE_BYTES: %d != %d" % (total, budget["baselineNativeBytes"]))
+artifact.GateError: RUST_BUDGET_BASELINE_BYTES: 1035496 != 1157940
+
+======================================================================
+ERROR: test_default_and_protected_exports_are_visible (rust_test_apk_injection.ElfVisibilityTests.test_default_and_protected_exports_are_visible)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/mnt/f/DSHA_RESTART/source/build377-local/tools/rust/test_apk_injection.py", line 797, in setUp
+    self.budget = artifact.load_budget(ROOT)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/f/DSHA_RESTART/source/build377-local/tools/rust/artifact.py", line 315, in load_budget
+    raise GateError("RUST_BUDGET_BASELINE_BYTES: %d != %d" % (total, budget["baselineNativeBytes"]))
+artifact.GateError: RUST_BUDGET_BASELINE_BYTES: 1035496 != 1157940
+
+======================================================================
+ERROR: test_hidden_and_internal_exports_are_rejected (rust_test_apk_injection.ElfVisibilityTests.test_hidden_and_internal_exports_are_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/mnt/f/DSHA_RESTART/source/build377-local/tools/rust/test_apk_injection.py", line 797, in setUp
+    self.budget = artifact.load_budget(ROOT)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/f/DSHA_RESTART/source/build377-local/tools/rust/artifact.py", line 315, in load_budget
+    raise GateError("RUST_BUDGET_BASELINE_BYTES: %d != %d" % (total, budget["baselineNativeBytes"]))
+artifact.GateError: RUST_BUDGET_BASELINE_BYTES: 1035496 != 1157940
+
+======================================================================
+ERROR: setUpClass (rust_test_apk_injection.RustApkInjectionTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/mnt/f/DSHA_RESTART/source/build377-local/tools/rust/test_apk_injection.py", line 83, in setUpClass
+    cls.budget = artifact.load_budget(ROOT)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/f/DSHA_RESTART/source/build377-local/tools/rust/artifact.py", line 315, in load_budget
+    raise GateError("RUST_BUDGET_BASELINE_BYTES: %d != %d" % (total, budget["baselineNativeBytes"]))
+artifact.GateError: RUST_BUDGET_BASELINE_BYTES: 1035496 != 1157940
+
+----------------------------------------------------------------------
+Ran 99 tests in 5.732s
+
+FAILED (errors=4)

@@ -1,0 +1,29 @@
+........................................................................E...........................
+======================================================================
+ERROR: setUpClass (rust_test_apk_injection.RustApkInjectionTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/mnt/f/DSHA_RESTART/source/build377-local/tools/rust/artifact.py", line 246, in current_commit
+    commit = git_output(["rev-parse", "HEAD"], cwd=root, text=True).strip()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/f/DSHA_RESTART/source/build377-local/tools/git_guard.py", line 85, in git_output
+    return run_git(args, cwd=cwd, text=text).stdout
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/f/DSHA_RESTART/source/build377-local/tools/git_guard.py", line 78, in run_git
+    raise subprocess.CalledProcessError(
+subprocess.CalledProcessError: Command '['git', 'rev-parse', 'HEAD']' returned non-zero exit status 128.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/f/DSHA_RESTART/source/build377-local/tools/rust/test_apk_injection.py", line 84, in setUpClass
+    cls.commit = artifact.current_commit(ROOT)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/f/DSHA_RESTART/source/build377-local/tools/rust/artifact.py", line 248, in current_commit
+    raise GateError("RUST_COMMIT_UNAVAILABLE: " + str(error)) from error
+artifact.GateError: RUST_COMMIT_UNAVAILABLE: Command '['git', 'rev-parse', 'HEAD']' returned non-zero exit status 128.
+
+----------------------------------------------------------------------
+Ran 99 tests in 5.595s
+
+FAILED (errors=1)

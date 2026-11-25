@@ -1,0 +1,395 @@
+{
+  "atUtc": "2026-11-25T10:01:29.227902+00:00",
+  "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+  "flow": "rescue",
+  "route": "default-portrait",
+  "rows": [
+    {
+      "stage": "dialog-open-keyboard-hidden",
+      "atSeconds": 5.563,
+      "imeShown": false,
+      "choose": [
+        298,
+        921,
+        624,
+        1018
+      ],
+      "cancel": [
+        114,
+        921,
+        282,
+        1018
+      ],
+      "imeFrame": null,
+      "systemImeFullscreen": false,
+      "plaintextOptIn": "unchecked",
+      "chooseUnobscured": true,
+      "cancelUnobscured": true,
+      "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+      "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+      "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+      "passwordFields": [
+        {
+          "bounds": [
+            88,
+            574,
+            632,
+            665
+          ],
+          "focused": false,
+          "maskedLength": 0,
+          "aboveKeyboard": true
+        },
+        {
+          "bounds": [
+            88,
+            665,
+            632,
+            756
+          ],
+          "focused": false,
+          "maskedLength": 0,
+          "aboveKeyboard": true
+        }
+      ],
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-rescue-1795600889-dialog-open-keyboard-hidden.png"
+    },
+    {
+      "stage": "first-password-keyboard-shown",
+      "atSeconds": 11.719,
+      "imeShown": true,
+      "choose": [
+        298,
+        561,
+        624,
+        658
+      ],
+      "cancel": [
+        114,
+        561,
+        282,
+        658
+      ],
+      "imeFrame": [
+        0,
+        686,
+        720,
+        1280
+      ],
+      "systemImeFullscreen": false,
+      "plaintextOptIn": "outside viewport",
+      "chooseUnobscured": true,
+      "cancelUnobscured": true,
+      "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+      "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+      "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+      "passwordFields": [
+        {
+          "bounds": [
+            88,
+            442,
+            632,
+            533
+          ],
+          "focused": true,
+          "maskedLength": 24,
+          "aboveKeyboard": true
+        }
+      ],
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-rescue-1795600889-first-password-keyboard-shown.png"
+    },
+    {
+      "stage": "confirmation-keyboard-shown",
+      "atSeconds": 20.735,
+      "imeShown": true,
+      "choose": [
+        298,
+        561,
+        624,
+        658
+      ],
+      "cancel": [
+        114,
+        561,
+        282,
+        658
+      ],
+      "imeFrame": [
+        0,
+        686,
+        720,
+        1280
+      ],
+      "systemImeFullscreen": false,
+      "plaintextOptIn": "outside viewport",
+      "chooseUnobscured": true,
+      "cancelUnobscured": true,
+      "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+      "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+      "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+      "passwordFields": [
+        {
+          "bounds": [
+            88,
+            351,
+            632,
+            442
+          ],
+          "focused": false,
+          "maskedLength": 24,
+          "aboveKeyboard": true
+        },
+        {
+          "bounds": [
+            88,
+            442,
+            632,
+            533
+          ],
+          "focused": true,
+          "maskedLength": 24,
+          "aboveKeyboard": true
+        }
+      ],
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-rescue-1795600889-confirmation-keyboard-shown.png"
+    },
+    {
+      "stage": "static-keyboard-2",
+      "atSeconds": 26.578,
+      "imeShown": true,
+      "choose": [
+        298,
+        561,
+        624,
+        658
+      ],
+      "cancel": [
+        114,
+        561,
+        282,
+        658
+      ],
+      "imeFrame": [
+        0,
+        686,
+        720,
+        1280
+      ],
+      "systemImeFullscreen": false,
+      "plaintextOptIn": "outside viewport",
+      "chooseUnobscured": true,
+      "cancelUnobscured": true,
+      "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+      "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+      "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+      "passwordFields": [
+        {
+          "bounds": [
+            88,
+            351,
+            632,
+            442
+          ],
+          "focused": false,
+          "maskedLength": 24,
+          "aboveKeyboard": true
+        },
+        {
+          "bounds": [
+            88,
+            442,
+            632,
+            533
+          ],
+          "focused": true,
+          "maskedLength": 24,
+          "aboveKeyboard": true
+        }
+      ],
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-rescue-1795600889-static-keyboard-2.png",
+      "semanticButtons": [
+        {
+          "id": "android:id/button2",
+          "text": "Cancel",
+          "enabled": "true",
+          "clickable": "true",
+          "bounds": "[114,561][282,658]"
+        },
+        {
+          "id": "android:id/button1",
+          "text": "Choose destination",
+          "enabled": "true",
+          "clickable": "true",
+          "bounds": "[298,561][624,658]"
+        }
+      ],
+      "actualSecondsSinceFirstSteadySample": 7.454
+    },
+    {
+      "stage": "keyboard-hidden-reference",
+      "atSeconds": 32.985,
+      "imeShown": false,
+      "choose": [
+        298,
+        969,
+        624,
+        1066
+      ],
+      "cancel": [
+        114,
+        969,
+        282,
+        1066
+      ],
+      "imeFrame": null,
+      "systemImeFullscreen": false,
+      "plaintextOptIn": "unchecked",
+      "chooseUnobscured": true,
+      "cancelUnobscured": true,
+      "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+      "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+      "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+      "passwordFields": [
+        {
+          "bounds": [
+            88,
+            622,
+            632,
+            713
+          ],
+          "focused": false,
+          "maskedLength": 24,
+          "aboveKeyboard": true
+        },
+        {
+          "bounds": [
+            88,
+            713,
+            632,
+            804
+          ],
+          "focused": true,
+          "maskedLength": 24,
+          "aboveKeyboard": true
+        }
+      ],
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-rescue-1795600889-keyboard-hidden-reference.png"
+    },
+    {
+      "stage": "reopened-keyboard-shown",
+      "atSeconds": 37.328,
+      "imeShown": true,
+      "choose": [
+        298,
+        561,
+        624,
+        658
+      ],
+      "cancel": [
+        114,
+        561,
+        282,
+        658
+      ],
+      "imeFrame": [
+        0,
+        686,
+        720,
+        1280
+      ],
+      "systemImeFullscreen": false,
+      "plaintextOptIn": "outside viewport",
+      "chooseUnobscured": true,
+      "cancelUnobscured": true,
+      "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+      "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+      "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+      "passwordFields": [
+        {
+          "bounds": [
+            88,
+            351,
+            632,
+            442
+          ],
+          "focused": false,
+          "maskedLength": 24,
+          "aboveKeyboard": true
+        },
+        {
+          "bounds": [
+            88,
+            442,
+            632,
+            533
+          ],
+          "focused": true,
+          "maskedLength": 24,
+          "aboveKeyboard": true
+        }
+      ],
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-rescue-1795600889-reopened-keyboard-shown.png"
+    },
+    {
+      "stage": "before-actual-click",
+      "atSeconds": 41.203,
+      "imeShown": true,
+      "choose": [
+        298,
+        561,
+        624,
+        658
+      ],
+      "cancel": [
+        114,
+        561,
+        282,
+        658
+      ],
+      "imeFrame": [
+        0,
+        686,
+        720,
+        1280
+      ],
+      "systemImeFullscreen": false,
+      "plaintextOptIn": "outside viewport",
+      "chooseUnobscured": true,
+      "cancelUnobscured": true,
+      "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+      "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+      "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+      "passwordFields": [
+        {
+          "bounds": [
+            88,
+            351,
+            632,
+            442
+          ],
+          "focused": false,
+          "maskedLength": 24,
+          "aboveKeyboard": true
+        },
+        {
+          "bounds": [
+            88,
+            442,
+            632,
+            533
+          ],
+          "focused": true,
+          "maskedLength": 24,
+          "aboveKeyboard": true
+        }
+      ]
+    }
+  ],
+  "reenteredAfterRotation": false,
+  "firstUsableControlsSeconds": 5.563,
+  "createDocumentAndCancel": true,
+  "returnedTo": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+  "confirmedSave": false,
+  "completeSeconds": 44.594,
+  "syntheticPasswordLength": 24
+}

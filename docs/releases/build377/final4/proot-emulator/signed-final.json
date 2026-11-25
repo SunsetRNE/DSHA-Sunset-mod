@@ -1,0 +1,569 @@
+{
+  "status": "PASS",
+  "method": "R4 exact APK bytes matched to R3 guest inputs and device SHA-256 readbacks",
+  "startedUtc": "2026-11-25T09:56:05.970360+00:00",
+  "generatedUtc": "2026-11-25T09:56:08.409160+00:00",
+  "commit": "365719301ebf8c35f87edc24bdce4edb503c46d5",
+  "versionCode": 377,
+  "versionName": "0.2.2-rc.5-20261125.1442-dsh0.2.2-rc.5",
+  "apkSha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+  "certificateSha256": "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5",
+  "apkBytes": 255591272,
+  "oldApkSha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+  "package": "dsh.android.client",
+  "guestExecutedApkSha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+  "guestExecutedCommit": "0efbf4d26a86d5cb99b4c22d56aa6e6971fd1d61",
+  "guestExecutedForCurrentApk": false,
+  "changedSourcePaths": [
+    "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java",
+    "app/src/test/java/com/deepseekharness/app/ui/NativeDataChoicesTest.java"
+  ],
+  "elfFiles": [
+    {
+      "member": "lib/arm64-v8a/libproot.so",
+      "bytes": 239920,
+      "currentInput": "apk-input/libproot.so",
+      "signed": "c16957450ab9a1da67d4784cf0667b90ad786e7939aa46aeb9796d7d384b7692",
+      "baseline": "cbde86eb01b58413f9e4673e182caca5440e8fc4af8482a0e23d0faa0846f721",
+      "candidate": "c16957450ab9a1da67d4784cf0667b90ad786e7939aa46aeb9796d7d384b7692",
+      "r3SignedSha256": "c16957450ab9a1da67d4784cf0667b90ad786e7939aa46aeb9796d7d384b7692",
+      "r3DeviceReadbackSha256": "c16957450ab9a1da67d4784cf0667b90ad786e7939aa46aeb9796d7d384b7692",
+      "tested": "../../final3/proot-emulator/signedfinal/input/libproot.so",
+      "bytesComparedDirectly": true
+    },
+    {
+      "member": "lib/arm64-v8a/libprootloader.so",
+      "bytes": 18000,
+      "currentInput": "apk-input/libprootloader.so",
+      "signed": "004c1de722687a59052bf472207f99536849a911b5135fe5937bfa1711a69f10",
+      "baseline": "a2cbccfc776e23225b75e6700dd1990fcd505d2e973f5bfa19c76642d4e41c7d",
+      "candidate": "004c1de722687a59052bf472207f99536849a911b5135fe5937bfa1711a69f10",
+      "r3SignedSha256": "004c1de722687a59052bf472207f99536849a911b5135fe5937bfa1711a69f10",
+      "r3DeviceReadbackSha256": "004c1de722687a59052bf472207f99536849a911b5135fe5937bfa1711a69f10",
+      "tested": "../../final3/proot-emulator/signedfinal/input/libprootloader.so",
+      "bytesComparedDirectly": true
+    },
+    {
+      "member": "lib/arm64-v8a/libprootloader32.so",
+      "bytes": 17920,
+      "currentInput": "apk-input/libprootloader32.so",
+      "signed": "a781049d8437fc3a48bd2014e924259babd2610f15979bdba27251278d57a7be",
+      "baseline": "9e0628acbe52bd5f7fda706581d6fa99f6336782a2452879d9d321875c638952",
+      "candidate": "a781049d8437fc3a48bd2014e924259babd2610f15979bdba27251278d57a7be",
+      "r3SignedSha256": "a781049d8437fc3a48bd2014e924259babd2610f15979bdba27251278d57a7be",
+      "r3DeviceReadbackSha256": "a781049d8437fc3a48bd2014e924259babd2610f15979bdba27251278d57a7be",
+      "tested": "../../final3/proot-emulator/signedfinal/input/libprootloader32.so",
+      "bytesComparedDirectly": true
+    },
+    {
+      "member": "lib/arm64-v8a/libtalloc.so",
+      "bytes": 37352,
+      "currentInput": "apk-input/libtalloc.so",
+      "signed": "718d7e738d7fbad261a4c73bc8f947633380c57136ccacf8b49f3d3661413ef0",
+      "baseline": "3c9b207c0a6ea2896b7523e03f55d9ab0d9e88baa115d4c32b84058ff4246fbb",
+      "candidate": "718d7e738d7fbad261a4c73bc8f947633380c57136ccacf8b49f3d3661413ef0",
+      "r3SignedSha256": "718d7e738d7fbad261a4c73bc8f947633380c57136ccacf8b49f3d3661413ef0",
+      "r3DeviceReadbackSha256": "718d7e738d7fbad261a4c73bc8f947633380c57136ccacf8b49f3d3661413ef0",
+      "tested": "../../final3/proot-emulator/signedfinal/input/libtalloc.so",
+      "bytesComparedDirectly": true
+    },
+    {
+      "member": "lib/arm64-v8a/libandroidshmem.so",
+      "bytes": 14432,
+      "currentInput": "apk-input/libandroidshmem.so",
+      "signed": "84475798e07c8174dbbfaec70a827fdb02f19ffa69a589380c13e7507fd0e731",
+      "baseline": "84475798e07c8174dbbfaec70a827fdb02f19ffa69a589380c13e7507fd0e731",
+      "candidate": "84475798e07c8174dbbfaec70a827fdb02f19ffa69a589380c13e7507fd0e731",
+      "r3SignedSha256": "84475798e07c8174dbbfaec70a827fdb02f19ffa69a589380c13e7507fd0e731",
+      "r3DeviceReadbackSha256": "84475798e07c8174dbbfaec70a827fdb02f19ffa69a589380c13e7507fd0e731",
+      "tested": "../../final3/proot-emulator/signedfinal/input/libandroidshmem.so",
+      "bytesComparedDirectly": true
+    }
+  ],
+  "guestEnvironment": "Android/sdk_phone_arm64/emulator_arm64:11/RSR1.210722.013.A4/10160917:userdebug/test-keys\narm64-v8a\n30\naarch64\nuid=2000(shell) gid=2000(shell) groups=2000(shell),1004(input),1007(log),1011(adb),1015(sdcard_rw),1028(sdcard_r),3001(net_bt_admin),3002(net_bt),3003(inet),3006(net_bw_stats),3009(readproc),3011(uhid) context=u:r:shell:s0\nEnforcing\nSeccomp:\t0",
+  "guestCases": [
+    {
+      "name": "version",
+      "command": "./libproot.so --version",
+      "exit": 0,
+      "seconds": 1.484309499966912,
+      "marker": "proot",
+      "negative": false,
+      "passed": true,
+      "output": " _____ _____              ___\n|  __ \\  __ \\_____  _____|   |_\n|   __/     /  _  \\/  _  \\    _|\n|__|  |__|__\\_____/\\_____/\\____| v5.1.107.91-dsha\n\nbuilt-in accelerators: process_vm = yes, seccomp_filter = yes\n\nVisit http://proot.me for help, bug reports, suggestions, patchs, ...\nCopyright (C) 2015 STMicroelectronics, licensed under GPL v2 or later.\n",
+      "measuredApkSha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+      "method": "R3 guest execution; R4 complete-byte equality"
+    },
+    {
+      "name": "bionic-shell-compat",
+      "command": "export PROOT_NO_SECCOMP=1; ./libproot.so -0 -r / -w / /system/bin/sh -c 'printf DSHA_BIONIC_SHELL_OK'",
+      "exit": 0,
+      "seconds": 8.118961700005457,
+      "marker": "DSHA_BIONIC_SHELL_OK",
+      "negative": false,
+      "passed": true,
+      "output": "DSHA_BIONIC_SHELL_OK",
+      "measuredApkSha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+      "method": "R3 guest execution; R4 complete-byte equality"
+    },
+    {
+      "name": "static-64-compat",
+      "command": "export PROOT_NO_SECCOMP=1; ./libproot.so -0 -r root -w / /guest64",
+      "exit": 0,
+      "seconds": 2.2966851000091992,
+      "marker": "DSHA_PROOT_GUEST abi=64 uid=0 proof=ok",
+      "negative": false,
+      "passed": true,
+      "output": "DSHA_PROOT_GUEST abi=64 uid=0 proof=ok\n",
+      "measuredApkSha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+      "method": "R3 guest execution; R4 complete-byte equality"
+    },
+    {
+      "name": "static-32-compat",
+      "command": "export PROOT_NO_SECCOMP=1; ./libproot.so -0 -r root -w / /guest32",
+      "exit": 0,
+      "seconds": 1.8745068999705836,
+      "marker": "DSHA_PROOT_GUEST abi=32 uid=0 proof=ok",
+      "negative": false,
+      "passed": true,
+      "output": "DSHA_PROOT_GUEST abi=32 uid=0 proof=ok\n",
+      "measuredApkSha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+      "method": "R3 guest execution; R4 complete-byte equality"
+    },
+    {
+      "name": "bionic-shell-normal",
+      "command": "unset PROOT_NO_SECCOMP; ./libproot.so -0 -r / -w / /system/bin/sh -c 'printf DSHA_BIONIC_SHELL_OK'",
+      "exit": 0,
+      "seconds": 5.712515799968969,
+      "marker": "DSHA_BIONIC_SHELL_OK",
+      "negative": false,
+      "passed": true,
+      "output": "DSHA_BIONIC_SHELL_OK",
+      "measuredApkSha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+      "method": "R3 guest execution; R4 complete-byte equality"
+    },
+    {
+      "name": "static-64-normal",
+      "command": "unset PROOT_NO_SECCOMP; ./libproot.so -0 -r root -w / /guest64",
+      "exit": 0,
+      "seconds": 1.820311599993147,
+      "marker": "DSHA_PROOT_GUEST abi=64 uid=0 proof=ok",
+      "negative": false,
+      "passed": true,
+      "output": "DSHA_PROOT_GUEST abi=64 uid=0 proof=ok\n",
+      "measuredApkSha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+      "method": "R3 guest execution; R4 complete-byte equality"
+    },
+    {
+      "name": "static-32-normal",
+      "command": "unset PROOT_NO_SECCOMP; ./libproot.so -0 -r root -w / /guest32",
+      "exit": 0,
+      "seconds": 0.6432848999975249,
+      "marker": "DSHA_PROOT_GUEST abi=32 uid=0 proof=ok",
+      "negative": false,
+      "passed": true,
+      "output": "DSHA_PROOT_GUEST abi=32 uid=0 proof=ok\n",
+      "measuredApkSha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+      "method": "R3 guest execution; R4 complete-byte equality"
+    },
+    {
+      "name": "missing-64-loader",
+      "command": "export PROOT_NO_SECCOMP=1; export PROOT_LOADER=/data/local/tmp/dsha377_r3_signedfinal/absent; ./libproot.so -0 -r root -w / /guest64",
+      "exit": 1,
+      "seconds": 0.8976219999603927,
+      "marker": "DSHA_PROOT_GUEST abi=64",
+      "negative": true,
+      "passed": true,
+      "output": "proot error: execve(\"/guest64\"): No such file or directory\nproot info: possible causes:\n  * the program is a script but its interpreter (eg. /bin/sh) was not found;\n  * the program is an ELF but its interpreter (eg. ld-linux.so) was not found;\n  * the program is a foreign binary but qemu was not specified;\n  * qemu does not work correctly (if specified);\n  * the loader was not found or doesn't work.\nfatal error: see `libproot.so --help`.\n",
+      "measuredApkSha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+      "method": "R3 guest execution; R4 complete-byte equality"
+    },
+    {
+      "name": "missing-32-loader",
+      "command": "export PROOT_NO_SECCOMP=1; export PROOT_LOADER_32=/data/local/tmp/dsha377_r3_signedfinal/absent; ./libproot.so -0 -r root -w / /guest32",
+      "exit": 1,
+      "seconds": 1.1368764000362717,
+      "marker": "DSHA_PROOT_GUEST abi=32",
+      "negative": true,
+      "passed": true,
+      "output": "proot error: execve(\"/guest32\"): No such file or directory\nproot info: possible causes:\n  * the program is a script but its interpreter (eg. /bin/sh) was not found;\n  * the program is an ELF but its interpreter (eg. ld-linux.so) was not found;\n  * the program is a foreign binary but qemu was not specified;\n  * qemu does not work correctly (if specified);\n  * the loader was not found or doesn't work.\nfatal error: see `libproot.so --help`.\n",
+      "measuredApkSha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+      "method": "R3 guest execution; R4 complete-byte equality"
+    }
+  ],
+  "guestFirstResultSeconds": 14.873571800009813,
+  "guestFinishedSeconds": 37.37966699997196,
+  "guestTimingSource": "R3 execution, not repeated during R4 binding",
+  "bindingFirstResultSeconds": 0.3609664000105113,
+  "bindingFinishedSeconds": 2.438092800031882,
+  "notifications": [
+    {
+      "clazz": "com.deepseekharness.app.AgentTaskNotifications",
+      "method": "render()V",
+      "register": "v10",
+      "resource": "drawable/ic_dsha_mark",
+      "previous": [
+        "iget-object v10, v1, Lcom/deepseekharness/app/AgentTaskNotifications;->context:Landroid/content/Context;",
+        "const-string/jumbo v14, \"dsh_task_progress\"",
+        "invoke-direct {v8, v10, v14}, Landroidx/core/app/NotificationCompat$Builder;-><init>(Landroid/content/Context;Ljava/lang/String;)V",
+        "sget v10, Lcom/deepseekharness/app/R$drawable;->ic_dsha_mark:I"
+      ],
+      "call": "invoke-virtual {v8, v10}, Landroidx/core/app/NotificationCompat$Builder;->setSmallIcon(I)Landroidx/core/app/NotificationCompat$Builder;",
+      "elapsedSeconds": 2.0606173999840394
+    },
+    {
+      "clazz": "com.deepseekharness.app.AgentTaskNotifications",
+      "method": "render()V",
+      "register": "v13",
+      "resource": "drawable/ic_dsha_mark",
+      "previous": [
+        "iget-object v13, v1, Lcom/deepseekharness/app/AgentTaskNotifications;->context:Landroid/content/Context;",
+        "const-string/jumbo v14, \"dsh_task_progress\"",
+        "invoke-direct {v10, v13, v14}, Landroidx/core/app/NotificationCompat$Builder;-><init>(Landroid/content/Context;Ljava/lang/String;)V",
+        "sget v13, Lcom/deepseekharness/app/R$drawable;->ic_dsha_mark:I"
+      ],
+      "call": "invoke-virtual {v10, v13}, Landroidx/core/app/NotificationCompat$Builder;->setSmallIcon(I)Landroidx/core/app/NotificationCompat$Builder;",
+      "elapsedSeconds": 2.0606389999738894
+    },
+    {
+      "clazz": "com.deepseekharness.app.backup.DataProtectionService",
+      "method": "publish(Ljava/lang/String;Landroid/app/PendingIntent;Landroid/app/PendingIntent;)Z",
+      "register": "v1",
+      "resource": "drawable/ic_dsha_mark",
+      "previous": [
+        "new-instance v0, Landroid/app/Notification$Builder;",
+        "const-string/jumbo v1, \"dsha_data_protection\"",
+        "invoke-direct {v0, p0, v1}, Landroid/app/Notification$Builder;-><init>(Landroid/content/Context;Ljava/lang/String;)V",
+        "sget v1, Lcom/deepseekharness/app/R$drawable;->ic_dsha_mark:I"
+      ],
+      "call": "invoke-virtual {v0, v1}, Landroid/app/Notification$Builder;->setSmallIcon(I)Landroid/app/Notification$Builder;",
+      "elapsedSeconds": 2.7589805999887176
+    },
+    {
+      "clazz": "com.deepseekharness.app.recovery.RecoveryService",
+      "method": "publish(Ljava/lang/String;)V",
+      "register": "v3",
+      "resource": "drawable/ic_dsha_mark",
+      "previous": [
+        "new-instance v1, Landroid/app/Notification$Builder;",
+        "const-string/jumbo v3, \"dsha_emergency\"",
+        "invoke-direct {v1, p0, v3}, Landroid/app/Notification$Builder;-><init>(Landroid/content/Context;Ljava/lang/String;)V",
+        "sget v3, Lcom/deepseekharness/app/R$drawable;->ic_dsha_mark:I"
+      ],
+      "call": "invoke-virtual {v1, v3}, Landroid/app/Notification$Builder;->setSmallIcon(I)Landroid/app/Notification$Builder;",
+      "elapsedSeconds": 3.465263699996285
+    }
+  ],
+  "beforeImageBytes": 359736,
+  "afterImageBytes": 11954,
+  "rasters": [
+    {
+      "resource": "drawable/dsha_brand",
+      "density": "nodpi",
+      "source": "drawable-nodpi/dsha_brand.webp",
+      "generated": {
+        "size": [
+          512,
+          512
+        ],
+        "pixels": "7e7936b95c6f0614b49e8d081752dde7f2f697dca6b728f6a6c334c440359699",
+        "alpha": [
+          0,
+          255
+        ]
+      },
+      "before": {
+        "member": "res/hE.webp",
+        "logicalBytes": 245218,
+        "zipBytes": 245218,
+        "sha256": "74811c09ddbd414484196114ad3de081240ec133dfb66f5d492f38ec2ac7df30",
+        "size": [
+          512,
+          512
+        ],
+        "pixels": "eb1742fedf8b50fb235f372ddd85c9df8ad77c7ce3fa997ff47fd80ec6abccfb",
+        "alpha": [
+          255,
+          255
+        ]
+      },
+      "after": {
+        "member": "res/hE.webp",
+        "logicalBytes": 5452,
+        "zipBytes": 5452,
+        "sha256": "c7cc0862d00ea73e17bbe8e44401f253588f3882ff3132d62e52960ae1299056",
+        "size": [
+          512,
+          512
+        ],
+        "pixels": "7e7936b95c6f0614b49e8d081752dde7f2f697dca6b728f6a6c334c440359699",
+        "alpha": [
+          0,
+          255
+        ]
+      }
+    },
+    {
+      "resource": "mipmap/ic_launcher",
+      "density": "mdpi",
+      "source": "mipmap-mdpi/ic_launcher.webp",
+      "generated": {
+        "size": [
+          48,
+          48
+        ],
+        "pixels": "c3af948091348b64828ee062f68a2423547ca44c6b23efb931aabbf9e35ba9d7",
+        "alpha": [
+          0,
+          255
+        ]
+      },
+      "before": {
+        "member": "res/d2.webp",
+        "logicalBytes": 5070,
+        "zipBytes": 5070,
+        "sha256": "727eb568d893d7da91a8504fadb852ba5e7adabdda267ba4b070c43a506a7d18",
+        "size": [
+          48,
+          48
+        ],
+        "pixels": "948900bc1da1269e9861e988439bc3c68c5f318bbd52124482f4e8bd3c278eb3",
+        "alpha": [
+          255,
+          255
+        ]
+      },
+      "after": {
+        "member": "res/d2.webp",
+        "logicalBytes": 766,
+        "zipBytes": 766,
+        "sha256": "c0f0fc4d88ad786094b09aa5c563e2ab7568a26495496ca6d032194032513aa8",
+        "size": [
+          48,
+          48
+        ],
+        "pixels": "c3af948091348b64828ee062f68a2423547ca44c6b23efb931aabbf9e35ba9d7",
+        "alpha": [
+          0,
+          255
+        ]
+      }
+    },
+    {
+      "resource": "mipmap/ic_launcher",
+      "density": "hdpi",
+      "source": "mipmap-hdpi/ic_launcher.webp",
+      "generated": {
+        "size": [
+          72,
+          72
+        ],
+        "pixels": "d8473a20e2b379dd61a7093a78e860f1ddb9b51a505e07eddfe0b01f525332d9",
+        "alpha": [
+          0,
+          255
+        ]
+      },
+      "before": {
+        "member": "res/MO.webp",
+        "logicalBytes": 10140,
+        "zipBytes": 10140,
+        "sha256": "d7a0e8da2ccd0066ccaca381fd104f4c28bd18824f2dd80604ad5acdba445029",
+        "size": [
+          72,
+          72
+        ],
+        "pixels": "21bb44c6fcdb4b90f4dd2b9846c42e6c22eb70fdbc100351239ce3fc9bd33c96",
+        "alpha": [
+          255,
+          255
+        ]
+      },
+      "after": {
+        "member": "res/MO.webp",
+        "logicalBytes": 950,
+        "zipBytes": 950,
+        "sha256": "51b808d8ca39e808e63629203af22f3dc9aaa70c73bbfddcea3f445162b5f36c",
+        "size": [
+          72,
+          72
+        ],
+        "pixels": "d8473a20e2b379dd61a7093a78e860f1ddb9b51a505e07eddfe0b01f525332d9",
+        "alpha": [
+          0,
+          255
+        ]
+      }
+    },
+    {
+      "resource": "mipmap/ic_launcher",
+      "density": "xhdpi",
+      "source": "mipmap-xhdpi/ic_launcher.webp",
+      "generated": {
+        "size": [
+          96,
+          96
+        ],
+        "pixels": "ea7bdb8485018e4a9a1fd2fdde84e7142ecad1cc8d03963170685c11a9a43b2e",
+        "alpha": [
+          0,
+          255
+        ]
+      },
+      "before": {
+        "member": "res/qs.webp",
+        "logicalBytes": 16380,
+        "zipBytes": 16380,
+        "sha256": "6963a7adbf70185f661f44590e39845772f9e9162ccf395781ca22f24e92c4fa",
+        "size": [
+          96,
+          96
+        ],
+        "pixels": "71394fe37ec6945a481c274bc8f0904229d1568baceda04848ba7791eec69275",
+        "alpha": [
+          255,
+          255
+        ]
+      },
+      "after": {
+        "member": "res/qs.webp",
+        "logicalBytes": 1210,
+        "zipBytes": 1210,
+        "sha256": "3c27ec69b3ae8752085351ef29626725689b6e082654a5bd45afdaac82493f59",
+        "size": [
+          96,
+          96
+        ],
+        "pixels": "ea7bdb8485018e4a9a1fd2fdde84e7142ecad1cc8d03963170685c11a9a43b2e",
+        "alpha": [
+          0,
+          255
+        ]
+      }
+    },
+    {
+      "resource": "mipmap/ic_launcher",
+      "density": "xxhdpi",
+      "source": "mipmap-xxhdpi/ic_launcher.webp",
+      "generated": {
+        "size": [
+          144,
+          144
+        ],
+        "pixels": "8ea410ae608148773b757a9dde7bf5d78c9c87ac75673783abd1b1aa06b26600",
+        "alpha": [
+          0,
+          255
+        ]
+      },
+      "before": {
+        "member": "res/Sn.webp",
+        "logicalBytes": 31978,
+        "zipBytes": 31978,
+        "sha256": "e89cbfcf6ad8396438c2f9585586abbb14415c5d64bfc22231c7f45b2919b74a",
+        "size": [
+          144,
+          144
+        ],
+        "pixels": "3bfb1476ba9db5cb9469d4689244b5cac4f75feaba195e01dcf0d77c7ca18652",
+        "alpha": [
+          255,
+          255
+        ]
+      },
+      "after": {
+        "member": "res/Sn.webp",
+        "logicalBytes": 1620,
+        "zipBytes": 1620,
+        "sha256": "b973c03a2934766a94bf4bd87157f9cb466d02c6d6906028e5a5276255806d04",
+        "size": [
+          144,
+          144
+        ],
+        "pixels": "8ea410ae608148773b757a9dde7bf5d78c9c87ac75673783abd1b1aa06b26600",
+        "alpha": [
+          0,
+          255
+        ]
+      }
+    },
+    {
+      "resource": "mipmap/ic_launcher",
+      "density": "xxxhdpi",
+      "source": "mipmap-xxxhdpi/ic_launcher.webp",
+      "generated": {
+        "size": [
+          192,
+          192
+        ],
+        "pixels": "5b913f67856274899eb05fad8c146b12531bd77c2086cd14d73ec89fc065b314",
+        "alpha": [
+          0,
+          255
+        ]
+      },
+      "before": {
+        "member": "res/sK.webp",
+        "logicalBytes": 50950,
+        "zipBytes": 50950,
+        "sha256": "8ea4f4fbe6a7e84d40ca1c332dc5636b8bdd74d2a87e5d22bad0e125f599fd07",
+        "size": [
+          192,
+          192
+        ],
+        "pixels": "0a248d09763d9de133a217f859b02610efa18253a5bc89cba4d390b68bae118b",
+        "alpha": [
+          255,
+          255
+        ]
+      },
+      "after": {
+        "member": "res/sK.webp",
+        "logicalBytes": 1956,
+        "zipBytes": 1956,
+        "sha256": "c0acd571b8ab5f0d2efc7be90c0db45f8dcb3f87bd2b85e52447bedac2466cbb",
+        "size": [
+          192,
+          192
+        ],
+        "pixels": "5b913f67856274899eb05fad8c146b12531bd77c2086cd14d73ec89fc065b314",
+        "alpha": [
+          0,
+          255
+        ]
+      }
+    }
+  ],
+  "compiledLayoutChecks": {
+    "layout/activity_main ": "A: http://schemas.android.com/apk/res/android:src(0x01010119)=@0x7f070149",
+    "layout/activity_main sw600dp": "A: http://schemas.android.com/apk/res/android:src(0x01010119)=@0x7f070149",
+    "layout/dialog_about ": "A: http://schemas.android.com/apk/res/android:src(0x01010119)=@0x7f070149",
+    "layout/fragment_launch ": "A: http://schemas.android.com/apk/res/android:src(0x01010119)=@0x7f070149",
+    "layout/update_hero ": "A: http://schemas.android.com/apk/res/android:src(0x01010119)=@0x7f07013f"
+  },
+  "ordinaryInstall": {
+    "status": "NOT_REPEATED",
+    "priorSystemCheck": "PACKAGE_SERVICE_ABSENT",
+    "priorTestedApkSha256": "72917c42dee81df41e26f2d7977ba735b0e3c0c94a93803561272d6f6facbeaa",
+    "installedAppUid": null,
+    "deployment": null,
+    "systemBackupPicker": null
+  },
+  "raw": {
+    "guest": "../../final3/proot-emulator/signedfinal/cases.json",
+    "priorSignedGuest": "../../final3/proot-emulator/signedfinal/signed-binding.json",
+    "priorSummary": "../../final3/proot-emulator/signed-final.json",
+    "beforeGuest": "../../proot-emulator/baseline1/cases.json",
+    "candidateGuest": "../../proot-emulator/candidate2/cases.json",
+    "priorGuestShutdown": "../../final3/proot-emulator/closed.json",
+    "shutdown": "closed.json",
+    "inputPreflight": "preflight.json",
+    "finalDex": "../native-identity/notification-dex-final.json",
+    "oldDex": "../../native-identity/notification-dex-376.json",
+    "finalImages": "../native-identity/signed-final.json",
+    "signing": "F:\\DSHA_RESTART\\artifacts\\build377-local\\local-release\\apk-signing.json",
+    "invocation": "F:\\DSHA_RESTART\\artifacts\\build377-local\\local-release\\invocation.json",
+    "priorOrdinaryInstall": "../../arm64-first-install/install-r2-signed.json",
+    "framework": "../../final3/proot-emulator/framework.json"
+  }
+}

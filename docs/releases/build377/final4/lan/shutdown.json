@@ -1,0 +1,35 @@
+{
+  "startUtc": "2026-11-25T10:05:26.517124+00:00",
+  "initialPorts": {
+    "5078": true,
+    "5684": true,
+    "5685": true
+  },
+  "avd": {
+    "rc": 0,
+    "stdout": "DSHA_build377_lan_api30_x86\n\nOK",
+    "stderr": ""
+  },
+  "registeredOnPrivateAdb": {
+    "rc": 0,
+    "stdout": "List of devices attached\nemulator-5684\tdevice",
+    "stderr": ""
+  },
+  "killDedicatedAvd": {
+    "rc": 0,
+    "stdout": "OK: killing emulator, bye bye\n\nOK",
+    "stderr": ""
+  },
+  "killPrivateServer": {
+    "rc": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "endPorts": {
+    "5078": false,
+    "5684": false,
+    "5685": false
+  },
+  "complete": true,
+  "endUtc": "2026-11-25T10:05:30.602927+00:00"
+}

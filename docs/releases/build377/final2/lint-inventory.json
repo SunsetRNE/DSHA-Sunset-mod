@@ -1,0 +1,97 @@
+{
+  "commit": "5d952dafd13c3193f07e7efbc97b65c0c2c8bea7",
+  "xml": "F:\\DSHA_RESTART\\artifacts\\build377-local\\windows-r4\\lint-results-standardRelease.xml",
+  "xmlSha256": "3925f282f4d9d9b828b48111a4022005a23e9af50b54006acf524d3d3372168f",
+  "severity": {
+    "Warning": 649,
+    "Hint": 30
+  },
+  "warnings": {
+    "UnusedResources": 175,
+    "ObsoleteSdkInt": 116,
+    "UseKtx": 49,
+    "ApplySharedPref": 34,
+    "Overdraw": 26,
+    "StaticFieldLeak": 25,
+    "UseCompatTextViewDrawableXml": 23,
+    "SdCardPath": 18,
+    "InconsistentLayout": 16,
+    "UseCompatLoadingForDrawables": 16,
+    "ContentDescription": 16,
+    "SetTextI18n": 16,
+    "UsableSpace": 13,
+    "ClickableViewAccessibility": 12,
+    "UselessParent": 9,
+    "StringFormatCount": 8,
+    "DrawAllocation": 7,
+    "UseCompoundDrawables": 5,
+    "DisableBaselineAlignment": 5,
+    "RtlSymmetry": 5,
+    "RequiresFeature": 4,
+    "UseCompatTextViewDrawableApis": 4,
+    "SetJavaScriptEnabled": 4,
+    "NestedWeights": 4,
+    "WebViewApiAvailability": 3,
+    "PrivateApi": 3,
+    "TooDeepLayout": 3,
+    "ViewConstructor": 3,
+    "AccessibilityFocus": 3,
+    "UnusedAttribute": 2,
+    "InflateParams": 2,
+    "TooManyViews": 2,
+    "Autofill": 2,
+    "LabelFor": 2,
+    "ScopedStorage": 1,
+    "ScrollViewSize": 1,
+    "DefaultLocale": 1,
+    "DiscouragedPrivateApi": 1,
+    "InlinedApi": 1,
+    "AppBundleLocaleChanges": 1,
+    "UseRequiresApi": 1,
+    "Typos": 1,
+    "CustomX509TrustManager": 1,
+    "InsecureBaseConfiguration": 1,
+    "UnsafeDynamicallyLoadedCode": 1,
+    "MergeRootFrame": 1,
+    "InefficientWeight": 1,
+    "RtlHardcoded": 1
+  },
+  "selectedSecurityLocations": {
+    "SetJavaScriptEnabled": [
+      {
+        "file": "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\ui\\BrowserOriginRestoreWebView.java",
+        "line": "18"
+      },
+      {
+        "file": "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\ui\\RecoveryWebSurface.java",
+        "line": "33"
+      },
+      {
+        "file": "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\ui\\RuntimeBrowserProbe.java",
+        "line": "149"
+      },
+      {
+        "file": "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\ui\\WebPreviewActivity.java",
+        "line": "949"
+      }
+    ],
+    "CustomX509TrustManager": [
+      {
+        "file": "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\core\\TrustedNetwork.java",
+        "line": "43"
+      }
+    ],
+    "InsecureBaseConfiguration": [
+      {
+        "file": "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\res\\xml\\network_security_config.xml",
+        "line": "6"
+      }
+    ],
+    "UnsafeDynamicallyLoadedCode": [
+      {
+        "file": "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\util\\RustNative.java",
+        "line": "94"
+      }
+    ]
+  }
+}

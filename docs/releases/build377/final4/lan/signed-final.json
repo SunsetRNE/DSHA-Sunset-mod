@@ -1,0 +1,1139 @@
+{
+  "atUtc": "2026-11-25T10:05:31.268428+00:00",
+  "sourceCommit": "365719301ebf8c35f87edc24bdce4edb503c46d5",
+  "signedApk": {
+    "input": "F:\\DSHA_RESTART\\artifacts\\build377-local\\local-release\\dsha-0.2.2-rc.5.apk",
+    "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+    "logicalBytes": 255591272
+  },
+  "environment": {
+    "avd": "DSHA_build377_lan_api30_x86",
+    "serial": "emulator-5684",
+    "privateAdbPort": 5078,
+    "androidApi": 30,
+    "abi": "x86_64 with ARM64 translation",
+    "device": "isolated synthetic AVD"
+  },
+  "upgrade": {
+    "before": {
+      "sha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+      "fields": "primaryCpuAbi=arm64-v8a\n    versionCode=377 minSdk=30 targetSdk=37\n    versionName=0.2.2-rc.5-20261125.1442-dsh0.2.2-rc.5\n    firstInstallTime=2026-11-25 06:58:28\n    lastUpdateTime=2026-11-25 09:20:34",
+      "versionCode": 377,
+      "firstInstallTime": "2026-11-25 06:58:28",
+      "fileStat": "255587176 499216"
+    },
+    "after": {
+      "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+      "fields": "primaryCpuAbi=arm64-v8a\n    versionCode=377 minSdk=30 targetSdk=37\n    versionName=0.2.2-rc.5-20261125.1442-dsh0.2.2-rc.5\n    firstInstallTime=2026-11-25 06:58:28\n    lastUpdateTime=2026-11-25 09:56:25",
+      "versionCode": 377,
+      "firstInstallTime": "2026-11-25 06:58:28",
+      "fileStat": "255591272 499224"
+    },
+    "firstInstallTimePreserved": true,
+    "installResponseSeconds": 6.157,
+    "completeVerificationSeconds": 7.11,
+    "baselineReceipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\apk-baseline-1795589912.json",
+    "receipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\apk-upgrade-1795600590.json"
+  },
+  "nativeLaunch": {
+    "component": "dsh.android.client/com.deepseekharness.app.ui.MainActivity",
+    "amStart": "Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=dsh.android.client/com.deepseekharness.app.ui.MainActivity }\nStatus: ok\nLaunchState: WARM\nActivity: dsh.android.client/com.deepseekharness.app.ui.MainActivity\nTotalTime: 614\nWaitTime: 616\nComplete",
+    "firstReplySeconds": 0.719,
+    "nativeHierarchyVerifiedSeconds": 3.172,
+    "receipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\native-open-377-1795600594.json"
+  },
+  "installedDex": {
+    "appUid": "independent ordinary instrumentation fixture",
+    "measurements": {
+      "TLSv1.2": "endpoint checked, exact fingerprint, duplex=7/11",
+      "TLSv1.3": "endpoint checked, exact fingerprint, duplex=7/11",
+      "actual_base_sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+      "certificate": "non-exportable EC, stable after reopen, reissued for new IPv4",
+      "finite_response": "length and terminal trailer preserved over loopback",
+      "fixture_uid": "10172",
+      "ws_ticket": "cookie scoped to port=__Host-dsha_lan_49318, consumed once, upstream app.echo only"
+    },
+    "receipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\exact-full-final-1795600595.log"
+  },
+  "backupPicker": {
+    "ordinary": {
+      "actualCreateDocument": true,
+      "returnedToNativeAfterCancel": true
+    },
+    "rescue": {
+      "actualCreateDocument": true,
+      "returnedToNativeAfterCancel": true
+    },
+    "savedUri": false,
+    "stepsFile": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\backup-picker-steps.jsonl",
+    "scopeNote": "f6b7f9ec 是从独立 Android 11 模拟器逐字节核对的本地交付 APK。普通与只读救援 × 默认与 1.3 倍字号 × 竖屏与横屏八组均按实际操作通过。每组真实填入两处相同的 24 字符合成密码，在首个字段、确认字段、键盘静置和收起后重开键盘四个状态取原始 PNG，基准为同一已填表单的无键盘截图。32 个有键盘的观测中，两个动作文字共 64 个前景像素掩码的 SHA 均与对应基准相同。当前输入框在各图都看得见，默认字号竖屏和两种横屏看见 24 个遮罩点，大字号竖屏在单行水平滚动后看见 19 个，原字段输入长度均为 24。八次都在键盘打开时实点到 Android ACTION_CREATE_DOCUMENT，按返回回到 NativeDataActivity，未选明文，未提交保存或采集正文。\n\n八组逐次首轮通过。普通导出旋转前两处各填 24 字符，旋转恢复后原有密码被清空，重新输入才提交成功。预填、旋转这一路线的首栏截图命名局限另见 rotation-record-scope.txt，横屏像素只使用旋后数据。本系统的前轮冷部署错误仍有原始原生诊断，本轮验证该阶段生产源码相同，完整运行时维护成功不在这一条已证范围内。实际设备跨度、其他 OEM、第三方输入法、真实热点以及商业浏览器首次手工信任菜单均未逐设备复测。\n",
+    "matrix": [
+      {
+        "route": "default-landscape",
+        "flow": "normal",
+        "actualPickerAndCancel": true,
+        "reenteredAfterRotation": true,
+        "firstUsableSeconds": 5.406,
+        "completeSeconds": 66.031,
+        "failure": null,
+        "display": [
+          {
+            "stage": "dialog-open-keyboard-hidden",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "first-password-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "dialog-after-rotation-keyboard-hidden",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "first-password-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "confirmation-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "static-keyboard-2",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "keyboard-hidden-reference",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "reopened-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "before-actual-click",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          }
+        ],
+        "receipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-landscape-normal-1795600723.json"
+      },
+      {
+        "route": "default-landscape",
+        "flow": "rescue",
+        "actualPickerAndCancel": true,
+        "reenteredAfterRotation": false,
+        "firstUsableSeconds": 5.406,
+        "completeSeconds": 43.969,
+        "failure": null,
+        "display": [
+          {
+            "stage": "dialog-open-keyboard-hidden",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "first-password-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "confirmation-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "static-keyboard-2",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "keyboard-hidden-reference",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "reopened-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "before-actual-click",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          }
+        ],
+        "receipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-landscape-rescue-1795600793.json"
+      },
+      {
+        "route": "default-portrait",
+        "flow": "normal",
+        "actualPickerAndCancel": true,
+        "reenteredAfterRotation": false,
+        "firstUsableSeconds": 5.422,
+        "completeSeconds": 43.812,
+        "failure": null,
+        "display": [
+          {
+            "stage": "dialog-open-keyboard-hidden",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "first-password-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "confirmation-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "static-keyboard-2",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "keyboard-hidden-reference",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "reopened-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "before-actual-click",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          }
+        ],
+        "receipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-normal-1795600841.json"
+      },
+      {
+        "route": "default-portrait",
+        "flow": "rescue",
+        "actualPickerAndCancel": true,
+        "reenteredAfterRotation": false,
+        "firstUsableSeconds": 5.563,
+        "completeSeconds": 44.594,
+        "failure": null,
+        "display": [
+          {
+            "stage": "dialog-open-keyboard-hidden",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "first-password-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "confirmation-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "static-keyboard-2",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "keyboard-hidden-reference",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "reopened-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "before-actual-click",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          }
+        ],
+        "receipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-rescue-1795600889.json"
+      },
+      {
+        "route": "large-landscape",
+        "flow": "normal",
+        "actualPickerAndCancel": true,
+        "reenteredAfterRotation": false,
+        "firstUsableSeconds": 5.469,
+        "completeSeconds": 44.032,
+        "failure": null,
+        "display": [
+          {
+            "stage": "dialog-open-keyboard-hidden",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "first-password-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "confirmation-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "static-keyboard-2",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "keyboard-hidden-reference",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "reopened-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "before-actual-click",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          }
+        ],
+        "receipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-landscape-normal-1795600675.json"
+      },
+      {
+        "route": "large-landscape",
+        "flow": "rescue",
+        "actualPickerAndCancel": true,
+        "reenteredAfterRotation": false,
+        "firstUsableSeconds": 5.5,
+        "completeSeconds": 47.297,
+        "failure": null,
+        "display": [
+          {
+            "stage": "dialog-open-keyboard-hidden",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "first-password-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "confirmation-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "static-keyboard-2",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "keyboard-hidden-reference",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "reopened-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "before-actual-click",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          }
+        ],
+        "receipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-landscape-rescue-1795600623.json"
+      },
+      {
+        "route": "large-portrait",
+        "flow": "normal",
+        "actualPickerAndCancel": true,
+        "reenteredAfterRotation": false,
+        "firstUsableSeconds": 5.453,
+        "completeSeconds": 44.203,
+        "failure": null,
+        "display": [
+          {
+            "stage": "dialog-open-keyboard-hidden",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "first-password-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "confirmation-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "static-keyboard-2",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "keyboard-hidden-reference",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "reopened-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "before-actual-click",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          }
+        ],
+        "receipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-portrait-normal-1795600937.json"
+      },
+      {
+        "route": "large-portrait",
+        "flow": "rescue",
+        "actualPickerAndCancel": true,
+        "reenteredAfterRotation": false,
+        "firstUsableSeconds": 5.437,
+        "completeSeconds": 44.125,
+        "failure": null,
+        "display": [
+          {
+            "stage": "dialog-open-keyboard-hidden",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "first-password-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "confirmation-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "static-keyboard-2",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "keyboard-hidden-reference",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "reopened-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "before-actual-click",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          }
+        ],
+        "receipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\large-portrait-rescue-1795600985.json"
+      },
+      {
+        "route": "reverse-rotation",
+        "flow": "rescue",
+        "actualPickerAndCancel": true,
+        "reenteredAfterRotation": true,
+        "firstUsableSeconds": 5.484,
+        "completeSeconds": 49.953,
+        "failure": null,
+        "display": [
+          {
+            "stage": "dialog-open-keyboard-hidden",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "first-password-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              320,
+              1184,
+              720
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+            "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "dialog-after-rotation-keyboard-hidden",
+            "imeShown": false,
+            "imeFrame": null,
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "first-password-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "confirmation-keyboard-shown",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          },
+          {
+            "stage": "before-actual-click",
+            "imeShown": true,
+            "imeFrame": [
+              0,
+              686,
+              720,
+              1280
+            ],
+            "chooseUnobscured": true,
+            "cancelUnobscured": true,
+            "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n0",
+            "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+            "systemImeFullscreen": false
+          }
+        ],
+        "receipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\reverse-rotation-rescue-1795601062.json"
+      }
+    ],
+    "cancelWhileTyping": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\cancel-while-typing.json",
+    "verifiedMaskAndFocusProfiles": {
+      "receipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\label-and-field-matrix.json",
+      "passing": 8,
+      "expected": 8,
+      "complete": true
+    },
+    "rotationRecordNote": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\rotation-record-scope.txt"
+  },
+  "browserSchemeFromSignedApk": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\web-scheme-final-apk.json",
+  "report": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\局域网专项验收.md",
+  "actualInPlaceSequence": [
+    {
+      "version": 376,
+      "sha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc"
+    },
+    {
+      "version": 377,
+      "sha256": "2e6f0324ebe4b52b143dcb2bf04800b1ce73c106a53b567de1afdafca5dba3d9",
+      "receipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-r1.json"
+    },
+    {
+      "version": 377,
+      "sha256": "72917c42dee81df41e26f2d7977ba735b0e3c0c94a93803561272d6f6facbeaa",
+      "commit": "5d952dafd13c3193f07e7efbc97b65c0c2c8bea7"
+    },
+    {
+      "version": 377,
+      "sha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+      "commit": "0efbf4d26a86d5cb99b4c22d56aa6e6971fd1d61"
+    },
+    {
+      "version": 377,
+      "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+      "commit": "365719301ebf8c35f87edc24bdce4edb503c46d5"
+    }
+  ],
+  "restoredDisplay": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\restored-display.json",
+  "permissionState": {
+    "after": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\permissions-after.json",
+    "before": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\permissions-preinstall.json",
+    "matched": true,
+    "runtimeAndInstallGrantCount": 15,
+    "specialAppOpsCount": 5,
+    "accessibilityEnabled": false,
+    "notificationListenerEnabled": false
+  },
+  "transportHostAndR6Evidence": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\unchanged-lan-and-final-tests.json",
+  "coldDeployment": {
+    "unchangedProductionSource": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\lan\\maintenance-code-binding.json",
+    "r2ActualNativeScreen": "F:\\DSHA_RESTART\\artifacts\\build377-local\\final2\\lan\\cold-visible-status.json",
+    "r2ProductOperations": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\cold-stage-events-signed-final.json",
+    "currentRoundLaunchScreen": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\ui-r4-after-launch.png",
+    "freshDeploymentRun": false
+  },
+  "privateAvdShutdown": {
+    "startUtc": "2026-11-25T10:05:26.517124+00:00",
+    "initialPorts": {
+      "5078": true,
+      "5684": true,
+      "5685": true
+    },
+    "avd": {
+      "rc": 0,
+      "stdout": "DSHA_build377_lan_api30_x86\n\nOK",
+      "stderr": ""
+    },
+    "registeredOnPrivateAdb": {
+      "rc": 0,
+      "stdout": "List of devices attached\nemulator-5684\tdevice",
+      "stderr": ""
+    },
+    "killDedicatedAvd": {
+      "rc": 0,
+      "stdout": "OK: killing emulator, bye bye\n\nOK",
+      "stderr": ""
+    },
+    "killPrivateServer": {
+      "rc": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "endPorts": {
+      "5078": false,
+      "5684": false,
+      "5685": false
+    },
+    "complete": true,
+    "endUtc": "2026-11-25T10:05:30.602927+00:00"
+  },
+  "hostFootprints": [
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\footprint-before-local-release.json",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\footprint-after-local-release.json"
+  ]
+}

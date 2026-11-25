@@ -1,0 +1,68 @@
+{
+  "status": "BOOTING",
+  "created": "2026-11-25T16:36:23.779+08:00",
+  "hostBefore": {
+    "at": "2026-11-25T16:36:23.789+08:00",
+    "freeRamBytes": 7715356672,
+    "totalRamBytes": 33483382784,
+    "FfreeBytes": 323549745152
+  },
+  "avd": "DSHA_377_direct_upgrade_API30_x86_64",
+  "serial": "emulator-5692",
+  "privateAdbPort": 5091,
+  "consolePort": 5692,
+  "transportPort": 5693,
+  "work": "F:\\DSHA_RESTART\\cache\\build377-direct-upgrade-final2",
+  "ramMiB": 2048,
+  "cpuCores": 2,
+  "configSha256": "a512a9155bc7d3359a5617ec88064a14fcb730c5e265a90799498fcb60c9d239",
+  "systemImage": "Pkg.Desc=System Image x86_64 with Google APIs.\nPkg.Revision=16\nPkg.Dependencies=emulator#30.8.0\nAndroidVersion.ApiLevel=30\nSystemImage.Abi=x86_64\nSystemImage.TagId=google_apis\nSystemImage.TagDisplay=Google APIs\nSystemImage.GpuSupport=true\nAddon.VendorId=google\nAddon.VendorDisplay=Google Inc.",
+  "baselineExpected": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+  "stages": {
+    "baseline": {
+      "phase": "baseline",
+      "started": "2026-11-25T16:37:24.104+08:00",
+      "input": {
+        "path": "F:\\DSHA_RESTART\\artifacts\\build376-formal-20261125\\signed\\dsha-0.2.2-rc.5.apk",
+        "sha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+        "logicalBytes": 257781425,
+        "allocatedBytes": 257781425
+      },
+      "hostBefore": {
+        "at": "2026-11-25T16:37:24.117+08:00",
+        "freeRamBytes": 3667968000,
+        "totalRamBytes": 33483382784,
+        "FfreeBytes": 320574935040
+      },
+      "ok": false,
+      "failure": "RuntimeError(\"Unexpected AVD identity ['DSHA_377_direct_upgrade_API30_x86_64', '', 'OK']\")",
+      "failedAt": "2026-11-25T16:37:24.427+08:00"
+    }
+  },
+  "launched": "2026-11-25T16:36:26.304+08:00",
+  "pid": 64280,
+  "launchArgs": [
+    "F:\\DSHA_RESTART\\cache\\build372-android-jni\\stable\\emulator\\qemu\\windows-x86_64\\qemu-system-x86_64-headless.exe",
+    "-avd",
+    "DSHA_377_direct_upgrade_API30_x86_64",
+    "-port",
+    "5692",
+    "-no-window",
+    "-no-audio",
+    "-no-boot-anim",
+    "-no-snapshot",
+    "-no-metrics",
+    "-gpu",
+    "swiftshader_indirect",
+    "-feature",
+    "-Vulkan",
+    "-accel",
+    "auto",
+    "-cores",
+    "2",
+    "-memory",
+    "2048",
+    "-dns-server",
+    "127.0.0.1"
+  ]
+}

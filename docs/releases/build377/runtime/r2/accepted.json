@@ -1,0 +1,8 @@
+{
+  "previousArchiveSha256": "b911179b6cb1e453b97039021e50b64358c96435e3283ff79bad2a630dc666a0",
+  "hashes": {
+    "dsh-runtime.bin": "ac087ee46389c4c4716245478c4d3becd91cc3ce50a1f4488a96a974e735f458",
+    "dsh-runtime.inputs.json": "6b5a930561394b615cee261379bd01568ab70bc48139f7c78998fb2cb068f8f6"
+  },
+  "bytes": 141564262
+}

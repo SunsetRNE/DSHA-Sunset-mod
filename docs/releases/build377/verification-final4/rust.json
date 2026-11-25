@@ -1,0 +1,52 @@
+{
+  "status": "PASS",
+  "mode": "prebuilt",
+  "rustArtifact": "present",
+  "artifact": {
+    "artifactFile": "libdsha_rs.so",
+    "size": 360920,
+    "sha256": "65aea50e7d34b8adfda28836248b2486b4d5481abb55d7bb80037a8adb459c6d",
+    "elfType": "ET_DYN",
+    "elfMachine": 183,
+    "aligned16k": true,
+    "relroMapped": true,
+    "needed": [
+      "libdl.so",
+      "libc.so"
+    ],
+    "exportedSymbols": [
+      "Java_com_deepseekharness_app_util_RustNative_abiVersion",
+      "Java_com_deepseekharness_app_util_RustNative_archivePackAbort",
+      "Java_com_deepseekharness_app_util_RustNative_archivePackCreate",
+      "Java_com_deepseekharness_app_util_RustNative_archivePackFinish",
+      "Java_com_deepseekharness_app_util_RustNative_archivePackUpdate",
+      "Java_com_deepseekharness_app_util_RustNative_archiveUnpackAbort",
+      "Java_com_deepseekharness_app_util_RustNative_archiveUnpackCreate",
+      "Java_com_deepseekharness_app_util_RustNative_archiveUnpackRead",
+      "Java_com_deepseekharness_app_util_RustNative_archiveUnpackWrite",
+      "Java_com_deepseekharness_app_util_RustNative_digest",
+      "Java_com_deepseekharness_app_util_RustNative_verifyPlan"
+    ],
+    "budget": "PASS"
+  },
+  "nativeMembers": 15,
+  "receiptSha256": "6e4c3b16f2c9f2a0864879cfc524f4368ca113a358c7602fc805b134ece9e16f",
+  "provenance": {
+    "commit": "365719301ebf8c35f87edc24bdce4edb503c46d5",
+    "provenance": "local",
+    "runId": null,
+    "runAttempt": null,
+    "repository": null
+  },
+  "sourceFingerprint": "0abd629e93eb5aed7cd9770ab15d79969c0007b0321688595018645a602c401f",
+  "operation": "verify-apk",
+  "apkVerified": true,
+  "androidLoadTested": false,
+  "verification": "STATIC_ONLY_NOT_ANDROID_LOAD",
+  "abi": "arm64-v8a",
+  "apk": {
+    "name": "dsha-0.2.2-rc.5.apk",
+    "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+    "size": 255591272
+  }
+}

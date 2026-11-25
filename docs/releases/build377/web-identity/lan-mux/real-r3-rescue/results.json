@@ -1,0 +1,465 @@
+{
+  "versions": {
+    "node": "v24.18.0"
+  },
+  "source": {
+    "archive": "F:\\DSHA_RESTART\\artifacts\\build377-local\\runtime\\r4\\npm-arm64-b\\dsh-runtime.bin",
+    "sha256": "2cbc3aba49cfb256a01afd9dd68eeb7b72e8c01f35d88745cdb2648ec6333bed",
+    "rows": {
+      "@deepseek-ai/dsh-web-frontend/LICENSE": "ebb4f09972aee8608be255debaf78451a68e95c290f55c240dec2ecfa16ea6be",
+      "@deepseek-ai/dsh-web-frontend/dist/apple-touch-icon.png": "e3326e0590a7101270116b89093cbdfcb1b42ff5d9677f0eb7168b231e98c06e",
+      "@deepseek-ai/dsh-api-gateway/lib/client.browser.js": "af20d759251310e5d5afb3426267c7b9a88e5ab613dcec976e0fe21ca9b31d37",
+      "@deepseek-ai/dsh-client-connection/lib/client.browser.js": "316ee0d5f90a353b902700f1674fb52d8ad328f6fbd78b7b113948d21f60420e",
+      "@deepseek-ai/dsh-client-ui-brand-official/lib/client.js": "82e08f6b52d68109913b009759f14e5d988134b9bdcf48095aac506b8a967ea9",
+      "@deepseek-ai/dsh-client-ui-chat/lib/client.js": "a449c51f1fcc78485832f65a64980490104d1b246df4c11e2bfcf76108d4e290",
+      "@deepseek-ai/dsh-client-ui-layout/lib/client.js": "07604b966fb289980a2ab6fb2a86b1d406ba1da26ef12847258b34e2bd9bd168",
+      "@deepseek-ai/dsh-client-ui-sidebar/lib/client.js": "7930ccef18b7c13560fbc2c20c50e24c8b21d33ab743637c5020fdba2a5254a9",
+      "@deepseek-ai/dsh-experimental-liveshare/lib/client.js": "2c1dc53fb2d8bcb08bafcac4e3103693e3c776e0d94446da9d5835e56d96ecb1",
+      "@deepseek-ai/dsh-web-app/cordis.patch.yml": "d18d48f44f8d11c513f7eb27d092aa7212386a9cd7197931d740efade3c7838a",
+      "@deepseek-ai/dsh-web-frontend/dist/favicon-dark.svg": "5e964861a1d1099c8c60de1fcb06dff3f71c8c1d6dadbadd2a8d936dded12a86",
+      "@deepseek-ai/dsh-web-frontend/dist/favicon.svg": "5e964861a1d1099c8c60de1fcb06dff3f71c8c1d6dadbadd2a8d936dded12a86",
+      "@deepseek-ai/dsh-web-frontend/dist/icon-192.png": "78220e55f1c06975ee062a99f39a6d165c4e754c21ca12bc589387786d3bce93",
+      "@deepseek-ai/dsh-web-frontend/dist/icon-512.png": "2bec0ccb55508f03f83c789a9c0a6989eccd1567db15c59fc648d66674373f4c",
+      "@deepseek-ai/dsh-web-frontend/dist/icon-maskable-512.png": "32e6d1b7119c0a956992b5170908fabde96a92ddb1e2d57c5979a6856ec351b2",
+      "@deepseek-ai/dsh-web-frontend/dist/index.html": "99eed3e44249fcb4b5a35f4f70d55dd655d9ae9e31fa1a65f581b4283b48637c",
+      "@deepseek-ai/dsh-app-boot/lib/index.js": "2dccc759ad0245b78591dc84c803dd0236893738641dc1dd153ef7a4c97f12e6",
+      "@deepseek-ai/dsh-client-modules/lib/index.js": "0e58baac3b355f1e58834084264e682c09e6ca505ca54b695a6f893a982e915f",
+      "@deepseek-ai/dsh-host-frontend-static/lib/index.js": "dc93f01607c2c074e5e215b4e4417e35ce0cb86dfdc01b8f2b8850d6fd47f322",
+      "@deepseek-ai/dsh-llm-deepseek/lib/index.js": "ac00249972676e2cbc6c8a553d32efa67aeb60110a7b876a69e50986ac867351",
+      "@deepseek-ai/dsh-llm-pi-ai/lib/index.js": "a9904a44425022f093253cb7feae384b43b8de1a18ebd21de9aa32fe3f9d529b",
+      "@deepseek-ai/dsh-web-frontend/dist/manifest.webmanifest": "5d8dde9bf3d84d966ec068e50480d9f08a2380165f9f4e64129bf631759b1633"
+    },
+    "seconds": 3.2199470999767072
+  },
+  "browsers": {
+    "firefox": {
+      "rounds": [
+        {
+          "round": 1,
+          "startMs": 7578,
+          "tickets": [
+            {
+              "method": "POST",
+              "status": 200,
+              "marker": "v1",
+              "path": "/api/remote.mux"
+            }
+          ],
+          "mux": [
+            {
+              "openedMs": 9484,
+              "sent": 6,
+              "received": 14,
+              "socketErrors": 0
+            }
+          ],
+          "apiStatus": [
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200
+          ],
+          "errors": [],
+          "responses": {
+            "document 401": 1,
+            "document 303": 1,
+            "document 200": 1,
+            "script 200": 5,
+            "stylesheet 200": 2,
+            "image 200": 3,
+            "eventsource 200": 1,
+            "fetch 200": 25
+          },
+          "failedRequests": [
+            {
+              "kind": "document",
+              "status": 401,
+              "basename": "",
+              "lanReason": "token-invalid",
+              "lanTransport": "v1"
+            }
+          ],
+          "documentStatus": 200,
+          "firstDocumentMs": 9125,
+          "pageTitle": "DSHA",
+          "shellMarks": 2,
+          "boot": 0,
+          "completeMs": 9672
+        },
+        {
+          "round": 2,
+          "startMs": 10438,
+          "tickets": [
+            {
+              "method": "POST",
+              "status": 200,
+              "marker": "v1",
+              "path": "/api/remote.mux"
+            }
+          ],
+          "mux": [
+            {
+              "openedMs": 11328,
+              "sent": 6,
+              "received": 6,
+              "socketErrors": 0
+            }
+          ],
+          "apiStatus": [
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200
+          ],
+          "errors": [],
+          "responses": {
+            "document 200": 1,
+            "script 200": 5,
+            "stylesheet 200": 2,
+            "image 200": 3,
+            "eventsource 200": 1,
+            "fetch 200": 23
+          },
+          "failedRequests": [],
+          "documentStatus": 200,
+          "firstDocumentMs": 10828,
+          "pageTitle": "DSHA",
+          "shellMarks": 2,
+          "boot": 0,
+          "completeMs": 11578
+        }
+      ],
+      "version": "153.0"
+    },
+    "webkit": {
+      "rounds": [
+        {
+          "round": 1,
+          "startMs": 12500,
+          "tickets": [
+            {
+              "method": "POST",
+              "status": 200,
+              "marker": "v1",
+              "path": "/api/remote.mux"
+            }
+          ],
+          "mux": [
+            {
+              "openedMs": 14125,
+              "sent": 5,
+              "received": 5,
+              "socketErrors": 0
+            }
+          ],
+          "apiStatus": [],
+          "errors": [],
+          "responses": {
+            "document 303": 1,
+            "document 200": 1,
+            "script 200": 5,
+            "stylesheet 200": 2,
+            "other 401": 1,
+            "fetch 200": 2,
+            "eventsource 200": 1,
+            "image 200": 1
+          },
+          "failedRequests": [
+            {
+              "kind": "other",
+              "status": 401,
+              "basename": "manifest.webmanifest",
+              "lanReason": "token-invalid",
+              "lanTransport": "v1"
+            }
+          ],
+          "documentStatus": 200,
+          "firstDocumentMs": 12922,
+          "pageTitle": "DSHA",
+          "shellMarks": 2,
+          "boot": 0,
+          "completeMs": 14344
+        },
+        {
+          "round": 2,
+          "startMs": 15109,
+          "tickets": [
+            {
+              "method": "POST",
+              "status": 200,
+              "marker": "v1",
+              "path": "/api/remote.mux"
+            }
+          ],
+          "mux": [
+            {
+              "openedMs": 15625,
+              "sent": 5,
+              "received": 5,
+              "socketErrors": 0
+            }
+          ],
+          "apiStatus": [],
+          "errors": [],
+          "responses": {
+            "document 200": 1,
+            "script 200": 5,
+            "stylesheet 200": 2,
+            "other 401": 1,
+            "fetch 200": 2,
+            "eventsource 200": 1
+          },
+          "failedRequests": [
+            {
+              "kind": "other",
+              "status": 401,
+              "basename": "manifest.webmanifest",
+              "lanReason": "token-invalid",
+              "lanTransport": "v1"
+            }
+          ],
+          "documentStatus": 200,
+          "firstDocumentMs": 15297,
+          "pageTitle": "DSHA",
+          "shellMarks": 2,
+          "boot": 0,
+          "completeMs": 15797
+        }
+      ],
+      "version": "26.5"
+    },
+    "chromium": {
+      "rounds": [
+        {
+          "round": 1,
+          "startMs": 16219,
+          "tickets": [
+            {
+              "method": "POST",
+              "status": 200,
+              "marker": "v1",
+              "path": "/api/remote.mux"
+            }
+          ],
+          "mux": [
+            {
+              "openedMs": 16953,
+              "sent": 6,
+              "received": 6,
+              "socketErrors": 0
+            }
+          ],
+          "apiStatus": [
+            200,
+            200,
+            200,
+            200,
+            503,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200,
+            200
+          ],
+          "errors": [],
+          "responses": {
+            "document 303": 1,
+            "document 200": 1,
+            "script 200": 5,
+            "stylesheet 200": 2,
+            "fetch 200": 23,
+            "fetch 503": 2,
+            "eventsource 200": 1,
+            "image 200": 1
+          },
+          "failedRequests": [
+            {
+              "kind": "fetch",
+              "status": 503,
+              "basename": "modelCatalog",
+              "lanReason": "proxy-busy",
+              "lanTransport": "v1"
+            },
+            {
+              "kind": "fetch",
+              "status": 503,
+              "basename": "syncInspectManifest",
+              "lanReason": "proxy-busy",
+              "lanTransport": "v1"
+            }
+          ],
+          "documentStatus": 200,
+          "firstDocumentMs": 16422,
+          "pageTitle": "DSHA",
+          "shellMarks": 2,
+          "boot": 0,
+          "completeMs": 17109
+        },
+        {
+          "round": 2,
+          "startMs": 17875,
+          "tickets": [
+            {
+              "method": "POST",
+              "status": 200,
+              "marker": "v1",
+              "path": "/api/remote.mux"
+            }
+          ],
+          "mux": [
+            {
+              "openedMs": 18203,
+              "sent": 5,
+              "received": 5,
+              "socketErrors": 0
+            }
+          ],
+          "apiStatus": [
+            200,
+            200,
+            200,
+            503,
+            503,
+            200,
+            503,
+            200,
+            503,
+            200,
+            503,
+            200,
+            503,
+            503,
+            503
+          ],
+          "errors": [],
+          "responses": {
+            "document 200": 1,
+            "script 200": 5,
+            "script 503": 1,
+            "stylesheet 200": 1,
+            "fetch 200": 11,
+            "fetch 503": 10,
+            "eventsource 200": 1,
+            "image 200": 1
+          },
+          "failedRequests": [
+            {
+              "kind": "script",
+              "status": 503,
+              "basename": "vendor-BUMdD3V7.js",
+              "lanReason": "proxy-busy",
+              "lanTransport": "v1"
+            },
+            {
+              "kind": "fetch",
+              "status": 503,
+              "basename": "describe",
+              "lanReason": "proxy-busy",
+              "lanTransport": "v1"
+            },
+            {
+              "kind": "fetch",
+              "status": 503,
+              "basename": "modelCatalog",
+              "lanReason": "proxy-busy",
+              "lanTransport": "v1"
+            },
+            {
+              "kind": "fetch",
+              "status": 503,
+              "basename": "list",
+              "lanReason": "proxy-busy",
+              "lanTransport": "v1"
+            },
+            {
+              "kind": "fetch",
+              "status": 503,
+              "basename": "listProviders",
+              "lanReason": "proxy-busy",
+              "lanTransport": "v1"
+            },
+            {
+              "kind": "fetch",
+              "status": 503,
+              "basename": "inventory",
+              "lanReason": "proxy-busy",
+              "lanTransport": "v1"
+            },
+            {
+              "kind": "fetch",
+              "status": 503,
+              "basename": "list",
+              "lanReason": "proxy-busy",
+              "lanTransport": "v1"
+            },
+            {
+              "kind": "fetch",
+              "status": 503,
+              "basename": "list",
+              "lanReason": "proxy-busy",
+              "lanTransport": "v1"
+            },
+            {
+              "kind": "fetch",
+              "status": 503,
+              "basename": "modelCatalog",
+              "lanReason": "proxy-busy",
+              "lanTransport": "v1"
+            },
+            {
+              "kind": "fetch",
+              "status": 503,
+              "basename": "listProviders",
+              "lanReason": "proxy-busy",
+              "lanTransport": "v1"
+            },
+            {
+              "kind": "fetch",
+              "status": 503,
+              "basename": "syncInspectManifest",
+              "lanReason": "proxy-busy",
+              "lanTransport": "v1"
+            }
+          ],
+          "documentStatus": 200,
+          "firstDocumentMs": 17984,
+          "pageTitle": "DSHA",
+          "shellMarks": 2,
+          "boot": 0,
+          "completeMs": 18328
+        }
+      ],
+      "version": "156.0.8078.4"
+    }
+  },
+  "backendReadyMs": 4094,
+  "proxyReadyMs": 5625,
+  "success": true
+}

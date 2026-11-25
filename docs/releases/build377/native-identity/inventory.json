@@ -1,0 +1,138 @@
+{
+  "notificationSites": [
+    {
+      "path": "app/src/main/java/com/deepseekharness/app/AgentTaskNotifications.java",
+      "line": 474,
+      "icon": "R.drawable.ic_dsha_mark"
+    },
+    {
+      "path": "app/src/main/java/com/deepseekharness/app/AgentTaskNotifications.java",
+      "line": 480,
+      "icon": "R.drawable.ic_dsha_mark"
+    },
+    {
+      "path": "app/src/main/java/com/deepseekharness/app/assistant/AssistantService.java",
+      "line": 460,
+      "icon": "android.R.drawable.ic_dialog_info"
+    },
+    {
+      "path": "app/src/main/java/com/deepseekharness/app/assistant/AssistantService.java",
+      "line": 555,
+      "icon": "android.R.drawable.ic_dialog_info"
+    },
+    {
+      "path": "app/src/main/java/com/deepseekharness/app/backup/DataProtectionService.java",
+      "line": 141,
+      "icon": "R.drawable.ic_dsha_mark"
+    },
+    {
+      "path": "app/src/main/java/com/deepseekharness/app/DeviceBridgeService.java",
+      "line": 335,
+      "icon": "android.R.drawable.ic_menu_manage"
+    },
+    {
+      "path": "app/src/main/java/com/deepseekharness/app/DeviceBridgeService.java",
+      "line": 733,
+      "icon": "android.R.drawable.ic_dialog_alert"
+    },
+    {
+      "path": "app/src/main/java/com/deepseekharness/app/HarnessService.java",
+      "line": 732,
+      "icon": "android.R.drawable.ic_menu_manage"
+    },
+    {
+      "path": "app/src/main/java/com/deepseekharness/app/HttpShellService.java",
+      "line": 1386,
+      "icon": "R.drawable.ic_launch"
+    },
+    {
+      "path": "app/src/main/java/com/deepseekharness/app/HttpShellService.java",
+      "line": 3778,
+      "icon": "R.drawable.ic_launch"
+    },
+    {
+      "path": "app/src/main/java/com/deepseekharness/app/HttpShellService.java",
+      "line": 4946,
+      "icon": "R.drawable.ic_launch"
+    },
+    {
+      "path": "app/src/main/java/com/deepseekharness/app/recovery/RecoveryService.java",
+      "line": 55,
+      "icon": "R.drawable.ic_dsha_mark"
+    },
+    {
+      "path": "app/src/main/java/com/deepseekharness/app/TerminalRuntimeService.java",
+      "line": 145,
+      "icon": "R.drawable.ic_terminal"
+    },
+    {
+      "path": "app/src/main/java/com/deepseekharness/app/transfer/DownloadService.kt",
+      "line": 106,
+      "icon": "android.R.drawable.stat_sys_download"
+    },
+    {
+      "path": "app/src/main/java/com/deepseekharness/app/UpdateDownloadService.kt",
+      "line": 106,
+      "icon": "android.R.drawable.stat_sys_download"
+    }
+  ],
+  "configurationDerivedVariants": {
+    "upstream": {
+      "": {
+        "appName": "DSHA",
+        "packageName": "dsh.android.client"
+      },
+      "Test": {
+        "appName": "DSHA Test",
+        "packageName": "dsh.android.client.SunsetRNE"
+      },
+      "Dev": {
+        "appName": "DSHA Dev",
+        "packageName": "dsh.android.client.SunsetDev"
+      },
+      "Debug": {
+        "appName": "DSHA Debug",
+        "packageName": "dsh.android.client.debug"
+      }
+    },
+    "mod": {
+      "": {
+        "appName": "DSH-A-Su",
+        "packageName": "io.github.sunsetrne.dsha"
+      },
+      "Test": {
+        "appName": "DSH-A-Su Test",
+        "packageName": "io.github.sunsetrne.dsha.test"
+      },
+      "Dev": {
+        "appName": "DSH-A-Su Dev",
+        "packageName": "io.github.sunsetrne.dsha.dev"
+      },
+      "Debug": {
+        "appName": "DSH-A-Su Debug",
+        "packageName": "io.github.sunsetrne.dsha.debug"
+      }
+    },
+    "rebirth": {
+      "": {
+        "appName": "DSHA 新生",
+        "packageName": "dsh.android.client.rebirth"
+      },
+      "Test": {
+        "appName": "DSHA 新生 Test",
+        "packageName": "dsh.android.client.rebirth.rebirthtest"
+      },
+      "Dev": {
+        "appName": "DSHA 新生 Dev",
+        "packageName": "dsh.android.client.rebirth.rebirthdev"
+      },
+      "Debug": {
+        "appName": "DSHA 新生 Debug",
+        "packageName": "dsh.android.client.rebirth.debug"
+      }
+    }
+  },
+  "nonMainBrandOverrides": [],
+  "deviceAuditLabel": "DSHA 稳定性验收",
+  "qualification": "configuration-derived labels for selected flags; monitor rebirthCandidate constraints in app/build.gradle; API 30 Standard only"
+}

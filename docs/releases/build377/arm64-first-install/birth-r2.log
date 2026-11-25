@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\artifacts\build377-local\arm64-first-install\test_birth.py", line 50, in <module>
+    obs=cmd('shell',f'cat /proc/{leader}/stat; cat /proc/{leader}/task/{leader}/children')
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\artifacts\build377-local\arm64-first-install\test_birth.py", line 10, in cmd
+    if check:p.check_returncode()
+             ^^^^^^^^^^^^^^^^^^^^
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\subprocess.py", line 502, in check_returncode
+    raise CalledProcessError(self.returncode, self.args, self.stdout,
+subprocess.CalledProcessError: Command '['F:\\DSHA_RESTART\\cache\\build372-android-jni\\sdk\\platform-tools\\adb.exe', '-H', '127.0.0.1', '-P', '5077', '-s', 'emulator-5672', 'shell', 'cat /proc/912/stat; cat /proc/912/task/912/children']' returned non-zero exit status 1.

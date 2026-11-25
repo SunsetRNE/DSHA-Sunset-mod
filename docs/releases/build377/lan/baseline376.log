@@ -1,0 +1,9 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.language=en -Duser.country=US -Dfile.encoding=UTF-8
+Picked up JAVA_TOOL_OPTIONS: -Duser.language=en -Duser.country=US -Dfile.encoding=UTF-8
+JUnit version 4.13.2
+....................................................................................
+Time: 3.638
+
+OK (84 tests)
+
+PASS production LAN proxy sockets and HTTP/auth/dispatch regressions. Android context/log/local-network permission are stubs; no phone/network-switch or APK claim.

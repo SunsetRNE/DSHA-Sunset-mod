@@ -1,0 +1,52 @@
+[
+  {
+    "language": "zh",
+    "recovery": "旧文档的原件已保留。打开「作品文件 → DSHA → save-recovery」，选择以下文件可重新导出：ABABABABABABABABABABABABABABABAB.bin",
+    "title": "当前工作台配置 · 只读"
+  },
+  {
+    "language": "zh-Hant",
+    "recovery": "舊文件的原件已保留。開啟「作品檔案 → DSHA → save-recovery」，選取以下檔案即可重新匯出：ABABABABABABABABABABABABABABABAB.bin",
+    "title": "目前的工作台設定 · 唯讀"
+  },
+  {
+    "language": "en",
+    "recovery": "The original is preserved. In Work files → DSHA → save-recovery, select this file to export it again: ABABABABABABABABABABABABABABABAB.bin",
+    "title": "Current workbench configuration · Read-only"
+  },
+  {
+    "language": "ru",
+    "recovery": "Исходный документ сохранён. Чтобы снова экспортировать его, откройте «Рабочие файлы → DSHA → save-recovery» и выберите файл ABABABABABABABABABABABABABABABAB.bin.",
+    "title": "Текущая конфигурация рабочей среды (только чтение)"
+  },
+  {
+    "language": "ja",
+    "recovery": "元の文書は保存されています。「作業ファイル → DSHA → save-recovery」を開き、次のファイルを選択して再度エクスポートしてください：ABABABABABABABABABABABABABABABAB.bin",
+    "title": "現在のワークベンチ設定（読み取り専用）"
+  },
+  {
+    "language": "ko",
+    "recovery": "원본 문서를 보관했습니다. 작업 파일 → DSHA → save-recovery에서 다음 파일을 선택해 다시 내보내세요: ABABABABABABABABABABABABABABABAB.bin",
+    "title": "현재 워크벤치 설정(읽기 전용)"
+  },
+  {
+    "language": "ar",
+    "recovery": "تم الاحتفاظ بالمستند الأصلي. لتصديره مجددًا، افتح «ملفات العمل ← DSHA ← save-recovery» وحدد الملف ⁦ABABABABABABABABABABABABABABABAB.bin⁩.",
+    "title": "إعدادات مساحة العمل الحالية (للقراءة فقط)"
+  },
+  {
+    "language": "pt",
+    "recovery": "O documento original foi preservado. Para exportá-lo novamente, abra Arquivos de trabalho → DSHA → save-recovery e selecione o arquivo ABABABABABABABABABABABABABABABAB.bin.",
+    "title": "Configuração atual da área de trabalho (somente leitura)"
+  },
+  {
+    "language": "la",
+    "recovery": "Documentum originale servatum est. Ad illud iterum exportandum, aperi «Documenta laboris → DSHA → save-recovery» et elige fasciculum ABABABABABABABABABABABABABABABAB.bin.",
+    "title": "Configuratio praesentis areae laboris (ad legendum tantum)"
+  },
+  {
+    "language": "fr",
+    "recovery": "Le document original a été conservé. Pour l’exporter de nouveau, ouvrez Fichiers de travail → DSHA → save-recovery et sélectionnez le fichier ABABABABABABABABABABABABABABABAB.bin.",
+    "title": "Configuration actuelle de l’espace de travail (lecture seule)"
+  }
+]

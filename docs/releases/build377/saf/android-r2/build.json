@@ -1,0 +1,19 @@
+{
+  "start": "2026-11-25T06:59:49.730641+00:00",
+  "inputs": {
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\transfer\\SelectedDocumentSave.java": "8e7d51ed4dd79f6890bc7f29dad2ece243097e0ca9043ad08684b2ea4547e776",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\DocumentStreams.java": "e7ff52edde668186950447e5868e3374513a3972e3fd258031859fd10e12e38a",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\AndroidBackupFileSystem.java": "5045c85eb6b9878b1352a894601d9204288507110bdfa5bcefa9c609a6b55fff",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\BackupFileSystem.java": "e01b630094254ba5fe888ed96f0291e4be078623a7f89d7d323311074be0e5ec",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\BackupControl.java": "4ead9fa1e423963c9d4bba7165f9035453cb979369de6743a39fd6a3dc105cf7",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\BackupLimits.java": "20ea4d678002c82fd6d1b815383a0d242fd66abcfd25688bda3aeb4d9cb2c1d9",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\util\\FileIntegrity.java": "387e3352e5b0642e4b55f9ea296842e7f1ac95e78dfe6e7f85692907256dffd1",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\util\\FileKind.java": "0f7907e28441e753e8e400aa9ca56b6c5cf3062e28eed9dbab05b9748d3b407c",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\util\\LinuxOpenFlags.java": "2e2c99e57420a6695ca86fd860c3e6f3842fec500ab52de3cf3e02070fee38ca",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\saf\\SafProbeActivity.java": "ed757ca1dc65e10eab5633f3a1af8fe30fc0ad547ec667518e756b56315782d3"
+  },
+  "priorClassesSha": "d6e527ce162225aea6a8e78a7567f3654798510e564134eaac72e1a169a9f475",
+  "apkSha256": "040eb5c61206371724e777b565ddeaa00f49aa586e874ebad607e179e5a62468",
+  "package": "org.dsha.fixture.saf377r2",
+  "newDocument": "saf377-1ae0bee924b9.bin"
+}

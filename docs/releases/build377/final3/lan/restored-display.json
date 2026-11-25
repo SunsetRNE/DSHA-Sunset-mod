@@ -1,0 +1,9 @@
+{
+  "values": {
+    "user_rotation": "0",
+    "accelerometer_rotation": "1",
+    "font_scale": "null"
+  },
+  "display": "Physical size: 720x1280\nPhysical density: 320\n    mRotation=0 mDeferredRotationPauseCount=0",
+  "matchesOriginal": true
+}

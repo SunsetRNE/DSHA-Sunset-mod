@@ -1,0 +1,130 @@
+[
+  {
+    "startedAt": "2026-11-25T07:58:46.318Z",
+    "at": "2026-11-25T07:58:48.730Z",
+    "className": "com.deepseekharness.app.LanListenerFailureTest",
+    "name": "deniedBindRetiresListenerWithoutUncaughtException",
+    "status": "SUCCESS",
+    "durationMs": 2412
+  },
+  {
+    "startedAt": "2026-11-25T07:58:48.730Z",
+    "at": "2026-11-25T07:58:48.775Z",
+    "className": "com.deepseekharness.app.LanListenerFailureTest",
+    "name": "savedSwitchDoesNotAuthorizeANewProcessOrNetwork",
+    "status": "SUCCESS",
+    "durationMs": 45
+  },
+  {
+    "startedAt": "2026-11-25T07:58:48.775Z",
+    "at": "2026-11-25T07:58:48.851Z",
+    "className": "com.deepseekharness.app.LanListenerFailureTest",
+    "name": "oldPreferencesAreRemovedEvenWhenSharingIsOff",
+    "status": "SUCCESS",
+    "durationMs": 76
+  },
+  {
+    "startedAt": "2026-11-25T07:58:48.851Z",
+    "at": "2026-11-25T07:58:49.920Z",
+    "className": "com.deepseekharness.app.LanListenerFailureTest",
+    "name": "failedNetworkPollClosesBoundListenerWithoutUncaughtException",
+    "status": "SUCCESS",
+    "durationMs": 1069
+  },
+  {
+    "startedAt": "2026-11-25T07:59:04.374Z",
+    "at": "2026-11-25T07:59:04.382Z",
+    "className": "com.deepseekharness.app.LanFiniteResponseTest",
+    "name": "probeStopsAtByteBudgetAndReplaysEveryByteAndTrailer",
+    "status": "SUCCESS",
+    "durationMs": 8
+  },
+  {
+    "startedAt": "2026-11-25T07:59:04.382Z",
+    "at": "2026-11-25T07:59:04.383Z",
+    "className": "com.deepseekharness.app.LanFiniteResponseTest",
+    "name": "unknownDownloadsAndEventStreamsDoNotGetThePageResourceFallback",
+    "status": "SUCCESS",
+    "durationMs": 1
+  },
+  {
+    "startedAt": "2026-11-25T07:59:04.383Z",
+    "at": "2026-11-25T07:59:04.384Z",
+    "className": "com.deepseekharness.app.LanFiniteResponseTest",
+    "name": "interruptedProbeCanResumeInTheMiddleOfAChunkSizeOrTrailer",
+    "status": "SUCCESS",
+    "durationMs": 1
+  },
+  {
+    "startedAt": "2026-11-25T08:06:54.619Z",
+    "at": "2026-11-25T08:06:58.199Z",
+    "className": "com.deepseekharness.app.ui.ConfigLanApprovalTest",
+    "name": "saveAfterNetworkChangeEnablesPreferenceButRequiresFreshNetworkApproval",
+    "status": "SUCCESS",
+    "durationMs": 3580
+  },
+  {
+    "startedAt": "2026-11-25T08:07:05.804Z",
+    "at": "2026-11-25T08:07:08.906Z",
+    "className": "com.deepseekharness.app.ui.LaunchAccessAddressesTest",
+    "name": "disabledLanIsShownWithExplicitEnableAndOpeningDoesNotExposeIt",
+    "status": "SUCCESS",
+    "durationMs": 3102
+  },
+  {
+    "startedAt": "2026-11-25T08:07:08.906Z",
+    "at": "2026-11-25T08:07:09.381Z",
+    "className": "com.deepseekharness.app.ui.LaunchAccessAddressesTest",
+    "name": "explicitEnableConfirmationAppliesConfiguredNetworkFeaturesOnce",
+    "status": "SUCCESS",
+    "durationMs": 475
+  },
+  {
+    "startedAt": "2026-11-25T08:07:09.381Z",
+    "at": "2026-11-25T08:07:09.640Z",
+    "className": "com.deepseekharness.app.ui.LaunchAccessAddressesTest",
+    "name": "permissionFailureIsShownAndMissingLocalUrlDisablesCopy",
+    "status": "SUCCESS",
+    "durationMs": 259
+  },
+  {
+    "startedAt": "2026-11-25T08:07:09.640Z",
+    "at": "2026-11-25T08:07:09.968Z",
+    "className": "com.deepseekharness.app.ui.LaunchAccessAddressesTest",
+    "name": "readyLanAddressesContainNoCredentialOnScreenOrClipboard",
+    "status": "SUCCESS",
+    "durationMs": 328
+  },
+  {
+    "startedAt": "2026-11-25T08:07:09.968Z",
+    "at": "2026-11-25T08:07:10.269Z",
+    "className": "com.deepseekharness.app.ui.LaunchAccessAddressesTest",
+    "name": "retiredLanCopyButtonNeverCopiesTheLocalAuthUrl",
+    "status": "SUCCESS",
+    "durationMs": 301
+  },
+  {
+    "startedAt": "2026-11-25T08:07:10.269Z",
+    "at": "2026-11-25T08:07:10.466Z",
+    "className": "com.deepseekharness.app.ui.LaunchAccessAddressesTest",
+    "name": "missingPasswordIsShownAndDoesNotExposeAnAddress",
+    "status": "SUCCESS",
+    "durationMs": 197
+  },
+  {
+    "startedAt": "2026-11-25T08:07:10.466Z",
+    "at": "2026-11-25T08:07:10.768Z",
+    "className": "com.deepseekharness.app.ui.LaunchAccessAddressesTest",
+    "name": "generationChangeBlocksTheLanCopy",
+    "status": "SUCCESS",
+    "durationMs": 302
+  },
+  {
+    "startedAt": "2026-11-25T08:07:10.768Z",
+    "at": "2026-11-25T08:07:11.201Z",
+    "className": "com.deepseekharness.app.ui.LaunchAccessAddressesTest",
+    "name": "localCopyIsAvailableOnlyWhenALocalAddressExists",
+    "status": "SUCCESS",
+    "durationMs": 433
+  }
+]

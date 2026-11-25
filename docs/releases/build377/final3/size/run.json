@@ -1,0 +1,70 @@
+{
+  "commit": "0efbf4d26a86d5cb99b4c22d56aa6e6971fd1d61",
+  "apkSha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+  "companionSha256": "bebb78e0ebdb74b494e3c160f0bee57f15eb34bf7bf1800e56fac03af5bbad27",
+  "waitingSince": "2026-11-25T09:13:49.598459+00:00",
+  "receiptsChecked": "2026-11-25T09:19:55.663970+00:00",
+  "completed": "2026-11-25T09:20:19.878319+00:00",
+  "inputs": {
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-final\\invocation.json": "b13487157e41aea44986f8d54540b56906246e9cf498b9c2cd507d5fe40998bb",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-final\\apk-signing.json": "0307ba1e9e275ea421299215e7655d972441c95a8690151e1b7300d132f7aebc",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\final3\\signed-source-companion.json": "ab2fabc06feb2aa998bb8f5978c15c658e2e9a156f13203920ec2c1079afd4d4"
+  },
+  "results": [
+    {
+      "name": "binding",
+      "command": [
+        "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\size\\bind_signed_size.py",
+        "--runtime-round",
+        "r4",
+        "F:\\DSHA_RESTART\\artifacts\\build376-formal-20261125\\signed\\dsha-0.2.2-rc.5.apk",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-final\\dsha-0.2.2-rc.5.apk",
+        "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+        "0efbf4d26a86d5cb99b4c22d56aa6e6971fd1d61",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\final3\\size\\signed-size.json"
+      ],
+      "started": "2026-11-25T09:19:55.881235+00:00",
+      "completed": "2026-11-25T09:19:57.007273+00:00",
+      "exitCode": 0
+    },
+    {
+      "name": "java",
+      "command": [
+        "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\size\\check_tool_readback.py",
+        "F:\\DSHA_RESTART\\artifacts\\build376-formal-20261125\\signed\\dsha-0.2.2-rc.5.apk",
+        "F:\\DSHA_RESTART\\source\\build377-local",
+        "F:\\DSHA_RESTART\\source\\build376-local\\app\\src\\main\\assets",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\final3\\size\\java-final.json",
+        "--candidate-apk",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-final\\dsha-0.2.2-rc.5.apk"
+      ],
+      "started": "2026-11-25T09:19:55.881235+00:00",
+      "completed": "2026-11-25T09:20:19.878319+00:00",
+      "exitCode": 0
+    },
+    {
+      "name": "members",
+      "command": [
+        "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\size\\inventory_apk.py",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-final\\dsha-0.2.2-rc.5.apk",
+        "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\final3\\size\\b377-final"
+      ],
+      "started": "2026-11-25T09:19:55.881235+00:00",
+      "completed": "2026-11-25T09:19:56.632481+00:00",
+      "exitCode": 0
+    }
+  ]
+}

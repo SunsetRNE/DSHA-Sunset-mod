@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "scope": "production-source-lexical-only",
+  "counts": {
+    "translated_choose_argument_concat": 3,
+    "translated_choose_fragment_concat": 6,
+    "translated_fragment_concat": 1
+  },
+  "lexicalCandidateCounts": {
+    "translated_choose_argument_concat": 3,
+    "translated_choose_fragment_concat": 6,
+    "translated_fragment_concat": 1
+  },
+  "dynamicUiTextArgumentsForReview": 24,
+  "newFindings": 10,
+  "resolvedBaselineFindings": 0,
+  "findings": [
+    {
+      "kind": "translated_choose_fragment_concat",
+      "file": "app/src/main/java/com/deepseekharness/app/core/EnvironmentMaintenance.java",
+      "signature": "UiText.choose(\"环境重建完成，数据逐文件核验与运行试验通过。\\n\",\"Environment rebuilt; data verification and the runtime trial passed.\\n\")+",
+      "line": 369,
+      "sourceSha256": "7256e67066bb13d5523553897e01dd9221fe7d4af8bb4d3784824159968d78e2"
+    },
+    {
+      "kind": "translated_choose_fragment_concat",
+      "file": "app/src/main/java/com/deepseekharness/app/recovery/RecoveryController.java",
+      "signature": "UiText.choose(\"独立应急 DSH 已就绪；正式环境保持原状。\",\"Independent recovery DSH is ready. The main environment is preserved.\")+",
+      "line": 325,
+      "sourceSha256": "0fc4bbf26348067af00a4edb98e668ff23b143103d911ceeee0cace35995f1c6"
+    },
+    {
+      "kind": "translated_choose_fragment_concat",
+      "file": "app/src/main/java/com/deepseekharness/app/transfer/SelectedDocumentSave.java",
+      "signature": "UiText.choose(\"旧文档的原件已保留。打开「作品文件 → DSHA → save-recovery」，选择以下文件可重新导出：\",\"The original is preserved. In Work files → DSHA → save-recovery, select this file to export it again: \")+",
+      "line": 42,
+      "sourceSha256": "8e7d51ed4dd79f6890bc7f29dad2ece243097e0ca9043ad08684b2ea4547e776"
+    },
+    {
+      "kind": "translated_choose_argument_concat",
+      "file": "app/src/main/java/com/deepseekharness/app/ui/DeviceChannelsFragment.java",
+      "signature": "UiText.choose(\"实验性，未经真机验收。独立授权另一台手机（USB 或无线调试），绑定后可受控调试、重启和确认后安装；刷机只做只读预检，不执行刷写。\",\"Experimental, not yet device-verified. Authorize another phone (USB or wireless\"+\" debugging); once bound it allows controlled debugging, reboot and confirmed\"+\" installs. Flashing is read-only preflight only.\")",
+      "line": 229,
+      "sourceSha256": "67b3aec071b3aa9a5ec0729e0ff86f78acddbd96a01689d93ac5e459210bea70"
+    },
+    {
+      "kind": "translated_choose_argument_concat",
+      "file": "app/src/main/java/com/deepseekharness/app/ui/DeviceChannelsFragment.java",
+      "signature": "UiText.choose(\"实验性功能。这会允许 DSHA 通过已授权的 root 访问 USB 或无线调试目标。它不会开启本机刷机，也不会自动授权或刷写另一台手机。\",\"Experimental. This allows DSHA to access a USB or wireless-debugging target\"+\" through authorized root. It does not enable host flashing or\"+\" automatically authorize or flash the target.\")",
+      "line": 263,
+      "sourceSha256": "67b3aec071b3aa9a5ec0729e0ff86f78acddbd96a01689d93ac5e459210bea70"
+    },
+    {
+      "kind": "translated_choose_argument_concat",
+      "file": "app/src/main/java/com/deepseekharness/app/ui/DeviceChannelsFragment.java",
+      "signature": "UiText.choose(\"已识别 Stellar（Shizuku 兼容管理器）。请在 Stellar 中启动服务并开启「Shizuku 兼容层」，再返回授权；手机重启后通常需要重新启动服务。\",\"Stellar (a Shizuku-compatible manager) is detected. Start its service and enable\"+\" the Shizuku compatibility layer, then authorize here. Restart the service\"+\" after reboot.\")",
+      "line": 407,
+      "sourceSha256": "67b3aec071b3aa9a5ec0729e0ff86f78acddbd96a01689d93ac5e459210bea70"
+    },
+    {
+      "kind": "translated_choose_fragment_concat",
+      "file": "app/src/main/java/com/deepseekharness/app/ui/ExtractActivity.java",
+      "signature": "+UiText.choose(\"回退已完成，但无法确认本次安装继续使用该运行时。请查看维护记录，或手动更新运行时。\",\"The rollback finished, but continued use of this runtime for the current installation could not be verified. Review the maintenance record or update the runtime manually.\")",
+      "line": 459,
+      "sourceSha256": "026d275cb167a0c8f34e8cc63bdb26a62a6fcfdb85b26b101e05a62479eb05b4"
+    },
+    {
+      "kind": "translated_fragment_concat",
+      "file": "app/src/main/java/com/deepseekharness/app/ui/RetainedDataActivity.java",
+      "signature": "UiText.text(\"上次环境维护未完成，请先到安装与修复页恢复中断维护。\")+",
+      "line": 518,
+      "sourceSha256": "6bd4fb3e4a47573b72fcd941af84058bf5bbdb402c478ed94f43944a71e764b1"
+    },
+    {
+      "kind": "translated_choose_fragment_concat",
+      "file": "app/src/main/java/com/deepseekharness/app/ui/WebSettingsDocument.java",
+      "signature": "UiText.choose(\"当前工作台配置\",\"Current workbench configuration\")+",
+      "line": 186,
+      "sourceSha256": "5cd3dbbb4e9ec38141f13118d122cc96ca0cc2dd816704f2671b9e7d463546d4"
+    },
+    {
+      "kind": "translated_choose_fragment_concat",
+      "file": "app/src/main/java/com/deepseekharness/app/ui/WebSettingsDocument.java",
+      "signature": "+UiText.choose(\"只读\",\"Read-only\")",
+      "line": 188,
+      "sourceSha256": "5cd3dbbb4e9ec38141f13118d122cc96ca0cc2dd816704f2671b9e7d463546d4"
+    }
+  ],
+  "explicitNonFindings": [],
+  "staleNonFindingDeclarations": [
+    {
+      "kind": "translated_choose_fragment_concat",
+      "file": "app/src/main/java/com/deepseekharness/app/core/EnvironmentMaintenance.java",
+      "signature": "UiText.choose(\"环境重建完成，数据逐文件核验与运行试验通过。\\n\",\"Environment rebuilt; data verification and the runtime trial passed.\\n\")+",
+      "sourceSha256": "db9738b88e3ab73d06a4dd1a50746a6054ea5a03abb01849d058f1e02240e2f5",
+      "occurrences": 1,
+      "classification": "independent_complete_paragraph_join",
+      "reason": "The complete translated rebuild-result sentence ends with a newline. The separately assembled cleanup outcome is either its own complete static result or registered complete error templates preserving raw error arguments. Joining these paragraphs is intentional.",
+      "evidence": "docs/audits/build156/choose-complete-paragraph-evidence.json",
+      "matchedOccurrences": 0
+    },
+    {
+      "kind": "translated_choose_fragment_concat",
+      "file": "app/src/main/java/com/deepseekharness/app/recovery/RecoveryController.java",
+      "signature": "UiText.choose(\"独立应急 DSH 已就绪；正式环境保持原状。\",\"Independent recovery DSH is ready. The main environment is preserved.\")+",
+      "sourceSha256": "60ac14b4f30b2e6bf99ad6fcd32556b9fd0a658e25549214d77ee36e1f1eff1b",
+      "occurrences": 1,
+      "classification": "independent_complete_paragraph_join",
+      "reason": "The complete recovery-ready sentence is followed by an optional independently translated credential notice. Each notice is a complete sentence with leading whitespace; no user credential or incomplete label is concatenated here.",
+      "evidence": "docs/audits/build156/choose-complete-paragraph-evidence.json",
+      "matchedOccurrences": 0
+    }
+  ]
+}

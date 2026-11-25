@@ -1,0 +1,38 @@
+{
+  "at": "2026-11-25T06:53:56.424301+00:00",
+  "volume": "F:\\",
+  "totalBytes": 959067451392,
+  "availableBytes": 347708248064,
+  "files": [
+    {
+      "path": "F:\\DSHA_RESTART\\cache\\build377-proot-emulator\\avd\\DSHA_build377_proot_api30_arm64.avd\\cache.img",
+      "logicalBytes": 69206016,
+      "allocatedBytes": 5373952
+    },
+    {
+      "path": "F:\\DSHA_RESTART\\cache\\build377-proot-emulator\\avd\\DSHA_build377_proot_api30_arm64.avd\\cache.img.qcow2",
+      "logicalBytes": 197120,
+      "allocatedBytes": 262144
+    },
+    {
+      "path": "F:\\DSHA_RESTART\\cache\\build377-proot-emulator\\avd\\DSHA_build377_proot_api30_arm64.avd\\encryptionkey.img",
+      "logicalBytes": 18874368,
+      "allocatedBytes": 18874368
+    },
+    {
+      "path": "F:\\DSHA_RESTART\\cache\\build377-proot-emulator\\avd\\DSHA_build377_proot_api30_arm64.avd\\encryptionkey.img.qcow2",
+      "logicalBytes": 1966080,
+      "allocatedBytes": 1966080
+    },
+    {
+      "path": "F:\\DSHA_RESTART\\cache\\build377-proot-emulator\\avd\\DSHA_build377_proot_api30_arm64.avd\\userdata-qemu.img",
+      "logicalBytes": 8589934592,
+      "allocatedBytes": 141164544
+    },
+    {
+      "path": "F:\\DSHA_RESTART\\cache\\build377-proot-emulator\\avd\\DSHA_build377_proot_api30_arm64.avd\\userdata-qemu.img.qcow2",
+      "logicalBytes": 316211200,
+      "allocatedBytes": 316211200
+    }
+  ]
+}

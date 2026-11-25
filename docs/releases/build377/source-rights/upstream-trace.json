@@ -1,0 +1,98 @@
+{
+  "baseline": "12efafd7d3530b412d48ccb66fb657c6bd7cc8ac",
+  "importCommit": "c7bde50aab6adb28a45f8a5491d00e008c3b0db7",
+  "elapsedSeconds": 4.144847800023854,
+  "rows": [
+    {
+      "url": "https://raw.githubusercontent.com/DSH-APP/DSHA/c7bde50aab6adb28a45f8a5491d00e008c3b0db7/app/src/main/jniLibs/arm64-v8a/libproot.so",
+      "status": 200,
+      "bytes": 268976,
+      "sha256": "cbde86eb01b58413f9e4673e182caca5440e8fc4af8482a0e23d0faa0846f721",
+      "seconds": 2.73041329998523,
+      "path": "app/src/main/jniLibs/arm64-v8a/libproot.so",
+      "baselineSha256": "cbde86eb01b58413f9e4673e182caca5440e8fc4af8482a0e23d0faa0846f721",
+      "matchesBaseline": true
+    },
+    {
+      "url": "https://raw.githubusercontent.com/DSH-APP/DSHA/c7bde50aab6adb28a45f8a5491d00e008c3b0db7/app/src/main/jniLibs/arm64-v8a/libprootloader.so",
+      "status": 200,
+      "bytes": 67736,
+      "sha256": "a2cbccfc776e23225b75e6700dd1990fcd505d2e973f5bfa19c76642d4e41c7d",
+      "seconds": 1.9040446000290103,
+      "path": "app/src/main/jniLibs/arm64-v8a/libprootloader.so",
+      "baselineSha256": "a2cbccfc776e23225b75e6700dd1990fcd505d2e973f5bfa19c76642d4e41c7d",
+      "matchesBaseline": true
+    },
+    {
+      "url": "https://raw.githubusercontent.com/DSH-APP/DSHA/c7bde50aab6adb28a45f8a5491d00e008c3b0db7/app/src/main/jniLibs/arm64-v8a/libprootloader32.so",
+      "status": 200,
+      "bytes": 67484,
+      "sha256": "4c649eb2dce258c9111231940fdbf0474bcf1cd6dd447ad9bdf2898b35a85554",
+      "seconds": 1.9290342000313103,
+      "path": "app/src/main/jniLibs/arm64-v8a/libprootloader32.so",
+      "baselineSha256": "4c649eb2dce258c9111231940fdbf0474bcf1cd6dd447ad9bdf2898b35a85554",
+      "matchesBaseline": true
+    },
+    {
+      "url": "https://raw.githubusercontent.com/DSH-APP/DSHA/c7bde50aab6adb28a45f8a5491d00e008c3b0db7/app/src/main/jniLibs/arm64-v8a/libtalloc.so",
+      "status": 200,
+      "bytes": 31440,
+      "sha256": "3c9b207c0a6ea2896b7523e03f55d9ab0d9e88baa115d4c32b84058ff4246fbb",
+      "seconds": 1.7532572000054643,
+      "path": "app/src/main/jniLibs/arm64-v8a/libtalloc.so",
+      "baselineSha256": "3c9b207c0a6ea2896b7523e03f55d9ab0d9e88baa115d4c32b84058ff4246fbb",
+      "matchesBaseline": true
+    },
+    {
+      "url": "https://raw.githubusercontent.com/DSH-APP/DSHA/c7bde50aab6adb28a45f8a5491d00e008c3b0db7/BUILD.md",
+      "status": 200,
+      "bytes": 3144,
+      "sha256": "8ca3738b3335424307a11848c6930b70df09a4badb7ff3de60d7eacd04bbd11f",
+      "seconds": 1.4327535000047646,
+      "namedFdFixRecorded": true,
+      "separatePatchNamed": true
+    },
+    {
+      "url": "https://packages.termux.dev/apt/termux-main/pool/main/p/proot/proot_5.1.107.91_aarch64.deb",
+      "status": 404,
+      "seconds": 3.02548970002681
+    },
+    {
+      "url": "https://api.github.com/repos/termux/proot/git/ref/tags/v5.1.107.91",
+      "status": 200,
+      "bytes": 347,
+      "sha256": "bd8ab7a3e7311b88703c19b56d039972c0e4f08d0b344d7fe7c443108428084b",
+      "seconds": 3.1542852999991737,
+      "sourceCommit": "61681c6481197e3c0cec6726075053adb740f235"
+    },
+    {
+      "url": "https://api.github.com/repos/DSH-APP/DSHA/git/trees/c7bde50aab6adb28a45f8a5491d00e008c3b0db7?recursive=1",
+      "status": 200,
+      "bytes": 29240,
+      "sha256": "7c63d3410e5cd9ce2f711b67f75861f73ca60ff53952ceeea980b354163ab243",
+      "seconds": 3.603677599981893,
+      "truncated": false,
+      "namedCanonPatchPresent": false,
+      "standaloneLibldlinuxNames": []
+    },
+    {
+      "url": "https://api.github.com/repos/coderredlab/proroot/commits/c04b1ed1563d432f9ec727272979de98f68c8031",
+      "status": 200,
+      "bytes": 6780,
+      "sha256": "2c6dc1cb2412013ef1bc188cffd246513355f1d1f129ea2b39fec61670c0be10",
+      "seconds": 3.4606684999889694,
+      "commitDate": "2026-05-11T01:34:22Z",
+      "message": "v1.2.0-docs — drop auto-detected env paths from usage, add CLI option reference, remove stale LGPL clause"
+    },
+    {
+      "url": "https://api.github.com/repos/coderredlab/proroot/git/trees/14b72a764490d0280eee3915ecfa3e8a132b392e?recursive=1",
+      "status": 200,
+      "bytes": 2043,
+      "sha256": "737c2a7f0765aa8f7db3bf16d41195058a3b8e252974caa4fa56a34631fd3fc0",
+      "seconds": 4.1444484000094235,
+      "truncated": false,
+      "namedCanonPatchPresent": false,
+      "standaloneLibldlinuxNames": []
+    }
+  ]
+}

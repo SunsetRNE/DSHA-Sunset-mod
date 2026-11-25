@@ -1,0 +1,38 @@
+{
+  "provider": "com.android.externalstorage.documents",
+  "providerPackage": "com.android.externalstorage",
+  "sdk": 30,
+  "abi": "x86_64",
+  "initial": {
+    "logicalBytes": 0,
+    "allocatedBytes": 4096,
+    "targetVolumeAvailableBytes": 7766761472,
+    "appVolumeAvailableBytes": 7766757376
+  },
+  "firstUsableMs": 2491,
+  "firstSaved": {
+    "logicalBytes": 257,
+    "allocatedBytes": 8192,
+    "targetVolumeAvailableBytes": 7766695936,
+    "appVolumeAvailableBytes": 7766695936
+  },
+  "firstSha": "372ba698636900ff0355561cdc6a7dbe60cfc3232710174b1cd6f299a85e9b55",
+  "replacement": {
+    "logicalBytes": 131073,
+    "allocatedBytes": 139264,
+    "targetVolumeAvailableBytes": 7766556672,
+    "appVolumeAvailableBytes": 7766556672
+  },
+  "verifiedSha": "6ad3a581b665add8452315d65c6905800323bf22c45da24c393d86cd92aabd88",
+  "afterFault": {
+    "logicalBytes": 131073,
+    "allocatedBytes": 139264,
+    "targetVolumeAvailableBytes": 7766540288,
+    "appVolumeAvailableBytes": 7766540288
+  },
+  "afterFaultSha": "6ad3a581b665add8452315d65c6905800323bf22c45da24c393d86cd92aabd88",
+  "injectedBytes": 17,
+  "recoveryFiles": 0,
+  "completeMs": 2713,
+  "passed": true
+}

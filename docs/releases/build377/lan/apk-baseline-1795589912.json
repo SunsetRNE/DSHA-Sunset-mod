@@ -1,0 +1,116 @@
+{
+  "phase": "baseline",
+  "apk": "F:\\DSHA_RESTART\\release\\0.2.2-rc.5\\dsha-0.2.2-rc.5.apk",
+  "sha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+  "bytes": 257781425,
+  "startUtc": "2026-11-25T06:58:25.959121+00:00",
+  "steps": [
+    {
+      "args": [
+        "emu",
+        "avd",
+        "name"
+      ],
+      "seconds": 0.031,
+      "exit": 0,
+      "response": "DSHA_build377_lan_api30_x86\n\nOK"
+    },
+    {
+      "args": [
+        "shell",
+        "getprop ro.build.version.sdk; getprop ro.product.cpu.abilist; getprop ro.dalvik.vm.native.bridge; getenforce; getprop sys.boot_completed"
+      ],
+      "seconds": 0.047,
+      "exit": 0,
+      "response": "30\nx86_64,x86,arm64-v8a,armeabi-v7a,armeabi\nlibndk_translation.so\nEnforcing\n1"
+    },
+    {
+      "args": [
+        "shell",
+        "df -k /data"
+      ],
+      "seconds": 0.062,
+      "exit": 0,
+      "response": "Filesystem      1K-blocks  Used Available Use% Mounted on\n/dev/block/dm-5   8107484 93916   7866112   2% /storage/emulated/0/Android/obb"
+    },
+    {
+      "args": [
+        "shell",
+        "pm path dsh.android.client"
+      ],
+      "seconds": 0.031,
+      "exit": 1,
+      "response": ""
+    },
+    {
+      "args": [
+        "install",
+        "--no-incremental",
+        "F:\\DSHA_RESTART\\release\\0.2.2-rc.5\\dsha-0.2.2-rc.5.apk"
+      ],
+      "seconds": 5.782,
+      "exit": 0,
+      "response": "Performing Streamed Install\nSuccess"
+    },
+    {
+      "args": [
+        "shell",
+        "pm path dsh.android.client"
+      ],
+      "seconds": 0.078,
+      "exit": 0,
+      "response": "package:/data/app/~~QDYL4GtKdodG0DqRyeNrhg==/dsh.android.client-Z4VVawUVofJtynTNBBbXmw==/base.apk"
+    },
+    {
+      "args": [
+        "shell",
+        "sha256sum /data/app/~~QDYL4GtKdodG0DqRyeNrhg==/dsh.android.client-Z4VVawUVofJtynTNBBbXmw==/base.apk"
+      ],
+      "seconds": 0.672,
+      "exit": 0,
+      "response": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc  /data/app/~~QDYL4GtKdodG0DqRyeNrhg==/dsh.android.client-Z4VVawUVofJtynTNBBbXmw==/base.apk"
+    },
+    {
+      "args": [
+        "shell",
+        "dumpsys package dsh.android.client | grep -E 'versionCode=|versionName=|firstInstallTime=|lastUpdateTime=|primaryCpuAbi='"
+      ],
+      "seconds": 0.234,
+      "exit": 0,
+      "response": "primaryCpuAbi=arm64-v8a\n    versionCode=376 minSdk=30 targetSdk=37\n    versionName=0.2.2-rc.5-20261125.0003-dsh0.2.2-rc.5\n    firstInstallTime=2026-11-25 06:58:28\n    lastUpdateTime=2026-11-25 06:58:28"
+    },
+    {
+      "args": [
+        "shell",
+        "stat -c '%s %b' /data/app/~~QDYL4GtKdodG0DqRyeNrhg==/dsh.android.client-Z4VVawUVofJtynTNBBbXmw==/base.apk"
+      ],
+      "seconds": 0.031,
+      "exit": 0,
+      "response": "257781425 503488"
+    },
+    {
+      "args": [
+        "shell",
+        "df -k /data"
+      ],
+      "seconds": 0.032,
+      "exit": 0,
+      "response": "Filesystem      1K-blocks   Used Available Use% Mounted on\n/dev/block/dm-5   8107484 374956   7585072   5% /storage/emulated/0/Android/obb"
+    }
+  ],
+  "environment": "30\nx86_64,x86,arm64-v8a,armeabi-v7a,armeabi\nlibndk_translation.so\nEnforcing\n1",
+  "dataBefore": "Filesystem      1K-blocks  Used Available Use% Mounted on\n/dev/block/dm-5   8107484 93916   7866112   2% /storage/emulated/0/Android/obb",
+  "before": null,
+  "firstInstallResponseSeconds": 5.782,
+  "after": {
+    "sha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+    "fields": "primaryCpuAbi=arm64-v8a\n    versionCode=376 minSdk=30 targetSdk=37\n    versionName=0.2.2-rc.5-20261125.0003-dsh0.2.2-rc.5\n    firstInstallTime=2026-11-25 06:58:28\n    lastUpdateTime=2026-11-25 06:58:28",
+    "versionCode": 376,
+    "firstInstallTime": "2026-11-25 06:58:28",
+    "fileStat": "257781425 503488"
+  },
+  "verifiedSeconds": 6.797,
+  "dataAfter": "Filesystem      1K-blocks   Used Available Use% Mounted on\n/dev/block/dm-5   8107484 374956   7585072   5% /storage/emulated/0/Android/obb",
+  "ok": true,
+  "endUtc": "2026-11-25T06:58:32.961108+00:00"
+}

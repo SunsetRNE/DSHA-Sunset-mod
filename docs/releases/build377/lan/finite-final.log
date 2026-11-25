@@ -1,0 +1,10 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8 -Duser.language=en -Duser.country=US
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8 -Duser.language=en -Duser.country=US
+..................SSE cancellation 8 -> 0; elapsed_ms=11
+....................................................................................
+Time: 6.896
+
+OK (102 tests)
+
+tests=102 failures=0 skipped=0 elapsed_ms=6896
+PASS production TLS listener/leaf, HTTP, auth and dispatch over loopback. AndroidKeyStore custody, Android network and context are host stubs.

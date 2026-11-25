@@ -1,0 +1,30 @@
+{
+  "apkSha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+  "tarSha256": "b413aebfbe96efc7d2ab05e2dbf19b1230d12ef452517dc11e4db9fa90a4ec24",
+  "packedBytes": 143385698,
+  "tarBytes": 516239360,
+  "entries": 21033,
+  "linksOrOther": 679,
+  "trials": [
+    {
+      "order": "original",
+      "bytes": 143385698,
+      "seconds": 31.304649999947287
+    },
+    {
+      "order": "name",
+      "bytes": 141709744,
+      "seconds": 32.08230850001564
+    },
+    {
+      "order": "extension-name",
+      "bytes": 142186402,
+      "seconds": 31.315366499999072
+    },
+    {
+      "order": "extension",
+      "bytes": 142301993,
+      "seconds": 31.657651600020472
+    }
+  ]
+}

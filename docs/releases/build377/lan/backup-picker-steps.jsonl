@@ -1,0 +1,149 @@
+{"at": 1795594394.3534546, "action": "tap", "staticControl": "Start deployment", "activity": "dsh.android.client/com.deepseekharness.app.ui.OnboardingActivity"}
+{"at": 1795594417.2120326, "action": "tap", "staticControl": "starts/No permissions needed", "activity": "dsh.android.client/com.deepseekharness.app.ui.OnboardingActivity"}
+{"at": 1795594427.8388345, "action": "tap", "staticControl": "id/extract_enter", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795594509.8793907, "action": "screenshot control", "staticControl": "Settings navigation", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795594528.641181, "action": "tap", "staticControl": "starts/Backup & data", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795594556.3640094, "action": "scroll", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795594564.1489406, "action": "screenshot control", "staticControl": "Deployment incomplete details", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795594611.360879, "action": "screenshot control", "staticControl": "Resume interrupted maintenance", "activity": "dsh.android.client/com.deepseekharness.app.ui.ExtractActivity"}
+{"at": 1795594617.653072, "action": "screenshot control", "staticControl": "Retry deployment", "activity": "dsh.android.client/com.deepseekharness.app.ui.ExtractActivity"}
+{"at": 1795594628.2213738, "action": "screenshot control", "staticControl": "Confirm local retry retaining existing data", "activity": "dsh.android.client/com.deepseekharness.app.ui.ExtractActivity"}
+{"at": 1795594739.5388324, "action": "screenshot control", "staticControl": "View maintenance record", "activity": "dsh.android.client/com.deepseekharness.app.ui.DiagnosticActivity"}
+{"at": 1795594816.436682, "action": "back", "activity": "dsh.android.client/com.deepseekharness.app.ui.ExtractActivity"}
+{"at": 1795594817.3317287, "action": "screenshot control", "staticControl": "Open limited mode, keep runtime stopped", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795594825.7817473, "action": "screenshot control", "staticControl": "Settings navigation", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795594828.3146012, "action": "tap", "staticControl": "Runtime settings", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795594835.290332, "action": "screenshot control", "staticControl": "Choose runtime", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795594842.0109253, "action": "screenshot control", "staticControl": "proroot (optional, experimental)", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795594842.8613815, "action": "screenshot control", "staticControl": "Save settings", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795594844.0520372, "action": "screenshot control", "staticControl": "Deployment detail", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795594850.4457333, "action": "scroll", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795594859.474015, "action": "screenshot control", "staticControl": "Retry deployment using saved proroot", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795594875.1649318, "action": "screenshot control", "staticControl": "Confirm deployment retry, saved proroot", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795594991.7330425, "action": "scroll", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795594994.3672514, "action": "tap", "staticControl": "View maintenance record", "activity": "dsh.android.client/com.deepseekharness.app.ui.DiagnosticActivity"}
+{"at": 1795594995.659344, "action": "back", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795595003.0488064, "action": "back", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795595004.0059698, "action": "back", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795595006.604729, "action": "tap", "staticControl": "starts/Backup & data", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795595007.9138956, "action": "scroll", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795595015.631249, "action": "screenshot control", "staticControl": "Export readable copy (rescue)", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795595093.2063954, "action": "scroll", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795595199.050227, "action": "choose destination", "flow": "rescue", "syntheticLength": 24, "fields": 2, "activity": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity"}
+{"at": 1795595199.465188, "action": "system picker", "flow": "rescue", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795595201.207012, "action": "picker cancelled", "flow": "rescue", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795595296.6851864, "action": "tap", "staticControl": "Export application data", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795595321.102677, "action": "choose destination", "flow": "normal", "syntheticLength": 24, "fields": 2, "activity": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity"}
+{"at": 1795595321.495031, "action": "system picker", "flow": "normal", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795595322.2999046, "action": "picker cancelled", "flow": "normal", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795595494.0187244, "action": "tap", "staticControl": "Export application data", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795595498.574976, "action": "tap", "staticControl": "id/button2", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795595577.2512784, "action": "choose destination", "flow": "normal", "route": "driver-check", "syntheticLength": 24, "fields": 2, "sha256": "2e6f0324ebe4b52b143dcb2bf04800b1ce73c106a53b567de1afdafca5dba3d9", "imeBeforeClick": true}
+{"at": 1795595625.296765, "action": "back", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795595627.7402506, "action": "tap", "staticControl": "id/button2", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795595652.0527008, "action": "choose destination", "flow": "normal", "route": "driver-check-parent-window", "syntheticLength": 24, "fields": 2, "sha256": "2e6f0324ebe4b52b143dcb2bf04800b1ce73c106a53b567de1afdafca5dba3d9", "imeBeforeClick": false}
+{"at": 1795595652.4769862, "action": "system picker", "flow": "normal", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795595653.2105618, "action": "picker cancelled", "flow": "normal", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795595743.6371868, "action": "tap", "staticControl": "id/button2", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795596590.368904, "action": "tap", "staticControl": "id/extract_retry", "activity": "dsh.android.client/com.deepseekharness.app.ui.ExtractActivity"}
+{"at": 1795596595.0087323, "action": "tap", "staticControl": "Continue", "activity": "dsh.android.client/com.deepseekharness.app.ui.ExtractActivity"}
+{"at": 1795596705.616491, "action": "tap", "staticControl": "id/extract_logs", "activity": "dsh.android.client/com.deepseekharness.app.ui.DiagnosticActivity"}
+{"at": 1795596708.1678712, "action": "tap", "staticControl": "Export diagnostics", "activity": "dsh.android.client/com.deepseekharness.app.ui.DiagnosticActivity"}
+{"at": 1795596709.9982643, "action": "back", "activity": "dsh.android.client/com.deepseekharness.app.ui.DiagnosticActivity"}
+{"at": 1795596723.6768353, "action": "tap", "staticControl": "id/diagnostic_back", "activity": "dsh.android.client/com.deepseekharness.app.ui.ExtractActivity"}
+{"at": 1795596726.1970427, "action": "tap", "staticControl": "id/extract_enter", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795596745.4879577, "action": "screenshot control", "staticControl": "Settings navigation", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795596748.0578864, "action": "tap", "staticControl": "starts/Backup & data", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795596749.3226933, "action": "scroll", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795596759.1914282, "action": "screenshot control", "staticControl": "Export readable copy (rescue)", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795596761.6503615, "action": "tap", "staticControl": "id/button2", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795596790.322833, "action": "choose destination", "flow": "normal", "route": "default-portrait", "syntheticLength": 24, "fields": 2, "sha256": "72917c42dee81df41e26f2d7977ba735b0e3c0c94a93803561272d6f6facbeaa", "imeBeforeClick": false}
+{"at": 1795596826.4389892, "action": "tap", "staticControl": "id/button2", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795596892.5533526, "action": "back", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795596894.9089966, "action": "tap", "staticControl": "id/button1", "activity": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity"}
+{"at": 1795596895.232644, "action": "system picker", "flow": "normal", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795596895.854767, "action": "picker cancelled", "flow": "normal", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795596934.9200113, "action": "choose destination", "flow": "rescue", "route": "default-portrait-keyboard", "syntheticLength": 24, "fields": 2, "sha256": "72917c42dee81df41e26f2d7977ba735b0e3c0c94a93803561272d6f6facbeaa", "imeBeforeClick": false}
+{"at": 1795596935.2972186, "action": "system picker", "flow": "rescue", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795596935.9685724, "action": "picker cancelled", "flow": "rescue", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795596958.615843, "action": "choose destination", "flow": "normal", "route": "default-portrait-keyboard", "syntheticLength": 24, "fields": 2, "sha256": "72917c42dee81df41e26f2d7977ba735b0e3c0c94a93803561272d6f6facbeaa", "imeBeforeClick": false}
+{"at": 1795596958.938063, "action": "system picker", "flow": "normal", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795596959.62411, "action": "picker cancelled", "flow": "normal", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795596991.7375977, "action": "choose destination", "flow": "normal", "route": "large-portrait", "syntheticLength": 24, "fields": 2, "sha256": "72917c42dee81df41e26f2d7977ba735b0e3c0c94a93803561272d6f6facbeaa", "imeBeforeClick": false}
+{"at": 1795596992.0917523, "action": "system picker", "flow": "normal", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795596992.755952, "action": "picker cancelled", "flow": "normal", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795597020.5595472, "action": "choose destination", "flow": "rescue", "route": "large-portrait", "syntheticLength": 24, "fields": 2, "sha256": "72917c42dee81df41e26f2d7977ba735b0e3c0c94a93803561272d6f6facbeaa", "imeBeforeClick": false}
+{"at": 1795597020.9250333, "action": "system picker", "flow": "rescue", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795597021.5778549, "action": "picker cancelled", "flow": "rescue", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795597064.213818, "action": "choose destination", "flow": "normal", "route": "rotate-after-password", "syntheticLength": 24, "fields": 2, "sha256": "72917c42dee81df41e26f2d7977ba735b0e3c0c94a93803561272d6f6facbeaa", "imeBeforeClick": true}
+{"at": 1795597074.4760144, "action": "back", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795597085.5785282, "action": "tap", "staticControl": "id/button1", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795597700.160762, "action": "tap", "staticControl": "id/button2", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795597727.7806602, "action": "choose destination", "flow": "normal", "route": "landscape-keyboard-hidden-r2", "syntheticLength": 24, "fields": 2, "sha256": "72917c42dee81df41e26f2d7977ba735b0e3c0c94a93803561272d6f6facbeaa", "imeBeforeClick": false}
+{"at": 1795597728.212159, "action": "system picker", "flow": "normal", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795597728.9364786, "action": "picker cancelled", "flow": "normal", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795597761.189397, "action": "choose destination", "flow": "rescue", "route": "landscape-keyboard-hidden-r2", "syntheticLength": 24, "fields": 2, "sha256": "72917c42dee81df41e26f2d7977ba735b0e3c0c94a93803561272d6f6facbeaa", "imeBeforeClick": false}
+{"at": 1795597761.6892602, "action": "system picker", "flow": "rescue", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795597762.3851893, "action": "picker cancelled", "flow": "rescue", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795598459.1723297, "action": "tap", "staticControl": "id/extract_enter", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795598460.4500885, "action": "screenshot control", "staticControl": "Settings navigation", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795598463.0533857, "action": "tap", "staticControl": "starts/Backup & data", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795598464.3135178, "action": "scroll", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795598472.2191896, "action": "screenshot control", "staticControl": "Export readable copy (rescue)", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795598474.780165, "action": "tap", "staticControl": "id/button2", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795598498.9131043, "action": "choose destination", "flow": "normal", "route": "default", "syntheticLength": 24, "fields": 2, "sha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8", "imeBeforeClick": true}
+{"at": 1795598499.2699993, "action": "system picker", "flow": "normal", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795598500.0131578, "action": "picker cancelled", "flow": "normal", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795598523.7942545, "action": "choose destination", "flow": "rescue", "route": "default", "syntheticLength": 24, "fields": 2, "sha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8", "imeBeforeClick": true}
+{"at": 1795598524.21132, "action": "system picker", "flow": "rescue", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795598524.9141195, "action": "picker cancelled", "flow": "rescue", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795598550.4204397, "action": "choose destination", "flow": "normal", "route": "large", "syntheticLength": 24, "fields": 2, "sha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8", "imeBeforeClick": true}
+{"at": 1795598550.7903914, "action": "system picker", "flow": "normal", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795598551.4855545, "action": "picker cancelled", "flow": "normal", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795598576.9139228, "action": "choose destination", "flow": "rescue", "route": "large", "syntheticLength": 24, "fields": 2, "sha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8", "imeBeforeClick": true}
+{"at": 1795598577.2958674, "action": "system picker", "flow": "rescue", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795598577.960628, "action": "picker cancelled", "flow": "rescue", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795598618.5888686, "action": "choose destination", "flow": "normal", "route": "landscape", "syntheticLength": 24, "fields": 2, "sha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8", "imeBeforeClick": true}
+{"at": 1795598618.9553137, "action": "system picker", "flow": "normal", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795598619.6072128, "action": "picker cancelled", "flow": "normal", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795598642.0552163, "action": "choose destination", "flow": "rescue", "route": "landscape", "syntheticLength": 24, "fields": 2, "sha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8", "imeBeforeClick": true}
+{"at": 1795598642.3899858, "action": "system picker", "flow": "rescue", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795598643.045798, "action": "picker cancelled", "flow": "rescue", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795598681.4745638, "action": "back", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795598683.8513794, "action": "tap", "staticControl": "id/button2", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795598772.7151203, "action": "choose destination", "flow": "normal", "route": "landscape-steady", "syntheticLength": 24, "fields": 2, "sha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8", "imeBeforeClick": false}
+{"at": 1795598773.036116, "action": "system picker", "flow": "normal", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795598773.672067, "action": "picker cancelled", "flow": "normal", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795600598.6336858, "action": "tap", "staticControl": "id/extract_enter", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795600607.1840897, "action": "screenshot control", "staticControl": "Settings navigation", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795600609.758523, "action": "tap", "staticControl": "starts/Backup & data", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795600610.9524438, "action": "scroll", "activity": "dsh.android.client/com.deepseekharness.app.ui.MainActivity"}
+{"at": 1795600617.7424412, "action": "screenshot control", "staticControl": "Export readable copy (rescue)", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795600620.1820738, "action": "tap", "staticControl": "id/button2", "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity"}
+{"at": 1795600670.015965, "action": "choose destination", "flow": "rescue", "route": "large-landscape", "syntheticLength": 24, "fields": 2, "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2", "imeBeforeClick": true}
+{"at": 1795600670.3570762, "action": "system picker", "flow": "rescue", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795600671.0479481, "action": "picker cancelled", "flow": "rescue", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795600718.1961765, "action": "choose destination", "flow": "normal", "route": "large-landscape", "syntheticLength": 24, "fields": 2, "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2", "imeBeforeClick": true}
+{"at": 1795600718.508336, "action": "system picker", "flow": "normal", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795600719.1485093, "action": "picker cancelled", "flow": "normal", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795600788.552467, "action": "choose destination", "flow": "normal", "route": "default-landscape", "syntheticLength": 24, "fields": 2, "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2", "imeBeforeClick": true}
+{"at": 1795600788.906022, "action": "system picker", "flow": "normal", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795600789.555525, "action": "picker cancelled", "flow": "normal", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795600836.452144, "action": "choose destination", "flow": "rescue", "route": "default-landscape", "syntheticLength": 24, "fields": 2, "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2", "imeBeforeClick": true}
+{"at": 1795600836.759755, "action": "system picker", "flow": "rescue", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795600837.4314706, "action": "picker cancelled", "flow": "rescue", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795600884.2661827, "action": "choose destination", "flow": "normal", "route": "default-portrait", "syntheticLength": 24, "fields": 2, "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2", "imeBeforeClick": true}
+{"at": 1795600884.5865355, "action": "system picker", "flow": "normal", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795600885.257401, "action": "picker cancelled", "flow": "normal", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795600932.7768617, "action": "choose destination", "flow": "rescue", "route": "default-portrait", "syntheticLength": 24, "fields": 2, "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2", "imeBeforeClick": true}
+{"at": 1795600933.1037142, "action": "system picker", "flow": "rescue", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795600933.7618384, "action": "picker cancelled", "flow": "rescue", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795600980.998197, "action": "choose destination", "flow": "normal", "route": "large-portrait", "syntheticLength": 24, "fields": 2, "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2", "imeBeforeClick": true}
+{"at": 1795600981.3304102, "action": "system picker", "flow": "normal", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795600981.9883084, "action": "picker cancelled", "flow": "normal", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795601029.0200613, "action": "choose destination", "flow": "rescue", "route": "large-portrait", "syntheticLength": 24, "fields": 2, "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2", "imeBeforeClick": true}
+{"at": 1795601029.3493202, "action": "system picker", "flow": "rescue", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795601030.0240483, "action": "picker cancelled", "flow": "rescue", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}
+{"at": 1795601110.937578, "action": "choose destination", "flow": "rescue", "route": "reverse-rotation", "syntheticLength": 24, "fields": 2, "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2", "imeBeforeClick": true}
+{"at": 1795601111.2447743, "action": "system picker", "flow": "rescue", "resumed": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity", "createDocument": true}
+{"at": 1795601111.9161, "action": "picker cancelled", "flow": "rescue", "resumed": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity", "confirmedSave": false}

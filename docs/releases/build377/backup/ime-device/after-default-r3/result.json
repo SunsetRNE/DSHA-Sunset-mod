@@ -1,0 +1,125 @@
+{
+  "startUtc": "2026-11-25T09:00:24.011594+00:00",
+  "mode": "After",
+  "flow": "normal",
+  "package": "org.dsha.fixture.imebackup",
+  "device": "DSHA_build377_lan_api30_x86\r\r\nOK",
+  "rows": [
+    {
+      "label": "shown",
+      "time": 7.0,
+      "ime": false,
+      "imeFrame": null,
+      "choose": [
+        298,
+        899,
+        624,
+        996
+      ],
+      "cancel": [
+        114,
+        899,
+        282,
+        996
+      ],
+      "chooseClear": true,
+      "cancelClear": true,
+      "font": "null",
+      "rotation": "0",
+      "windows": [
+        "Window #6 Window{c562cb5 u0 org.dsha.fixture.imebackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(720xwrap) gr=CENTER sim={adjust=resize} ty=APPLICATION fmt=TRANSLUCENT wanim=0x7f120006 surfaceInsets=Rect(24, 24 - 24, 24)",
+        "Requested w=720 h=1136 mLayoutSeq=5870",
+        "mFrame=[0,48][720,1184] last=[0,48][720,1184]",
+        "Window #7 Window{408188a u0 org.dsha.fixture.imebackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(fillxfill) sim={adjust=resize forwardNavigation} ty=BASE_APPLICATION wanim=0x7f120005",
+        "Requested w=720 h=1280 mLayoutSeq=5870",
+        "mFrame=[0,0][720,1280] last=[0,0][720,1280]"
+      ],
+      "size": "Physical size: 720x1280\r\nPhysical density: 320"
+    },
+    {
+      "label": "first-ime",
+      "time": 12.547,
+      "ime": true,
+      "imeFrame": [
+        0,
+        686,
+        720,
+        1280
+      ],
+      "choose": [
+        298,
+        428,
+        624,
+        525
+      ],
+      "cancel": [
+        114,
+        428,
+        282,
+        525
+      ],
+      "chooseClear": true,
+      "cancelClear": true,
+      "font": "null",
+      "rotation": "0",
+      "windows": [
+        "Window #6 Window{c562cb5 u0 org.dsha.fixture.imebackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(720xwrap) gr=CENTER sim={adjust=resize} ty=APPLICATION fmt=TRANSLUCENT wanim=0x7f120006 surfaceInsets=Rect(24, 24 - 24, 24)",
+        "Requested w=720 h=1136 mLayoutSeq=5894",
+        "mFrame=[0,48][720,686] last=[0,48][720,686]",
+        "mRequestedInsetsState: InsetsState: {mDisplayFrame=Rect(0, 0 - 0, 0), mSources= { InsetsSource: {mType=ITYPE_STATUS_BAR, mFrame=[0,0][720,48], mVisible=true}, InsetsSource: {mType=ITYPE_NAVIGATION_BAR, mFrame=[0,1184][720,1280], mVisible=true}, InsetsSource: {mType=ITYPE_IME, mFrame=[0,686][720,1280], mVisible=true} }",
+        "Window #7 Window{408188a u0 org.dsha.fixture.imebackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(fillxfill) sim={adjust=resize forwardNavigation} ty=BASE_APPLICATION wanim=0x7f120005",
+        "Requested w=720 h=1280 mLayoutSeq=5894",
+        "mFrame=[0,0][720,1280] last=[0,0][720,1280]"
+      ],
+      "size": "Physical size: 720x1280\r\nPhysical density: 320"
+    },
+    {
+      "label": "second-ime",
+      "time": 18.765,
+      "ime": true,
+      "imeFrame": [
+        0,
+        686,
+        720,
+        1280
+      ],
+      "choose": [
+        298,
+        428,
+        624,
+        525
+      ],
+      "cancel": [
+        114,
+        428,
+        282,
+        525
+      ],
+      "chooseClear": true,
+      "cancelClear": true,
+      "font": "null",
+      "rotation": "0",
+      "windows": [
+        "Window #6 Window{c562cb5 u0 org.dsha.fixture.imebackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(720xwrap) gr=CENTER sim={adjust=resize} ty=APPLICATION fmt=TRANSLUCENT wanim=0x7f120006 surfaceInsets=Rect(24, 24 - 24, 24)",
+        "Requested w=720 h=1136 mLayoutSeq=5909",
+        "mFrame=[0,48][720,686] last=[0,48][720,686]",
+        "mRequestedInsetsState: InsetsState: {mDisplayFrame=Rect(0, 0 - 0, 0), mSources= { InsetsSource: {mType=ITYPE_STATUS_BAR, mFrame=[0,0][720,48], mVisible=true}, InsetsSource: {mType=ITYPE_NAVIGATION_BAR, mFrame=[0,1184][720,1280], mVisible=true}, InsetsSource: {mType=ITYPE_IME, mFrame=[0,686][720,1280], mVisible=true} }",
+        "Window #7 Window{408188a u0 org.dsha.fixture.imebackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(fillxfill) sim={adjust=resize forwardNavigation} ty=BASE_APPLICATION wanim=0x7f120005",
+        "Requested w=720 h=1280 mLayoutSeq=5909",
+        "mFrame=[0,0][720,1280] last=[0,0][720,1280]"
+      ],
+      "size": "Physical size: 720x1280\r\nPhysical density: 320"
+    }
+  ],
+  "picker": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity",
+  "createDocument": true,
+  "returned": "org.dsha.fixture.imebackup/com.deepseekharness.app.ui.NativeDataImeAfter",
+  "outcome": "IME visible click reached system CREATE_DOCUMENT and returned on cancellation",
+  "seconds": 22.047
+}

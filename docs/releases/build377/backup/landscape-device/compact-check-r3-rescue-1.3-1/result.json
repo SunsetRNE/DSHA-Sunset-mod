@@ -1,0 +1,2952 @@
+{
+  "startUtc": "2026-11-25T09:33:39.113926+00:00",
+  "mode": "After",
+  "flow": "rescue",
+  "package": "org.dsha.fixture.shortbackup",
+  "device": "DSHA_build377_lan_api30_x86\r\r\nOK",
+  "rows": [
+    {
+      "label": "shown",
+      "time": 6.438,
+      "ime": false,
+      "imeFrame": null,
+      "choose": [
+        657,
+        480,
+        1056,
+        586
+      ],
+      "cancel": [
+        448,
+        480,
+        641,
+        586
+      ],
+      "chooseClear": true,
+      "cancelClear": true,
+      "font": "1.3",
+      "rotation": "1",
+      "windows": [
+        "Window #6 Window{7d1659d u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(1120xwrap) gr=CENTER sim={adjust=resize} ty=APPLICATION fmt=TRANSLUCENT wanim=0x7f120006 surfaceInsets=Rect(24, 24 - 24, 24)",
+        "Requested w=1120 h=672 mLayoutSeq=9514",
+        "mFrame=[32,48][1152,720] last=[32,48][1152,720]",
+        "Window #7 Window{1cad6b0 u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(fillxfill) sim={adjust=resize forwardNavigation} ty=BASE_APPLICATION wanim=0x7f120005",
+        "Requested w=1280 h=720 mLayoutSeq=9514",
+        "mFrame=[0,0][1280,720] last=[0,0][1280,720]"
+      ],
+      "size": "Physical size: 720x1280\r\nPhysical density: 320",
+      "layout": {
+        "choose": {
+          "full": [
+            657,
+            480,
+            1056,
+            586
+          ],
+          "visible": [
+            657,
+            480,
+            1056,
+            586
+          ],
+          "focused": false,
+          "ancestors": [
+            {
+              "class": "MaterialButton",
+              "y": 480,
+              "h": 106,
+              "min": 96,
+              "pad": 64
+            },
+            {
+              "class": "ButtonBarLayout",
+              "y": 452,
+              "h": 162,
+              "min": 162,
+              "pad": 56
+            },
+            {
+              "class": "ScrollView",
+              "y": 452,
+              "h": 268,
+              "min": 162,
+              "pad": 0
+            },
+            {
+              "class": "AlertDialogLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "ContentFrameLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FitWindowsFrameLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FrameLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "LinearLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "DecorView",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            }
+          ],
+          "lineHeight": 42,
+          "baseline": 545
+        },
+        "cancel": {
+          "full": [
+            448,
+            480,
+            641,
+            586
+          ],
+          "visible": [
+            448,
+            480,
+            641,
+            586
+          ],
+          "focused": false,
+          "ancestors": [
+            {
+              "class": "MaterialButton",
+              "y": 480,
+              "h": 106,
+              "min": 96,
+              "pad": 64
+            },
+            {
+              "class": "ButtonBarLayout",
+              "y": 452,
+              "h": 162,
+              "min": 162,
+              "pad": 56
+            },
+            {
+              "class": "ScrollView",
+              "y": 452,
+              "h": 268,
+              "min": 162,
+              "pad": 0
+            },
+            {
+              "class": "AlertDialogLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "ContentFrameLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FitWindowsFrameLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FrameLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "LinearLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "DecorView",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            }
+          ],
+          "lineHeight": 42,
+          "baseline": 545
+        },
+        "inputs": [
+          {
+            "full": [
+              120,
+              581,
+              1064,
+              686
+            ],
+            "visible": [
+              40,
+              533,
+              984,
+              638
+            ],
+            "focused": false,
+            "ancestors": [
+              {
+                "class": "EditText",
+                "y": 581,
+                "h": 105,
+                "min": 0,
+                "pad": 42
+              },
+              {
+                "class": "PortablePasswordFields",
+                "y": 490,
+                "h": 301,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": 48,
+                "h": 876,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ScrollView",
+                "y": 48,
+                "h": 404,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 404,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 404,
+                "min": 96,
+                "pad": 0
+              },
+              {
+                "class": "AlertDialogLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ContentFrameLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FitWindowsFrameLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "DecorView",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              }
+            ],
+            "lineHeight": 55,
+            "baseline": 651,
+            "length": 0,
+            "hint": "Backup password"
+          },
+          {
+            "full": [
+              120,
+              686,
+              1064,
+              791
+            ],
+            "visible": [
+              40,
+              638,
+              984,
+              743
+            ],
+            "focused": false,
+            "ancestors": [
+              {
+                "class": "EditText",
+                "y": 686,
+                "h": 105,
+                "min": 0,
+                "pad": 42
+              },
+              {
+                "class": "PortablePasswordFields",
+                "y": 490,
+                "h": 301,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": 48,
+                "h": 876,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ScrollView",
+                "y": 48,
+                "h": 404,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 404,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 404,
+                "min": 96,
+                "pad": 0
+              },
+              {
+                "class": "AlertDialogLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ContentFrameLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FitWindowsFrameLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "DecorView",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              }
+            ],
+            "lineHeight": 55,
+            "baseline": 756,
+            "length": 0,
+            "hint": "Confirm backup password"
+          }
+        ]
+      }
+    },
+    {
+      "label": "first-ime",
+      "time": 17.594,
+      "ime": true,
+      "imeFrame": [
+        0,
+        320,
+        1184,
+        720
+      ],
+      "choose": [
+        657,
+        186,
+        1056,
+        292
+      ],
+      "cancel": [
+        448,
+        186,
+        641,
+        292
+      ],
+      "chooseClear": true,
+      "cancelClear": true,
+      "font": "1.3",
+      "rotation": "1",
+      "windows": [
+        "Window #6 Window{7d1659d u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(1120xwrap) gr=CENTER sim={adjust=resize} ty=APPLICATION fmt=TRANSLUCENT wanim=0x7f120006 surfaceInsets=Rect(24, 24 - 24, 24)",
+        "Requested w=1120 h=672 mLayoutSeq=9537",
+        "mFrame=[32,48][1152,320] last=[32,48][1152,320]",
+        "mRequestedInsetsState: InsetsState: {mDisplayFrame=Rect(0, 0 - 0, 0), mSources= { InsetsSource: {mType=ITYPE_STATUS_BAR, mFrame=[0,0][1280,48], mVisible=true}, InsetsSource: {mType=ITYPE_NAVIGATION_BAR, mFrame=[1184,0][1280,720], mVisible=true}, InsetsSource: {mType=ITYPE_IME, mFrame=[0,320][1184,720], mVisible=true} }",
+        "Window #7 Window{1cad6b0 u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(fillxfill) sim={adjust=resize forwardNavigation} ty=BASE_APPLICATION wanim=0x7f120005",
+        "Requested w=1280 h=720 mLayoutSeq=9537",
+        "mFrame=[0,0][1280,720] last=[0,0][1280,720]"
+      ],
+      "size": "Physical size: 720x1280\r\nPhysical density: 320",
+      "editor": {
+        "inputType": "0x81",
+        "imeOptions": "0x1b000005",
+        "actionCode": 5
+      },
+      "imeFullscreen": false,
+      "layout": {
+        "choose": {
+          "full": [
+            657,
+            186,
+            1056,
+            292
+          ],
+          "visible": [
+            657,
+            186,
+            1056,
+            292
+          ],
+          "focused": false,
+          "ancestors": [
+            {
+              "class": "MaterialButton",
+              "y": 186,
+              "h": 106,
+              "min": 96,
+              "pad": 64
+            },
+            {
+              "class": "ButtonBarLayout",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 56
+            },
+            {
+              "class": "ScrollView",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 0
+            },
+            {
+              "class": "AlertDialogLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "ContentFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FitWindowsFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "LinearLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "DecorView",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            }
+          ],
+          "lineHeight": 42,
+          "baseline": 251
+        },
+        "cancel": {
+          "full": [
+            448,
+            186,
+            641,
+            292
+          ],
+          "visible": [
+            448,
+            186,
+            641,
+            292
+          ],
+          "focused": false,
+          "ancestors": [
+            {
+              "class": "MaterialButton",
+              "y": 186,
+              "h": 106,
+              "min": 96,
+              "pad": 64
+            },
+            {
+              "class": "ButtonBarLayout",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 56
+            },
+            {
+              "class": "ScrollView",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 0
+            },
+            {
+              "class": "AlertDialogLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "ContentFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FitWindowsFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "LinearLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "DecorView",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            }
+          ],
+          "lineHeight": 42,
+          "baseline": 251
+        },
+        "inputs": [
+          {
+            "full": [
+              120,
+              53,
+              1064,
+              158
+            ],
+            "visible": [
+              120,
+              53,
+              1064,
+              158
+            ],
+            "focused": true,
+            "ancestors": [
+              {
+                "class": "EditText",
+                "y": 53,
+                "h": 105,
+                "min": 0,
+                "pad": 42
+              },
+              {
+                "class": "PortablePasswordFields",
+                "y": -38,
+                "h": 301,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": -480,
+                "h": 876,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ScrollView",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 96,
+                "pad": 0
+              },
+              {
+                "class": "AlertDialogLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ContentFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FitWindowsFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "DecorView",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              }
+            ],
+            "lineHeight": 55,
+            "baseline": 123,
+            "length": 24,
+            "hint": "Backup password"
+          },
+          {
+            "full": [
+              120,
+              158,
+              1064,
+              263
+            ],
+            "visible": [
+              40,
+              110,
+              984,
+              215
+            ],
+            "focused": false,
+            "ancestors": [
+              {
+                "class": "EditText",
+                "y": 158,
+                "h": 105,
+                "min": 0,
+                "pad": 42
+              },
+              {
+                "class": "PortablePasswordFields",
+                "y": -38,
+                "h": 301,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": -480,
+                "h": 876,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ScrollView",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 96,
+                "pad": 0
+              },
+              {
+                "class": "AlertDialogLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ContentFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FitWindowsFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "DecorView",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              }
+            ],
+            "lineHeight": 55,
+            "baseline": 228,
+            "length": 0,
+            "hint": "Confirm backup password"
+          }
+        ]
+      }
+    },
+    {
+      "label": "second-ime",
+      "time": 26.594,
+      "ime": true,
+      "imeFrame": [
+        0,
+        320,
+        1184,
+        720
+      ],
+      "choose": [
+        657,
+        186,
+        1056,
+        292
+      ],
+      "cancel": [
+        448,
+        186,
+        641,
+        292
+      ],
+      "chooseClear": true,
+      "cancelClear": true,
+      "font": "1.3",
+      "rotation": "1",
+      "windows": [
+        "Window #6 Window{7d1659d u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(1120xwrap) gr=CENTER sim={adjust=resize} ty=APPLICATION fmt=TRANSLUCENT wanim=0x7f120006 surfaceInsets=Rect(24, 24 - 24, 24)",
+        "Requested w=1120 h=672 mLayoutSeq=9552",
+        "mFrame=[32,48][1152,320] last=[32,48][1152,320]",
+        "mRequestedInsetsState: InsetsState: {mDisplayFrame=Rect(0, 0 - 0, 0), mSources= { InsetsSource: {mType=ITYPE_STATUS_BAR, mFrame=[0,0][1280,48], mVisible=true}, InsetsSource: {mType=ITYPE_NAVIGATION_BAR, mFrame=[1184,0][1280,720], mVisible=true}, InsetsSource: {mType=ITYPE_IME, mFrame=[0,320][1184,720], mVisible=true} }",
+        "Window #7 Window{1cad6b0 u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(fillxfill) sim={adjust=resize forwardNavigation} ty=BASE_APPLICATION wanim=0x7f120005",
+        "Requested w=1280 h=720 mLayoutSeq=9552",
+        "mFrame=[0,0][1280,720] last=[0,0][1280,720]"
+      ],
+      "size": "Physical size: 720x1280\r\nPhysical density: 320",
+      "editor": {
+        "inputType": "0x81",
+        "imeOptions": "0x17000006",
+        "actionCode": 6
+      },
+      "imeFullscreen": false,
+      "layout": {
+        "choose": {
+          "full": [
+            657,
+            186,
+            1056,
+            292
+          ],
+          "visible": [
+            657,
+            186,
+            1056,
+            292
+          ],
+          "focused": false,
+          "ancestors": [
+            {
+              "class": "MaterialButton",
+              "y": 186,
+              "h": 106,
+              "min": 96,
+              "pad": 64
+            },
+            {
+              "class": "ButtonBarLayout",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 56
+            },
+            {
+              "class": "ScrollView",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 0
+            },
+            {
+              "class": "AlertDialogLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "ContentFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FitWindowsFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "LinearLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "DecorView",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            }
+          ],
+          "lineHeight": 42,
+          "baseline": 251
+        },
+        "cancel": {
+          "full": [
+            448,
+            186,
+            641,
+            292
+          ],
+          "visible": [
+            448,
+            186,
+            641,
+            292
+          ],
+          "focused": false,
+          "ancestors": [
+            {
+              "class": "MaterialButton",
+              "y": 186,
+              "h": 106,
+              "min": 96,
+              "pad": 64
+            },
+            {
+              "class": "ButtonBarLayout",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 56
+            },
+            {
+              "class": "ScrollView",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 0
+            },
+            {
+              "class": "AlertDialogLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "ContentFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FitWindowsFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "LinearLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "DecorView",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            }
+          ],
+          "lineHeight": 42,
+          "baseline": 251
+        },
+        "inputs": [
+          {
+            "full": [
+              120,
+              -52,
+              1064,
+              53
+            ],
+            "visible": [
+              120,
+              48,
+              1064,
+              53
+            ],
+            "focused": false,
+            "ancestors": [
+              {
+                "class": "EditText",
+                "y": -52,
+                "h": 105,
+                "min": 0,
+                "pad": 42
+              },
+              {
+                "class": "PortablePasswordFields",
+                "y": -143,
+                "h": 301,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": -585,
+                "h": 876,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ScrollView",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 96,
+                "pad": 0
+              },
+              {
+                "class": "AlertDialogLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ContentFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FitWindowsFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "DecorView",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              }
+            ],
+            "lineHeight": 55,
+            "baseline": 18,
+            "length": 24,
+            "hint": "Backup password"
+          },
+          {
+            "full": [
+              120,
+              53,
+              1064,
+              158
+            ],
+            "visible": [
+              120,
+              53,
+              1064,
+              158
+            ],
+            "focused": true,
+            "ancestors": [
+              {
+                "class": "EditText",
+                "y": 53,
+                "h": 105,
+                "min": 0,
+                "pad": 42
+              },
+              {
+                "class": "PortablePasswordFields",
+                "y": -143,
+                "h": 301,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": -585,
+                "h": 876,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ScrollView",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 96,
+                "pad": 0
+              },
+              {
+                "class": "AlertDialogLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ContentFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FitWindowsFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "DecorView",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              }
+            ],
+            "lineHeight": 55,
+            "baseline": 123,
+            "length": 24,
+            "hint": "Confirm backup password"
+          }
+        ]
+      }
+    },
+    {
+      "label": "steady-1",
+      "time": 32.859,
+      "ime": true,
+      "imeFrame": [
+        0,
+        320,
+        1184,
+        720
+      ],
+      "choose": [
+        657,
+        186,
+        1056,
+        292
+      ],
+      "cancel": [
+        448,
+        186,
+        641,
+        292
+      ],
+      "chooseClear": true,
+      "cancelClear": true,
+      "font": "1.3",
+      "rotation": "1",
+      "windows": [
+        "Window #6 Window{7d1659d u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(1120xwrap) gr=CENTER sim={adjust=resize} ty=APPLICATION fmt=TRANSLUCENT wanim=0x7f120006 surfaceInsets=Rect(24, 24 - 24, 24)",
+        "Requested w=1120 h=672 mLayoutSeq=9553",
+        "mFrame=[32,48][1152,320] last=[32,48][1152,320]",
+        "mRequestedInsetsState: InsetsState: {mDisplayFrame=Rect(0, 0 - 0, 0), mSources= { InsetsSource: {mType=ITYPE_STATUS_BAR, mFrame=[0,0][1280,48], mVisible=true}, InsetsSource: {mType=ITYPE_NAVIGATION_BAR, mFrame=[1184,0][1280,720], mVisible=true}, InsetsSource: {mType=ITYPE_IME, mFrame=[0,320][1184,720], mVisible=true} }",
+        "Window #7 Window{1cad6b0 u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(fillxfill) sim={adjust=resize forwardNavigation} ty=BASE_APPLICATION wanim=0x7f120005",
+        "Requested w=1280 h=720 mLayoutSeq=9553",
+        "mFrame=[0,0][1280,720] last=[0,0][1280,720]"
+      ],
+      "size": "Physical size: 720x1280\r\nPhysical density: 320",
+      "editor": {
+        "inputType": "0x81",
+        "imeOptions": "0x17000006",
+        "actionCode": 6
+      },
+      "imeFullscreen": false,
+      "layout": {
+        "choose": {
+          "full": [
+            657,
+            186,
+            1056,
+            292
+          ],
+          "visible": [
+            657,
+            186,
+            1056,
+            292
+          ],
+          "focused": false,
+          "ancestors": [
+            {
+              "class": "MaterialButton",
+              "y": 186,
+              "h": 106,
+              "min": 96,
+              "pad": 64
+            },
+            {
+              "class": "ButtonBarLayout",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 56
+            },
+            {
+              "class": "ScrollView",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 0
+            },
+            {
+              "class": "AlertDialogLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "ContentFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FitWindowsFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "LinearLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "DecorView",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            }
+          ],
+          "lineHeight": 42,
+          "baseline": 251
+        },
+        "cancel": {
+          "full": [
+            448,
+            186,
+            641,
+            292
+          ],
+          "visible": [
+            448,
+            186,
+            641,
+            292
+          ],
+          "focused": false,
+          "ancestors": [
+            {
+              "class": "MaterialButton",
+              "y": 186,
+              "h": 106,
+              "min": 96,
+              "pad": 64
+            },
+            {
+              "class": "ButtonBarLayout",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 56
+            },
+            {
+              "class": "ScrollView",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 0
+            },
+            {
+              "class": "AlertDialogLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "ContentFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FitWindowsFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "LinearLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "DecorView",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            }
+          ],
+          "lineHeight": 42,
+          "baseline": 251
+        },
+        "inputs": [
+          {
+            "full": [
+              120,
+              -52,
+              1064,
+              53
+            ],
+            "visible": [
+              120,
+              48,
+              1064,
+              53
+            ],
+            "focused": false,
+            "ancestors": [
+              {
+                "class": "EditText",
+                "y": -52,
+                "h": 105,
+                "min": 0,
+                "pad": 42
+              },
+              {
+                "class": "PortablePasswordFields",
+                "y": -143,
+                "h": 301,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": -585,
+                "h": 876,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ScrollView",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 96,
+                "pad": 0
+              },
+              {
+                "class": "AlertDialogLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ContentFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FitWindowsFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "DecorView",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              }
+            ],
+            "lineHeight": 55,
+            "baseline": 18,
+            "length": 24,
+            "hint": "Backup password"
+          },
+          {
+            "full": [
+              120,
+              53,
+              1064,
+              158
+            ],
+            "visible": [
+              120,
+              53,
+              1064,
+              158
+            ],
+            "focused": true,
+            "ancestors": [
+              {
+                "class": "EditText",
+                "y": 53,
+                "h": 105,
+                "min": 0,
+                "pad": 42
+              },
+              {
+                "class": "PortablePasswordFields",
+                "y": -143,
+                "h": 301,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": -585,
+                "h": 876,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ScrollView",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 96,
+                "pad": 0
+              },
+              {
+                "class": "AlertDialogLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ContentFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FitWindowsFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "DecorView",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              }
+            ],
+            "lineHeight": 55,
+            "baseline": 123,
+            "length": 24,
+            "hint": "Confirm backup password"
+          }
+        ]
+      }
+    },
+    {
+      "label": "steady-2",
+      "time": 39.125,
+      "ime": true,
+      "imeFrame": [
+        0,
+        320,
+        1184,
+        720
+      ],
+      "choose": [
+        657,
+        186,
+        1056,
+        292
+      ],
+      "cancel": [
+        448,
+        186,
+        641,
+        292
+      ],
+      "chooseClear": true,
+      "cancelClear": true,
+      "font": "1.3",
+      "rotation": "1",
+      "windows": [
+        "Window #6 Window{7d1659d u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(1120xwrap) gr=CENTER sim={adjust=resize} ty=APPLICATION fmt=TRANSLUCENT wanim=0x7f120006 surfaceInsets=Rect(24, 24 - 24, 24)",
+        "Requested w=1120 h=672 mLayoutSeq=9554",
+        "mFrame=[32,48][1152,320] last=[32,48][1152,320]",
+        "mRequestedInsetsState: InsetsState: {mDisplayFrame=Rect(0, 0 - 0, 0), mSources= { InsetsSource: {mType=ITYPE_STATUS_BAR, mFrame=[0,0][1280,48], mVisible=true}, InsetsSource: {mType=ITYPE_NAVIGATION_BAR, mFrame=[1184,0][1280,720], mVisible=true}, InsetsSource: {mType=ITYPE_IME, mFrame=[0,320][1184,720], mVisible=true} }",
+        "Window #7 Window{1cad6b0 u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(fillxfill) sim={adjust=resize forwardNavigation} ty=BASE_APPLICATION wanim=0x7f120005",
+        "Requested w=1280 h=720 mLayoutSeq=9554",
+        "mFrame=[0,0][1280,720] last=[0,0][1280,720]"
+      ],
+      "size": "Physical size: 720x1280\r\nPhysical density: 320",
+      "editor": {
+        "inputType": "0x81",
+        "imeOptions": "0x17000006",
+        "actionCode": 6
+      },
+      "imeFullscreen": false,
+      "layout": {
+        "choose": {
+          "full": [
+            657,
+            186,
+            1056,
+            292
+          ],
+          "visible": [
+            657,
+            186,
+            1056,
+            292
+          ],
+          "focused": false,
+          "ancestors": [
+            {
+              "class": "MaterialButton",
+              "y": 186,
+              "h": 106,
+              "min": 96,
+              "pad": 64
+            },
+            {
+              "class": "ButtonBarLayout",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 56
+            },
+            {
+              "class": "ScrollView",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 0
+            },
+            {
+              "class": "AlertDialogLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "ContentFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FitWindowsFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "LinearLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "DecorView",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            }
+          ],
+          "lineHeight": 42,
+          "baseline": 251
+        },
+        "cancel": {
+          "full": [
+            448,
+            186,
+            641,
+            292
+          ],
+          "visible": [
+            448,
+            186,
+            641,
+            292
+          ],
+          "focused": false,
+          "ancestors": [
+            {
+              "class": "MaterialButton",
+              "y": 186,
+              "h": 106,
+              "min": 96,
+              "pad": 64
+            },
+            {
+              "class": "ButtonBarLayout",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 56
+            },
+            {
+              "class": "ScrollView",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 0
+            },
+            {
+              "class": "AlertDialogLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "ContentFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FitWindowsFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "LinearLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "DecorView",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            }
+          ],
+          "lineHeight": 42,
+          "baseline": 251
+        },
+        "inputs": [
+          {
+            "full": [
+              120,
+              -52,
+              1064,
+              53
+            ],
+            "visible": [
+              120,
+              48,
+              1064,
+              53
+            ],
+            "focused": false,
+            "ancestors": [
+              {
+                "class": "EditText",
+                "y": -52,
+                "h": 105,
+                "min": 0,
+                "pad": 42
+              },
+              {
+                "class": "PortablePasswordFields",
+                "y": -143,
+                "h": 301,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": -585,
+                "h": 876,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ScrollView",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 96,
+                "pad": 0
+              },
+              {
+                "class": "AlertDialogLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ContentFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FitWindowsFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "DecorView",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              }
+            ],
+            "lineHeight": 55,
+            "baseline": 18,
+            "length": 24,
+            "hint": "Backup password"
+          },
+          {
+            "full": [
+              120,
+              53,
+              1064,
+              158
+            ],
+            "visible": [
+              120,
+              53,
+              1064,
+              158
+            ],
+            "focused": true,
+            "ancestors": [
+              {
+                "class": "EditText",
+                "y": 53,
+                "h": 105,
+                "min": 0,
+                "pad": 42
+              },
+              {
+                "class": "PortablePasswordFields",
+                "y": -143,
+                "h": 301,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": -585,
+                "h": 876,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ScrollView",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 96,
+                "pad": 0
+              },
+              {
+                "class": "AlertDialogLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ContentFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FitWindowsFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "DecorView",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              }
+            ],
+            "lineHeight": 55,
+            "baseline": 123,
+            "length": 24,
+            "hint": "Confirm backup password"
+          }
+        ]
+      }
+    },
+    {
+      "label": "hidden-reference",
+      "time": 44.031,
+      "ime": false,
+      "imeFrame": null,
+      "choose": [
+        657,
+        586,
+        1056,
+        692
+      ],
+      "cancel": [
+        448,
+        586,
+        641,
+        692
+      ],
+      "chooseClear": true,
+      "cancelClear": true,
+      "font": "1.3",
+      "rotation": "1",
+      "windows": [
+        "Window #6 Window{7d1659d u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(1120xwrap) gr=CENTER sim={adjust=resize} ty=APPLICATION fmt=TRANSLUCENT wanim=0x7f120006 surfaceInsets=Rect(24, 24 - 24, 24)",
+        "Requested w=1120 h=672 mLayoutSeq=9561",
+        "mFrame=[32,48][1152,720] last=[32,48][1152,720]",
+        "mRequestedInsetsState: InsetsState: {mDisplayFrame=Rect(0, 0 - 0, 0), mSources= { InsetsSource: {mType=ITYPE_STATUS_BAR, mFrame=[0,0][1280,48], mVisible=true}, InsetsSource: {mType=ITYPE_NAVIGATION_BAR, mFrame=[1184,0][1280,720], mVisible=true}, InsetsSource: {mType=ITYPE_IME, mFrame=[0,0][0,0], mVisible=false} }",
+        "Window #7 Window{1cad6b0 u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(fillxfill) sim={adjust=resize forwardNavigation} ty=BASE_APPLICATION wanim=0x7f120005",
+        "Requested w=1280 h=720 mLayoutSeq=9561",
+        "mFrame=[0,0][1280,720] last=[0,0][1280,720]"
+      ],
+      "size": "Physical size: 720x1280\r\nPhysical density: 320",
+      "layout": {
+        "choose": {
+          "full": [
+            657,
+            586,
+            1056,
+            692
+          ],
+          "visible": [
+            657,
+            586,
+            1056,
+            692
+          ],
+          "focused": false,
+          "ancestors": [
+            {
+              "class": "MaterialButton",
+              "y": 586,
+              "h": 106,
+              "min": 96,
+              "pad": 64
+            },
+            {
+              "class": "ButtonBarLayout",
+              "y": 558,
+              "h": 162,
+              "min": 162,
+              "pad": 56
+            },
+            {
+              "class": "ScrollView",
+              "y": 558,
+              "h": 162,
+              "min": 162,
+              "pad": 0
+            },
+            {
+              "class": "AlertDialogLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "ContentFrameLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FitWindowsFrameLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FrameLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "LinearLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "DecorView",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            }
+          ],
+          "lineHeight": 42,
+          "baseline": 651
+        },
+        "cancel": {
+          "full": [
+            448,
+            586,
+            641,
+            692
+          ],
+          "visible": [
+            448,
+            586,
+            641,
+            692
+          ],
+          "focused": false,
+          "ancestors": [
+            {
+              "class": "MaterialButton",
+              "y": 586,
+              "h": 106,
+              "min": 96,
+              "pad": 64
+            },
+            {
+              "class": "ButtonBarLayout",
+              "y": 558,
+              "h": 162,
+              "min": 162,
+              "pad": 56
+            },
+            {
+              "class": "ScrollView",
+              "y": 558,
+              "h": 162,
+              "min": 162,
+              "pad": 0
+            },
+            {
+              "class": "AlertDialogLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "ContentFrameLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FitWindowsFrameLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FrameLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "LinearLayout",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "DecorView",
+              "y": 48,
+              "h": 672,
+              "min": 0,
+              "pad": 0
+            }
+          ],
+          "lineHeight": 42,
+          "baseline": 651
+        },
+        "inputs": [
+          {
+            "full": [
+              120,
+              215,
+              1064,
+              320
+            ],
+            "visible": [
+              120,
+              215,
+              1064,
+              320
+            ],
+            "focused": false,
+            "ancestors": [
+              {
+                "class": "EditText",
+                "y": 215,
+                "h": 105,
+                "min": 0,
+                "pad": 42
+              },
+              {
+                "class": "PortablePasswordFields",
+                "y": 124,
+                "h": 301,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": -318,
+                "h": 876,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ScrollView",
+                "y": 48,
+                "h": 510,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 510,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 510,
+                "min": 96,
+                "pad": 0
+              },
+              {
+                "class": "AlertDialogLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ContentFrameLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FitWindowsFrameLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "DecorView",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              }
+            ],
+            "lineHeight": 55,
+            "baseline": 285,
+            "length": 24,
+            "hint": "Backup password"
+          },
+          {
+            "full": [
+              120,
+              320,
+              1064,
+              425
+            ],
+            "visible": [
+              120,
+              320,
+              1064,
+              425
+            ],
+            "focused": true,
+            "ancestors": [
+              {
+                "class": "EditText",
+                "y": 320,
+                "h": 105,
+                "min": 0,
+                "pad": 42
+              },
+              {
+                "class": "PortablePasswordFields",
+                "y": 124,
+                "h": 301,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": -318,
+                "h": 876,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ScrollView",
+                "y": 48,
+                "h": 510,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 510,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 510,
+                "min": 96,
+                "pad": 0
+              },
+              {
+                "class": "AlertDialogLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ContentFrameLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FitWindowsFrameLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "DecorView",
+                "y": 48,
+                "h": 672,
+                "min": 0,
+                "pad": 0
+              }
+            ],
+            "lineHeight": 55,
+            "baseline": 390,
+            "length": 24,
+            "hint": "Confirm backup password"
+          }
+        ]
+      }
+    },
+    {
+      "label": "final-click-ime",
+      "time": 50.406,
+      "ime": true,
+      "imeFrame": [
+        0,
+        320,
+        1184,
+        720
+      ],
+      "choose": [
+        657,
+        186,
+        1056,
+        292
+      ],
+      "cancel": [
+        448,
+        186,
+        641,
+        292
+      ],
+      "chooseClear": true,
+      "cancelClear": true,
+      "font": "1.3",
+      "rotation": "1",
+      "windows": [
+        "Window #7 Window{7d1659d u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(1120xwrap) gr=CENTER sim={adjust=resize} ty=APPLICATION fmt=TRANSLUCENT wanim=0x7f120006 surfaceInsets=Rect(24, 24 - 24, 24)",
+        "Requested w=1120 h=672 mLayoutSeq=9576",
+        "mFrame=[32,48][1152,320] last=[32,48][1152,320]",
+        "mRequestedInsetsState: InsetsState: {mDisplayFrame=Rect(0, 0 - 0, 0), mSources= { InsetsSource: {mType=ITYPE_STATUS_BAR, mFrame=[0,0][1280,48], mVisible=true}, InsetsSource: {mType=ITYPE_NAVIGATION_BAR, mFrame=[1184,0][1280,720], mVisible=true}, InsetsSource: {mType=ITYPE_IME, mFrame=[0,320][1184,720], mVisible=true} }",
+        "Window #8 Window{1cad6b0 u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeAfter}:",
+        "mAttrs={(0,0)(fillxfill) sim={adjust=resize forwardNavigation} ty=BASE_APPLICATION wanim=0x7f120005",
+        "Requested w=1280 h=720 mLayoutSeq=9576",
+        "mFrame=[0,0][1280,720] last=[0,0][1280,720]"
+      ],
+      "size": "Physical size: 720x1280\r\nPhysical density: 320",
+      "editor": {
+        "inputType": "0x81",
+        "imeOptions": "0x17000006",
+        "actionCode": 6
+      },
+      "imeFullscreen": false,
+      "layout": {
+        "choose": {
+          "full": [
+            657,
+            186,
+            1056,
+            292
+          ],
+          "visible": [
+            657,
+            186,
+            1056,
+            292
+          ],
+          "focused": false,
+          "ancestors": [
+            {
+              "class": "MaterialButton",
+              "y": 186,
+              "h": 106,
+              "min": 96,
+              "pad": 64
+            },
+            {
+              "class": "ButtonBarLayout",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 56
+            },
+            {
+              "class": "ScrollView",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 0
+            },
+            {
+              "class": "AlertDialogLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "ContentFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FitWindowsFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "LinearLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "DecorView",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            }
+          ],
+          "lineHeight": 42,
+          "baseline": 251
+        },
+        "cancel": {
+          "full": [
+            448,
+            186,
+            641,
+            292
+          ],
+          "visible": [
+            448,
+            186,
+            641,
+            292
+          ],
+          "focused": false,
+          "ancestors": [
+            {
+              "class": "MaterialButton",
+              "y": 186,
+              "h": 106,
+              "min": 96,
+              "pad": 64
+            },
+            {
+              "class": "ButtonBarLayout",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 56
+            },
+            {
+              "class": "ScrollView",
+              "y": 158,
+              "h": 162,
+              "min": 162,
+              "pad": 0
+            },
+            {
+              "class": "AlertDialogLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "ContentFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FitWindowsFrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "FrameLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "LinearLayout",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            },
+            {
+              "class": "DecorView",
+              "y": 48,
+              "h": 272,
+              "min": 0,
+              "pad": 0
+            }
+          ],
+          "lineHeight": 42,
+          "baseline": 251
+        },
+        "inputs": [
+          {
+            "full": [
+              120,
+              -52,
+              1064,
+              53
+            ],
+            "visible": [
+              120,
+              48,
+              1064,
+              53
+            ],
+            "focused": false,
+            "ancestors": [
+              {
+                "class": "EditText",
+                "y": -52,
+                "h": 105,
+                "min": 0,
+                "pad": 42
+              },
+              {
+                "class": "PortablePasswordFields",
+                "y": -143,
+                "h": 301,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": -585,
+                "h": 876,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ScrollView",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 96,
+                "pad": 0
+              },
+              {
+                "class": "AlertDialogLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ContentFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FitWindowsFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "DecorView",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              }
+            ],
+            "lineHeight": 55,
+            "baseline": 18,
+            "length": 24,
+            "hint": "Backup password"
+          },
+          {
+            "full": [
+              120,
+              53,
+              1064,
+              158
+            ],
+            "visible": [
+              120,
+              53,
+              1064,
+              158
+            ],
+            "focused": true,
+            "ancestors": [
+              {
+                "class": "EditText",
+                "y": 53,
+                "h": 105,
+                "min": 0,
+                "pad": 42
+              },
+              {
+                "class": "PortablePasswordFields",
+                "y": -143,
+                "h": 301,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": -585,
+                "h": 876,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ScrollView",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 110,
+                "min": 96,
+                "pad": 0
+              },
+              {
+                "class": "AlertDialogLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "ContentFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FitWindowsFrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "FrameLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "LinearLayout",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              },
+              {
+                "class": "DecorView",
+                "y": 48,
+                "h": 272,
+                "min": 0,
+                "pad": 0
+              }
+            ],
+            "lineHeight": 55,
+            "baseline": 123,
+            "length": 24,
+            "hint": "Confirm backup password"
+          }
+        ]
+      }
+    }
+  ],
+  "picker": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity",
+  "createDocument": true,
+  "returned": "org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeAfter",
+  "outcome": "IME visible click reached system CREATE_DOCUMENT and returned on cancellation",
+  "seconds": 55.859
+}

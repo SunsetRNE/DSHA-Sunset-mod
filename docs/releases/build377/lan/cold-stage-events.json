@@ -1,0 +1,112 @@
+[
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "STAGE · Checking installation prerequisites"
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "STAGE · Prepare extraction"
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "STAGE · Extract Ubuntu and Node"
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "STAGE · Install Python and pnpm"
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "STAGE · Prepare app tools"
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "STAGE · Install offline curl, git and certificates"
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "CAPABILITY · proroot=true isolation=true preferProroot=false automaticCold=false supervisor=<app-path> "
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "STAGE · Checking cold-install runtime: PROOT"
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "EXEC · runtime=proot isolated=true prootNoSeccomp=false staticLoader=false argv=[<app-path> --link2symlink, -b, <app-path>"
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "FAILED · Checking cold-install runtime: PROOT java.io.IOException: Stream closed"
+  },
+  {
+    "time": null,
+    "stage": "MAINTENANCE_TASK_FAILED",
+    "message": "DSHA_UPDATE_RUNTIME_V1:Stream closed"
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "STAGE · Checking installation prerequisites"
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "STAGE · Prepare extraction"
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "STAGE · Extract Ubuntu and Node"
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "STAGE · Install Python and pnpm"
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "STAGE · Prepare app tools"
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "STAGE · Install offline curl, git and certificates"
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "CAPABILITY · proroot=true isolation=true preferProroot=false automaticCold=false supervisor=<app-path> "
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "STAGE · Checking cold-install runtime: PROOT"
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "EXEC · runtime=proot isolated=true prootNoSeccomp=false staticLoader=false argv=[<app-path> --link2symlink, -b, <app-path>"
+  },
+  {
+    "time": null,
+    "stage": "COLD_INSTALL",
+    "message": "FAILED · Checking cold-install runtime: PROOT java.io.IOException: Stream closed"
+  },
+  {
+    "time": null,
+    "stage": "MAINTENANCE_TASK_FAILED",
+    "message": "DSHA_UPDATE_RUNTIME_V1:Stream closed"
+  }
+]

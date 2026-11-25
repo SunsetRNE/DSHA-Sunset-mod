@@ -1,0 +1,50 @@
+WARNING: No manifest file found at build\intermediates\packaged_manifests\standardDebugUnitTest\processStandardDebugUnitTestManifest\AndroidManifest.xml.
+Falling back to the Android OS resources only.
+To remove this warning, annotate your test class with @Config(manifest=Config.NONE).
+If you're using Android Gradle Plugin, add testOptions.unitTests.includeAndroidResources = true to your build.gradle
+START	2026-11-25T06:46:05.242917600Z	com.deepseekharness.app.screen.Comparison.sameSyntheticSplitBitmap
+Failed to open APK 'F:\DSHA_RESTART\source\build377-local\build\intermediates\apk_for_local_test\standardDebugUnitTest\packageStandardDebugUnitTestForUnitTest\apk-for-local-test.ap_' Error -2147483643
+java.lang.RuntimeException: android.content.pm.PackageParser$PackageParserException: Failed to parse F:\DSHA_RESTART\source\build377-local\build\intermediates\apk_for_local_test\standardDebugUnitTest\packageStandardDebugUnitTestForUnitTest\apk-for-local-test.ap_
+	at org.robolectric.shadows.ShadowPackageParser.callParsePackage(ShadowPackageParser.java:57)
+	at org.robolectric.android.internal.AndroidTestEnvironment.loadAppPackage_measured(AndroidTestEnvironment.java:425)
+	at org.robolectric.android.internal.AndroidTestEnvironment.lambda$loadAppPackage$3(AndroidTestEnvironment.java:412)
+	at org.robolectric.util.PerfStatsCollector.measure(PerfStatsCollector.java:52)
+	at org.robolectric.android.internal.AndroidTestEnvironment.loadAppPackage(AndroidTestEnvironment.java:412)
+	at org.robolectric.android.internal.AndroidTestEnvironment.installAndCreateApplication(AndroidTestEnvironment.java:299)
+	at org.robolectric.android.internal.AndroidTestEnvironment.lambda$createApplicationSupplier$0(AndroidTestEnvironment.java:274)
+	at org.robolectric.util.PerfStatsCollector.measure(PerfStatsCollector.java:52)
+	at org.robolectric.android.internal.AndroidTestEnvironment.lambda$createApplicationSupplier$1(AndroidTestEnvironment.java:271)
+	at com.google.common.base.Suppliers$NonSerializableMemoizingSupplier.get(Suppliers.java:198)
+	at org.robolectric.RuntimeEnvironment.lambda$getApplication$0(RuntimeEnvironment.java:75)
+	at org.robolectric.shadows.ShadowInstrumentation.runOnMainSyncNoIdle(ShadowInstrumentation.java:1198)
+	at org.robolectric.RuntimeEnvironment.getApplication(RuntimeEnvironment.java:75)
+	at org.robolectric.android.internal.AndroidTestEnvironment.setUpApplicationState(AndroidTestEnvironment.java:241)
+	at org.robolectric.RobolectricTestRunner.beforeTest(RobolectricTestRunner.java:309)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:489)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+Caused by: android.content.pm.PackageParser$PackageParserException: Failed to parse F:\DSHA_RESTART\source\build377-local\build\intermediates\apk_for_local_test\standardDebugUnitTest\packageStandardDebugUnitTestForUnitTest\apk-for-local-test.ap_
+	at android.content.pm.PackageParser.parseApkLiteInner(PackageParser.java:1503)
+	at android.content.pm.PackageParser.parseApkLite(PackageParser.java:1474)
+	at android.content.pm.PackageParser.parseMonolithicPackageLite(PackageParser.java:980)
+	at android.content.pm.PackageParser.parseMonolithicPackage(PackageParser.java:1189)
+	at android.content.pm.PackageParser.parsePackage(PackageParser.java:1103)
+	at android.content.pm.PackageParser.parsePackage(PackageParser.java:1112)
+	at org.robolectric.shadows.ShadowPackageParser.callParsePackage(ShadowPackageParser.java:42)
+	... 29 more
+
+FINISH	2026-11-25T06:46:06.778317900Z	com.deepseekharness.app.screen.Comparison.sameSyntheticSplitBitmap
+CASE	FAIL	com.deepseekharness.app.screen.Comparison.sameSyntheticSplitBitmap
+TOTAL	1	1	0	0

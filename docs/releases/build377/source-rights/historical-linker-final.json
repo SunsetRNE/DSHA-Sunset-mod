@@ -1,0 +1,126 @@
+{
+  "upstream": [
+    {
+      "ref": "65a28b7f8af182f3bde0c75156c39a30b82bc0ec",
+      "url": "https://api.github.com/repos/coderredlab/proroot/git/trees/65a28b7f8af182f3bde0c75156c39a30b82bc0ec?recursive=1",
+      "truncated": false,
+      "elfFiles": [
+        {
+          "path": "arm64-v8a/libldlinux.so",
+          "bytes": 203968,
+          "gitBlob": "4b20964f68fda21627552a75977c5d0f2095a531"
+        },
+        {
+          "path": "arm64-v8a/libproroot-bridge.so",
+          "bytes": 2156072,
+          "gitBlob": "46fe636a0b174547437b80632b32f7631af9092c"
+        },
+        {
+          "path": "arm64-v8a/libproroot-runtime.so",
+          "bytes": 77184,
+          "gitBlob": "334ea1dd61d78768037f135d8e35453c43acaa11"
+        },
+        {
+          "path": "arm64-v8a/libproroot.so",
+          "bytes": 19176,
+          "gitBlob": "597fa9e23f8b571acc2082be2874bb3e9f68736c"
+        }
+      ]
+    },
+    {
+      "ref": "2f175a7e36dbeb2548ef771d2091257da0442488",
+      "url": "https://api.github.com/repos/coderredlab/proroot/git/trees/2f175a7e36dbeb2548ef771d2091257da0442488?recursive=1",
+      "truncated": false,
+      "elfFiles": [
+        {
+          "path": "arm64-v8a/libldlinux.so",
+          "bytes": 203968,
+          "gitBlob": "4b20964f68fda21627552a75977c5d0f2095a531"
+        },
+        {
+          "path": "arm64-v8a/libproroot-bridge.so",
+          "bytes": 2156072,
+          "gitBlob": "46fe636a0b174547437b80632b32f7631af9092c"
+        },
+        {
+          "path": "arm64-v8a/libproroot-runtime.so",
+          "bytes": 77184,
+          "gitBlob": "334ea1dd61d78768037f135d8e35453c43acaa11"
+        },
+        {
+          "path": "arm64-v8a/libproroot.so",
+          "bytes": 19176,
+          "gitBlob": "597fa9e23f8b571acc2082be2874bb3e9f68736c"
+        }
+      ]
+    },
+    {
+      "ref": "c04b1ed1563d432f9ec727272979de98f68c8031",
+      "url": "https://api.github.com/repos/coderredlab/proroot/git/trees/c04b1ed1563d432f9ec727272979de98f68c8031?recursive=1",
+      "truncated": false,
+      "elfFiles": [
+        {
+          "path": "arm64-v8a/libproroot-bridge.so",
+          "bytes": 23624,
+          "gitBlob": "f2ad52603734f934d202f064ef926e9e1102f0fa"
+        },
+        {
+          "path": "arm64-v8a/libproroot-linker.so",
+          "bytes": 71224,
+          "gitBlob": "b08e19ae58f933ef04ee6d97fc071599cb01a988"
+        },
+        {
+          "path": "arm64-v8a/libproroot-runtime.so",
+          "bytes": 224256,
+          "gitBlob": "565243892f50bc2da3b45feed88253522f061f09"
+        },
+        {
+          "path": "arm64-v8a/libproroot.so",
+          "bytes": 38720,
+          "gitBlob": "dc889dc448b3bad0fb0f38eeb97608f10dce5210"
+        }
+      ]
+    },
+    {
+      "ref": "14b72a764490d0280eee3915ecfa3e8a132b392e",
+      "url": "https://api.github.com/repos/coderredlab/proroot/git/trees/14b72a764490d0280eee3915ecfa3e8a132b392e?recursive=1",
+      "truncated": false,
+      "elfFiles": [
+        {
+          "path": "arm64-v8a/libproroot-bridge.so",
+          "bytes": 23624,
+          "gitBlob": "f2ad52603734f934d202f064ef926e9e1102f0fa"
+        },
+        {
+          "path": "arm64-v8a/libproroot-linker.so",
+          "bytes": 79408,
+          "gitBlob": "854d9d46673bf89b46650bd5c491884fcbfb9b58"
+        },
+        {
+          "path": "arm64-v8a/libproroot-runtime.so",
+          "bytes": 375120,
+          "gitBlob": "617f426545b843928f2a080afc8bd776dafc2344"
+        },
+        {
+          "path": "arm64-v8a/libproroot-stub-loader.so",
+          "bytes": 144144,
+          "gitBlob": "6ed75c3cba8b1c2cafeb82e464de2542bfb09b49"
+        },
+        {
+          "path": "arm64-v8a/libproroot.so",
+          "bytes": 43624,
+          "gitBlob": "f61ba53fd5bfbc9eb109415d7419a7fd3a4458ae"
+        }
+      ]
+    }
+  ],
+  "scannedLocalApks": 76,
+  "directZipMembersContainingLdLinux": [],
+  "scope": "Top-level ZIP paths + upstream trees, not contents nested inside guest rootfs or derivative-work analysis",
+  "historicalRawSha256": "2d9b48db9a49122f809f01c5bdc1d0cb40a5cbb51ca4f2b30f428f5f13829e4e",
+  "historicalStrippedSha256": "36682524bf2f1630d521dd94d8cd0340296c50fd67ae4ddcb98e7dd62ec8370e",
+  "historicalRawBytes": 203968,
+  "historicalStrippedBytes": 203968,
+  "directZipMembers": 101500,
+  "historicalContentMatchesAnyName": []
+}

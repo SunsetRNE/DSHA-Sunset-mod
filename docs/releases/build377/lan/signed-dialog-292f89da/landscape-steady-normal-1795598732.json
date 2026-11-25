@@ -1,0 +1,267 @@
+{
+  "atUtc": "2026-11-25T09:25:32.391493+00:00",
+  "sha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+  "flow": "normal",
+  "route": "landscape-steady",
+  "rows": [
+    {
+      "stage": "dialog-open-keyboard-hidden",
+      "atSeconds": 5.391,
+      "imeShown": false,
+      "choose": [
+        730,
+        547,
+        1056,
+        644
+      ],
+      "cancel": [
+        546,
+        547,
+        714,
+        644
+      ],
+      "imeFrame": null,
+      "systemImeFullscreen": false,
+      "plaintextOptIn": "outside viewport",
+      "chooseUnobscured": true,
+      "cancelUnobscured": true,
+      "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+      "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+      "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-292f89da\\landscape-steady-normal-1795598732-dialog-open-keyboard-hidden.png"
+    },
+    {
+      "stage": "confirmation-keyboard-shown",
+      "atSeconds": 15.313,
+      "imeShown": true,
+      "choose": [
+        730,
+        219,
+        1056,
+        272
+      ],
+      "cancel": [
+        546,
+        219,
+        714,
+        272
+      ],
+      "imeFrame": [
+        0,
+        320,
+        1184,
+        720
+      ],
+      "systemImeFullscreen": false,
+      "plaintextOptIn": "outside viewport",
+      "chooseUnobscured": true,
+      "cancelUnobscured": true,
+      "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+      "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+      "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-292f89da\\landscape-steady-normal-1795598732-confirmation-keyboard-shown.png"
+    },
+    {
+      "stage": "static-keyboard-0",
+      "atSeconds": 19.125,
+      "imeShown": true,
+      "choose": [
+        730,
+        219,
+        1056,
+        272
+      ],
+      "cancel": [
+        546,
+        219,
+        714,
+        272
+      ],
+      "imeFrame": [
+        0,
+        320,
+        1184,
+        720
+      ],
+      "systemImeFullscreen": false,
+      "plaintextOptIn": "outside viewport",
+      "chooseUnobscured": true,
+      "cancelUnobscured": true,
+      "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+      "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+      "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-292f89da\\landscape-steady-normal-1795598732-static-keyboard-0.png",
+      "semanticButtons": [
+        {
+          "id": "android:id/button2",
+          "text": "Cancel",
+          "enabled": "true",
+          "clickable": "true",
+          "bounds": "[546,219][714,272]"
+        },
+        {
+          "id": "android:id/button1",
+          "text": "Choose destination",
+          "enabled": "true",
+          "clickable": "true",
+          "bounds": "[730,219][1056,272]"
+        }
+      ],
+      "actualSecondsSinceFirstSteadySample": 5.391
+    },
+    {
+      "stage": "static-keyboard-4",
+      "atSeconds": 24.5,
+      "imeShown": true,
+      "choose": [
+        730,
+        219,
+        1056,
+        272
+      ],
+      "cancel": [
+        546,
+        219,
+        714,
+        272
+      ],
+      "imeFrame": [
+        0,
+        320,
+        1184,
+        720
+      ],
+      "systemImeFullscreen": false,
+      "plaintextOptIn": "outside viewport",
+      "chooseUnobscured": true,
+      "cancelUnobscured": true,
+      "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+      "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+      "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-292f89da\\landscape-steady-normal-1795598732-static-keyboard-4.png",
+      "semanticButtons": [
+        {
+          "id": "android:id/button2",
+          "text": "Cancel",
+          "enabled": "true",
+          "clickable": "true",
+          "bounds": "[546,219][714,272]"
+        },
+        {
+          "id": "android:id/button1",
+          "text": "Choose destination",
+          "enabled": "true",
+          "clickable": "true",
+          "bounds": "[730,219][1056,272]"
+        }
+      ],
+      "actualSecondsSinceFirstSteadySample": 10.766
+    },
+    {
+      "stage": "static-keyboard-10",
+      "atSeconds": 29.875,
+      "imeShown": true,
+      "choose": [
+        730,
+        219,
+        1056,
+        272
+      ],
+      "cancel": [
+        546,
+        219,
+        714,
+        272
+      ],
+      "imeFrame": [
+        0,
+        320,
+        1184,
+        720
+      ],
+      "systemImeFullscreen": false,
+      "plaintextOptIn": "outside viewport",
+      "chooseUnobscured": true,
+      "cancelUnobscured": true,
+      "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+      "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+      "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-292f89da\\landscape-steady-normal-1795598732-static-keyboard-10.png",
+      "semanticButtons": [
+        {
+          "id": "android:id/button2",
+          "text": "Cancel",
+          "enabled": "true",
+          "clickable": "true",
+          "bounds": "[546,219][714,272]"
+        },
+        {
+          "id": "android:id/button1",
+          "text": "Choose destination",
+          "enabled": "true",
+          "clickable": "true",
+          "bounds": "[730,219][1056,272]"
+        }
+      ],
+      "actualSecondsSinceFirstSteadySample": 16.141
+    },
+    {
+      "stage": "keyboard-hidden-reference",
+      "atSeconds": 36.109,
+      "imeShown": false,
+      "choose": [
+        730,
+        547,
+        1056,
+        644
+      ],
+      "cancel": [
+        546,
+        547,
+        714,
+        644
+      ],
+      "imeFrame": null,
+      "systemImeFullscreen": false,
+      "plaintextOptIn": "unchecked",
+      "chooseUnobscured": true,
+      "cancelUnobscured": true,
+      "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+      "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+      "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0",
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-292f89da\\landscape-steady-normal-1795598732-keyboard-hidden-reference.png"
+    },
+    {
+      "stage": "before-actual-click",
+      "atSeconds": 38.0,
+      "imeShown": false,
+      "choose": [
+        730,
+        547,
+        1056,
+        644
+      ],
+      "cancel": [
+        546,
+        547,
+        714,
+        644
+      ],
+      "imeFrame": null,
+      "systemImeFullscreen": false,
+      "plaintextOptIn": "unchecked",
+      "chooseUnobscured": true,
+      "cancelUnobscured": true,
+      "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+      "system": "Physical size: 720x1280\nPhysical density: 320\nnull\n1",
+      "actualRotation": "mRotation=1 mDeferredRotationPauseCount=0"
+    }
+  ],
+  "reenteredAfterRotation": false,
+  "firstUsableControlsSeconds": 5.391,
+  "createDocumentAndCancel": true,
+  "returnedTo": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+  "confirmedSave": false,
+  "completeSeconds": 41.328,
+  "syntheticPasswordLength": 24
+}

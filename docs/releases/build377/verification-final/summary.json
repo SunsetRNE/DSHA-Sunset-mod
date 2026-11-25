@@ -1,0 +1,232 @@
+{
+  "status": "PASS",
+  "commit": "0efbf4d26a86d5cb99b4c22d56aa6e6971fd1d61",
+  "startedAt": "2026-11-25T09:20:40.743645+00:00",
+  "finishedAt": "2026-11-25T09:21:26.393904+00:00",
+  "apk": {
+    "alias": "androiddebugkey",
+    "certificateSha256": "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5",
+    "kind": "dsha-release-signed-apk",
+    "apkFile": "dsha-0.2.2-rc.5.apk",
+    "apkSize": 255587176,
+    "apkSha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+    "unsignedSha256": "f44c3101660a140e20909f3410902c5fa97404eb66ac351755449b063c2844e7",
+    "packageName": "dsh.android.client",
+    "versionCode": 377,
+    "versionName": "0.2.2-rc.5-20261125.1442-dsh0.2.2-rc.5",
+    "schemes": {
+      "v1": true,
+      "v2": true,
+      "v3": true,
+      "v3.1": false,
+      "v4": false
+    },
+    "payloadMembers": 1839
+  },
+  "baselineSha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+  "baselineBytes": 257781425,
+  "deltaBytes": -2194249,
+  "fDriveAvailableBytes": 311362424832,
+  "recheckedDigests": true,
+  "gates": {
+    "signature": {
+      "command": [
+        "F:\\DSHA_RESTART\\toolchains\\current\\android-sdk\\build-tools\\36.0.0\\apksigner.bat",
+        "verify",
+        "--min-sdk-version",
+        "23",
+        "--verbose",
+        "--print-certs",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-final\\dsha-0.2.2-rc.5.apk"
+      ],
+      "startedAt": "2026-11-25T09:20:40.744650+00:00",
+      "finishedAt": "2026-11-25T09:20:42.096447+00:00",
+      "elapsedSeconds": 1.359,
+      "exitCode": 0,
+      "logSha256": "46f2c5d0705085e04d09099ca213365eaa6c4ff4ee9e9631bfa0ba6a97daa957"
+    },
+    "manifest": {
+      "command": [
+        "F:\\DSHA_RESTART\\toolchains\\current\\android-sdk\\build-tools\\36.0.0\\aapt2.exe",
+        "dump",
+        "badging",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-final\\dsha-0.2.2-rc.5.apk"
+      ],
+      "startedAt": "2026-11-25T09:20:40.746156+00:00",
+      "finishedAt": "2026-11-25T09:20:40.850114+00:00",
+      "elapsedSeconds": 0.094,
+      "exitCode": 0,
+      "logSha256": "79b089b5890217d942aba45402b538f7105e79add49d81a825d781f391467f05"
+    },
+    "alignment": {
+      "command": [
+        "F:\\DSHA_RESTART\\toolchains\\current\\android-sdk\\build-tools\\36.0.0\\zipalign.exe",
+        "-c",
+        "-P",
+        "16",
+        "4",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-final\\dsha-0.2.2-rc.5.apk"
+      ],
+      "startedAt": "2026-11-25T09:20:40.746156+00:00",
+      "finishedAt": "2026-11-25T09:20:40.822637+00:00",
+      "elapsedSeconds": 0.063,
+      "exitCode": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "size": {
+      "command": [
+        "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "-B",
+        "tools/verify-apk-size.py",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-final\\dsha-0.2.2-rc.5.apk",
+        "--baseline",
+        "F:\\DSHA_RESTART\\artifacts\\build376-formal-20261125\\signed\\dsha-0.2.2-rc.5.apk",
+        "--require-shared-recovery"
+      ],
+      "startedAt": "2026-11-25T09:20:40.823643+00:00",
+      "finishedAt": "2026-11-25T09:20:42.795225+00:00",
+      "elapsedSeconds": 1.984,
+      "exitCode": 0,
+      "logSha256": "f179773d08abfbe374536d0f8ca91a075dd0d6510846e2fef1428ee2b8332daa"
+    },
+    "fixed-assets": {
+      "command": [
+        "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "-B",
+        "tools/verify-apk-managed-assets.py",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-final\\dsha-0.2.2-rc.5.apk"
+      ],
+      "startedAt": "2026-11-25T09:20:40.859678+00:00",
+      "finishedAt": "2026-11-25T09:20:43.153058+00:00",
+      "elapsedSeconds": 2.297,
+      "exitCode": 0,
+      "logSha256": "7dd431621cd532c8e2e7535e122e7c5f067731cc8e25a824c12eb77d344b6ec5"
+    },
+    "runtime": {
+      "command": [
+        "wsl.exe",
+        "-d",
+        "DSHA-build172",
+        "--",
+        "env",
+        "DSHA_TEST_RUNTIME=/root/dsha-build374-official-posix-fixture/app/build/test-runtimes/0.2.2-rc.5-linux-arm64-bcf258eee8e3/raw",
+        "python3",
+        "-B",
+        "/mnt/f/DSHA_RESTART/source/build377-local/tools/verify-dsh-upgrade-apk.py",
+        "/mnt/f/DSHA_RESTART/artifacts/build377-local/signed-final/dsha-0.2.2-rc.5.apk"
+      ],
+      "startedAt": "2026-11-25T09:20:42.105771+00:00",
+      "finishedAt": "2026-11-25T09:21:26.041455+00:00",
+      "elapsedSeconds": 43.922,
+      "exitCode": 0,
+      "logSha256": "0f427cbe1a3451f2439153c22e7c8ea97089ec87aa5710de991faf9304799eef"
+    },
+    "recovery": {
+      "command": [
+        "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "-B",
+        "tools/verify-recovery-apk.py",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-final\\dsha-0.2.2-rc.5.apk"
+      ],
+      "startedAt": "2026-11-25T09:20:42.803982+00:00",
+      "finishedAt": "2026-11-25T09:20:43.306590+00:00",
+      "elapsedSeconds": 0.5,
+      "exitCode": 0,
+      "logSha256": "6fea6b890037385264fbed9f852bb6ef6666fc905d4f059cf1989eb0bd25c00c"
+    },
+    "licenses": {
+      "command": [
+        "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "-B",
+        "tools/verify-third-party-apk.py",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-final\\dsha-0.2.2-rc.5.apk",
+        "--output",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\verification-final\\licenses.json"
+      ],
+      "startedAt": "2026-11-25T09:20:43.160613+00:00",
+      "finishedAt": "2026-11-25T09:20:45.941775+00:00",
+      "elapsedSeconds": 2.781,
+      "exitCode": 0,
+      "logSha256": "55b80b3a1bc9d17812ebbf4f52972adebeb66f91f69900859223eb9d7a95dd4b"
+    },
+    "archive-recipes": {
+      "command": [
+        "wsl.exe",
+        "-d",
+        "DSHA-build172",
+        "--",
+        "python3",
+        "-B",
+        "/mnt/f/DSHA_RESTART/source/build377-local/tools/verify-dsh-archive-recipes.py",
+        "--npm-tree",
+        "/root/dsha-build374-runtime/npm-arm64-a",
+        "--apk",
+        "/mnt/f/DSHA_RESTART/artifacts/build377-local/signed-final/dsha-0.2.2-rc.5.apk",
+        "--report",
+        "/mnt/f/DSHA_RESTART/artifacts/build377-local/verification-final/archive-recipes.json"
+      ],
+      "startedAt": "2026-11-25T09:20:43.314285+00:00",
+      "finishedAt": "2026-11-25T09:20:53.976865+00:00",
+      "elapsedSeconds": 10.656,
+      "exitCode": 0,
+      "logSha256": "fb4f437fdfad74682b03858e43244143cc3b25842b59703d3c381a39c2cfb955"
+    },
+    "elf": {
+      "command": [
+        "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "-B",
+        "tools/audit-standard-apk.py",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-final\\dsha-0.2.2-rc.5.apk"
+      ],
+      "startedAt": "2026-11-25T09:20:45.948723+00:00",
+      "finishedAt": "2026-11-25T09:20:52.805292+00:00",
+      "elapsedSeconds": 6.859,
+      "exitCode": 0,
+      "logSha256": "ae0f753e4ed4a1348cf06391b44164ecbf9a746db3c528841d3de987b8e291bd"
+    },
+    "rust": {
+      "command": [
+        "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "-B",
+        "tools/check-rust-native-apk.py",
+        "--mode",
+        "prebuilt",
+        "--commit",
+        "0efbf4d26a86d5cb99b4c22d56aa6e6971fd1d61",
+        "--artifact-dir",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\final3\\rust-arm64",
+        "--apk",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-final\\dsha-0.2.2-rc.5.apk",
+        "--output",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\verification-final\\rust.json"
+      ],
+      "startedAt": "2026-11-25T09:20:52.814666+00:00",
+      "finishedAt": "2026-11-25T09:20:53.920485+00:00",
+      "elapsedSeconds": 1.109,
+      "exitCode": 0,
+      "logSha256": "87408d53473768c739ef40b395fe0d7f80ef739c4bc07677d07a610984ff328a"
+    },
+    "images": {
+      "command": [
+        "${USERPROFILE}/AppData/Local/Programs/Python/Python311/python.exe",
+        "-B",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\native-identity\\verify_brand.py",
+        "--source",
+        "F:\\DSHA_RESTART\\source\\build377-local",
+        "--before",
+        "F:\\DSHA_RESTART\\artifacts\\build376-formal-20261125\\signed\\dsha-0.2.2-rc.5.apk",
+        "--after",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-final\\dsha-0.2.2-rc.5.apk",
+        "--sdk",
+        "F:\\DSHA_RESTART\\toolchains\\current\\android-sdk",
+        "--output",
+        "F:\\DSHA_RESTART\\artifacts\\build377-local\\verification-final\\images.json"
+      ],
+      "startedAt": "2026-11-25T09:20:53.929504+00:00",
+      "finishedAt": "2026-11-25T09:20:56.071202+00:00",
+      "elapsedSeconds": 2.141,
+      "exitCode": 0,
+      "logSha256": "429b879b55c94ab26f094385e0e506e1fc16885be2fc7d7b2d86283ae39323a6"
+    }
+  }
+}

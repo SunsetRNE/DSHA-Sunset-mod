@@ -1,0 +1,102 @@
+{
+  "atUtc": "2026-11-25T09:22:32.370806+00:00",
+  "sha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+  "flow": "rescue",
+  "route": "large",
+  "rows": [
+    {
+      "stage": "dialog-open-keyboard-hidden",
+      "atSeconds": 5.563,
+      "imeShown": false,
+      "choose": [
+        225,
+        784,
+        624,
+        890
+      ],
+      "cancel": [
+        431,
+        890,
+        624,
+        996
+      ],
+      "imeFrame": null,
+      "systemImeFullscreen": false,
+      "plaintextOptIn": "outside viewport",
+      "chooseUnobscured": true,
+      "cancelUnobscured": true,
+      "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+      "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n0",
+      "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-292f89da\\large-rescue-1795598552-dialog-open-keyboard-hidden.png"
+    },
+    {
+      "stage": "confirmation-keyboard-shown",
+      "atSeconds": 18.266,
+      "imeShown": true,
+      "choose": [
+        225,
+        349,
+        624,
+        455
+      ],
+      "cancel": [
+        431,
+        455,
+        624,
+        526
+      ],
+      "imeFrame": [
+        0,
+        686,
+        720,
+        1280
+      ],
+      "systemImeFullscreen": false,
+      "plaintextOptIn": "outside viewport",
+      "chooseUnobscured": true,
+      "cancelUnobscured": true,
+      "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+      "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n0",
+      "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0",
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-292f89da\\large-rescue-1795598552-confirmation-keyboard-shown.png"
+    },
+    {
+      "stage": "before-actual-click",
+      "atSeconds": 22.141,
+      "imeShown": true,
+      "choose": [
+        225,
+        349,
+        624,
+        455
+      ],
+      "cancel": [
+        431,
+        455,
+        624,
+        526
+      ],
+      "imeFrame": [
+        0,
+        686,
+        720,
+        1280
+      ],
+      "systemImeFullscreen": false,
+      "plaintextOptIn": "outside viewport",
+      "chooseUnobscured": true,
+      "cancelUnobscured": true,
+      "activity": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+      "system": "Physical size: 720x1280\nPhysical density: 320\n1.3\n0",
+      "actualRotation": "mRotation=0 mDeferredRotationPauseCount=0"
+    }
+  ],
+  "reenteredAfterRotation": false,
+  "firstUsableControlsSeconds": 5.563,
+  "createDocumentAndCancel": true,
+  "returnedTo": "dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity",
+  "confirmedSave": false,
+  "completeSeconds": 25.641,
+  "syntheticPasswordLength": 24
+}

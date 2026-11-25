@@ -1,0 +1,91 @@
+{
+  "measuredUtc": "2026-11-25T06:46:30.743393+00:00",
+  "volume": "F:\\",
+  "volumeAvailableBytes": 352214368256,
+  "before": {
+    "inputHead": "12efafd7d3530b412d48ccb66fb657c6bd7cc8ac",
+    "files": [
+      {
+        "path": "F:\\DSHA_RESTART\\source\\build198\\app\\src\\main\\res\\drawable-nodpi\\dsha_brand.webp",
+        "logicalBytes": 245218,
+        "allocatedBytes": 245760,
+        "sha256": "74811c09ddbd414484196114ad3de081240ec133dfb66f5d492f38ec2ac7df30"
+      },
+      {
+        "path": "F:\\DSHA_RESTART\\source\\build198\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher.webp",
+        "logicalBytes": 5070,
+        "allocatedBytes": 8192,
+        "sha256": "727eb568d893d7da91a8504fadb852ba5e7adabdda267ba4b070c43a506a7d18"
+      },
+      {
+        "path": "F:\\DSHA_RESTART\\source\\build198\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher.webp",
+        "logicalBytes": 10140,
+        "allocatedBytes": 12288,
+        "sha256": "d7a0e8da2ccd0066ccaca381fd104f4c28bd18824f2dd80604ad5acdba445029"
+      },
+      {
+        "path": "F:\\DSHA_RESTART\\source\\build198\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher.webp",
+        "logicalBytes": 16380,
+        "allocatedBytes": 16384,
+        "sha256": "6963a7adbf70185f661f44590e39845772f9e9162ccf395781ca22f24e92c4fa"
+      },
+      {
+        "path": "F:\\DSHA_RESTART\\source\\build198\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher.webp",
+        "logicalBytes": 31978,
+        "allocatedBytes": 32768,
+        "sha256": "e89cbfcf6ad8396438c2f9585586abbb14415c5d64bfc22231c7f45b2919b74a"
+      },
+      {
+        "path": "F:\\DSHA_RESTART\\source\\build198\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher.webp",
+        "logicalBytes": 50950,
+        "allocatedBytes": 53248,
+        "sha256": "8ea4f4fbe6a7e84d40ca1c332dc5636b8bdd74d2a87e5d22bad0e125f599fd07"
+      }
+    ],
+    "logicalSum": 359736,
+    "allocatedSum": 368640
+  },
+  "after": {
+    "inputHead": "12efafd7d3530b412d48ccb66fb657c6bd7cc8ac",
+    "files": [
+      {
+        "path": "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\res\\drawable-nodpi\\dsha_brand.webp",
+        "logicalBytes": 5452,
+        "allocatedBytes": 8192,
+        "sha256": "c7cc0862d00ea73e17bbe8e44401f253588f3882ff3132d62e52960ae1299056"
+      },
+      {
+        "path": "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher.webp",
+        "logicalBytes": 766,
+        "allocatedBytes": 4096,
+        "sha256": "c0f0fc4d88ad786094b09aa5c563e2ab7568a26495496ca6d032194032513aa8"
+      },
+      {
+        "path": "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher.webp",
+        "logicalBytes": 950,
+        "allocatedBytes": 4096,
+        "sha256": "51b808d8ca39e808e63629203af22f3dc9aaa70c73bbfddcea3f445162b5f36c"
+      },
+      {
+        "path": "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher.webp",
+        "logicalBytes": 1210,
+        "allocatedBytes": 4096,
+        "sha256": "3c27ec69b3ae8752085351ef29626725689b6e082654a5bd45afdaac82493f59"
+      },
+      {
+        "path": "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher.webp",
+        "logicalBytes": 1620,
+        "allocatedBytes": 4096,
+        "sha256": "b973c03a2934766a94bf4bd87157f9cb466d02c6d6906028e5a5276255806d04"
+      },
+      {
+        "path": "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher.webp",
+        "logicalBytes": 1956,
+        "allocatedBytes": 4096,
+        "sha256": "c0acd571b8ab5f0d2efc7be90c0db45f8dcb3f87bd2b85e52447bedac2466cbb"
+      }
+    ],
+    "logicalSum": 11954,
+    "allocatedSum": 28672
+  }
+}

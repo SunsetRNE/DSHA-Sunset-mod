@@ -1,0 +1,10 @@
+{
+  "startUtc": "2026-11-25T09:30:48.445626+00:00",
+  "mode": "After",
+  "flow": "rescue",
+  "package": "org.dsha.fixture.shortbackup",
+  "device": "DSHA_build377_lan_api30_x86\r\r\nOK",
+  "rows": [],
+  "error": "",
+  "seconds": 1.281
+}

@@ -1,0 +1,46 @@
+{
+  "phase": "before",
+  "inputProxySha256": "acdd1a253b344847bd3bb0e9b4ad7012adab04f64b9bf9cd05a77cfe0e0a3fef",
+  "browsers": {
+    "chromium": {
+      "version": "156.0.8078.4",
+      "afterLoginNames": [
+        "dsha_lan"
+      ],
+      "wssAfterBothLogins": [
+        false,
+        true
+      ],
+      "alternateReloads": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "wssAfterReloads": [
+        false,
+        true
+      ]
+    },
+    "firefox": {
+      "version": "153.0",
+      "afterLoginNames": [
+        "dsha_lan"
+      ],
+      "wssAfterBothLogins": [
+        false,
+        false
+      ],
+      "alternateReloads": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "wssAfterReloads": [
+        false,
+        false
+      ]
+    }
+  }
+}

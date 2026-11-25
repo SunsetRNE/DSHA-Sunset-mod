@@ -1,0 +1,60 @@
+{
+  "productPaths": {
+    "app\\src\\main\\java\\com\\deepseekharness\\app\\ui\\NativeDataActivity.java": "d15261443483e31c59b8bcb4a6883563b2d7ae83eb15924580551a91f9e9ded1",
+    "app\\src\\test\\java\\com\\deepseekharness\\app\\ui\\NativeDataChoicesTest.java": "ff2125befaad83211de0801af1ca289fb0df74a28b841e7fa305229ea7cd40d4"
+  },
+  "baselineCommit": "15e7fcc285121d67efdfad11ce688fc0a81dd392",
+  "apkSha256": "2e6f0324ebe4b52b143dcb2bf04800b1ce73c106a53b567de1afdafca5dba3d9",
+  "workerClassesSha256": "ac2071b6f639759cd45e17f97df8139958948b10cd08912b71c82faf3a5c66a2",
+  "resourceApSha256": "0818faa4a94cb30bdf94c16f94454821d48b9d61b1eaa874dd40bf381a4890f7",
+  "matrix": {
+    "flows": [
+      "normal",
+      "rescue"
+    ],
+    "fontScales": [
+      1.0,
+      1.3
+    ],
+    "panelDp": [
+      [
+        312,
+        384
+      ],
+      [
+        312,
+        248
+      ],
+      [
+        560,
+        228
+      ]
+    ],
+    "actions": 2,
+    "comparisons": 24
+  },
+  "old-r3": {
+    "logDigest": "b41c7c32ade0a5e72d994e28d3973e1878dd7f80956d01074deb85604af76298",
+    "clippedInScenarioList": 24,
+    "last": "Tests run: 6,  Failures: 1",
+    "junitSeconds": "16.969"
+  },
+  "new-r2": {
+    "logDigest": "e88370125cd1fb1a4ce2995c2edcad54b6721761e910edb47303d3523b656426",
+    "clippedInScenarioList": 4,
+    "last": "Tests run: 6,  Failures: 1",
+    "junitSeconds": "18.247"
+  },
+  "new-r3": {
+    "logDigest": "24d1e72d2b6ababe22a974dcd581bfcdc9d125de4826e00e26dbca15325cfdb4",
+    "clippedInScenarioList": 0,
+    "last": "OK (6 tests)",
+    "junitSeconds": "17.063"
+  },
+  "new-frozen": {
+    "logDigest": "f6dbe74405437cddca0e4fd99061fbdec17738fe6f9d1fc67759a98bad9eda5b",
+    "clippedInScenarioList": 0,
+    "last": "OK (6 tests)",
+    "junitSeconds": "12.663"
+  }
+}

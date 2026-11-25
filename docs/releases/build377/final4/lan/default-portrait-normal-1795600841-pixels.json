@@ -1,0 +1,538 @@
+{
+  "sha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+  "source": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-normal-1795600841.json",
+  "reference": {
+    "stage": "keyboard-hidden-reference",
+    "timeSinceCaseStartSeconds": 32.375,
+    "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-normal-1795600841-keyboard-hidden-reference.png",
+    "sizePx": [
+      720,
+      1280
+    ],
+    "ime": null,
+    "whiteInteriorAtX400": [
+      225,
+      1006
+    ],
+    "buttons": {
+      "cancel": {
+        "bounds": [
+          114,
+          882,
+          282,
+          979
+        ],
+        "buttonHeight": 97,
+        "inkPixelCount": 616,
+        "exactBluePixels": 400,
+        "inkRows": 21,
+        "firstInkY": 919,
+        "lastInkY": 939,
+        "normalizedLabelMaskSha256": "eb448852336baf8042b765b85fecc1a56dd43f78151b2b93db04b7c8f3e94624",
+        "inkBounds": [
+          156,
+          919,
+          240,
+          940
+        ],
+        "rawCroppedSha256": "9d03d6239aeaca18b9f450f4709ba4f07e04c91766e880e29c3aa76291174d24"
+      },
+      "choose": {
+        "bounds": [
+          298,
+          882,
+          624,
+          979
+        ],
+        "buttonHeight": 97,
+        "inkPixelCount": 1726,
+        "exactBluePixels": 1110,
+        "inkRows": 21,
+        "firstInkY": 919,
+        "lastInkY": 939,
+        "normalizedLabelMaskSha256": "b685bfee75a501bb704e76d1796936f2f95ce2e2f8083a5c19a5a43497359dda",
+        "inkBounds": [
+          340,
+          919,
+          583,
+          940
+        ],
+        "rawCroppedSha256": "29a5cdd3cff42576afa51a29f13df23827b3e7dc033ff2604bece32dea70de91"
+      }
+    },
+    "maskedEditors": [
+      {
+        "bounds": [
+          88,
+          535,
+          632,
+          626
+        ],
+        "focused": false,
+        "accessibilityMaskedLength": 24,
+        "maxRegularDarkRunsAcrossOneTextRow": 24,
+        "rowsWithVisibleMaskedGlyphs": 9,
+        "maskedInkYBounds": [
+          576,
+          584
+        ]
+      },
+      {
+        "bounds": [
+          88,
+          626,
+          632,
+          717
+        ],
+        "focused": true,
+        "accessibilityMaskedLength": 24,
+        "maxRegularDarkRunsAcrossOneTextRow": 24,
+        "rowsWithVisibleMaskedGlyphs": 9,
+        "maskedInkYBounds": [
+          667,
+          675
+        ]
+      }
+    ]
+  },
+  "samples": [
+    {
+      "stage": "first-password-keyboard-shown",
+      "timeSinceCaseStartSeconds": 11.359,
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-normal-1795600841-first-password-keyboard-shown.png",
+      "sizePx": [
+        720,
+        1280
+      ],
+      "ime": [
+        0,
+        686,
+        720,
+        1280
+      ],
+      "whiteInteriorAtX400": [
+        48,
+        675
+      ],
+      "buttons": {
+        "cancel": {
+          "bounds": [
+            114,
+            561,
+            282,
+            658
+          ],
+          "buttonHeight": 97,
+          "inkPixelCount": 616,
+          "exactBluePixels": 400,
+          "inkRows": 21,
+          "firstInkY": 598,
+          "lastInkY": 618,
+          "normalizedLabelMaskSha256": "eb448852336baf8042b765b85fecc1a56dd43f78151b2b93db04b7c8f3e94624",
+          "inkBounds": [
+            156,
+            598,
+            240,
+            619
+          ],
+          "rawCroppedSha256": "9d03d6239aeaca18b9f450f4709ba4f07e04c91766e880e29c3aa76291174d24",
+          "sameLabelMaskAsHiddenKeyboard": true,
+          "buttonHeightPercentOfHiddenKeyboardReference": 100.0,
+          "inkRowsPercentOfHiddenKeyboardReference": 100.0,
+          "inkPixelCountPercentOfHiddenKeyboardReference": 100.0,
+          "exactBluePixelsPercentOfHiddenKeyboardReference": 100.0
+        },
+        "choose": {
+          "bounds": [
+            298,
+            561,
+            624,
+            658
+          ],
+          "buttonHeight": 97,
+          "inkPixelCount": 1726,
+          "exactBluePixels": 1110,
+          "inkRows": 21,
+          "firstInkY": 598,
+          "lastInkY": 618,
+          "normalizedLabelMaskSha256": "b685bfee75a501bb704e76d1796936f2f95ce2e2f8083a5c19a5a43497359dda",
+          "inkBounds": [
+            340,
+            598,
+            583,
+            619
+          ],
+          "rawCroppedSha256": "29a5cdd3cff42576afa51a29f13df23827b3e7dc033ff2604bece32dea70de91",
+          "sameLabelMaskAsHiddenKeyboard": true,
+          "buttonHeightPercentOfHiddenKeyboardReference": 100.0,
+          "inkRowsPercentOfHiddenKeyboardReference": 100.0,
+          "inkPixelCountPercentOfHiddenKeyboardReference": 100.0,
+          "exactBluePixelsPercentOfHiddenKeyboardReference": 100.0
+        }
+      },
+      "maskedEditors": [
+        {
+          "bounds": [
+            88,
+            358,
+            632,
+            449
+          ],
+          "focused": true,
+          "accessibilityMaskedLength": 24,
+          "maxRegularDarkRunsAcrossOneTextRow": 24,
+          "rowsWithVisibleMaskedGlyphs": 9,
+          "maskedInkYBounds": [
+            399,
+            407
+          ]
+        }
+      ]
+    },
+    {
+      "stage": "confirmation-keyboard-shown",
+      "timeSinceCaseStartSeconds": 20.234,
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-normal-1795600841-confirmation-keyboard-shown.png",
+      "sizePx": [
+        720,
+        1280
+      ],
+      "ime": [
+        0,
+        686,
+        720,
+        1280
+      ],
+      "whiteInteriorAtX400": [
+        48,
+        675
+      ],
+      "buttons": {
+        "cancel": {
+          "bounds": [
+            114,
+            561,
+            282,
+            658
+          ],
+          "buttonHeight": 97,
+          "inkPixelCount": 616,
+          "exactBluePixels": 400,
+          "inkRows": 21,
+          "firstInkY": 598,
+          "lastInkY": 618,
+          "normalizedLabelMaskSha256": "eb448852336baf8042b765b85fecc1a56dd43f78151b2b93db04b7c8f3e94624",
+          "inkBounds": [
+            156,
+            598,
+            240,
+            619
+          ],
+          "rawCroppedSha256": "9d03d6239aeaca18b9f450f4709ba4f07e04c91766e880e29c3aa76291174d24",
+          "sameLabelMaskAsHiddenKeyboard": true,
+          "buttonHeightPercentOfHiddenKeyboardReference": 100.0,
+          "inkRowsPercentOfHiddenKeyboardReference": 100.0,
+          "inkPixelCountPercentOfHiddenKeyboardReference": 100.0,
+          "exactBluePixelsPercentOfHiddenKeyboardReference": 100.0
+        },
+        "choose": {
+          "bounds": [
+            298,
+            561,
+            624,
+            658
+          ],
+          "buttonHeight": 97,
+          "inkPixelCount": 1726,
+          "exactBluePixels": 1110,
+          "inkRows": 21,
+          "firstInkY": 598,
+          "lastInkY": 618,
+          "normalizedLabelMaskSha256": "b685bfee75a501bb704e76d1796936f2f95ce2e2f8083a5c19a5a43497359dda",
+          "inkBounds": [
+            340,
+            598,
+            583,
+            619
+          ],
+          "rawCroppedSha256": "29a5cdd3cff42576afa51a29f13df23827b3e7dc033ff2604bece32dea70de91",
+          "sameLabelMaskAsHiddenKeyboard": true,
+          "buttonHeightPercentOfHiddenKeyboardReference": 100.0,
+          "inkRowsPercentOfHiddenKeyboardReference": 100.0,
+          "inkPixelCountPercentOfHiddenKeyboardReference": 100.0,
+          "exactBluePixelsPercentOfHiddenKeyboardReference": 100.0
+        }
+      },
+      "maskedEditors": [
+        {
+          "bounds": [
+            88,
+            351,
+            632,
+            442
+          ],
+          "focused": false,
+          "accessibilityMaskedLength": 24,
+          "maxRegularDarkRunsAcrossOneTextRow": 24,
+          "rowsWithVisibleMaskedGlyphs": 9,
+          "maskedInkYBounds": [
+            392,
+            400
+          ]
+        },
+        {
+          "bounds": [
+            88,
+            442,
+            632,
+            533
+          ],
+          "focused": true,
+          "accessibilityMaskedLength": 24,
+          "maxRegularDarkRunsAcrossOneTextRow": 24,
+          "rowsWithVisibleMaskedGlyphs": 9,
+          "maskedInkYBounds": [
+            483,
+            491
+          ]
+        }
+      ]
+    },
+    {
+      "stage": "static-keyboard-2",
+      "timeSinceCaseStartSeconds": 26.015,
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-normal-1795600841-static-keyboard-2.png",
+      "sizePx": [
+        720,
+        1280
+      ],
+      "ime": [
+        0,
+        686,
+        720,
+        1280
+      ],
+      "whiteInteriorAtX400": [
+        48,
+        675
+      ],
+      "buttons": {
+        "cancel": {
+          "bounds": [
+            114,
+            561,
+            282,
+            658
+          ],
+          "buttonHeight": 97,
+          "inkPixelCount": 616,
+          "exactBluePixels": 400,
+          "inkRows": 21,
+          "firstInkY": 598,
+          "lastInkY": 618,
+          "normalizedLabelMaskSha256": "eb448852336baf8042b765b85fecc1a56dd43f78151b2b93db04b7c8f3e94624",
+          "inkBounds": [
+            156,
+            598,
+            240,
+            619
+          ],
+          "rawCroppedSha256": "9d03d6239aeaca18b9f450f4709ba4f07e04c91766e880e29c3aa76291174d24",
+          "sameLabelMaskAsHiddenKeyboard": true,
+          "buttonHeightPercentOfHiddenKeyboardReference": 100.0,
+          "inkRowsPercentOfHiddenKeyboardReference": 100.0,
+          "inkPixelCountPercentOfHiddenKeyboardReference": 100.0,
+          "exactBluePixelsPercentOfHiddenKeyboardReference": 100.0
+        },
+        "choose": {
+          "bounds": [
+            298,
+            561,
+            624,
+            658
+          ],
+          "buttonHeight": 97,
+          "inkPixelCount": 1726,
+          "exactBluePixels": 1110,
+          "inkRows": 21,
+          "firstInkY": 598,
+          "lastInkY": 618,
+          "normalizedLabelMaskSha256": "b685bfee75a501bb704e76d1796936f2f95ce2e2f8083a5c19a5a43497359dda",
+          "inkBounds": [
+            340,
+            598,
+            583,
+            619
+          ],
+          "rawCroppedSha256": "29a5cdd3cff42576afa51a29f13df23827b3e7dc033ff2604bece32dea70de91",
+          "sameLabelMaskAsHiddenKeyboard": true,
+          "buttonHeightPercentOfHiddenKeyboardReference": 100.0,
+          "inkRowsPercentOfHiddenKeyboardReference": 100.0,
+          "inkPixelCountPercentOfHiddenKeyboardReference": 100.0,
+          "exactBluePixelsPercentOfHiddenKeyboardReference": 100.0
+        }
+      },
+      "semanticButtons": [
+        {
+          "id": "android:id/button2",
+          "text": "Cancel",
+          "enabled": "true",
+          "clickable": "true",
+          "bounds": "[114,561][282,658]"
+        },
+        {
+          "id": "android:id/button1",
+          "text": "Choose destination",
+          "enabled": "true",
+          "clickable": "true",
+          "bounds": "[298,561][624,658]"
+        }
+      ],
+      "maskedEditors": [
+        {
+          "bounds": [
+            88,
+            351,
+            632,
+            442
+          ],
+          "focused": false,
+          "accessibilityMaskedLength": 24,
+          "maxRegularDarkRunsAcrossOneTextRow": 24,
+          "rowsWithVisibleMaskedGlyphs": 9,
+          "maskedInkYBounds": [
+            392,
+            400
+          ]
+        },
+        {
+          "bounds": [
+            88,
+            442,
+            632,
+            533
+          ],
+          "focused": true,
+          "accessibilityMaskedLength": 24,
+          "maxRegularDarkRunsAcrossOneTextRow": 24,
+          "rowsWithVisibleMaskedGlyphs": 9,
+          "maskedInkYBounds": [
+            483,
+            491
+          ]
+        }
+      ]
+    },
+    {
+      "stage": "reopened-keyboard-shown",
+      "timeSinceCaseStartSeconds": 36.625,
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-f6b7f9ec\\default-portrait-normal-1795600841-reopened-keyboard-shown.png",
+      "sizePx": [
+        720,
+        1280
+      ],
+      "ime": [
+        0,
+        686,
+        720,
+        1280
+      ],
+      "whiteInteriorAtX400": [
+        48,
+        675
+      ],
+      "buttons": {
+        "cancel": {
+          "bounds": [
+            114,
+            561,
+            282,
+            658
+          ],
+          "buttonHeight": 97,
+          "inkPixelCount": 616,
+          "exactBluePixels": 400,
+          "inkRows": 21,
+          "firstInkY": 598,
+          "lastInkY": 618,
+          "normalizedLabelMaskSha256": "eb448852336baf8042b765b85fecc1a56dd43f78151b2b93db04b7c8f3e94624",
+          "inkBounds": [
+            156,
+            598,
+            240,
+            619
+          ],
+          "rawCroppedSha256": "9d03d6239aeaca18b9f450f4709ba4f07e04c91766e880e29c3aa76291174d24",
+          "sameLabelMaskAsHiddenKeyboard": true,
+          "buttonHeightPercentOfHiddenKeyboardReference": 100.0,
+          "inkRowsPercentOfHiddenKeyboardReference": 100.0,
+          "inkPixelCountPercentOfHiddenKeyboardReference": 100.0,
+          "exactBluePixelsPercentOfHiddenKeyboardReference": 100.0
+        },
+        "choose": {
+          "bounds": [
+            298,
+            561,
+            624,
+            658
+          ],
+          "buttonHeight": 97,
+          "inkPixelCount": 1726,
+          "exactBluePixels": 1110,
+          "inkRows": 21,
+          "firstInkY": 598,
+          "lastInkY": 618,
+          "normalizedLabelMaskSha256": "b685bfee75a501bb704e76d1796936f2f95ce2e2f8083a5c19a5a43497359dda",
+          "inkBounds": [
+            340,
+            598,
+            583,
+            619
+          ],
+          "rawCroppedSha256": "29a5cdd3cff42576afa51a29f13df23827b3e7dc033ff2604bece32dea70de91",
+          "sameLabelMaskAsHiddenKeyboard": true,
+          "buttonHeightPercentOfHiddenKeyboardReference": 100.0,
+          "inkRowsPercentOfHiddenKeyboardReference": 100.0,
+          "inkPixelCountPercentOfHiddenKeyboardReference": 100.0,
+          "exactBluePixelsPercentOfHiddenKeyboardReference": 100.0
+        }
+      },
+      "maskedEditors": [
+        {
+          "bounds": [
+            88,
+            351,
+            632,
+            442
+          ],
+          "focused": false,
+          "accessibilityMaskedLength": 24,
+          "maxRegularDarkRunsAcrossOneTextRow": 24,
+          "rowsWithVisibleMaskedGlyphs": 9,
+          "maskedInkYBounds": [
+            392,
+            400
+          ]
+        },
+        {
+          "bounds": [
+            88,
+            442,
+            632,
+            533
+          ],
+          "focused": true,
+          "accessibilityMaskedLength": 24,
+          "maxRegularDarkRunsAcrossOneTextRow": 24,
+          "rowsWithVisibleMaskedGlyphs": 9,
+          "maskedInkYBounds": [
+            483,
+            491
+          ]
+        }
+      ]
+    }
+  ],
+  "samePixelCropAcrossSamples": true,
+  "method": "Direct ADB exec-out screencap PNG; without resizing or compositing. Compare visible text with same control after hiding IME."
+}

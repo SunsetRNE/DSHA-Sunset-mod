@@ -1,0 +1,22 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.language=en -Duser.country=US -Dfile.encoding=UTF-8
+F:\DSHA_RESTART\source\build377-local\app\src\test\java\com\deepseekharness\app\util\LanAccessPresentationTest.java:29: error: method capture in class LanAccessPresentationTest cannot be applied to given types;
+    var denied = capture(true, false, 7, true, 3082, ADDRESSES, FINGERPRINT);
+                 ^
+  required: boolean,boolean,long,boolean,int,Discovery
+  found:    boolean,boolean,int,boolean,int,Discovery,String
+  reason: actual and formal argument lists differ in length
+F:\DSHA_RESTART\source\build377-local\app\src\test\java\com\deepseekharness\app\util\LanAccessPresentationTest.java:36: error: method capture in class LanAccessPresentation cannot be applied to given types;
+    var paused = LanAccessPresentation.capture(true, true, false, 7, true, 3082, ADDRESSES);
+                                      ^
+  required: boolean,boolean,boolean,long,boolean,int,Discovery,String
+  found:    boolean,boolean,boolean,int,boolean,int,Discovery
+  reason: actual and formal argument lists differ in length
+2 errors
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\test-lan-proxy.py", line 132, in <module>
+    main()
+  File "F:\DSHA_RESTART\source\build377-local\tools\test-lan-proxy.py", line 121, in main
+    subprocess.run(command, check=True, timeout=90)
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['F:\\DSHA_RESTART\\toolchains\\current\\jdk-17\\bin\\javac.exe', '-encoding', 'UTF-8', '--release', '17', '-cp', 'F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\junit\\junit\\4.13.2\\8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12\\junit-4.13.2.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.hamcrest\\hamcrest-core\\1.3\\42a25dc3219429f0e5d060061f71acb49bf010a0\\hamcrest-core-1.3.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.bouncycastle\\bcprov-jdk15to18\\1.85.2\\bd0166262cfa3836d469437b6f800e7409f78cc8\\bcprov-jdk15to18-1.85.2.jar', '-d', 'F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\tls-host-r1\\classes', '-sourcepath', 'F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\tls-host-r1\\stubs;F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\tls-host-r1\\overrides;F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java;F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java', 'F:\\DSHA_RESTART\\source\\build377-local\\tools\\fixtures\\lan-proxy-host\\LanProxyHostTest.java', 'F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\LanPasswordAuthTest.java', 'F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\util\\LanTokenStateTest.java', 'F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\LanAuthTest.java', 'F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\util\\SocketDispatchTest.java', 'F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\util\\HttpProtocolTest.java', 'F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\util\\LanNetworkStateTest.java', 'F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\util\\LanAddressPolicyTest.java', 'F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\util\\LanAccessPresentationTest.java', 'F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\LanRequestOriginTest.java', 'F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\util\\BridgePortPolicyTest.java', 'F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\util\\LanPortPolicyTest.java', 'F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\util\\WebPortPolicyTest.java', 'F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\util\\WebPortSettingsTest.java', 'F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\util\\ConfigInputTest.java']' returned non-zero exit status 1.

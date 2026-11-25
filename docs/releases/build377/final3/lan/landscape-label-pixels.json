@@ -1,0 +1,279 @@
+{
+  "sha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+  "source": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-292f89da\\landscape-steady-normal-1795598732.json",
+  "reference": {
+    "stage": "keyboard-hidden-reference",
+    "timeSinceCaseStartSeconds": 36.109,
+    "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-292f89da\\landscape-steady-normal-1795598732-keyboard-hidden-reference.png",
+    "sizePx": [
+      1280,
+      720
+    ],
+    "ime": null,
+    "whiteInteriorAtX400": [
+      96,
+      671
+    ],
+    "buttons": {
+      "cancel": {
+        "bounds": [
+          546,
+          547,
+          714,
+          644
+        ],
+        "buttonHeight": 97,
+        "inkPixelCount": 618,
+        "exactBluePixels": 307,
+        "inkRows": 21,
+        "firstInkY": 584,
+        "lastInkY": 604,
+        "rawCroppedSha256": "75d297576b58a1086712cc20fd3e2f4c19a3c40c1aafe7468f14b77071755447"
+      },
+      "choose": {
+        "bounds": [
+          730,
+          547,
+          1056,
+          644
+        ],
+        "buttonHeight": 97,
+        "inkPixelCount": 1729,
+        "exactBluePixels": 914,
+        "inkRows": 21,
+        "firstInkY": 584,
+        "lastInkY": 604,
+        "rawCroppedSha256": "603dfe9cb2754314bbbc329ab1d71fa2295a064e5514f3687342ff20e1068dd8"
+      }
+    }
+  },
+  "samples": [
+    {
+      "stage": "static-keyboard-0",
+      "timeSinceCaseStartSeconds": 19.125,
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-292f89da\\landscape-steady-normal-1795598732-static-keyboard-0.png",
+      "sizePx": [
+        1280,
+        720
+      ],
+      "ime": [
+        0,
+        320,
+        1184,
+        720
+      ],
+      "whiteInteriorAtX400": [
+        96,
+        271
+      ],
+      "buttons": {
+        "cancel": {
+          "bounds": [
+            546,
+            219,
+            714,
+            272
+          ],
+          "buttonHeight": 53,
+          "inkPixelCount": 414,
+          "exactBluePixels": 203,
+          "inkRows": 16,
+          "firstInkY": 256,
+          "lastInkY": 271,
+          "rawCroppedSha256": "3314c07668610df3ebfa8c87e0036270bb09ab23957c889871b07b22322f686b",
+          "buttonHeightPercentOfHiddenKeyboardReference": 54.64,
+          "inkRowsPercentOfHiddenKeyboardReference": 76.19,
+          "inkPixelCountPercentOfHiddenKeyboardReference": 66.99,
+          "exactBluePixelsPercentOfHiddenKeyboardReference": 66.12
+        },
+        "choose": {
+          "bounds": [
+            730,
+            219,
+            1056,
+            272
+          ],
+          "buttonHeight": 53,
+          "inkPixelCount": 1184,
+          "exactBluePixels": 599,
+          "inkRows": 16,
+          "firstInkY": 256,
+          "lastInkY": 271,
+          "rawCroppedSha256": "6952d6ff81b7f7e3f2a8c3ff6b864c4f716adea771555e1a32b5db8590c323ab",
+          "buttonHeightPercentOfHiddenKeyboardReference": 54.64,
+          "inkRowsPercentOfHiddenKeyboardReference": 76.19,
+          "inkPixelCountPercentOfHiddenKeyboardReference": 68.48,
+          "exactBluePixelsPercentOfHiddenKeyboardReference": 65.54
+        }
+      },
+      "semanticButtons": [
+        {
+          "id": "android:id/button2",
+          "text": "Cancel",
+          "enabled": "true",
+          "clickable": "true",
+          "bounds": "[546,219][714,272]"
+        },
+        {
+          "id": "android:id/button1",
+          "text": "Choose destination",
+          "enabled": "true",
+          "clickable": "true",
+          "bounds": "[730,219][1056,272]"
+        }
+      ]
+    },
+    {
+      "stage": "static-keyboard-4",
+      "timeSinceCaseStartSeconds": 24.5,
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-292f89da\\landscape-steady-normal-1795598732-static-keyboard-4.png",
+      "sizePx": [
+        1280,
+        720
+      ],
+      "ime": [
+        0,
+        320,
+        1184,
+        720
+      ],
+      "whiteInteriorAtX400": [
+        96,
+        271
+      ],
+      "buttons": {
+        "cancel": {
+          "bounds": [
+            546,
+            219,
+            714,
+            272
+          ],
+          "buttonHeight": 53,
+          "inkPixelCount": 414,
+          "exactBluePixels": 203,
+          "inkRows": 16,
+          "firstInkY": 256,
+          "lastInkY": 271,
+          "rawCroppedSha256": "3314c07668610df3ebfa8c87e0036270bb09ab23957c889871b07b22322f686b",
+          "buttonHeightPercentOfHiddenKeyboardReference": 54.64,
+          "inkRowsPercentOfHiddenKeyboardReference": 76.19,
+          "inkPixelCountPercentOfHiddenKeyboardReference": 66.99,
+          "exactBluePixelsPercentOfHiddenKeyboardReference": 66.12
+        },
+        "choose": {
+          "bounds": [
+            730,
+            219,
+            1056,
+            272
+          ],
+          "buttonHeight": 53,
+          "inkPixelCount": 1184,
+          "exactBluePixels": 599,
+          "inkRows": 16,
+          "firstInkY": 256,
+          "lastInkY": 271,
+          "rawCroppedSha256": "6952d6ff81b7f7e3f2a8c3ff6b864c4f716adea771555e1a32b5db8590c323ab",
+          "buttonHeightPercentOfHiddenKeyboardReference": 54.64,
+          "inkRowsPercentOfHiddenKeyboardReference": 76.19,
+          "inkPixelCountPercentOfHiddenKeyboardReference": 68.48,
+          "exactBluePixelsPercentOfHiddenKeyboardReference": 65.54
+        }
+      },
+      "semanticButtons": [
+        {
+          "id": "android:id/button2",
+          "text": "Cancel",
+          "enabled": "true",
+          "clickable": "true",
+          "bounds": "[546,219][714,272]"
+        },
+        {
+          "id": "android:id/button1",
+          "text": "Choose destination",
+          "enabled": "true",
+          "clickable": "true",
+          "bounds": "[730,219][1056,272]"
+        }
+      ]
+    },
+    {
+      "stage": "static-keyboard-10",
+      "timeSinceCaseStartSeconds": 29.875,
+      "screenshot": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\signed-dialog-292f89da\\landscape-steady-normal-1795598732-static-keyboard-10.png",
+      "sizePx": [
+        1280,
+        720
+      ],
+      "ime": [
+        0,
+        320,
+        1184,
+        720
+      ],
+      "whiteInteriorAtX400": [
+        96,
+        271
+      ],
+      "buttons": {
+        "cancel": {
+          "bounds": [
+            546,
+            219,
+            714,
+            272
+          ],
+          "buttonHeight": 53,
+          "inkPixelCount": 414,
+          "exactBluePixels": 203,
+          "inkRows": 16,
+          "firstInkY": 256,
+          "lastInkY": 271,
+          "rawCroppedSha256": "3314c07668610df3ebfa8c87e0036270bb09ab23957c889871b07b22322f686b",
+          "buttonHeightPercentOfHiddenKeyboardReference": 54.64,
+          "inkRowsPercentOfHiddenKeyboardReference": 76.19,
+          "inkPixelCountPercentOfHiddenKeyboardReference": 66.99,
+          "exactBluePixelsPercentOfHiddenKeyboardReference": 66.12
+        },
+        "choose": {
+          "bounds": [
+            730,
+            219,
+            1056,
+            272
+          ],
+          "buttonHeight": 53,
+          "inkPixelCount": 1184,
+          "exactBluePixels": 599,
+          "inkRows": 16,
+          "firstInkY": 256,
+          "lastInkY": 271,
+          "rawCroppedSha256": "6952d6ff81b7f7e3f2a8c3ff6b864c4f716adea771555e1a32b5db8590c323ab",
+          "buttonHeightPercentOfHiddenKeyboardReference": 54.64,
+          "inkRowsPercentOfHiddenKeyboardReference": 76.19,
+          "inkPixelCountPercentOfHiddenKeyboardReference": 68.48,
+          "exactBluePixelsPercentOfHiddenKeyboardReference": 65.54
+        }
+      },
+      "semanticButtons": [
+        {
+          "id": "android:id/button2",
+          "text": "Cancel",
+          "enabled": "true",
+          "clickable": "true",
+          "bounds": "[546,219][714,272]"
+        },
+        {
+          "id": "android:id/button1",
+          "text": "Choose destination",
+          "enabled": "true",
+          "clickable": "true",
+          "bounds": "[730,219][1056,272]"
+        }
+      ]
+    }
+  ],
+  "samePixelCropAcrossSamples": true,
+  "method": "Direct ADB exec-out screencap PNG; without resizing or compositing. Compare visible text with same control after hiding IME."
+}

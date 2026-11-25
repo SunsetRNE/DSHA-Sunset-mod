@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "scope": "production-source-lexical-only",
+  "counts": {},
+  "lexicalCandidateCounts": {
+    "translated_choose_fragment_concat": 2
+  },
+  "dynamicUiTextArgumentsForReview": 24,
+  "newFindings": 0,
+  "resolvedBaselineFindings": 0,
+  "findings": [],
+  "explicitNonFindings": [
+    {
+      "kind": "translated_choose_fragment_concat",
+      "file": "app/src/main/java/com/deepseekharness/app/core/EnvironmentMaintenance.java",
+      "signature": "UiText.choose(\"环境重建完成，数据逐文件核验与运行试验通过。\\n\",\"Environment rebuilt; data verification and the runtime trial passed.\\n\")+",
+      "line": 369,
+      "sourceSha256": "7256e67066bb13d5523553897e01dd9221fe7d4af8bb4d3784824159968d78e2",
+      "classification": "independent_complete_paragraph_join",
+      "reason": "The complete translated rebuild-result sentence ends with a newline. The separately assembled cleanup outcome is either its own complete static result or registered complete error templates preserving raw error arguments. Joining these paragraphs is intentional.",
+      "evidence": "docs/audits/build156/choose-complete-paragraph-evidence.json"
+    },
+    {
+      "kind": "translated_choose_fragment_concat",
+      "file": "app/src/main/java/com/deepseekharness/app/recovery/RecoveryController.java",
+      "signature": "UiText.choose(\"独立应急 DSH 已就绪；正式环境保持原状。\",\"Independent recovery DSH is ready. The main environment is preserved.\")+",
+      "line": 325,
+      "sourceSha256": "0fc4bbf26348067af00a4edb98e668ff23b143103d911ceeee0cace35995f1c6",
+      "classification": "independent_complete_paragraph_join",
+      "reason": "The complete recovery-ready sentence is followed by an optional independently translated credential notice. Each notice is a complete sentence with leading whitespace; no user credential or incomplete label is concatenated here.",
+      "evidence": "docs/audits/build156/choose-complete-paragraph-evidence.json"
+    }
+  ],
+  "staleNonFindingDeclarations": []
+}

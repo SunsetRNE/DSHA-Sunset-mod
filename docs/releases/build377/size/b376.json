@@ -1,0 +1,506 @@
+{
+  "timestampUtc": "2026-11-25T06:47:32.198351+00:00",
+  "apk": "release\\0.2.2-rc.5\\dsha-0.2.2-rc.5.apk",
+  "sha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+  "logicalBytes": 257781425,
+  "members": 1875,
+  "payloadZipBytes": 257517898,
+  "zipOtherBytes": 263527,
+  "eightArchives": [
+    {
+      "path": "assets/adb-wheels.bin",
+      "method": 0,
+      "zipBytes": 9951074,
+      "decodedBytes": 9951074,
+      "sha256": "173000bd60f8d58f90f988320b9b675540806139da9eae64ea78a0e6ecf5d9d4"
+    },
+    {
+      "path": "assets/dsh-runtime.bin",
+      "method": 0,
+      "zipBytes": 143385698,
+      "decodedBytes": 143385698,
+      "sha256": "5e09123a2515764c1b9731de800da5b4a5c40d43838149bc8e4c87b991bab086"
+    },
+    {
+      "path": "assets/gh-cli.bin",
+      "method": 0,
+      "zipBytes": 9592508,
+      "decodedBytes": 9592508,
+      "sha256": "80c8f97512689a81261ad9e6f45c54798b188a00a255b55082a0d13bfd10fa20"
+    },
+    {
+      "path": "assets/glibc-python.bin",
+      "method": 0,
+      "zipBytes": 4774024,
+      "decodedBytes": 4774024,
+      "sha256": "f627e3d6ac38703a7ff9c9c5a733c6d628bfd1866c32660873c661a670613882"
+    },
+    {
+      "path": "assets/offline-rootfs.bin",
+      "method": 0,
+      "zipBytes": 49354120,
+      "decodedBytes": 49354120,
+      "sha256": "e11c3d324809ee1fc906391ea4c3780f720a8528dfe00ffcd769fdb6c2e25a4d"
+    },
+    {
+      "path": "assets/pnpm-runtime.bin",
+      "method": 0,
+      "zipBytes": 3837861,
+      "decodedBytes": 3837861,
+      "sha256": "08873508c20e5a4af5ffb93a02509aac62a24b91826d8abce9f0d71e9453ce9d"
+    },
+    {
+      "path": "assets/python-support.bin",
+      "method": 0,
+      "zipBytes": 904360,
+      "decodedBytes": 904360,
+      "sha256": "9f8299ea3fa7a1cf84c23087ae80f584599a828585f3175f92da575955a63464"
+    },
+    {
+      "path": "assets/ubuntu-tools.bin",
+      "method": 0,
+      "zipBytes": 15517764,
+      "decodedBytes": 15517764,
+      "sha256": "0027c09c3a63493571dbe32a291ab83229c6c4f816e7285f849cabf8a15245f0"
+    }
+  ],
+  "archiveZipBytes": 237317409,
+  "identicalPayloadUpperBound": 71430,
+  "duplicates": [
+    {
+      "sha256": "a9040321c3712d8fd0b09cf52b17445de04a23a10165049ae187cd39e5c86be5",
+      "members": [
+        "assets/licenses/rust/block-buffer-0.10.4/LICENSE-APACHE",
+        "assets/licenses/rust/cpufeatures-0.2.17/LICENSE-APACHE",
+        "assets/licenses/rust/crypto-common-0.1.7/LICENSE-APACHE",
+        "assets/licenses/rust/digest-0.10.7/LICENSE-APACHE",
+        "assets/licenses/rust/sha1-0.10.7/LICENSE-APACHE",
+        "assets/licenses/rust/sha2-0.10.9/LICENSE-APACHE"
+      ],
+      "duplicateZipBytes": 19605
+    },
+    {
+      "sha256": "a57dc469a7e7da32bd0b55ddd18cd68bb65f709b5389f2475093eafb098c8726",
+      "members": [
+        "assets/builtin-plugins/dsh-destructive-guard/lib/destructive.js",
+        "assets/destructive-policy/destructive.js"
+      ],
+      "duplicateZipBytes": 17614
+    },
+    {
+      "sha256": "be413341075a0c23b34314c9a85ebcc032cc9d3dbd83a9298b3f631733869dd0",
+      "members": [
+        "assets/bridge-port.cjs",
+        "assets/builtin-plugins/dsh-computer-use-android/lib/bridge-port.cjs",
+        "assets/builtin-plugins/dsh-device-shell-guide/lib/bridge-port.cjs",
+        "assets/builtin-plugins/dsh-launch-target/lib/bridge-port.cjs",
+        "assets/builtin-plugins/dsh-status-overlay/lib/bridge-port.cjs",
+        "assets/builtin-plugins/dsh-task-notifier/lib/bridge-port.cjs",
+        "assets/builtin-plugins/dsh-tool-vscreen/lib/bridge-port.cjs"
+      ],
+      "duplicateZipBytes": 7986
+    },
+    {
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "members": [
+        "assets/licenses/rust/cfg-if-1.0.5/LICENSE-APACHE",
+        "assets/licenses/rust/flate2-1.1.11/LICENSE-APACHE",
+        "assets/licenses/rust/version_check-0.9.5/LICENSE-APACHE"
+      ],
+      "duplicateZipBytes": 7844
+    },
+    {
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "members": [
+        "assets/licenses/Termux-terminal-Apache-2.0.txt",
+        "assets/licenses/gson-LICENSE.txt"
+      ],
+      "duplicateZipBytes": 3949
+    },
+    {
+      "sha256": "a401d96b87f2b1cc566ebb1b55b8a827f67f08c2418d1e739e870fa775b55861",
+      "members": [
+        "assets/builtin-plugins/dsh-destructive-guard/lib/workdir.js",
+        "assets/destructive-policy/workdir.js"
+      ],
+      "duplicateZipBytes": 1386
+    },
+    {
+      "sha256": "1c35b6fe72b866dc597b8bca3eb54f0bd62f20755f282ece1396642b8f44520e",
+      "members": [
+        "assets/language-patch.json",
+        "assets/recovery-recipes/0.2.2-rc.5/language-patch.json"
+      ],
+      "duplicateZipBytes": 779
+    },
+    {
+      "sha256": "b4eb00df6e2a4d22518fcaa6a2b4646f249b3a3c9814509b22bd2091f1392ff1",
+      "members": [
+        "assets/licenses/rust/sha1-0.10.7/LICENSE-MIT",
+        "assets/licenses/rust/sha2-0.10.9/LICENSE-MIT"
+      ],
+      "duplicateZipBytes": 671
+    },
+    {
+      "sha256": "aa37cae5e127a58aecb8d03e3bd14d8a792a0dd41b1ad205cc7bb45d4e0f3c53",
+      "members": [
+        "res/59.xml",
+        "res/D6.xml",
+        "res/OX.xml"
+      ],
+      "duplicateZipBytes": 634
+    },
+    {
+      "sha256": "cb2d92aaa98cd059ae491b9af6ca169398dc88ef3ad94a20f2ed0fa453f19f71",
+      "members": [
+        "res/YW1.xml",
+        "res/a5.xml",
+        "res/ya.xml"
+      ],
+      "duplicateZipBytes": 634
+    },
+    {
+      "sha256": "27f4e9cb852131ad238685c962a0880a9ea2db41dcc28a8aa507b76c1706e4fa",
+      "members": [
+        "res/68.xml",
+        "res/LT.xml",
+        "res/pn.xml"
+      ],
+      "duplicateZipBytes": 632
+    },
+    {
+      "sha256": "4edbb86cabe8909d853591a1a45e99d95a3d4095f428dbd382adade3e2d47e45",
+      "members": [
+        "res/JT.xml",
+        "res/Lt.xml",
+        "res/Zd.xml"
+      ],
+      "duplicateZipBytes": 632
+    },
+    {
+      "sha256": "2180bf3c507ed237237d51beba5cce02d4f8961baa9c9db6d9ea37f1cfe149dd",
+      "members": [
+        "res/HC1.xml",
+        "res/MZ.xml",
+        "res/wP.xml"
+      ],
+      "duplicateZipBytes": 622
+    },
+    {
+      "sha256": "48b5331328e9b46c516e88ba1846bbd8e9eb8b72bff9d0149fc5d08a43d8c0ef",
+      "members": [
+        "res/gG.xml",
+        "res/xa.xml"
+      ],
+      "duplicateZipBytes": 525
+    },
+    {
+      "sha256": "99a8806fdf8bb7cc984cb01ad68fb4ffc95fc82337b85dddd26358bfb21022db",
+      "members": [
+        "res/2w.xml",
+        "res/pw.xml"
+      ],
+      "duplicateZipBytes": 504
+    },
+    {
+      "sha256": "4cdd4f8241fc74ef691c22bcfa91ab1eb255a6741c607c8f3f76ea52fc2e6adc",
+      "members": [
+        "res/BW.xml",
+        "res/Vh.xml",
+        "res/mj.xml"
+      ],
+      "duplicateZipBytes": 444
+    },
+    {
+      "sha256": "b50713962dc0629d1e15d07f9fc64de73e0c9a851e5c147be5787d571ba00a7a",
+      "members": [
+        "res/color/mtrl_navigation_bar_ripple_color.xml",
+        "res/color/mtrl_tabs_ripple_color.xml"
+      ],
+      "duplicateZipBytes": 420
+    },
+    {
+      "sha256": "ffe7e70769e57d1bbe90070c3d8cc5f1b8a68e002a0d0d107bd0af391eaccff3",
+      "members": [
+        "assets/pdf-compat-patch.json",
+        "assets/recovery-recipes/0.2.2-rc.5/pdf-compat-patch.json"
+      ],
+      "duplicateZipBytes": 398
+    },
+    {
+      "sha256": "8813d69910902c63435a636c5e802d7418c7e58d7fd0812e4006a9617f2543a6",
+      "members": [
+        "res/color/mtrl_navigation_bar_colored_ripple_color.xml",
+        "res/color/mtrl_tabs_colored_ripple_color.xml"
+      ],
+      "duplicateZipBytes": 334
+    },
+    {
+      "sha256": "378694706fb7256dd2248e2af854efd71ec7e8885f61da2e16a2bd32fcf3d0a9",
+      "members": [
+        "res/ej.9.png",
+        "res/hZ.9.png",
+        "res/jS1.9.png"
+      ],
+      "duplicateZipBytes": 334
+    },
+    {
+      "sha256": "71dc820f6a1b64f708412d29db7aeab3dcbc6b2ae93cc8326d5d02ec127265e6",
+      "members": [
+        "res/NU1.xml",
+        "res/on.xml"
+      ],
+      "duplicateZipBytes": 312
+    },
+    {
+      "sha256": "3cd370e9b2818bd66be58f138e518c12ff7fde1eb7c5348293d02ec135f2faa7",
+      "members": [
+        "res/S6.xml",
+        "res/nm.xml"
+      ],
+      "duplicateZipBytes": 311
+    },
+    {
+      "sha256": "069590c8261e722893e7b2cc83db1b1d8a5919f780864375d75626986ab25543",
+      "members": [
+        "res/color/m3_button_ripple_color_selector.xml",
+        "res/color/m3_tonal_button_ripple_color_selector.xml"
+      ],
+      "duplicateZipBytes": 304
+    },
+    {
+      "sha256": "fa92ee08fa8c126542585835bb57afe3372d66b664c6a3ee1ae5598e5f046be6",
+      "members": [
+        "res/color-v23/abc_tint_edittext.xml",
+        "res/color-v23/abc_tint_spinner.xml"
+      ],
+      "duplicateZipBytes": 285
+    },
+    {
+      "sha256": "2aa8ca22fce0fafe4e6c399c64625647387969fae585421c40e0e2851386b169",
+      "members": [
+        "res/color/mtrl_navigation_item_icon_tint.xml",
+        "res/color/mtrl_navigation_item_text_color.xml"
+      ],
+      "duplicateZipBytes": 282
+    },
+    {
+      "sha256": "acde08dd6f541dbdbf8ac44fc1b86b8abcb87add5452bdd2c89d00ef08d7d77b",
+      "members": [
+        "res/color/m3_tabs_icon_color.xml",
+        "res/color/m3_tabs_text_color.xml"
+      ],
+      "duplicateZipBytes": 278
+    },
+    {
+      "sha256": "08dc6f7ed7a5e09cdeed777216a70869aca1d4bdea399bdbfcb5d56770a4adbf",
+      "members": [
+        "res/color/m3_tabs_icon_color_secondary.xml",
+        "res/color/m3_tabs_text_color_secondary.xml"
+      ],
+      "duplicateZipBytes": 275
+    },
+    {
+      "sha256": "c52df1f7839f5a4d949fff4de2b538c5b2bf1e43e52b6702121e1cc15f46301b",
+      "members": [
+        "res/57.xml",
+        "res/Q5.xml"
+      ],
+      "duplicateZipBytes": 272
+    },
+    {
+      "sha256": "b67fa30d891ddbf73e0202de282f20ebdc7942803e4d92e6f8987384e1b3f238",
+      "members": [
+        "res/L7.xml",
+        "res/Ut.xml"
+      ],
+      "duplicateZipBytes": 269
+    },
+    {
+      "sha256": "9442a249ce001b7aedfeea1944cf216efc85ba50377cc32556508fdd6b495266",
+      "members": [
+        "res/color/m3_button_background_color_selector.xml",
+        "res/color/m3_fab_efab_background_color_selector.xml"
+      ],
+      "duplicateZipBytes": 244
+    },
+    {
+      "sha256": "1e06cbc46a16b2b8507b985c5756783d181e31a7529e75fe4ca06a793ea9abf9",
+      "members": [
+        "res/color/m3_button_foreground_color_selector.xml",
+        "res/color/m3_fab_efab_foreground_color_selector.xml"
+      ],
+      "duplicateZipBytes": 244
+    },
+    {
+      "sha256": "8c730efd525e1f2cd855bbc7b8a47209ac91f6b942319adc1539d7ed76b8e55f",
+      "members": [
+        "res/O6.xml",
+        "res/Q9.xml"
+      ],
+      "duplicateZipBytes": 238
+    },
+    {
+      "sha256": "f5707959a82321e227ff990b26b32eb5aa1340bc68bdad0fd4bf18d9a24187bc",
+      "members": [
+        "res/Lk.xml",
+        "res/ML.xml"
+      ],
+      "duplicateZipBytes": 226
+    },
+    {
+      "sha256": "43e9214348b3b21eff158c197651143ad9a2a0a0e4fa0215056993ebff1925ad",
+      "members": [
+        "res/L9.xml",
+        "res/hl.xml"
+      ],
+      "duplicateZipBytes": 225
+    },
+    {
+      "sha256": "3ab1af24be273202ccefbd3157a149ea90f3c611c113cc327790368d2f33924f",
+      "members": [
+        "res/pp.xml",
+        "res/xZ1.xml"
+      ],
+      "duplicateZipBytes": 225
+    },
+    {
+      "sha256": "223700e6fda86e840f70282a44ce20387a2025863867de80d9e39952ca0b7b2c",
+      "members": [
+        "res/FG.xml",
+        "res/_r.xml"
+      ],
+      "duplicateZipBytes": 224
+    },
+    {
+      "sha256": "cc97f7096fcdc4866cce2ec0c2274626459066128a75abc2cafda70a7227f56a",
+      "members": [
+        "res/ss.xml",
+        "res/tp1.xml"
+      ],
+      "duplicateZipBytes": 219
+    },
+    {
+      "sha256": "41e5cd361b19f2c0e193417588fec923d97a806efb666f5cbf5226b8d81cac0b",
+      "members": [
+        "res/color-night-v8/material_timepicker_clockface.xml",
+        "res/color/material_divider_color.xml"
+      ],
+      "duplicateZipBytes": 210
+    },
+    {
+      "sha256": "a8d7341c20d07c9fdab602e7c39187c9abb9caf5fbf9b2832cd6d9f18a2c86c2",
+      "members": [
+        "res/DZ1.xml",
+        "res/lN.xml"
+      ],
+      "duplicateZipBytes": 190
+    },
+    {
+      "sha256": "0ab3bc82b3b9fd8499202cafe3d494a9f66fba248d01e90b90e932c8849947cc",
+      "members": [
+        "res/NF.xml",
+        "res/VM.xml"
+      ],
+      "duplicateZipBytes": 190
+    },
+    {
+      "sha256": "68b7fc0e819c526c7e31c1413b1821bc0ccfcf4ab550c356a7f740a9d84917dc",
+      "members": [
+        "res/_o.xml",
+        "res/c5.xml"
+      ],
+      "duplicateZipBytes": 187
+    },
+    {
+      "sha256": "9b0ac791a3fa953e28b526e020fd2e629b40812ee1bc4693ff5fdfef15044202",
+      "members": [
+        "res/QZ2.xml",
+        "res/XW.xml",
+        "res/aW.xml"
+      ],
+      "duplicateZipBytes": 136
+    },
+    {
+      "sha256": "59854984853104df5c353e2f681a15fc7924742f9a2e468c29af248dce45ce03",
+      "members": [
+        "META-INF/androidx.cardview_cardview.version",
+        "META-INF/androidx.cursoradapter_cursoradapter.version",
+        "META-INF/androidx.documentfile_documentfile.version",
+        "META-INF/androidx.dynamicanimation_dynamicanimation.version",
+        "META-INF/androidx.interpolator_interpolator.version",
+        "META-INF/androidx.legacy_legacy-support-core-utils.version",
+        "META-INF/androidx.loader_loader.version",
+        "META-INF/androidx.localbroadcastmanager_localbroadcastmanager.version",
+        "META-INF/androidx.print_print.version",
+        "META-INF/androidx.tracing_tracing.version",
+        "META-INF/androidx.viewpager2_viewpager2.version",
+        "META-INF/androidx.viewpager_viewpager.version"
+      ],
+      "duplicateZipBytes": 66
+    },
+    {
+      "sha256": "1575e1af4a95f12f70b4ee6a6adce8160953d93ea17dc2611b90883ccc3ad3b8",
+      "members": [
+        "META-INF/androidx.coordinatorlayout_coordinatorlayout.version",
+        "META-INF/androidx.customview_customview.version",
+        "META-INF/androidx.recyclerview_recyclerview.version",
+        "META-INF/androidx.vectordrawable_vectordrawable-animated.version",
+        "META-INF/androidx.vectordrawable_vectordrawable.version"
+      ],
+      "duplicateZipBytes": 24
+    },
+    {
+      "sha256": "cc52f678848b814373757b460383bf61960e4943c203735adde0a350b3e50989",
+      "members": [
+        "META-INF/androidx.drawerlayout_drawerlayout.version",
+        "META-INF/androidx.startup_startup-runtime.version",
+        "META-INF/androidx.versionedparcelable_versionedparcelable.version"
+      ],
+      "duplicateZipBytes": 12
+    },
+    {
+      "sha256": "1e5b51cde515396a9fa762909cf8ca6584ccc564b325d2eebeea76175fe95c4d",
+      "members": [
+        "META-INF/androidx.emoji2_emoji2-views-helper.version",
+        "META-INF/androidx.emoji2_emoji2.version",
+        "META-INF/androidx.transition_transition.version"
+      ],
+      "duplicateZipBytes": 12
+    },
+    {
+      "sha256": "64d23f858ef51b0f996e4966d4e27c0371b437e2d2787890b1f7ad22d4ec5663",
+      "members": [
+        "META-INF/androidx.annotation_annotation-experimental.version",
+        "META-INF/androidx.profileinstaller_profileinstaller.version"
+      ],
+      "duplicateZipBytes": 6
+    },
+    {
+      "sha256": "6430a242e9486093ef6f71d9086d48f61ba102f0d2fb0f5b95334c6007a46db3",
+      "members": [
+        "META-INF/androidx.appcompat_appcompat-resources.version",
+        "META-INF/androidx.appcompat_appcompat.version"
+      ],
+      "duplicateZipBytes": 6
+    },
+    {
+      "sha256": "30f4611383aa30a15753789f40effde81332f2f8714e6d3b2940bf0fc4592377",
+      "members": [
+        "META-INF/androidx.core_core-ktx.version",
+        "META-INF/androidx.core_core.version"
+      ],
+      "duplicateZipBytes": 6
+    },
+    {
+      "sha256": "4f232ffa4f33d6227b6f492a7857a3fb3ea8ea0f8ab1d89fe667211326262a4a",
+      "members": [
+        "META-INF/kotlinx_coroutines_android.version",
+        "META-INF/kotlinx_coroutines_core.version"
+      ],
+      "duplicateZipBytes": 5
+    }
+  ],
+  "firstVerifiedMemberSeconds": 0.16585599997779354,
+  "completeSeconds": 0.6097347000031732
+}

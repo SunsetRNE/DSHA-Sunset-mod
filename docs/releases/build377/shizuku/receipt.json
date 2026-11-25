@@ -1,0 +1,271 @@
+{
+  "baseCommit": "12efafd7d3530b412d48ccb66fb657c6bd7cc8ac",
+  "baselineApk": {
+    "sha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+    "bytes": 257781425
+  },
+  "sourceFiles": {
+    "app/src/main/java/com/deepseekharness/app/ShellService.java": {
+      "before": "0fd0e42727d06130f7cd66fe7356ae57359e90287880440e7efbb64b4d8334a3",
+      "after": "7ae4a2f631c315a9e6de0378d3f54826d4d924d21c09d53aa2df59d0e0bf4811"
+    },
+    "app/src/main/java/com/deepseekharness/app/ShizukuShell.java": {
+      "before": "90fefc06ec0ad0b8f78882e096730c25bb765cc13e4a5107c7921cc68370191b",
+      "after": "af0cad466356334034d40ad47b7a3f814afcfa895d5f60b94cd90b083d8fde48"
+    },
+    "app/src/main/aidl/com/deepseekharness/app/IShellService.aidl": {
+      "before": "dd49684d5b9f832971fa65a1d929cc99635837b2e4e5b304044a5c433420c775",
+      "after": "184426483a57cb48d5df3ff96058ee45d59770e416f61c321aa77d1806cfa03a"
+    },
+    "tools/aidl-stub/com/deepseekharness/app/IShellService.java": {
+      "before": "00d4becc8c92167d84432672fbfceead9e836a32b22a72f96589dafe17f0bd62",
+      "after": "585df1828430904f7f43f4f800f6cfbc42be6003f93cd0790b2bcfd2c40d70a3"
+    },
+    "app/src/test/java/com/deepseekharness/app/ShizukuServiceLifecycleTest.java": {
+      "before": null,
+      "after": "f716ae32382b9ce86b0e919d46b741611e70b37b11f013b992f83852266a92a5"
+    },
+    "tools/aidl-stub/README.md": {
+      "before": "ef314a670d53676ac332a31ff54ec2f5065b1181433524d7fe7a63e6300869eb",
+      "after": "b37f54234ba55a3981a985137b15343b3c02333de01d9a35ad1e3ad42a8caef6"
+    },
+    "tools/java-format.lock.json": {
+      "before": "3e67f0753515be79544330af65dca5176f15364fe9b938e467b0b85f3e7970b4",
+      "after": "87119ffde6cf1d926c41d1e27ddd30db97a86a79ce8e920c6e7898e9c234fae9"
+    },
+    "tools/java-format/README.md": {
+      "before": "d1eedaa775a36591d15862c4583e74d67a663dced3212c2a6b072a40ef65157d",
+      "after": "5cffe308452641c0055b2acd0a4db1809df7c40f397daeb0972abaa3c0ab5257"
+    },
+    "tools/test-java-format.py": {
+      "before": "f1614263a71643f0075fecdd09587799b9d05a3d485cd67264ab6edc54d7be33",
+      "after": "0c072a321756ad30a2eec49bb58486449c5bd6449528bc60040c06f5d7ac28ee"
+    }
+  },
+  "sdk": {
+    "aar": "F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\dev.rikka.shizuku\\shared\\13.1.5\\8c4e73ce466cd27aff10565d2ec49809c258f974\\shared-13.1.5.aar",
+    "sha256": "4659642c9339be0a26e9c65bb8648f7ad6d8f4a465f557993ccbc78802381635",
+    "wireDestroy": 16777115
+  },
+  "aidl": {
+    "flags": [
+      "--lang=java",
+      "--min_sdk_version=30"
+    ],
+    "sdk": "36.0.0",
+    "fallbackFileSha256": "585df1828430904f7f43f4f800f6cfbc42be6003f93cd0790b2bcfd2c40d70a3",
+    "generatedFileSha256": "28dce0c9dbda29ef586a0b76e366bec563aa1df61ad3641e4a3a136fc03a869c",
+    "sourceAfterPackageWithLfSha256": "c8358bd2677a29622a79e0d4d33140a44ac44c595e5cc56181842c73ef5bd491"
+  },
+  "actualHost": "Windows 11 x64, JDK Temurin 17.0.20.1+1, SDK 34 / Robolectric 4.15.1",
+  "rounds": {
+    "before\\junit-fixture-r1.txt": {
+      "firstStartUtc": "2026-11-25T06:47:08.484513800Z",
+      "firstMethodFinishUtc": "2026-11-25T06:47:12.558189900Z",
+      "lastMethodFinishUtc": "2026-11-25T06:47:14.789891800Z",
+      "cases": {
+        "revokedPendingCallbackIsNeverPublished": "FAIL",
+        "profilesUseOwnTagsAndProcessSuffix": "FAIL",
+        "timeoutRemovesPendingRecordAndLateConnectionCannotReplaceNewBind": "FAIL",
+        "revokedBoundConnectionReleasesOnlyReturnedBinderWhenRemovalIsDenied": "FAIL",
+        "wrongUidCannotCloseOrExecute": "FAIL",
+        "managerOneWayClosesOnlyThatServiceAndCanRepeat": "FAIL",
+        "legacyClientCloseHasSynchronousReplyAndIsIdempotent": "FAIL",
+        "managerWireRequiresMatchingPrivilegeUid": "FAIL"
+      },
+      "total": "TOTAL\t8\t8\t0\t0"
+    },
+    "before\\junit-r2.txt": {
+      "firstStartUtc": "2026-11-25T06:48:10.665842500Z",
+      "firstMethodFinishUtc": "2026-11-25T06:48:15.028030200Z",
+      "lastMethodFinishUtc": "2026-11-25T06:48:17.264565500Z",
+      "cases": {
+        "revokedPendingCallbackIsNeverPublished": "FAIL",
+        "profilesUseOwnTagsAndProcessSuffix": "FAIL",
+        "timeoutRemovesPendingRecordAndLateConnectionCannotReplaceNewBind": "FAIL",
+        "revokedBoundConnectionReleasesOnlyReturnedBinderWhenRemovalIsDenied": "FAIL",
+        "badDescriptorNeverDispatchesManagerClose": "PASS",
+        "wrongUidCannotCloseOrExecute": "FAIL",
+        "legacyCommandTransactionNumbersAreStable": "PASS",
+        "managerOneWayClosesOnlyThatServiceAndCanRepeat": "FAIL",
+        "legacyClientCloseHasSynchronousReplyAndIsIdempotent": "FAIL",
+        "managerWireRequiresMatchingPrivilegeUid": "FAIL"
+      },
+      "total": "TOTAL\t10\t8\t0\t0"
+    },
+    "before\\junit-r5.txt": {
+      "firstStartUtc": "2026-11-25T06:50:30.327064800Z",
+      "firstMethodFinishUtc": "2026-11-25T06:50:34.627921300Z",
+      "lastMethodFinishUtc": "2026-11-25T06:50:36.919310400Z",
+      "cases": {
+        "revokedPendingCallbackIsNeverPublished": "FAIL",
+        "noContextServiceUsesOwnerUidInProcessName": "FAIL",
+        "profilesUseOwnTagsAndProcessSuffix": "FAIL",
+        "timeoutRemovesPendingRecordAndLateConnectionCannotReplaceNewBind": "FAIL",
+        "revokedBoundConnectionReleasesOnlyReturnedBinderWhenRemovalIsDenied": "FAIL",
+        "badDescriptorNeverDispatchesManagerClose": "PASS",
+        "wrongUidCannotCloseOrExecute": "FAIL",
+        "legacyCommandTransactionNumbersAreStable": "PASS",
+        "managerOneWayClosesOnlyThatServiceAndCanRepeat": "FAIL",
+        "duplicateLocalReleaseReapsOnlyHandlesRegisteredWithItsInstance": "PASS",
+        "managerRemoteOneWayRequestsExitOnlyInDedicatedProcess": "FAIL",
+        "legacyClientCloseHasSynchronousReplyAndIsIdempotent": "FAIL",
+        "managerWireRequiresMatchingPrivilegeUid": "FAIL",
+        "replacedManagerCannotReusePreviouslyReadyService": "FAIL"
+      },
+      "total": "TOTAL\t14\t11\t0\t0"
+    },
+    "before\\junit.txt": {
+      "firstStartUtc": "2026-11-25T06:51:37.155553100Z",
+      "firstMethodFinishUtc": "2026-11-25T06:51:41.635485600Z",
+      "lastMethodFinishUtc": "2026-11-25T06:51:43.945124100Z",
+      "cases": {
+        "revokedPendingCallbackIsNeverPublished": "FAIL",
+        "noContextServiceUsesOwnerUidInProcessName": "FAIL",
+        "profilesUseOwnTagsAndProcessSuffix": "FAIL",
+        "timeoutRemovesPendingRecordAndLateConnectionCannotReplaceNewBind": "FAIL",
+        "revokedBoundConnectionReleasesOnlyReturnedBinderWhenRemovalIsDenied": "FAIL",
+        "badDescriptorNeverDispatchesManagerClose": "PASS",
+        "wrongUidCannotCloseOrExecute": "FAIL",
+        "legacyCommandTransactionNumbersAreStable": "PASS",
+        "managerOneWayClosesOnlyThatServiceAndCanRepeat": "FAIL",
+        "grantReturnRetriesPreviouslyRejectedPendingRemovalBeforeBinding": "FAIL",
+        "duplicateLocalReleaseReapsOnlyHandlesRegisteredWithItsInstance": "PASS",
+        "managerRemoteOneWayRequestsExitOnlyInDedicatedProcess": "FAIL",
+        "legacyClientCloseHasSynchronousReplyAndIsIdempotent": "FAIL",
+        "managerWireRequiresMatchingPrivilegeUid": "FAIL",
+        "replacedManagerCannotReusePreviouslyReadyService": "FAIL"
+      },
+      "total": "TOTAL\t15\t12\t0\t0"
+    },
+    "after\\junit-fixture-r1.txt": {
+      "firstStartUtc": "2026-11-25T06:47:23.261236100Z",
+      "firstMethodFinishUtc": "2026-11-25T06:47:25.932239100Z",
+      "lastMethodFinishUtc": "2026-11-25T06:47:26.102974700Z",
+      "cases": {
+        "revokedPendingCallbackIsNeverPublished": "PASS",
+        "profilesUseOwnTagsAndProcessSuffix": "PASS",
+        "timeoutRemovesPendingRecordAndLateConnectionCannotReplaceNewBind": "FAIL",
+        "revokedBoundConnectionReleasesOnlyReturnedBinderWhenRemovalIsDenied": "FAIL",
+        "wrongUidCannotCloseOrExecute": "PASS",
+        "managerOneWayClosesOnlyThatServiceAndCanRepeat": "PASS",
+        "legacyClientCloseHasSynchronousReplyAndIsIdempotent": "PASS",
+        "managerWireRequiresMatchingPrivilegeUid": "PASS"
+      },
+      "total": "TOTAL\t8\t2\t0\t0"
+    },
+    "after\\junit-r2.txt": {
+      "firstStartUtc": "2026-11-25T06:47:48.157039200Z",
+      "firstMethodFinishUtc": "2026-11-25T06:47:50.084826500Z",
+      "lastMethodFinishUtc": "2026-11-25T06:47:50.232790700Z",
+      "cases": {
+        "revokedPendingCallbackIsNeverPublished": "PASS",
+        "profilesUseOwnTagsAndProcessSuffix": "PASS",
+        "timeoutRemovesPendingRecordAndLateConnectionCannotReplaceNewBind": "PASS",
+        "revokedBoundConnectionReleasesOnlyReturnedBinderWhenRemovalIsDenied": "PASS",
+        "badDescriptorNeverDispatchesManagerClose": "PASS",
+        "wrongUidCannotCloseOrExecute": "PASS",
+        "legacyCommandTransactionNumbersAreStable": "PASS",
+        "managerOneWayClosesOnlyThatServiceAndCanRepeat": "PASS",
+        "legacyClientCloseHasSynchronousReplyAndIsIdempotent": "PASS",
+        "managerWireRequiresMatchingPrivilegeUid": "PASS"
+      },
+      "total": "TOTAL\t10\t0\t0\t0"
+    },
+    "after\\junit-r3.txt": {
+      "firstStartUtc": "2026-11-25T06:49:00.370535500Z",
+      "firstMethodFinishUtc": "2026-11-25T06:49:02.208530800Z",
+      "lastMethodFinishUtc": "2026-11-25T06:49:02.370235300Z",
+      "cases": {
+        "revokedPendingCallbackIsNeverPublished": "PASS",
+        "profilesUseOwnTagsAndProcessSuffix": "PASS",
+        "timeoutRemovesPendingRecordAndLateConnectionCannotReplaceNewBind": "PASS",
+        "revokedBoundConnectionReleasesOnlyReturnedBinderWhenRemovalIsDenied": "PASS",
+        "badDescriptorNeverDispatchesManagerClose": "PASS",
+        "wrongUidCannotCloseOrExecute": "PASS",
+        "legacyCommandTransactionNumbersAreStable": "PASS",
+        "managerOneWayClosesOnlyThatServiceAndCanRepeat": "PASS",
+        "legacyClientCloseHasSynchronousReplyAndIsIdempotent": "PASS",
+        "managerWireRequiresMatchingPrivilegeUid": "PASS",
+        "replacedManagerCannotReusePreviouslyReadyService": "PASS"
+      },
+      "total": "TOTAL\t11\t0\t0\t0"
+    },
+    "after\\junit-r4.txt": {
+      "firstStartUtc": "2026-11-25T06:49:35.300350900Z",
+      "firstMethodFinishUtc": "2026-11-25T06:49:37.120848Z",
+      "lastMethodFinishUtc": "2026-11-25T06:49:37.296367500Z",
+      "cases": {
+        "revokedPendingCallbackIsNeverPublished": "PASS",
+        "noContextServiceUsesOwnerUidInProcessName": "PASS",
+        "profilesUseOwnTagsAndProcessSuffix": "PASS",
+        "timeoutRemovesPendingRecordAndLateConnectionCannotReplaceNewBind": "PASS",
+        "revokedBoundConnectionReleasesOnlyReturnedBinderWhenRemovalIsDenied": "PASS",
+        "badDescriptorNeverDispatchesManagerClose": "PASS",
+        "wrongUidCannotCloseOrExecute": "PASS",
+        "legacyCommandTransactionNumbersAreStable": "PASS",
+        "managerOneWayClosesOnlyThatServiceAndCanRepeat": "PASS",
+        "managerRemoteOneWayRequestsExitOnlyInDedicatedProcess": "PASS",
+        "legacyClientCloseHasSynchronousReplyAndIsIdempotent": "PASS",
+        "managerWireRequiresMatchingPrivilegeUid": "PASS",
+        "replacedManagerCannotReusePreviouslyReadyService": "PASS"
+      },
+      "total": "TOTAL\t13\t0\t0\t0"
+    },
+    "after\\junit-r5.txt": {
+      "firstStartUtc": "2026-11-25T06:50:30.328394100Z",
+      "firstMethodFinishUtc": "2026-11-25T06:50:32.572934700Z",
+      "lastMethodFinishUtc": "2026-11-25T06:50:32.849375100Z",
+      "cases": {
+        "revokedPendingCallbackIsNeverPublished": "PASS",
+        "noContextServiceUsesOwnerUidInProcessName": "PASS",
+        "profilesUseOwnTagsAndProcessSuffix": "PASS",
+        "timeoutRemovesPendingRecordAndLateConnectionCannotReplaceNewBind": "PASS",
+        "revokedBoundConnectionReleasesOnlyReturnedBinderWhenRemovalIsDenied": "PASS",
+        "badDescriptorNeverDispatchesManagerClose": "PASS",
+        "wrongUidCannotCloseOrExecute": "PASS",
+        "legacyCommandTransactionNumbersAreStable": "PASS",
+        "managerOneWayClosesOnlyThatServiceAndCanRepeat": "PASS",
+        "duplicateLocalReleaseReapsOnlyHandlesRegisteredWithItsInstance": "PASS",
+        "managerRemoteOneWayRequestsExitOnlyInDedicatedProcess": "PASS",
+        "legacyClientCloseHasSynchronousReplyAndIsIdempotent": "PASS",
+        "managerWireRequiresMatchingPrivilegeUid": "PASS",
+        "replacedManagerCannotReusePreviouslyReadyService": "PASS"
+      },
+      "total": "TOTAL\t14\t0\t0\t0"
+    },
+    "after\\junit.txt": {
+      "firstStartUtc": "2026-11-25T06:51:20.114381100Z",
+      "firstMethodFinishUtc": "2026-11-25T06:51:23.462355800Z",
+      "lastMethodFinishUtc": "2026-11-25T06:51:23.807058300Z",
+      "cases": {
+        "revokedPendingCallbackIsNeverPublished": "PASS",
+        "noContextServiceUsesOwnerUidInProcessName": "PASS",
+        "profilesUseOwnTagsAndProcessSuffix": "PASS",
+        "timeoutRemovesPendingRecordAndLateConnectionCannotReplaceNewBind": "PASS",
+        "revokedBoundConnectionReleasesOnlyReturnedBinderWhenRemovalIsDenied": "PASS",
+        "badDescriptorNeverDispatchesManagerClose": "PASS",
+        "wrongUidCannotCloseOrExecute": "PASS",
+        "legacyCommandTransactionNumbersAreStable": "PASS",
+        "managerOneWayClosesOnlyThatServiceAndCanRepeat": "PASS",
+        "grantReturnRetriesPreviouslyRejectedPendingRemovalBeforeBinding": "PASS",
+        "duplicateLocalReleaseReapsOnlyHandlesRegisteredWithItsInstance": "PASS",
+        "managerRemoteOneWayRequestsExitOnlyInDedicatedProcess": "PASS",
+        "legacyClientCloseHasSynchronousReplyAndIsIdempotent": "PASS",
+        "managerWireRequiresMatchingPrivilegeUid": "PASS",
+        "replacedManagerCannotReusePreviouslyReadyService": "PASS"
+      },
+      "total": "TOTAL\t15\t0\t0\t0"
+    },
+    "mixed\\junit.txt": {
+      "firstStartUtc": "2026-11-25T06:52:08.190158900Z",
+      "firstMethodFinishUtc": "2026-11-25T06:52:10.246026800Z",
+      "lastMethodFinishUtc": "2026-11-25T06:52:10.288225400Z",
+      "cases": {
+        "build376ClientToBuild377Stub": "PASS",
+        "build377ClientToBuild376Stub": "PASS"
+      },
+      "total": "TOTAL\t2\t0\t0\t0"
+    }
+  }
+}

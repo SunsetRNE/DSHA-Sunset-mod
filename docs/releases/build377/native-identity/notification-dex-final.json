@@ -1,0 +1,66 @@
+{
+  "apk": "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed\\dsha-0.2.2-rc.5.apk",
+  "sha256": "2e6f0324ebe4b52b143dcb2bf04800b1ce73c106a53b567de1afdafca5dba3d9",
+  "expectedBuild": "377",
+  "status": "PASS",
+  "rows": [
+    {
+      "clazz": "com.deepseekharness.app.AgentTaskNotifications",
+      "method": "render()V",
+      "register": "v10",
+      "resource": "drawable/ic_dsha_mark",
+      "previous": [
+        "iget-object v10, v1, Lcom/deepseekharness/app/AgentTaskNotifications;->context:Landroid/content/Context;",
+        "const-string/jumbo v14, \"dsh_task_progress\"",
+        "invoke-direct {v8, v10, v14}, Landroidx/core/app/NotificationCompat$Builder;-><init>(Landroid/content/Context;Ljava/lang/String;)V",
+        "sget v10, Lcom/deepseekharness/app/R$drawable;->ic_dsha_mark:I"
+      ],
+      "call": "invoke-virtual {v8, v10}, Landroidx/core/app/NotificationCompat$Builder;->setSmallIcon(I)Landroidx/core/app/NotificationCompat$Builder;",
+      "elapsedSeconds": 2.6317138000158593
+    },
+    {
+      "clazz": "com.deepseekharness.app.AgentTaskNotifications",
+      "method": "render()V",
+      "register": "v13",
+      "resource": "drawable/ic_dsha_mark",
+      "previous": [
+        "iget-object v13, v1, Lcom/deepseekharness/app/AgentTaskNotifications;->context:Landroid/content/Context;",
+        "const-string/jumbo v14, \"dsh_task_progress\"",
+        "invoke-direct {v10, v13, v14}, Landroidx/core/app/NotificationCompat$Builder;-><init>(Landroid/content/Context;Ljava/lang/String;)V",
+        "sget v13, Lcom/deepseekharness/app/R$drawable;->ic_dsha_mark:I"
+      ],
+      "call": "invoke-virtual {v10, v13}, Landroidx/core/app/NotificationCompat$Builder;->setSmallIcon(I)Landroidx/core/app/NotificationCompat$Builder;",
+      "elapsedSeconds": 2.631748800049536
+    },
+    {
+      "clazz": "com.deepseekharness.app.backup.DataProtectionService",
+      "method": "publish(Ljava/lang/String;Landroid/app/PendingIntent;Landroid/app/PendingIntent;)Z",
+      "register": "v1",
+      "resource": "drawable/ic_dsha_mark",
+      "previous": [
+        "new-instance v0, Landroid/app/Notification$Builder;",
+        "const-string/jumbo v1, \"dsha_data_protection\"",
+        "invoke-direct {v0, p0, v1}, Landroid/app/Notification$Builder;-><init>(Landroid/content/Context;Ljava/lang/String;)V",
+        "sget v1, Lcom/deepseekharness/app/R$drawable;->ic_dsha_mark:I"
+      ],
+      "call": "invoke-virtual {v0, v1}, Landroid/app/Notification$Builder;->setSmallIcon(I)Landroid/app/Notification$Builder;",
+      "elapsedSeconds": 3.548137800011318
+    },
+    {
+      "clazz": "com.deepseekharness.app.recovery.RecoveryService",
+      "method": "publish(Ljava/lang/String;)V",
+      "register": "v3",
+      "resource": "drawable/ic_dsha_mark",
+      "previous": [
+        "new-instance v1, Landroid/app/Notification$Builder;",
+        "const-string/jumbo v3, \"dsha_emergency\"",
+        "invoke-direct {v1, p0, v3}, Landroid/app/Notification$Builder;-><init>(Landroid/content/Context;Ljava/lang/String;)V",
+        "sget v3, Lcom/deepseekharness/app/R$drawable;->ic_dsha_mark:I"
+      ],
+      "call": "invoke-virtual {v1, v3}, Landroid/app/Notification$Builder;->setSmallIcon(I)Landroid/app/Notification$Builder;",
+      "elapsedSeconds": 4.4695631000213325
+    }
+  ],
+  "firstResultSeconds": 2.6317138000158593,
+  "finishedSeconds": 4.6363318000221625
+}

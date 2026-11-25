@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\artifacts\build377-local\native-identity\verify_brand.py", line 202, in <module>
+    main()
+  File "F:\DSHA_RESTART\artifacts\build377-local\native-identity\verify_brand.py", line 166, in main
+    checks = verify_xml(aapt, apk, ids, configs, bool(args.after))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\artifacts\build377-local\native-identity\verify_brand.py", line 85, in verify_xml
+    named[' '.join(key).strip()] = tree(file_for(configs, key))
+                                        ^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\artifacts\build377-local\native-identity\verify_brand.py", line 61, in file_for
+    value = configs[key]
+            ~~~~~~~^^^^^
+KeyError: ('drawable/ic_dsha_mark', '')

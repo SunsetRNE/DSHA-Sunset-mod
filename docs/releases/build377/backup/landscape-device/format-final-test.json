@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "tool": "google-java-format",
+  "version": "1.22.0",
+  "artifactSha256": "16b2a1ee938686c8b1d88abf19eb83dfd0d623cee9de6fc6d09980214f816d3f",
+  "javaVersion": "openjdk version \"17.0.20.1\" 2026-08-18\r\nOpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)\r\nOpenJDK 64-Bit Server VM Temurin-17.0.20.1+1 (build 17.0.20.1+1, mixed mode, sharing)",
+  "mode": "write",
+  "files": [
+    {
+      "file": "app/src/test/java/com/deepseekharness/app/ui/NativeDataChoicesTest.java",
+      "beforeSha256": "cf3d85c2e26183b55f81827e1ca0545e8176a83130b0bd656a0b46d06b04e233",
+      "formattedSha256": "c8c77808f17f14452b0b23c2b82d17f8a292863bf2070d3fed888056c0955513",
+      "javaTokenSha256": "8599a88e5936fe22b93fa81ba2341a484831a04a1d2f75b1a13dbb47cc013d63",
+      "needsFormatting": true,
+      "diff": "--- app/src/test/java/com/deepseekharness/app/ui/NativeDataChoicesTest.java (before)\n+++ app/src/test/java/com/deepseekharness/app/ui/NativeDataChoicesTest.java (formatted)\n@@ -658,7 +658,16 @@\n               assertTrue(missed.toString(), missed.isEmpty());\n               for (EditText field : new EditText[] {fields.first, fields.confirm}) {\n                 assertTrue(\n-                    \"form=\" + title + \", landscape=\" + landscape + \", scale=\" + scale + \", viewport=\" + scroll.getHeight() + \", field=\" + field.getHeight(),\n+                    \"form=\"\n+                        + title\n+                        + \", landscape=\"\n+                        + landscape\n+                        + \", scale=\"\n+                        + scale\n+                        + \", viewport=\"\n+                        + scroll.getHeight()\n+                        + \", field=\"\n+                        + field.getHeight(),\n                     scroll.getHeight() >= field.getHeight());\n               }\n               dialog.dismiss();\n"
+    }
+  ]
+}

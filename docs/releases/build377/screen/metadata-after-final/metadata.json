@@ -1,0 +1,29 @@
+{
+  "started": "2026-11-25T15:10:55.434+08:00",
+  "firstResult": {
+    "at": "2026-11-25T15:10:59.042+08:00",
+    "elapsedSeconds": 3.608
+  },
+  "commands": [
+    {
+      "cwd": "F:\\DSHA_RESTART\\source\\build377-local",
+      "argv": [
+        "F:\\DSHA\\_toolchains\\jdk-17\\bin\\javac.exe",
+        "@F:\\DSHA_RESTART\\artifacts\\build377-local\\screen\\metadata-after-final\\compile.args"
+      ],
+      "exit": 0,
+      "finished": "2026-11-25T15:10:56.848+08:00",
+      "elapsedSeconds": 1.415
+    },
+    {
+      "cwd": "F:\\DSHA_RESTART\\source\\build376-local\\app",
+      "argv": [
+        "F:\\DSHA\\_toolchains\\jdk-17\\bin\\java.exe",
+        "@F:\\DSHA_RESTART\\artifacts\\build377-local\\screen\\metadata-after-final\\junit.args"
+      ],
+      "exit": 0,
+      "finished": "2026-11-25T15:10:59.386+08:00",
+      "elapsedSeconds": 3.952
+    }
+  ]
+}

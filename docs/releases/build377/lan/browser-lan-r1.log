@@ -1,0 +1,6 @@
+F:\DSHA_RESTART\artifacts\build377-local\lan\browser-lan-1795590268.json {'listenerReadySeconds': 0.704, 'browser': '156.0.8078.4', 'unverifiedNavigation': 'ERR_CERT_AUTHORITY_INVALID', 'firstAuthenticatedPageSeconds': 2.469, 'cookie': {'name': 'dsha_lan', 'secure': True, 'httpOnly': True, 'sameSite': 'Strict'}}
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\artifacts\build377-local\lan\browser_lan.py", line 45, in <module>
+    der=base64.b64decode(client.send("Network.getCertificate",{"origin":origin})["tableNames"][0])
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
+IndexError: list index out of range

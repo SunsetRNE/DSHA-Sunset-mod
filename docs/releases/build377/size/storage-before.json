@@ -1,0 +1,13 @@
+{
+  "at": "2026-11-25T06:43:57.307550+00:00",
+  "volume": "F:\\",
+  "totalBytes": 959067451392,
+  "availableBytes": 355932737536,
+  "files": [
+    {
+      "path": "F:\\DSHA_RESTART\\release\\0.2.2-rc.5\\dsha-0.2.2-rc.5.apk",
+      "logicalBytes": 257781425,
+      "allocatedBytes": 257781760
+    }
+  ]
+}

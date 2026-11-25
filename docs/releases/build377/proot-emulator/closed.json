@@ -1,0 +1,15 @@
+{
+  "at": "2026-11-25T08:14:27.931755+00:00",
+  "apkSha256": "2e6f0324ebe4b52b143dcb2bf04800b1ce73c106a53b567de1afdafca5dba3d9",
+  "avd": "DSHA_build377_proot_api30_arm64",
+  "emulatorKillOutput": "OK: killing emulator, bye bye\n\nOK\n\n",
+  "emulatorKillExit": 0,
+  "privateServerKillOutput": "",
+  "privateServerKillExit": 0,
+  "localListenersAfter": {
+    "5672": false,
+    "5673": false,
+    "5077": false
+  },
+  "seconds": 5.234810699999798
+}

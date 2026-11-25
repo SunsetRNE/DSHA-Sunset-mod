@@ -1,0 +1,284 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :app
+签名：未配置 upstream 身份发布证书；正式 APK 打包将被阻止
+签名：未配置 rebirth 身份候选测试证书；证书固定前只允许 unsigned 候选
+
+> Task :app:prepareBackupAssets UP-TO-DATE
+
+> Task :app:prepareProrootInputs
+PASS: checked 5 original proroot files, restored 0
+
+> Task :app:verifyRuntimeDescriptorInputs
+共享映射集合对等：549 启动输入（含 Java/Kotlin、原生树、生成器）；未缩输入契约
+单源运行时输入契约通过：106 安装项、249 资产、549 启动输入；缺失离线归档待完整 package 核验：[]
+
+> Task :app:prepareRuntimeDescriptor UP-TO-DATE
+
+> Task :app:verifyExternalToolProof
+PASS external tool proof matches lock
+
+> Task :app:prepareStandardAssets UP-TO-DATE
+> Task :app:prepareRecoveryAssets UP-TO-DATE
+
+> Task :app:prepareRustNative
+{"status": "PASS", "mode": "prebuilt", "operation": "stage", "apkVerified": false, "out": "F:\\DSHA_RESTART\\source\\build377-local\\app\\build\\rust-jniLibs", "assetsOut": "F:\\DSHA_RESTART\\source\\build377-local\\app\\build\\generated\\rustAssets", "artifact": {"artifactFile": "libdsha_rs.so", "size": 360920, "sha256": "65aea50e7d34b8adfda28836248b2486b4d5481abb55d7bb80037a8adb459c6d", "elfType": "ET_DYN", "elfMachine": 183, "aligned16k": true, "relroMapped": true, "needed": ["libdl.so", "libc.so"], "exportedSymbols": ["Java_com_deepseekharness_app_util_RustNative_abiVersion", "Java_com_deepseekharness_app_util_RustNative_archivePackAbort", "Java_com_deepseekharness_app_util_RustNative_archivePackCreate", "Java_com_deepseekharness_app_util_RustNative_archivePackFinish", "Java_com_deepseekharness_app_util_RustNative_archivePackUpdate", "Java_com_deepseekharness_app_util_RustNative_archiveUnpackAbort", "Java_com_deepseekharness_app_util_RustNative_archiveUnpackCreate", "Java_com_deepseekharness_app_util_RustNative_archiveUnpackRead", "Java_com_deepseekharness_app_util_RustNative_archiveUnpackWrite", "Java_com_deepseekharness_app_util_RustNative_digest", "Java_com_deepseekharness_app_util_RustNative_verifyPlan"], "budget": "PASS"}, "sourceFingerprint": "0abd629e93eb5aed7cd9770ab15d79969c0007b0321688595018645a602c401f", "provenance": {"commit": "0efbf4d26a86d5cb99b4c22d56aa6e6971fd1d61", "provenance": "local", "runId": null, "runAttempt": null, "repository": null}, "receiptSha256": "146e1e61b9123f4c133ba4f71f3832cabbf86e8c2d385a1393d5ebe51979e1d6", "androidLoadTested": false}
+
+> Task :app:prepareUiLanguages UP-TO-DATE
+> Task :app:verifyBuiltinRegistry
+> Task :app:verifyBundledDshVersion
+
+> Task :app:verifyBundledIdentities
+PASS runtime tools identity
+
+> Task :app:verifyCredentialRegistry
+Credential paths JSON/Java scope table PASS
+
+> Task :app:verifyCurrentChangelog
+PASS bundled locale changelog: 0.2.2-rc.5-20261125.1442-dsh0.2.2-rc.5 / build377
+
+> Task :app:verifyProrootCompat
+PASS shim+entry identity, GNU ARM64, 16 KiB LOADs, no dependencies/search paths, zero entry relocations; original five ELFs unchanged
+
+> Task :app:verifyUiLanguageResources
+XML language resources: 85 + 209 existing names x 10 languages
+Localized source literals: 0
+
+> Task :app:verifyWebLanguages
+PASS 4277 DSH UI messages; DSHA languages zh-Hant,ko,ar,la on top of upstream zh,en,ja,es,fr,de,ru,pt; 624243 helper bytes
+
+> Task :app:preBuild
+> Task :app:preStandardDebugBuild
+> Task :app:compileStandardDebugAidl UP-TO-DATE
+> Task :app:generateStandardDebugBuildConfig UP-TO-DATE
+> Task :app:generateStandardDebugResValues UP-TO-DATE
+> Task :app:generateStandardDebugResources UP-TO-DATE
+> Task :app:packageStandardDebugResources UP-TO-DATE
+> Task :app:processStandardDebugNavigationResources UP-TO-DATE
+> Task :app:parseStandardDebugLocalResources UP-TO-DATE
+> Task :app:generateStandardDebugRFile UP-TO-DATE
+> Task :app:javaPreCompileStandardDebug UP-TO-DATE
+> Task :app:verifyBackupDependencies
+> Task :app:checkStandardDebugAarMetadata UP-TO-DATE
+> Task :app:mapStandardDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileStandardDebugNavigationResources UP-TO-DATE
+> Task :app:mergeStandardDebugResources UP-TO-DATE
+> Task :app:createStandardDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksStandardDebug UP-TO-DATE
+> Task :app:processStandardDebugMainManifest UP-TO-DATE
+> Task :app:processStandardDebugManifest UP-TO-DATE
+> Task :app:processStandardDebugManifestForPackage UP-TO-DATE
+> Task :app:processStandardDebugResources UP-TO-DATE
+> Task :app:preStandardDebugUnitTestBuild
+> Task :app:javaPreCompileStandardDebugUnitTest UP-TO-DATE
+> Task :app:generateStandardDebugAssets UP-TO-DATE
+> Task :app:mergeStandardDebugAssets
+> Task :app:packageStandardDebugUnitTestForUnitTest
+> Task :app:processStandardDebugUnitTestManifest UP-TO-DATE
+> Task :app:generateStandardDebugUnitTestConfig
+> Task :app:preStandardReleaseBuild
+> Task :app:compileStandardReleaseAidl UP-TO-DATE
+> Task :app:generateStandardReleaseBuildConfig UP-TO-DATE
+> Task :app:generateStandardReleaseResValues UP-TO-DATE
+> Task :app:generateStandardReleaseResources UP-TO-DATE
+> Task :app:packageStandardReleaseResources UP-TO-DATE
+> Task :app:processStandardReleaseNavigationResources UP-TO-DATE
+> Task :app:parseStandardReleaseLocalResources UP-TO-DATE
+> Task :app:generateStandardReleaseRFile UP-TO-DATE
+> Task :app:compileStandardDebugKotlin
+> Task :app:compileStandardReleaseKotlin
+
+> Task :app:compileStandardDebugKotlin
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/UpdateDownloadService.kt:30:17 'fun stopForeground(p0: Boolean): Unit' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/UpdateDownloadService.kt:57:21 'fun stopForeground(p0: Boolean): Unit' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/UpdateDownloadService.kt:63:17 'fun stopForeground(p0: Boolean): Unit' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/UpdateDownloadService.kt:83:13 'fun stopForeground(p0: Boolean): Unit' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/UpdateDownloadService.kt:143:9 'fun stopForeground(p0: Boolean): Unit' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/backup/AutomaticBackupPruner.kt:25:30 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/core/SimpleTerminalBackend.kt:77:59 The corresponding parameter in the supertype 'Backend' is named 'processGroup'. This may cause problems when calling this function with named arguments.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/core/UpdateEngine.kt:580:34 Java type mismatch: inferred type is 'String?', but 'String' was expected.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/core/UpdateEngine.kt:684:33 'static field GET_SIGNATURES: Int' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/core/UpdateEngine.kt:693:77 'field versionCode: Int' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/core/UpdateEngine.kt:715:19 'field signatures: Array<(out) Signature!>?' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/core/UpdateEngine.kt:720:33 'static field GET_SIGNATURES: Int' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/plugins/PluginManagementEngine.kt:68:37 The corresponding parameter in the supertype 'Backend' is named 'source'. This may cause problems when calling this function with named arguments.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/plugins/PluginManagementEngine.kt:71:35 The corresponding parameter in the supertype 'Backend' is named 'source'. This may cause problems when calling this function with named arguments.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/plugins/PluginManagementEngine.kt:102:40 The corresponding parameter in the supertype 'Backend' is named 'foreground'. This may cause problems when calling this function with named arguments.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.kt:38:23 This code uses error suppression for 'VAL_REASSIGNMENT'. While it might compile and work, the compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED. Please report your use case to the Kotlin issue tracker instead: https://kotl.in/issue
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.kt:40:23 This code uses error suppression for 'VAL_REASSIGNMENT'. While it might compile and work, the compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED. Please report your use case to the Kotlin issue tracker instead: https://kotl.in/issue
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.kt:42:23 This code uses error suppression for 'VAL_REASSIGNMENT'. While it might compile and work, the compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED. Please report your use case to the Kotlin issue tracker instead: https://kotl.in/issue
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.kt:44:23 This code uses error suppression for 'VAL_REASSIGNMENT'. While it might compile and work, the compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED. Please report your use case to the Kotlin issue tracker instead: https://kotl.in/issue
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/runtime/ContainerRuntime.kt:146:79 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/runtime/ProotBootstrap.kt:585:34 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/runtime/RuntimeExecution.kt:343:21 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/saf/SafGrantRecord.kt:45:23 This code uses error suppression for 'VAL_REASSIGNMENT'. While it might compile and work, the compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED. Please report your use case to the Kotlin issue tracker instead: https://kotl.in/issue
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/saf/SafGrantRecord.kt:47:23 This code uses error suppression for 'VAL_REASSIGNMENT'. While it might compile and work, the compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED. Please report your use case to the Kotlin issue tracker instead: https://kotl.in/issue
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/saf/SafGrantRecord.kt:80:33 Java type mismatch: inferred type is 'String?', but 'CharSequence' was expected.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/saf/SafGrantRecord.kt:91:19 This code uses error suppression for 'VAL_REASSIGNMENT'. While it might compile and work, the compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED. Please report your use case to the Kotlin issue tracker instead: https://kotl.in/issue
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/saf/SafGrantRecord.kt:93:19 This code uses error suppression for 'VAL_REASSIGNMENT'. While it might compile and work, the compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED. Please report your use case to the Kotlin issue tracker instead: https://kotl.in/issue
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/saf/SafLedgerCodec.kt:32:75 Java type mismatch: inferred type is 'Map<String, Any?>?', but '(Mutable)Map<out String!, out Any?>' was expected.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/saf/SafLedgerCodec.kt:33:70 Java type mismatch: inferred type is 'List<String>?', but '(Mutable)Collection<out String!>' was expected.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/transfer/TransferProtocol.kt:37:54 Java type mismatch: inferred type is 'String?', but 'String' was expected.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/transfer/TransferProtocol.kt:38:54 Java type mismatch: inferred type is 'String?', but 'String' was expected.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/transfer/TransferProtocol.kt:39:54 Java type mismatch: inferred type is 'String?', but 'String' was expected.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/ui/UpdateActivity.kt:416:21 'fun startActivityForResult(p0: Intent, p1: Int): Unit' is deprecated. Deprecated in Java.
+
+> Task :app:compileStandardReleaseKotlin
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/UpdateDownloadService.kt:30:17 'fun stopForeground(p0: Boolean): Unit' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/UpdateDownloadService.kt:57:21 'fun stopForeground(p0: Boolean): Unit' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/UpdateDownloadService.kt:63:17 'fun stopForeground(p0: Boolean): Unit' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/UpdateDownloadService.kt:83:13 'fun stopForeground(p0: Boolean): Unit' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/UpdateDownloadService.kt:143:9 'fun stopForeground(p0: Boolean): Unit' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/backup/AutomaticBackupPruner.kt:25:30 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/core/SimpleTerminalBackend.kt:77:59 The corresponding parameter in the supertype 'Backend' is named 'processGroup'. This may cause problems when calling this function with named arguments.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/core/UpdateEngine.kt:580:34 Java type mismatch: inferred type is 'String?', but 'String' was expected.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/core/UpdateEngine.kt:684:33 'static field GET_SIGNATURES: Int' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/core/UpdateEngine.kt:693:77 'field versionCode: Int' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/core/UpdateEngine.kt:715:19 'field signatures: Array<(out) Signature!>?' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/core/UpdateEngine.kt:720:33 'static field GET_SIGNATURES: Int' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/plugins/PluginManagementEngine.kt:68:37 The corresponding parameter in the supertype 'Backend' is named 'source'. This may cause problems when calling this function with named arguments.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/plugins/PluginManagementEngine.kt:71:35 The corresponding parameter in the supertype 'Backend' is named 'source'. This may cause problems when calling this function with named arguments.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/plugins/PluginManagementEngine.kt:102:40 The corresponding parameter in the supertype 'Backend' is named 'foreground'. This may cause problems when calling this function with named arguments.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.kt:38:23 This code uses error suppression for 'VAL_REASSIGNMENT'. While it might compile and work, the compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED. Please report your use case to the Kotlin issue tracker instead: https://kotl.in/issue
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.kt:40:23 This code uses error suppression for 'VAL_REASSIGNMENT'. While it might compile and work, the compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED. Please report your use case to the Kotlin issue tracker instead: https://kotl.in/issue
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.kt:42:23 This code uses error suppression for 'VAL_REASSIGNMENT'. While it might compile and work, the compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED. Please report your use case to the Kotlin issue tracker instead: https://kotl.in/issue
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/plugins/PluginOperationResult.kt:44:23 This code uses error suppression for 'VAL_REASSIGNMENT'. While it might compile and work, the compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED. Please report your use case to the Kotlin issue tracker instead: https://kotl.in/issue
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/runtime/ContainerRuntime.kt:146:79 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/runtime/ProotBootstrap.kt:585:34 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/runtime/RuntimeExecution.kt:343:21 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/saf/SafGrantRecord.kt:45:23 This code uses error suppression for 'VAL_REASSIGNMENT'. While it might compile and work, the compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED. Please report your use case to the Kotlin issue tracker instead: https://kotl.in/issue
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/saf/SafGrantRecord.kt:47:23 This code uses error suppression for 'VAL_REASSIGNMENT'. While it might compile and work, the compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED. Please report your use case to the Kotlin issue tracker instead: https://kotl.in/issue
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/saf/SafGrantRecord.kt:80:33 Java type mismatch: inferred type is 'String?', but 'CharSequence' was expected.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/saf/SafGrantRecord.kt:91:19 This code uses error suppression for 'VAL_REASSIGNMENT'. While it might compile and work, the compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED. Please report your use case to the Kotlin issue tracker instead: https://kotl.in/issue
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/saf/SafGrantRecord.kt:93:19 This code uses error suppression for 'VAL_REASSIGNMENT'. While it might compile and work, the compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED. Please report your use case to the Kotlin issue tracker instead: https://kotl.in/issue
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/saf/SafLedgerCodec.kt:32:75 Java type mismatch: inferred type is 'Map<String, Any?>?', but '(Mutable)Map<out String!, out Any?>' was expected.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/saf/SafLedgerCodec.kt:33:70 Java type mismatch: inferred type is 'List<String>?', but '(Mutable)Collection<out String!>' was expected.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/transfer/TransferProtocol.kt:37:54 Java type mismatch: inferred type is 'String?', but 'String' was expected.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/transfer/TransferProtocol.kt:38:54 Java type mismatch: inferred type is 'String?', but 'String' was expected.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/transfer/TransferProtocol.kt:39:54 Java type mismatch: inferred type is 'String?', but 'String' was expected.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/main/java/com/deepseekharness/app/ui/UpdateActivity.kt:416:21 'fun startActivityForResult(p0: Intent, p1: Int): Unit' is deprecated. Deprecated in Java.
+
+> Task :app:compileStandardDebugJavaWithJavac
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: F:\DSHA_RESTART\source\build377-local\app\src\main\java\com\deepseekharness\app\ui\ScreenAppPicker.java使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+
+> Task :app:bundleStandardDebugClassesToCompileJar
+> Task :app:bundleStandardDebugClassesToRuntimeJar
+> Task :app:processStandardDebugJavaRes UP-TO-DATE
+> Task :app:javaPreCompileStandardRelease UP-TO-DATE
+
+> Task :app:compileStandardReleaseJavaWithJavac
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: F:\DSHA_RESTART\source\build377-local\app\src\main\java\com\deepseekharness\app\ui\ScreenAppPicker.java使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:extractDeepLinksStandardRelease UP-TO-DATE
+> Task :app:processStandardReleaseMainManifest UP-TO-DATE
+> Task :app:generateStandardReleaseLintReportModel
+
+> Task :app:compileStandardDebugUnitTestKotlin
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/test/java/com/deepseekharness/app/backup/AutomaticBackupApiGoldenTest.kt:60:34 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'ProtectionDomain?'.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/test/java/com/deepseekharness/app/backup/AutomaticBackupApiGoldenTest.kt:183:38 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'ProtectionDomain?'.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/test/java/com/deepseekharness/app/backup/AutomaticBackupsAndroidGoldenTest.kt:57:53 'val networkType: Int' is deprecated. Deprecated in Java.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/test/java/com/deepseekharness/app/runtime/RuntimeAssemblyGoldenSupport.kt:101:17 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/test/java/com/deepseekharness/app/runtime/RuntimeAssemblyGoldenSupport.kt:113:17 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/test/java/com/deepseekharness/app/runtime/RuntimeAssemblyGoldenSupport.kt:160:13 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'ClassLoader?'.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/test/java/com/deepseekharness/app/runtime/RuntimeDescriptorReadIntegrationTest.kt:44:17 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/test/java/com/deepseekharness/app/runtime/WebStopHandoffRecheckTest.kt:269:39 The corresponding parameter in the supertype 'ContainerRuntime' is named 'pb'. This may cause problems when calling this function with named arguments.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/test/java/com/deepseekharness/app/runtime/WebStopHandoffRecheckTest.kt:269:64 The corresponding parameter in the supertype 'ContainerRuntime' is named 'baseDir'. This may cause problems when calling this function with named arguments.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/test/java/com/deepseekharness/app/runtime/WebStopHandoffRecheckTest.kt:269:76 The corresponding parameter in the supertype 'ContainerRuntime' is named 'libDir'. This may cause problems when calling this function with named arguments.
+w: file:///F:/DSHA_RESTART/source/build377-local/app/src/test/java/com/deepseekharness/app/runtime/WebStopHandoffRecheckTest.kt:269:87 The corresponding parameter in the supertype 'ContainerRuntime' is named 'tmpDir'. This may cause problems when calling this function with named arguments.
+
+> Task :app:compileStandardDebugUnitTestJavaWithJavac
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+
+> Task :app:processStandardDebugUnitTestJavaRes UP-TO-DATE
+
+> Task :app:testStandardDebugUnitTest
+Standard Debug JUnit maxParallelForks=2
+
+> Task :app:lintAnalyzeStandardRelease
+
+> Task :app:testStandardDebugUnitTest
+Standard Debug JUnit completed 100 methods at 2026-11-25T09:09:05.431Z
+Standard Debug JUnit completed 200 methods at 2026-11-25T09:09:21.075Z
+Standard Debug JUnit completed 300 methods at 2026-11-25T09:10:16.094Z
+Standard Debug JUnit completed 400 methods at 2026-11-25T09:10:20.045Z
+Standard Debug JUnit completed 500 methods at 2026-11-25T09:10:36.718Z
+Standard Debug JUnit completed 600 methods at 2026-11-25T09:12:13.694Z
+Standard Debug JUnit completed 700 methods at 2026-11-25T09:14:22.314Z
+Standard Debug JUnit completed 800 methods at 2026-11-25T09:15:08.830Z
+
+--- Failed to create image decoder with message 'incomplete input'
+
+> Task :app:testStandardDebugUnitTest
+Standard Debug JUnit completed 900 methods at 2026-11-25T09:15:12.264Z
+Standard Debug JUnit completed 1000 methods at 2026-11-25T09:15:15.419Z
+Standard Debug JUnit completed 1100 methods at 2026-11-25T09:15:17.339Z
+Standard Debug JUnit completed 1200 methods at 2026-11-25T09:15:17.961Z
+Standard Debug JUnit completed 1300 methods at 2026-11-25T09:15:19.417Z
+Standard Debug JUnit completed 1400 methods at 2026-11-25T09:15:20.196Z
+Standard Debug JUnit completed 1500 methods at 2026-11-25T09:15:21.683Z
+Standard Debug JUnit completed 1600 methods at 2026-11-25T09:15:25.134Z
+Standard Debug JUnit completed 1700 methods at 2026-11-25T09:15:29.529Z
+Standard Debug JUnit completed 1800 methods at 2026-11-25T09:15:31.473Z
+Standard Debug JUnit completed 1900 methods at 2026-11-25T09:15:44.080Z
+Standard Debug JUnit completed 2000 methods at 2026-11-25T09:15:46.241Z
+Standard Debug JUnit completed 2100 methods at 2026-11-25T09:15:55.581Z
+Standard Debug JUnit completed 2200 methods at 2026-11-25T09:15:58.281Z
+Standard Debug JUnit completed 2300 methods at 2026-11-25T09:15:59.300Z
+Standard Debug JUnit completed 2400 methods at 2026-11-25T09:16:06.117Z
+Standard Debug JUnit completed 2500 methods at 2026-11-25T09:16:13.910Z
+Standard Debug JUnit completed 2600 methods at 2026-11-25T09:16:22.372Z
+Standard Debug JUnit completed 2700 methods at 2026-11-25T09:16:37.066Z
+Standard Debug JUnit completed 2800 methods at 2026-11-25T09:16:50.124Z
+Standard Debug JUnit completed 2900 methods at 2026-11-25T09:16:55.906Z
+Standard Debug JUnit completed 3000 methods at 2026-11-25T09:17:03.156Z
+Standard Debug JUnit completed 3100 methods at 2026-11-25T09:17:09.302Z
+Standard Debug JUnit completed 3200 methods at 2026-11-25T09:17:11.162Z
+Standard Debug JUnit completed 3300 methods at 2026-11-25T09:17:13.780Z
+Standard Debug JUnit completed 3400 methods at 2026-11-25T09:17:14.475Z
+Standard Debug JUnit completed 3500 methods at 2026-11-25T09:17:21.441Z
+Standard Debug JUnit completed 3600 methods at 2026-11-25T09:17:21.783Z
+Standard Debug JUnit completed 3700 methods at 2026-11-25T09:17:21.882Z
+Standard Debug JUnit completed 3800 methods at 2026-11-25T09:17:22.185Z
+Standard Debug JUnit completed 3900 methods at 2026-11-25T09:17:22.534Z
+Standard Debug JUnit completed 4000 methods at 2026-11-25T09:17:22.621Z
+Standard Debug JUnit completed 4100 methods at 2026-11-25T09:17:23.139Z
+Standard Debug JUnit completed 4200 methods at 2026-11-25T09:17:23.218Z
+Standard Debug JUnit completed 4300 methods at 2026-11-25T09:17:23.442Z
+Standard Debug JUnit completed 4400 methods at 2026-11-25T09:17:25.628Z
+Standard Debug JUnit completed 4500 methods at 2026-11-25T09:17:26.019Z
+Standard Debug JUnit completed 4600 methods at 2026-11-25T09:17:26.219Z
+Standard Debug JUnit completed 4700 methods at 2026-11-25T09:17:26.600Z
+Standard Debug JUnit completed 4800 methods at 2026-11-25T09:17:26.907Z
+Standard Debug JUnit completed 4900 methods at 2026-11-25T09:17:28.041Z
+Standard Debug JUnit completed 5000 methods at 2026-11-25T09:17:31.573Z
+Standard Debug JUnit completed 5100 methods at 2026-11-25T09:17:33.736Z
+Standard Debug JUnit completed 5200 methods at 2026-11-25T09:17:33.805Z
+Standard Debug JUnit completed 5300 methods at 2026-11-25T09:17:33.916Z
+Standard Debug JUnit completed 5400 methods at 2026-11-25T09:17:34.642Z
+Standard Debug JUnit completed 5500 methods at 2026-11-25T09:17:35.164Z
+Standard Debug JUnit completed 5600 methods at 2026-11-25T09:17:36.180Z
+Standard Debug JUnit completed 5700 methods at 2026-11-25T09:17:36.252Z
+Standard Debug JUnit completed 5800 methods at 2026-11-25T09:17:40.470Z
+
+> Task :app:lintReportStandardRelease UP-TO-DATE
+> Task :app:lintStandardRelease
+
+[Incubating] Problems report is available at: file:///F:/DSHA_RESTART/source/build377-local/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 11m 45s
+69 actionable tasks: 28 executed, 41 up-to-date

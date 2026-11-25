@@ -1,0 +1,526 @@
+[
+  {
+    "label": "shown",
+    "seconds": 6.312,
+    "ime": null,
+    "screenshotSha256": "8aef50c9a7a4a1a730fa06370b6e801818e65511f6484aa760dd06f5027c4c8b",
+    "choose": {
+      "ink": 1729,
+      "rows": 21,
+      "maskSha256": "777f7e72cc1abc500dddf6353dd33ce843d9b673c434da803a01a1727fa58e28",
+      "inkTop": 632,
+      "inkBottom": 653,
+      "full": [
+        730,
+        595,
+        1056,
+        692
+      ],
+      "visible": [
+        730,
+        595,
+        1056,
+        692
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 97,
+      "sameInk": true,
+      "percentInk": 100.0
+    },
+    "cancel": {
+      "ink": 618,
+      "rows": 21,
+      "maskSha256": "5d95c225f6b37e412174a7eb9856c4936aacddefc1285088587baee0510a490c",
+      "inkTop": 632,
+      "inkBottom": 653,
+      "full": [
+        546,
+        595,
+        714,
+        692
+      ],
+      "visible": [
+        546,
+        595,
+        714,
+        692
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 97,
+      "sameInk": true,
+      "percentInk": 100.0
+    }
+  },
+  {
+    "label": "first-ime",
+    "seconds": 14.812,
+    "ime": [
+      0,
+      320,
+      1184,
+      720
+    ],
+    "screenshotSha256": "f970b2e3b5a0b233c8a9431c3475613dad00ae9ad278d63bef7e9fab2e4afe5b",
+    "choose": {
+      "ink": 1729,
+      "rows": 21,
+      "maskSha256": "777f7e72cc1abc500dddf6353dd33ce843d9b673c434da803a01a1727fa58e28",
+      "inkTop": 232,
+      "inkBottom": 253,
+      "full": [
+        730,
+        195,
+        1056,
+        292
+      ],
+      "visible": [
+        730,
+        195,
+        1056,
+        292
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 97,
+      "sameInk": true,
+      "percentInk": 100.0
+    },
+    "cancel": {
+      "ink": 618,
+      "rows": 21,
+      "maskSha256": "5d95c225f6b37e412174a7eb9856c4936aacddefc1285088587baee0510a490c",
+      "inkTop": 232,
+      "inkBottom": 253,
+      "full": [
+        546,
+        195,
+        714,
+        292
+      ],
+      "visible": [
+        546,
+        195,
+        714,
+        292
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 97,
+      "sameInk": true,
+      "percentInk": 100.0
+    },
+    "focus": {
+      "hint": "Backup password",
+      "length": 24,
+      "full": [
+        120,
+        76,
+        1064,
+        167
+      ],
+      "visible": [
+        120,
+        76,
+        1064,
+        167
+      ],
+      "visibleArea": 85904,
+      "area": 85904,
+      "baseline": 135,
+      "textInkPixels": 1440,
+      "visibleGlyphRuns": 24,
+      "textInkBounds": [
+        135,
+        117,
+        649,
+        126
+      ]
+    }
+  },
+  {
+    "label": "second-ime",
+    "seconds": 23.859,
+    "ime": [
+      0,
+      320,
+      1184,
+      720
+    ],
+    "screenshotSha256": "d68d87939afddab391af2f1be37c9989c735095d02db033c11412d5970fc50a9",
+    "choose": {
+      "ink": 1729,
+      "rows": 21,
+      "maskSha256": "777f7e72cc1abc500dddf6353dd33ce843d9b673c434da803a01a1727fa58e28",
+      "inkTop": 232,
+      "inkBottom": 253,
+      "full": [
+        730,
+        195,
+        1056,
+        292
+      ],
+      "visible": [
+        730,
+        195,
+        1056,
+        292
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 97,
+      "sameInk": true,
+      "percentInk": 100.0
+    },
+    "cancel": {
+      "ink": 618,
+      "rows": 21,
+      "maskSha256": "5d95c225f6b37e412174a7eb9856c4936aacddefc1285088587baee0510a490c",
+      "inkTop": 232,
+      "inkBottom": 253,
+      "full": [
+        546,
+        195,
+        714,
+        292
+      ],
+      "visible": [
+        546,
+        195,
+        714,
+        292
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 97,
+      "sameInk": true,
+      "percentInk": 100.0
+    },
+    "focus": {
+      "hint": "Confirm backup password",
+      "length": 24,
+      "full": [
+        120,
+        76,
+        1064,
+        167
+      ],
+      "visible": [
+        120,
+        76,
+        1064,
+        167
+      ],
+      "visibleArea": 85904,
+      "area": 85904,
+      "baseline": 135,
+      "textInkPixels": 1440,
+      "visibleGlyphRuns": 24,
+      "textInkBounds": [
+        135,
+        117,
+        649,
+        126
+      ]
+    }
+  },
+  {
+    "label": "steady-1",
+    "seconds": 30.109,
+    "ime": [
+      0,
+      320,
+      1184,
+      720
+    ],
+    "screenshotSha256": "d68d87939afddab391af2f1be37c9989c735095d02db033c11412d5970fc50a9",
+    "choose": {
+      "ink": 1729,
+      "rows": 21,
+      "maskSha256": "777f7e72cc1abc500dddf6353dd33ce843d9b673c434da803a01a1727fa58e28",
+      "inkTop": 232,
+      "inkBottom": 253,
+      "full": [
+        730,
+        195,
+        1056,
+        292
+      ],
+      "visible": [
+        730,
+        195,
+        1056,
+        292
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 97,
+      "sameInk": true,
+      "percentInk": 100.0
+    },
+    "cancel": {
+      "ink": 618,
+      "rows": 21,
+      "maskSha256": "5d95c225f6b37e412174a7eb9856c4936aacddefc1285088587baee0510a490c",
+      "inkTop": 232,
+      "inkBottom": 253,
+      "full": [
+        546,
+        195,
+        714,
+        292
+      ],
+      "visible": [
+        546,
+        195,
+        714,
+        292
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 97,
+      "sameInk": true,
+      "percentInk": 100.0
+    },
+    "focus": {
+      "hint": "Confirm backup password",
+      "length": 24,
+      "full": [
+        120,
+        76,
+        1064,
+        167
+      ],
+      "visible": [
+        120,
+        76,
+        1064,
+        167
+      ],
+      "visibleArea": 85904,
+      "area": 85904,
+      "baseline": 135,
+      "textInkPixels": 1440,
+      "visibleGlyphRuns": 24,
+      "textInkBounds": [
+        135,
+        117,
+        649,
+        126
+      ]
+    }
+  },
+  {
+    "label": "steady-2",
+    "seconds": 36.344,
+    "ime": [
+      0,
+      320,
+      1184,
+      720
+    ],
+    "screenshotSha256": "d68d87939afddab391af2f1be37c9989c735095d02db033c11412d5970fc50a9",
+    "choose": {
+      "ink": 1729,
+      "rows": 21,
+      "maskSha256": "777f7e72cc1abc500dddf6353dd33ce843d9b673c434da803a01a1727fa58e28",
+      "inkTop": 232,
+      "inkBottom": 253,
+      "full": [
+        730,
+        195,
+        1056,
+        292
+      ],
+      "visible": [
+        730,
+        195,
+        1056,
+        292
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 97,
+      "sameInk": true,
+      "percentInk": 100.0
+    },
+    "cancel": {
+      "ink": 618,
+      "rows": 21,
+      "maskSha256": "5d95c225f6b37e412174a7eb9856c4936aacddefc1285088587baee0510a490c",
+      "inkTop": 232,
+      "inkBottom": 253,
+      "full": [
+        546,
+        195,
+        714,
+        292
+      ],
+      "visible": [
+        546,
+        195,
+        714,
+        292
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 97,
+      "sameInk": true,
+      "percentInk": 100.0
+    },
+    "focus": {
+      "hint": "Confirm backup password",
+      "length": 24,
+      "full": [
+        120,
+        76,
+        1064,
+        167
+      ],
+      "visible": [
+        120,
+        76,
+        1064,
+        167
+      ],
+      "visibleArea": 85904,
+      "area": 85904,
+      "baseline": 135,
+      "textInkPixels": 1440,
+      "visibleGlyphRuns": 24,
+      "textInkBounds": [
+        135,
+        117,
+        649,
+        126
+      ]
+    }
+  },
+  {
+    "label": "hidden-reference",
+    "seconds": 41.25,
+    "ime": null,
+    "screenshotSha256": "808ec22c41dcf2d01f555b995734d1ca9eae4f866179e5cefa160a1c3981f4a8",
+    "choose": {
+      "ink": 1729,
+      "rows": 21,
+      "maskSha256": "777f7e72cc1abc500dddf6353dd33ce843d9b673c434da803a01a1727fa58e28",
+      "inkTop": 632,
+      "inkBottom": 653,
+      "full": [
+        730,
+        595,
+        1056,
+        692
+      ],
+      "visible": [
+        730,
+        595,
+        1056,
+        692
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 97,
+      "sameInk": true,
+      "percentInk": 100.0
+    },
+    "cancel": {
+      "ink": 618,
+      "rows": 21,
+      "maskSha256": "5d95c225f6b37e412174a7eb9856c4936aacddefc1285088587baee0510a490c",
+      "inkTop": 632,
+      "inkBottom": 653,
+      "full": [
+        546,
+        595,
+        714,
+        692
+      ],
+      "visible": [
+        546,
+        595,
+        714,
+        692
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 97,
+      "sameInk": true,
+      "percentInk": 100.0
+    }
+  },
+  {
+    "label": "final-click-ime",
+    "seconds": 47.672,
+    "ime": [
+      0,
+      320,
+      1184,
+      720
+    ],
+    "screenshotSha256": "5b6b0a38124f7943cd27248d98d5f562e19a7736a45ae0148a099f84bb0ebf4f",
+    "choose": {
+      "ink": 1729,
+      "rows": 21,
+      "maskSha256": "777f7e72cc1abc500dddf6353dd33ce843d9b673c434da803a01a1727fa58e28",
+      "inkTop": 232,
+      "inkBottom": 253,
+      "full": [
+        730,
+        195,
+        1056,
+        292
+      ],
+      "visible": [
+        730,
+        195,
+        1056,
+        292
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 97,
+      "sameInk": true,
+      "percentInk": 100.0
+    },
+    "cancel": {
+      "ink": 618,
+      "rows": 21,
+      "maskSha256": "5d95c225f6b37e412174a7eb9856c4936aacddefc1285088587baee0510a490c",
+      "inkTop": 232,
+      "inkBottom": 253,
+      "full": [
+        546,
+        195,
+        714,
+        292
+      ],
+      "visible": [
+        546,
+        195,
+        714,
+        292
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 97,
+      "sameInk": true,
+      "percentInk": 100.0
+    },
+    "focus": {
+      "hint": "Confirm backup password",
+      "length": 24,
+      "full": [
+        120,
+        76,
+        1064,
+        167
+      ],
+      "visible": [
+        120,
+        76,
+        1064,
+        167
+      ],
+      "visibleArea": 85904,
+      "area": 85904,
+      "baseline": 135,
+      "textInkPixels": 1440,
+      "visibleGlyphRuns": 24,
+      "textInkBounds": [
+        135,
+        117,
+        649,
+        126
+      ]
+    }
+  }
+]

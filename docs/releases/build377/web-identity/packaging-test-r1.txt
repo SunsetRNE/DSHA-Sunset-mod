@@ -1,0 +1,39 @@
+test_changed_canonical_policy_cannot_hide_behind_overlay_copy (__main__.DshRuntimePackaging.test_changed_canonical_policy_cannot_hide_behind_overlay_copy) ... ok
+test_missing_or_unreviewed_web_icon_rejects_the_new_archive (__main__.DshRuntimePackaging.test_missing_or_unreviewed_web_icon_rejects_the_new_archive) ... ok
+test_path_order_is_identical_for_both_host_path_flavors (__main__.DshRuntimePackaging.test_path_order_is_identical_for_both_host_path_flavors) ... ok
+test_real_archive_keeps_dsh_and_hooks_while_policy_comes_from_exact_signed_installs (__main__.DshRuntimePackaging.test_real_archive_keeps_dsh_and_hooks_while_policy_comes_from_exact_signed_installs) ... FAIL
+test_receipt_uses_start_snapshot_without_a_post_publication_input_read (__main__.DshRuntimePackaging.test_receipt_uses_start_snapshot_without_a_post_publication_input_read) ... ok
+test_recipe_edit_during_real_gzip_keeps_previous_archive_and_receipt (__main__.DshRuntimePackaging.test_recipe_edit_during_real_gzip_keeps_previous_archive_and_receipt) ... ok
+test_removed_redirected_executable_or_shadowed_policy_install_stops_build (__main__.DshRuntimePackaging.test_removed_redirected_executable_or_shadowed_policy_install_stops_build) ... ok
+
+======================================================================
+FAIL: test_real_archive_keeps_dsh_and_hooks_while_policy_comes_from_exact_signed_installs (__main__.DshRuntimePackaging.test_real_archive_keeps_dsh_and_hooks_while_policy_comes_from_exact_signed_installs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\test-dsh-runtime-packaging.py", line 86, in test_real_archive_keeps_dsh_and_hooks_while_policy_comes_from_exact_signed_installs
+    self.assertEqual([name[len(prefix):] for name in names if name.startswith(prefix)],
+AssertionError: Lists differ: ['A-first.js', 'Z-last.js', 'bin.js', 'alpha/child.js', '[22 chars].js'] != ['A-first.js', 'alpha/child.js', 'bin.js', 'middle.js', '[22 chars].js']
+
+First differing element 1:
+'Z-last.js'
+'alpha/child.js'
+
+  ['A-first.js',
++  'alpha/child.js',
++  'bin.js',
++  'middle.js',
+   'Z-last.js',
+-  'bin.js',
+-  'alpha/child.js',
+-  'Zoo/child.js',
+?                ^
+
++  'Zoo/child.js']
+?                ^
+
+-  'middle.js']
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.371s
+
+FAILED (failures=1)

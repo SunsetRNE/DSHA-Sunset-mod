@@ -1,0 +1,55 @@
+INSTRUMENTATION_RESULT: case0=returned 0 OBS_PRE_FORK p=9330
+OBS_PARENT_FORK child=9332
+OBS_CHILD_ENTER
+OBS_CHILD_PRE_EXEC
+SYNTHETIC
+INSTRUMENTATION_RESULT: case137=returned 137 OBS_PRE_FORK p=9339
+OBS_PARENT_FORK child=9342
+OBS_CHILD_ENTER
+OBS_CHILD_PRE_EXEC
+SYNTHETIC
+INSTRUMENTATION_RESULT: close0=java.lang.reflect.InvocationTargetException
+	at java.lang.reflect.Method.invoke(Native Method)
+	at org.dsha.fixture.exactcold.ProcessCold.onStart(ProcessCold.java:21)
+	at android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2205)
+Caused by: java.lang.UnsatisfiedLinkError: dlopen failed: library "libtermux.so" not found
+	at java.lang.Runtime.loadLibrary0(Runtime.java:1087)
+	at java.lang.Runtime.loadLibrary0(Runtime.java:1008)
+	at java.lang.System.loadLibrary(System.java:1664)
+	at com.deepseekharness.app.runtime.NativeProcess.<clinit>(NativeProcess.java:8)
+	at com.deepseekharness.app.runtime.TerminalProcessCloser$Companion.belongsToSession(TerminalProcessCloser.kt:155)
+	at com.deepseekharness.app.runtime.TerminalProcessCloser$Companion.access$belongsToSession(TerminalProcessCloser.kt:79)
+	at com.deepseekharness.app.runtime.TerminalProcessCloser$AndroidPorts.belongsToSession(TerminalProcessCloser.kt:24)
+	at com.deepseekharness.app.util.TerminalExitPolicy$Companion.hasMembers(TerminalExitPolicy.kt:159)
+	at com.deepseekharness.app.util.TerminalExitPolicy$Companion.requireSessionEmpty(TerminalExitPolicy.kt:145)
+	at com.deepseekharness.app.runtime.TerminalProcessCloser$Companion.requireSessionEmpty(TerminalProcessCloser.kt:134)
+	at com.deepseekharness.app.runtime.TerminalProcessCloser.requireSessionEmpty(Unknown Source:2)
+	at com.deepseekharness.app.runtime.IsolatedInstallProcess.boundedSessionEmpty(IsolatedInstallProcess.java:418)
+	at com.deepseekharness.app.runtime.IsolatedInstallProcess.close(IsolatedInstallProcess.java:361)
+	... 3 more
+
+INSTRUMENTATION_RESULT: close137=java.lang.reflect.InvocationTargetException
+	at java.lang.reflect.Method.invoke(Native Method)
+	at org.dsha.fixture.exactcold.ProcessCold.onStart(ProcessCold.java:21)
+	at android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2205)
+Caused by: java.lang.NoClassDefFoundError: com.deepseekharness.app.runtime.NativeProcess
+	at com.deepseekharness.app.runtime.TerminalProcessCloser$Companion.belongsToSession(TerminalProcessCloser.kt:155)
+	at com.deepseekharness.app.runtime.TerminalProcessCloser$Companion.access$belongsToSession(TerminalProcessCloser.kt:79)
+	at com.deepseekharness.app.runtime.TerminalProcessCloser$AndroidPorts.belongsToSession(TerminalProcessCloser.kt:24)
+	at com.deepseekharness.app.util.TerminalExitPolicy$Companion.hasMembers(TerminalExitPolicy.kt:159)
+	at com.deepseekharness.app.util.TerminalExitPolicy$Companion.requireSessionEmpty(TerminalExitPolicy.kt:145)
+	at com.deepseekharness.app.runtime.TerminalProcessCloser$Companion.requireSessionEmpty(TerminalProcessCloser.kt:134)
+	at com.deepseekharness.app.runtime.TerminalProcessCloser.requireSessionEmpty(Unknown Source:2)
+	at com.deepseekharness.app.runtime.IsolatedInstallProcess.boundedSessionEmpty(IsolatedInstallProcess.java:418)
+	at com.deepseekharness.app.runtime.IsolatedInstallProcess.close(IsolatedInstallProcess.java:361)
+	... 3 more
+Caused by: java.lang.UnsatisfiedLinkError: dlopen failed: library "libtermux.so" not found
+	at java.lang.Runtime.loadLibrary0(Runtime.java:1087)
+	at java.lang.Runtime.loadLibrary0(Runtime.java:1008)
+	at java.lang.System.loadLibrary(System.java:1664)
+	at com.deepseekharness.app.runtime.NativeProcess.<clinit>(NativeProcess.java:8)
+	... 12 more
+
+INSTRUMENTATION_RESULT: signed-arm64=stdin=flushed natural_wait=true waited_ms=101 harness_force=false exit=137 shell_marker=true diagnostics=birth-line|OBS_PRE_FORK p=9345|OBS_PARENT_FORK child=9346|OBS_CHILD_ENTER|OBS_CHILD_PRE_EXEC|SHELL_ENTER|MARK_DSHA_START|OBS_WAIT raw=0 exited=1 code=0 signaled=0 signal=-1|
+INSTRUMENTATION_RESULT: system-shell=stdin=flushed natural_wait=true waited_ms=102 harness_force=false exit=0 shell_marker=true diagnostics=SHELL_ENTER|MARK_DSHA_START|
+INSTRUMENTATION_CODE: -1

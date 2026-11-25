@@ -1,0 +1,22 @@
+{
+  "command": [
+    "wsl.exe",
+    "-d",
+    "DSHA-build172",
+    "--",
+    "python3",
+    "-B",
+    "/mnt/f/DSHA_RESTART/source/build377-local/tools/verify-dsh-archive-recipes.py",
+    "--npm-tree",
+    "/root/dsha-build374-runtime/npm-arm64-a",
+    "--apk",
+    "/mnt/f/DSHA_RESTART/artifacts/build377-local/local-release/dsha-0.2.2-rc.5.apk",
+    "--report",
+    "/mnt/f/DSHA_RESTART/artifacts/build377-local/verification-final4/archive-recipes.json"
+  ],
+  "startedAt": "2026-11-25T09:56:31.498129+00:00",
+  "finishedAt": "2026-11-25T09:56:40.886251+00:00",
+  "elapsedSeconds": 9.375,
+  "exitCode": 0,
+  "logSha256": "fb4f437fdfad74682b03858e43244143cc3b25842b59703d3c381a39c2cfb955"
+}

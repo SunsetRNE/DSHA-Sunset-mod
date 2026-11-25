@@ -1,0 +1,365 @@
+{
+  "startUtc": "2026-11-25T09:27:11.675601+00:00",
+  "mode": "Before",
+  "flow": "normal",
+  "package": "org.dsha.fixture.shortbackup",
+  "device": "DSHA_build377_lan_api30_x86\r\r\nOK",
+  "rows": [
+    {
+      "label": "shown",
+      "time": 7.375,
+      "ime": false,
+      "imeFrame": null,
+      "choose": [
+        730,
+        547,
+        1056,
+        644
+      ],
+      "cancel": [
+        546,
+        547,
+        714,
+        644
+      ],
+      "chooseClear": true,
+      "cancelClear": true,
+      "font": "null",
+      "rotation": "1",
+      "windows": [
+        "Window #6 Window{c1ed162 u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeBefore}:",
+        "mAttrs={(0,0)(1120xwrap) gr=CENTER sim={adjust=resize} ty=APPLICATION fmt=TRANSLUCENT wanim=0x7f120006 surfaceInsets=Rect(24, 24 - 24, 24)",
+        "Requested w=1120 h=672 mLayoutSeq=8493",
+        "mFrame=[32,48][1152,720] last=[32,48][1152,720]",
+        "Window #7 Window{800738 u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeBefore}:",
+        "mAttrs={(0,0)(fillxfill) sim={adjust=resize forwardNavigation} ty=BASE_APPLICATION wanim=0x7f120005",
+        "Requested w=1280 h=720 mLayoutSeq=8493",
+        "mFrame=[0,0][1280,720] last=[0,0][1280,720]"
+      ],
+      "size": "Physical size: 720x1280\r\nPhysical density: 320",
+      "layout": {
+        "choose": {
+          "full": [
+            730,
+            547,
+            1056,
+            644
+          ],
+          "visible": [
+            524895,
+            547,
+            525221,
+            644
+          ],
+          "focused": false,
+          "lineHeight": 33,
+          "baseline": 605
+        },
+        "cancel": {
+          "full": [
+            546,
+            547,
+            714,
+            644
+          ],
+          "visible": [
+            524790,
+            547,
+            524958,
+            644
+          ],
+          "focused": false,
+          "lineHeight": 33,
+          "baseline": 605
+        },
+        "inputs": [
+          {
+            "full": [
+              120,
+              354,
+              1064,
+              445
+            ],
+            "visible": [
+              120,
+              354,
+              1064,
+              445
+            ],
+            "focused": false,
+            "lineHeight": 42,
+            "baseline": 413,
+            "length": 0,
+            "hint": "Backup password"
+          },
+          {
+            "full": [
+              120,
+              445,
+              1064,
+              536
+            ],
+            "visible": [
+              120,
+              445,
+              1064,
+              519
+            ],
+            "focused": false,
+            "lineHeight": 42,
+            "baseline": 504,
+            "length": 0,
+            "hint": "Confirm backup password"
+          }
+        ]
+      }
+    },
+    {
+      "label": "first-ime",
+      "time": 15.046,
+      "ime": true,
+      "imeFrame": [
+        0,
+        320,
+        1184,
+        720
+      ],
+      "choose": [
+        730,
+        219,
+        1056,
+        272
+      ],
+      "cancel": [
+        546,
+        219,
+        714,
+        272
+      ],
+      "chooseClear": true,
+      "cancelClear": true,
+      "font": "null",
+      "rotation": "1",
+      "windows": [
+        "Window #6 Window{c1ed162 u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeBefore}:",
+        "mAttrs={(0,0)(1120xwrap) gr=CENTER sim={adjust=resize} ty=APPLICATION fmt=TRANSLUCENT wanim=0x7f120006 surfaceInsets=Rect(24, 24 - 24, 24)",
+        "Requested w=1120 h=672 mLayoutSeq=8512",
+        "mFrame=[32,48][1152,320] last=[32,48][1152,320]",
+        "mRequestedInsetsState: InsetsState: {mDisplayFrame=Rect(0, 0 - 0, 0), mSources= { InsetsSource: {mType=ITYPE_STATUS_BAR, mFrame=[0,0][1280,48], mVisible=true}, InsetsSource: {mType=ITYPE_NAVIGATION_BAR, mFrame=[1184,0][1280,720], mVisible=true}, InsetsSource: {mType=ITYPE_IME, mFrame=[0,320][1184,720], mVisible=true} }",
+        "Window #7 Window{800738 u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeBefore}:",
+        "mAttrs={(0,0)(fillxfill) sim={adjust=resize forwardNavigation} ty=BASE_APPLICATION wanim=0x7f120005",
+        "Requested w=1280 h=720 mLayoutSeq=8512",
+        "mFrame=[0,0][1280,720] last=[0,0][1280,720]"
+      ],
+      "size": "Physical size: 720x1280\r\nPhysical density: 320",
+      "editor": {
+        "inputType": "0x81",
+        "imeOptions": "0x1b000005",
+        "actionCode": 5
+      },
+      "imeFullscreen": false,
+      "layout": {
+        "choose": {
+          "full": [
+            730,
+            219,
+            1056,
+            316
+          ],
+          "visible": [
+            524895,
+            219,
+            525221,
+            272
+          ],
+          "focused": false,
+          "lineHeight": 33,
+          "baseline": 277
+        },
+        "cancel": {
+          "full": [
+            546,
+            219,
+            714,
+            316
+          ],
+          "visible": [
+            524790,
+            219,
+            524958,
+            272
+          ],
+          "focused": false,
+          "lineHeight": 33,
+          "baseline": 277
+        },
+        "inputs": [
+          {
+            "full": [
+              120,
+              191,
+              1064,
+              282
+            ],
+            "visible": [
+              40,
+              0,
+              984,
+              91
+            ],
+            "focused": true,
+            "lineHeight": 42,
+            "baseline": 250,
+            "length": 24,
+            "hint": "Backup password"
+          },
+          {
+            "full": [
+              120,
+              282,
+              1064,
+              373
+            ],
+            "visible": [
+              40,
+              91,
+              984,
+              182
+            ],
+            "focused": false,
+            "lineHeight": 42,
+            "baseline": 341,
+            "length": 0,
+            "hint": "Confirm backup password"
+          }
+        ]
+      }
+    },
+    {
+      "label": "second-ime",
+      "time": 23.421,
+      "ime": true,
+      "imeFrame": [
+        0,
+        320,
+        1184,
+        720
+      ],
+      "choose": [
+        730,
+        219,
+        1056,
+        272
+      ],
+      "cancel": [
+        546,
+        219,
+        714,
+        272
+      ],
+      "chooseClear": true,
+      "cancelClear": true,
+      "font": "null",
+      "rotation": "1",
+      "windows": [
+        "Window #6 Window{c1ed162 u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeBefore}:",
+        "mAttrs={(0,0)(1120xwrap) gr=CENTER sim={adjust=resize} ty=APPLICATION fmt=TRANSLUCENT wanim=0x7f120006 surfaceInsets=Rect(24, 24 - 24, 24)",
+        "Requested w=1120 h=672 mLayoutSeq=8527",
+        "mFrame=[32,48][1152,320] last=[32,48][1152,320]",
+        "mRequestedInsetsState: InsetsState: {mDisplayFrame=Rect(0, 0 - 0, 0), mSources= { InsetsSource: {mType=ITYPE_STATUS_BAR, mFrame=[0,0][1280,48], mVisible=true}, InsetsSource: {mType=ITYPE_NAVIGATION_BAR, mFrame=[1184,0][1280,720], mVisible=true}, InsetsSource: {mType=ITYPE_IME, mFrame=[0,320][1184,720], mVisible=true} }",
+        "Window #7 Window{800738 u0 org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeBefore}:",
+        "mAttrs={(0,0)(fillxfill) sim={adjust=resize forwardNavigation} ty=BASE_APPLICATION wanim=0x7f120005",
+        "Requested w=1280 h=720 mLayoutSeq=8527",
+        "mFrame=[0,0][1280,720] last=[0,0][1280,720]"
+      ],
+      "size": "Physical size: 720x1280\r\nPhysical density: 320",
+      "editor": {
+        "inputType": "0x81",
+        "imeOptions": "0x17000006",
+        "actionCode": 6
+      },
+      "imeFullscreen": false,
+      "layout": {
+        "choose": {
+          "full": [
+            730,
+            219,
+            1056,
+            316
+          ],
+          "visible": [
+            524895,
+            219,
+            525221,
+            272
+          ],
+          "focused": false,
+          "lineHeight": 33,
+          "baseline": 277
+        },
+        "cancel": {
+          "full": [
+            546,
+            219,
+            714,
+            316
+          ],
+          "visible": [
+            524790,
+            219,
+            524958,
+            272
+          ],
+          "focused": false,
+          "lineHeight": 33,
+          "baseline": 277
+        },
+        "inputs": [
+          {
+            "full": [
+              120,
+              100,
+              1064,
+              191
+            ],
+            "visible": [
+              40,
+              -91,
+              984,
+              0
+            ],
+            "focused": false,
+            "lineHeight": 42,
+            "baseline": 159,
+            "length": 24,
+            "hint": "Backup password"
+          },
+          {
+            "full": [
+              120,
+              191,
+              1064,
+              282
+            ],
+            "visible": [
+              40,
+              0,
+              984,
+              91
+            ],
+            "focused": true,
+            "lineHeight": 42,
+            "baseline": 250,
+            "length": 24,
+            "hint": "Confirm backup password"
+          }
+        ]
+      }
+    }
+  ],
+  "picker": "com.google.android.documentsui/com.android.documentsui.picker.PickActivity",
+  "createDocument": true,
+  "returned": "org.dsha.fixture.shortbackup/com.deepseekharness.app.ui.NativeDataImeBefore",
+  "outcome": "IME visible click reached system CREATE_DOCUMENT and returned on cancellation",
+  "seconds": 28.828
+}

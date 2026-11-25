@@ -1,0 +1,194 @@
+{
+  "startedUtc": "2026-11-25T06:45:35.594319+00:00",
+  "sourceCommit": "12efafd7d3530b412d48ccb66fb657c6bd7cc8ac",
+  "apk": "F:\\DSHA_RESTART\\release\\0.2.2-rc.5\\dsha-0.2.2-rc.5.apk",
+  "sha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "python": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+  "command": [
+    "artifacts/build377-local/size/compare_tool_encoding.py",
+    "--alignment",
+    "release/0.2.2-rc.5/dsha-0.2.2-rc.5.apk",
+    "artifacts/build377-local/size/encoder-r2.json"
+  ],
+  "volumeFree": 355872858112,
+  "original": {
+    "gh-cli.bin": {
+      "bytes": 9592508,
+      "tarBytes": 38727680,
+      "sha256": "80c8f97512689a81261ad9e6f45c54798b188a00a255b55082a0d13bfd10fa20",
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51"
+    },
+    "glibc-python.bin": {
+      "bytes": 4774024,
+      "tarBytes": 24289280,
+      "sha256": "f627e3d6ac38703a7ff9c9c5a733c6d628bfd1866c32660873c661a670613882",
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd"
+    }
+  },
+  "trials": [
+    {
+      "name": "gh-cli.bin",
+      "option": "lp2-pb3",
+      "options": {
+        "lc": 2,
+        "lp": 2,
+        "pb": 3
+      },
+      "tarBytes": 38727680,
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51",
+      "encodedBytes": 9516224,
+      "encodedSha256": "ff2f2a5d6630ed72e0e4b755c558f91601b776e0c0d176ea0d265228c1efe39f",
+      "encodedSeconds": 10.2319,
+      "decodeSeconds": 0.5658,
+      "utcFinished": "2026-11-25T06:45:46.885262+00:00"
+    },
+    {
+      "name": "gh-cli.bin",
+      "option": "lp2-pb1",
+      "options": {
+        "lc": 2,
+        "lp": 2,
+        "pb": 1
+      },
+      "tarBytes": 38727680,
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51",
+      "encodedBytes": 9619212,
+      "encodedSha256": "d5c67eaa4fa524051e892aec0998c57224097c5eaabe788a38082bd8968ad60b",
+      "encodedSeconds": 10.3223,
+      "decodeSeconds": 0.5531,
+      "utcFinished": "2026-11-25T06:45:46.962368+00:00"
+    },
+    {
+      "name": "gh-cli.bin",
+      "option": "lp2-pb0",
+      "options": {
+        "lc": 2,
+        "lp": 2,
+        "pb": 0
+      },
+      "tarBytes": 38727680,
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51",
+      "encodedBytes": 9732120,
+      "encodedSha256": "2cc4e80d74f11734c2fd13db7e32a81d03498696567428d8cfbadb492f503be9",
+      "encodedSeconds": 10.4547,
+      "decodeSeconds": 0.568,
+      "utcFinished": "2026-11-25T06:45:47.109211+00:00"
+    },
+    {
+      "name": "glibc-python.bin",
+      "option": "lp2-pb0",
+      "options": {
+        "lc": 2,
+        "lp": 2,
+        "pb": 0
+      },
+      "tarBytes": 24289280,
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd",
+      "encodedBytes": 4809524,
+      "encodedSha256": "eec09d613c88e110b7331076c7b313b3d2bffb7ca7f98054d86213be4bc54fe7",
+      "encodedSeconds": 6.0926,
+      "decodeSeconds": 0.2695,
+      "utcFinished": "2026-11-25T06:45:53.474176+00:00"
+    },
+    {
+      "name": "gh-cli.bin",
+      "option": "lp3-pb2",
+      "options": {
+        "lc": 1,
+        "lp": 3,
+        "pb": 2
+      },
+      "tarBytes": 38727680,
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51",
+      "encodedBytes": 9522080,
+      "encodedSha256": "aa8d0a513777ce520b25447fe7b5452f5636bb3a4f0da6574ce43840ae905936",
+      "encodedSeconds": 11.4941,
+      "decodeSeconds": 0.5872,
+      "utcFinished": "2026-11-25T06:45:58.968915+00:00"
+    },
+    {
+      "name": "gh-cli.bin",
+      "option": "lp4-pb2",
+      "options": {
+        "lc": 0,
+        "lp": 4,
+        "pb": 2
+      },
+      "tarBytes": 38727680,
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51",
+      "encodedBytes": 9551100,
+      "encodedSha256": "a204145f2e7b99e80e934bbd9d07f9a7dbc4a294fa416ad79a4307832d0af5c4",
+      "encodedSeconds": 11.6578,
+      "decodeSeconds": 0.5785,
+      "utcFinished": "2026-11-25T06:45:59.201311+00:00"
+    },
+    {
+      "name": "glibc-python.bin",
+      "option": "lp2-pb1",
+      "options": {
+        "lc": 2,
+        "lp": 2,
+        "pb": 1
+      },
+      "tarBytes": 24289280,
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd",
+      "encodedBytes": 4770600,
+      "encodedSha256": "8260b17cd0285d6bf621be423a5f197e0a370ed0e6a470b9145e383fb6377d76",
+      "encodedSeconds": 7.0215,
+      "decodeSeconds": 0.2935,
+      "utcFinished": "2026-11-25T06:46:00.791233+00:00"
+    },
+    {
+      "name": "glibc-python.bin",
+      "option": "lp2-pb3",
+      "options": {
+        "lc": 2,
+        "lp": 2,
+        "pb": 3
+      },
+      "tarBytes": 24289280,
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd",
+      "encodedBytes": 4756940,
+      "encodedSha256": "981221dbbc95814b2a65a6a6afdc1f8750abbe76f85d1f715dd844c2b23e437d",
+      "encodedSeconds": 6.7139,
+      "decodeSeconds": 0.2846,
+      "utcFinished": "2026-11-25T06:46:05.973311+00:00"
+    },
+    {
+      "name": "glibc-python.bin",
+      "option": "lp3-pb2",
+      "options": {
+        "lc": 1,
+        "lp": 3,
+        "pb": 2
+      },
+      "tarBytes": 24289280,
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd",
+      "encodedBytes": 4773572,
+      "encodedSha256": "b350c8f0535858db4bb5e51ed347fd5352f76b30f8d147fa00390a728b9b4313",
+      "encodedSeconds": 6.525,
+      "decodeSeconds": 0.2789,
+      "utcFinished": "2026-11-25T06:46:06.010124+00:00"
+    },
+    {
+      "name": "glibc-python.bin",
+      "option": "lp4-pb2",
+      "options": {
+        "lc": 0,
+        "lp": 4,
+        "pb": 2
+      },
+      "tarBytes": 24289280,
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd",
+      "encodedBytes": 4792744,
+      "encodedSha256": "d787109e0d817d9deb29d0ee7ce4ce9525c938d787bae13cde28515a7aefbfb3",
+      "encodedSeconds": 6.4839,
+      "decodeSeconds": 0.2634,
+      "utcFinished": "2026-11-25T06:46:07.541215+00:00"
+    }
+  ],
+  "firstUsableSeconds": 11.2934,
+  "finishedUtc": "2026-11-25T06:46:07.543260+00:00",
+  "completedSeconds": 31.9493
+}

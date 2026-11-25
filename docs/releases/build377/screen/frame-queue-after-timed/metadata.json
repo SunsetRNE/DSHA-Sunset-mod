@@ -1,0 +1,37 @@
+{
+  "start": "2026-11-25T14:52:25.328+08:00",
+  "mode": "after",
+  "shape": "five polls: first pixels, switched owner reader exception, empty poll, stale queue image, fresh image",
+  "commands": [
+    {
+      "cwd": "F:\\DSHA_RESTART\\artifacts\\build377-local\\screen\\frame-queue-after-timed",
+      "argv": [
+        "F:\\DSHA\\_toolchains\\jdk-17\\bin\\javac",
+        "-encoding",
+        "UTF-8",
+        "FrameLoop.java"
+      ],
+      "exit": 0,
+      "finished": "2026-11-25T14:52:25.917+08:00",
+      "elapsedSeconds": 0.59
+    },
+    {
+      "cwd": "F:\\DSHA_RESTART\\artifacts\\build377-local\\screen\\frame-queue-after-timed",
+      "argv": [
+        "F:\\DSHA\\_toolchains\\jdk-17\\bin\\java",
+        "-cp",
+        ".",
+        "FrameLoop",
+        "after"
+      ],
+      "exit": 0,
+      "finished": "2026-11-25T14:52:26.016+08:00",
+      "elapsedSeconds": 0.6878
+    }
+  ],
+  "firstResult": {
+    "at": "2026-11-25T14:52:25.999+08:00",
+    "elapsedSeconds": 0.6715,
+    "record": "read row=1 cachePresent=false"
+  }
+}

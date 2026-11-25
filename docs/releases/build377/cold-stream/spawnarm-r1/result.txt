@@ -1,0 +1,29 @@
+INSTRUMENTATION_RESULT: case0=start java.lang.reflect.InvocationTargetException
+	at java.lang.reflect.Method.invoke(Native Method)
+	at org.dsha.fixture.exactcold.ProcessCold.onStart(ProcessCold.java:17)
+	at android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2205)
+Caused by: java.io.IOException: Stream closed
+	at java.lang.ProcessBuilder$NullOutputStream.write(ProcessBuilder.java:433)
+	at java.io.OutputStream.write(OutputStream.java:116)
+	at java.io.BufferedOutputStream.flushBuffer(BufferedOutputStream.java:82)
+	at java.io.BufferedOutputStream.flush(BufferedOutputStream.java:140)
+	at com.deepseekharness.app.runtime.IsolatedInstallProcess.start(IsolatedInstallProcess.java:132)
+	at com.deepseekharness.app.runtime.IsolatedInstallProcess.start(IsolatedInstallProcess.java:64)
+	... 3 more
+
+INSTRUMENTATION_RESULT: case137=start java.lang.reflect.InvocationTargetException
+	at java.lang.reflect.Method.invoke(Native Method)
+	at org.dsha.fixture.exactcold.ProcessCold.onStart(ProcessCold.java:17)
+	at android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2205)
+Caused by: java.io.IOException: Stream closed
+	at java.lang.ProcessBuilder$NullOutputStream.write(ProcessBuilder.java:433)
+	at java.io.OutputStream.write(OutputStream.java:116)
+	at java.io.BufferedOutputStream.flushBuffer(BufferedOutputStream.java:82)
+	at java.io.BufferedOutputStream.flush(BufferedOutputStream.java:140)
+	at com.deepseekharness.app.runtime.IsolatedInstallProcess.start(IsolatedInstallProcess.java:132)
+	at com.deepseekharness.app.runtime.IsolatedInstallProcess.start(IsolatedInstallProcess.java:64)
+	... 3 more
+
+INSTRUMENTATION_RESULT: signed-arm64=stdin=flushed natural_wait=true waited_ms=102 harness_force=false exit=137 shell_marker=false shell_entered_before_write=false guest_marker_before_write=false guest_marker_after_write=false diagnostics=birth-line|
+INSTRUMENTATION_RESULT: system-shell=stdin=flushed natural_wait=true waited_ms=101 harness_force=false exit=0 shell_marker=true shell_entered_before_write=true guest_marker_before_write=false guest_marker_after_write=true diagnostics=SHELL_ENTER|MARK_DSHA_START|
+INSTRUMENTATION_CODE: -1

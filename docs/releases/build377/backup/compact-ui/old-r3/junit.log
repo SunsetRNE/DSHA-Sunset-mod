@@ -1,0 +1,42 @@
+JUnit version 4.13.2
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+E
+Time: 16.969
+There was 1 failure:
+1) compactStandardAndRescueFormsKeepBothActionsWithinTheViewport(com.deepseekharness.app.ui.NativeDataChoicesTest)
+java.lang.AssertionError: [normal font 1.0 312x384dp Choose destination Rect(250, 699 - 576, 796), panel height 768, normal font 1.0 312x384dp Cancel Rect(66, 699 - 234, 796), panel height 768, normal font 1.0 312x248dp Choose destination Rect(250, 524 - 576, 621), panel height 496, normal font 1.0 312x248dp Cancel Rect(66, 524 - 234, 621), panel height 496, normal font 1.0 560x228dp Choose destination Rect(746, 484 - 1072, 581), panel height 456, normal font 1.0 560x228dp Cancel Rect(562, 484 - 730, 581), panel height 456, rescue font 1.0 312x384dp Choose destination Rect(250, 796 - 576, 893), panel height 768, rescue font 1.0 312x384dp Cancel Rect(66, 796 - 234, 893), panel height 768, rescue font 1.0 312x248dp Choose destination Rect(250, 524 - 576, 621), panel height 496, rescue font 1.0 312x248dp Cancel Rect(66, 524 - 234, 621), panel height 496, rescue font 1.0 560x228dp Choose destination Rect(746, 484 - 1072, 581), panel height 456, rescue font 1.0 560x228dp Cancel Rect(562, 484 - 730, 581), panel height 456, normal font 1.3 312x384dp Choose destination Rect(160, 796 - 576, 904), panel height 768, normal font 1.3 312x384dp Cancel Rect(377, 904 - 576, 1012), panel height 768, normal font 1.3 312x248dp Choose destination Rect(160, 524 - 576, 632), panel height 496, normal font 1.3 312x248dp Cancel Rect(377, 632 - 576, 740), panel height 496, normal font 1.3 560x228dp Choose destination Rect(656, 484 - 1072, 592), panel height 456, normal font 1.3 560x228dp Cancel Rect(441, 484 - 640, 592), panel height 456, rescue font 1.3 312x384dp Choose destination Rect(160, 796 - 576, 904), panel height 768, rescue font 1.3 312x384dp Cancel Rect(377, 904 - 576, 1012), panel height 768, rescue font 1.3 312x248dp Choose destination Rect(160, 524 - 576, 632), panel height 496, rescue font 1.3 312x248dp Cancel Rect(377, 632 - 576, 740), panel height 496, rescue font 1.3 560x228dp Choose destination Rect(656, 484 - 1072, 592), panel height 456, rescue font 1.3 560x228dp Cancel Rect(441, 484 - 640, 592), panel height 456]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at com.deepseekharness.app.ui.NativeDataChoicesTest.compactStandardAndRescueFormsKeepBothActionsWithinTheViewport(NativeDataChoicesTest.java:514)
+	Suppressed: org.robolectric.android.internal.AndroidTestEnvironment$UnExecutedRunnablesException: Main looper has queued unexecuted runnables. This might be the cause of the test failure. You might need a shadowOf(Looper.getMainLooper()).idle() call.
+
+FAILURES!!!
+Tests run: 6,  Failures: 1
+

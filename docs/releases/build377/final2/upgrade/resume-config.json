@@ -1,0 +1,13 @@
+{
+  "at": "2026-11-25T16:50:22.400+08:00",
+  "path": "F:\\DSHA_RESTART\\cache\\build377-direct-upgrade-final2\\avd\\DSHA_377_direct_upgrade_API30_x86_64.avd\\config.ini",
+  "initialSha256": "a512a9155bc7d3359a5617ec88064a14fcb730c5e265a90799498fcb60c9d239",
+  "activeSha256": "32fcb99ce9c6ddeed863b3d6b3bb6e1c77ca5bf9befb0767c973d26aab8acc89",
+  "propertiesChangedByEmulator": {
+    "disk.dataPartition.size": [
+      "4G",
+      "6442450944"
+    ]
+  },
+  "note": "Raw equality check initially stopped before restarting. The emulator rewrote spacing and its data partition size. All other values match; the recorded size matches the original retained userdata file."
+}

@@ -1,0 +1,6 @@
+F:\DSHA_RESTART\source\build377-local\app\src\main\java\com\deepseekharness\app\transfer\SelectedDocumentSave.java:160: 错误: 找不到符号
+        OutputStream out = DocumentStreams.replacementOutput(resolver, uri, control)) {
+                                          ^
+  符号:   方法 replacementOutput(ContentResolver,Uri,BackupControl)
+  位置: 类 DocumentStreams
+1 个错误

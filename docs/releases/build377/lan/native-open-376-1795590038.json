@@ -1,0 +1,28 @@
+{
+  "apkVersionCode": 376,
+  "component": "dsh.android.client/com.deepseekharness.app.ui.MainActivity",
+  "startUtc": "2026-11-25T07:00:35.948643+00:00",
+  "attempts": [
+    {
+      "round": 1,
+      "nodeCount": 47,
+      "classes": {
+        "android.widget.FrameLayout": 9,
+        "android.widget.LinearLayout": 15,
+        "android.widget.TextView": 11,
+        "android.view.View": 5,
+        "android.widget.ScrollView": 1,
+        "android.widget.ImageView": 3,
+        "android.widget.Button": 3
+      },
+      "resourceIds": [
+        "action_bar_root"
+      ]
+    }
+  ],
+  "launch": "Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=dsh.android.client/com.deepseekharness.app.ui.MainActivity }\nStatus: ok\nLaunchState: WARM\nActivity: dsh.android.client/com.deepseekharness.app.ui.OnboardingActivity\nTotalTime: 481\nWaitTime: 483\nComplete",
+  "startReplySeconds": 0.531,
+  "verifiedNativeSeconds": 2.281,
+  "ok": true,
+  "endUtc": "2026-11-25T07:00:38.223650+00:00"
+}

@@ -1,0 +1,11 @@
+read row=0 cachePresent=false
+copy row=0
+closed row=0
+read row=1 cachePresent=false
+read row=2 cachePresent=false
+read row=3 cachePresent=false
+closed row=3
+read row=4 cachePresent=false
+copy row=4
+closed row=4
+copiedRows=[0, 4]

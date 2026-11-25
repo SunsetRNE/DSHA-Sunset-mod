@@ -1,0 +1,101 @@
+proot-5.1.107.91/src/loader/loader.c:253:5: warning: inline asm clobber list contains reserved registers: SP [-Winline-asm]
+                                BRANCH(stmt->start.stack_pointer, stmt->start.entry_point);
+                                ^
+proot-5.1.107.91/src/loader/assembly-arm64.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+proot-5.1.107.91/src/loader/loader.c:253:5: note: Reserved registers on the clobber list may not be preserved across the asm statement, and clobbering them may lead to undefined behaviour.
+proot-5.1.107.91/src/loader/assembly-arm64.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+1 warning generated.
+proot-5.1.107.91/src/loader/loader.c:253:5: warning: inline asm clobber list contains reserved registers: SP, PC [-Winline-asm]
+                                BRANCH(stmt->start.stack_pointer, stmt->start.entry_point);
+                                ^
+proot-5.1.107.91/src/loader/assembly-arm.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+proot-5.1.107.91/src/loader/loader.c:253:5: note: Reserved registers on the clobber list may not be preserved across the asm statement, and clobbering them may lead to undefined behaviour.
+proot-5.1.107.91/src/loader/assembly-arm.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+1 warning generated.
+proot-5.1.107.91/src/path/glue.c:76:14: warning: 'talloc_autofree_context' is deprecated [-Wdeprecated-declarations]
+        autofreed = talloc_autofree_context();
+                    ^
+./talloc.h:1084:46: note: 'talloc_autofree_context' has been explicitly marked deprecated here
+_PUBLIC_ void *talloc_autofree_context(void) _DEPRECATED_;
+                                             ^
+./talloc.h:119:38: note: expanded from macro '_DEPRECATED_'
+#define _DEPRECATED_ __attribute__ ((deprecated))
+                                     ^
+1 warning generated.
+proot-5.1.107.91/src/path/temp.c:37:33: warning: 'talloc_autofree_context' is deprecated [-Wdeprecated-declarations]
+        temp_directory = talloc_strdup(talloc_autofree_context(), tmp);
+                                       ^
+./talloc.h:1084:46: note: 'talloc_autofree_context' has been explicitly marked deprecated here
+_PUBLIC_ void *talloc_autofree_context(void) _DEPRECATED_;
+                                             ^
+./talloc.h:119:38: note: expanded from macro '_DEPRECATED_'
+#define _DEPRECATED_ __attribute__ ((deprecated))
+                                     ^
+proot-5.1.107.91/src/path/temp.c:273:13: warning: 'talloc_autofree_context' is deprecated [-Wdeprecated-declarations]
+                context = talloc_autofree_context();
+                          ^
+./talloc.h:1084:46: note: 'talloc_autofree_context' has been explicitly marked deprecated here
+_PUBLIC_ void *talloc_autofree_context(void) _DEPRECATED_;
+                                             ^
+./talloc.h:119:38: note: expanded from macro '_DEPRECATED_'
+#define _DEPRECATED_ __attribute__ ((deprecated))
+                                     ^
+2 warnings generated.
+proot-5.1.107.91/src/syscall/socket.c:123:10: warning: 'mktemp' is deprecated: mktemp is unsafe, use mkstemp or tmpfile instead [-Wdeprecated-declarations]
+                (void) mktemp(shorter_host_path);
+                       ^
+F:/DSHA/_toolchains/android-sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/windows-x86_64/bin/../sysroot/usr/include/stdlib.h:68:66: note: 'mktemp' has been explicitly marked deprecated here
+char* _Nullable mktemp(char* _Nonnull __template) __attribute__((deprecated("mktemp is unsafe, use mkstemp or tmpfile instead")));
+                                                                 ^
+1 warning generated.
+proot-5.1.107.91/src/extension/ashmem_memfd/ashmem_memfd.c:42:12: error: call to undeclared library function 'strcmp' with type 'int (const char *, const char *)'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+                if (0 == strcmp(assume_unsupported, "1")) {
+                         ^
+proot-5.1.107.91/src/extension/ashmem_memfd/ashmem_memfd.c:42:12: note: include the header <string.h> or explicitly provide a declaration for 'strcmp'
+proot-5.1.107.91/src/extension/ashmem_memfd/ashmem_memfd.c:179:3: error: call to undeclared library function 'memset' with type 'void *(void *, int, unsigned long)'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+                memset(state, 0, sizeof(*state));
+                ^
+proot-5.1.107.91/src/extension/ashmem_memfd/ashmem_memfd.c:179:3: note: include the header <string.h> or explicitly provide a declaration for 'memset'
+2 errors generated.
+proot-5.1.107.91/src/extension/fake_id0/chroot.c:54:2: warning: ignoring return value of function declared with 'warn_unused_result' attribute [-Wunused-result]
+        realpath(path, path_host_absolute);
+        ^~~~~~~~ ~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\proot-source\build.py", line 137, in <module>
+    main()
+  File "F:\DSHA_RESTART\source\build377-local\tools\proot-source\build.py", line 127, in main
+    compile_libraries(args.ndk.resolve(), work, args.jobs)
+  File "F:\DSHA_RESTART\source\build377-local\tools\proot-source\build.py", line 108, in compile_libraries
+    built = list(executor.map(compile_object, objects))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 619, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 317, in _result_or_cancel
+    return fut.result(timeout)
+           ^^^^^^^^^^^^^^^^^^^
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 456, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\proot-source\build.py", line 104, in compile_object
+    run([*flags, '-c', src + '/' + name[:-2] + '.c', '-o', output])
+  File "F:\DSHA_RESTART\source\build377-local\tools\proot-source\build.py", line 82, in run
+    return subprocess.run(args, cwd=work, check=True, stdout=subprocess.PIPE, text=True).stdout
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "${USERPROFILE}\AppData\Local\Programs\Python\Python311\Lib\subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['F:\\DSHA\\_toolchains\\android-sdk\\ndk\\26.3.11579264\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang.exe', '--target=aarch64-linux-android26', '-O2', '-g0', '-D_GNU_SOURCE', '-D_FILE_OFFSET_BITS=64', '-fPIE', '-DARG_MAX=131072', '-DVERSION="v5.1.107.91-dsha"', '-DPROOT_UNBUNDLE_LOADER="/data/data/com.termux/files/usr/libexec/proot"', '-DWITH_LIBANDROID_SHMEM', '-Iinclude', '-I.', '-Iproot-5.1.107.91/src', '-c', 'proot-5.1.107.91/src/extension/ashmem_memfd/ashmem_memfd.c', '-o', 'objects/extension_ashmem_memfd_ashmem_memfd.o']' returned non-zero exit status 1.

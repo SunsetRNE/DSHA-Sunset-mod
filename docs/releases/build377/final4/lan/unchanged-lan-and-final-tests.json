@@ -1,0 +1,176 @@
+{
+  "sourceCommits": [
+    "15e7fcc285121d67efdfad11ce688fc0a81dd392",
+    "365719301ebf8c35f87edc24bdce4edb503c46d5"
+  ],
+  "sourceFilesVerifiedIdentical": {
+    "app/src/main/java/com/deepseekharness/app/AndroidLanIdentity.java": "9e903f05085f25e59585df64527e14abe3d8096a",
+    "app/src/main/java/com/deepseekharness/app/LanAuth.java": "e6f3e363f20557229746bce4baf829968c5485ed",
+    "app/src/main/java/com/deepseekharness/app/LanFiniteResponse.java": "320eda2f85d1f2f7d8df76dbbb71ac8ffe126ac6",
+    "app/src/main/java/com/deepseekharness/app/LanLoginThrottle.java": "a918b7b055a2b1ee285f6f4550cb67795747ea9c",
+    "app/src/main/java/com/deepseekharness/app/LanProxyService.java": "22f42e71fc5ac93de6ad3272e137cf0539e503ca",
+    "app/src/main/java/com/deepseekharness/app/LanRequestOrigin.java": "33fe96fc583ec3d2e888b2ca659f795d37bf2fda",
+    "app/src/main/java/com/deepseekharness/app/LanTlsIdentity.java": "c0d8dbc55821a09f86cd7b5240f8cdffaaf2006b",
+    "app/src/main/java/com/deepseekharness/app/LanWebSocketProtocols.java": "b490f98208ccc3929ce6d55e4d52524bf60e7ea9",
+    "app/src/main/java/com/deepseekharness/app/core/LanAuthBridge.java": "bc55ab73740c43f2aabc86ccadf88f3fc83143a6",
+    "app/src/main/java/com/deepseekharness/app/ui/ConfigFragment.java": "8969eebea0af1f1bc1bc351ea904c0a481227711",
+    "app/src/main/java/com/deepseekharness/app/ui/LaunchFragment.java": "62972a243d5c4c5c575e5c081c0f58c7e85a9f29",
+    "app/src/main/java/com/deepseekharness/app/util/LanAccessPresentation.java": "2e67209c8ab434d05248a5c4342d52fe3601c4e7",
+    "app/src/main/java/com/deepseekharness/app/util/LanAddressPolicy.java": "a3f01f9d98addc95ffe2fba02b97be465b69531b",
+    "app/src/main/java/com/deepseekharness/app/util/LanFailureResponse.java": "cdfbd9128e7145609ab999c35d19bc4b7ff7d50f",
+    "app/src/main/java/com/deepseekharness/app/util/LanNetworkState.java": "30556221841d1bc98cb189be40587a02e905b8eb",
+    "app/src/main/java/com/deepseekharness/app/util/LanPassword.java": "a229ed0c72923e8682993e4f31cfe6e3c5d0480a",
+    "app/src/main/java/com/deepseekharness/app/util/LanPortPolicy.java": "79af78b1e415451753bc960e8fa7311fefc7258e",
+    "app/src/main/java/com/deepseekharness/app/util/LanTokenState.java": "49929e8f28c0e2ba145793446150747ae557db8b",
+    "tools/fixtures/lan-proxy-host/LanProxyHostTest.java": "c30637f69f797b2d4839315561b02a47e9b7f4ba"
+  },
+  "browserModules": [
+    {
+      "inputSha256": "2e6f0324ebe4b52b143dcb2bf04800b1ce73c106a53b567de1afdafca5dba3d9",
+      "member": "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-api-gateway/lib/client.browser.js",
+      "memberSha256": "af20d759251310e5d5afb3426267c7b9a88e5ab613dcec976e0fe21ca9b31d37"
+    },
+    {
+      "inputSha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+      "member": "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-api-gateway/lib/client.browser.js",
+      "memberSha256": "af20d759251310e5d5afb3426267c7b9a88e5ab613dcec976e0fe21ca9b31d37"
+    }
+  ],
+  "hostCases": 102,
+  "hostRaw": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\finite-final\\cases.tsv",
+  "priorActualWebPages": [
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\web-identity\\lan-mux\\admission-r1\\results.json",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\web-identity\\lan-mux\\admission-r2\\results.json"
+  ],
+  "finalR6AndroidFacingCases": [
+    {
+      "startedAt": "2026-11-25T09:45:04.406Z",
+      "at": "2026-11-25T09:45:06.079Z",
+      "className": "com.deepseekharness.app.LanListenerFailureTest",
+      "name": "deniedBindRetiresListenerWithoutUncaughtException",
+      "status": "SUCCESS",
+      "durationMs": 1673
+    },
+    {
+      "startedAt": "2026-11-25T09:45:06.079Z",
+      "at": "2026-11-25T09:45:06.112Z",
+      "className": "com.deepseekharness.app.LanListenerFailureTest",
+      "name": "savedSwitchDoesNotAuthorizeANewProcessOrNetwork",
+      "status": "SUCCESS",
+      "durationMs": 33
+    },
+    {
+      "startedAt": "2026-11-25T09:45:06.112Z",
+      "at": "2026-11-25T09:45:06.157Z",
+      "className": "com.deepseekharness.app.LanListenerFailureTest",
+      "name": "oldPreferencesAreRemovedEvenWhenSharingIsOff",
+      "status": "SUCCESS",
+      "durationMs": 45
+    },
+    {
+      "startedAt": "2026-11-25T09:45:06.157Z",
+      "at": "2026-11-25T09:45:07.209Z",
+      "className": "com.deepseekharness.app.LanListenerFailureTest",
+      "name": "failedNetworkPollClosesBoundListenerWithoutUncaughtException",
+      "status": "SUCCESS",
+      "durationMs": 1052
+    },
+    {
+      "startedAt": "2026-11-25T09:46:09.794Z",
+      "at": "2026-11-25T09:46:09.799Z",
+      "className": "com.deepseekharness.app.LanFiniteResponseTest",
+      "name": "probeStopsAtByteBudgetAndReplaysEveryByteAndTrailer",
+      "status": "SUCCESS",
+      "durationMs": 5
+    },
+    {
+      "startedAt": "2026-11-25T09:46:09.799Z",
+      "at": "2026-11-25T09:46:09.800Z",
+      "className": "com.deepseekharness.app.LanFiniteResponseTest",
+      "name": "unknownDownloadsAndEventStreamsDoNotGetThePageResourceFallback",
+      "status": "SUCCESS",
+      "durationMs": 1
+    },
+    {
+      "startedAt": "2026-11-25T09:46:09.800Z",
+      "at": "2026-11-25T09:46:09.800Z",
+      "className": "com.deepseekharness.app.LanFiniteResponseTest",
+      "name": "interruptedProbeCanResumeInTheMiddleOfAChunkSizeOrTrailer",
+      "status": "SUCCESS",
+      "durationMs": 0
+    },
+    {
+      "startedAt": "2026-11-25T09:52:35.385Z",
+      "at": "2026-11-25T09:52:37.118Z",
+      "className": "com.deepseekharness.app.ui.ConfigLanApprovalTest",
+      "name": "saveAfterNetworkChangeEnablesPreferenceButRequiresFreshNetworkApproval",
+      "status": "SUCCESS",
+      "durationMs": 1733
+    },
+    {
+      "startedAt": "2026-11-25T09:52:41.543Z",
+      "at": "2026-11-25T09:52:43.266Z",
+      "className": "com.deepseekharness.app.ui.LaunchAccessAddressesTest",
+      "name": "disabledLanIsShownWithExplicitEnableAndOpeningDoesNotExposeIt",
+      "status": "SUCCESS",
+      "durationMs": 1723
+    },
+    {
+      "startedAt": "2026-11-25T09:52:43.266Z",
+      "at": "2026-11-25T09:52:43.485Z",
+      "className": "com.deepseekharness.app.ui.LaunchAccessAddressesTest",
+      "name": "explicitEnableConfirmationAppliesConfiguredNetworkFeaturesOnce",
+      "status": "SUCCESS",
+      "durationMs": 219
+    },
+    {
+      "startedAt": "2026-11-25T09:52:43.485Z",
+      "at": "2026-11-25T09:52:43.609Z",
+      "className": "com.deepseekharness.app.ui.LaunchAccessAddressesTest",
+      "name": "permissionFailureIsShownAndMissingLocalUrlDisablesCopy",
+      "status": "SUCCESS",
+      "durationMs": 124
+    },
+    {
+      "startedAt": "2026-11-25T09:52:43.609Z",
+      "at": "2026-11-25T09:52:43.795Z",
+      "className": "com.deepseekharness.app.ui.LaunchAccessAddressesTest",
+      "name": "readyLanAddressesContainNoCredentialOnScreenOrClipboard",
+      "status": "SUCCESS",
+      "durationMs": 186
+    },
+    {
+      "startedAt": "2026-11-25T09:52:43.795Z",
+      "at": "2026-11-25T09:52:43.951Z",
+      "className": "com.deepseekharness.app.ui.LaunchAccessAddressesTest",
+      "name": "retiredLanCopyButtonNeverCopiesTheLocalAuthUrl",
+      "status": "SUCCESS",
+      "durationMs": 156
+    },
+    {
+      "startedAt": "2026-11-25T09:52:43.951Z",
+      "at": "2026-11-25T09:52:44.057Z",
+      "className": "com.deepseekharness.app.ui.LaunchAccessAddressesTest",
+      "name": "missingPasswordIsShownAndDoesNotExposeAnAddress",
+      "status": "SUCCESS",
+      "durationMs": 106
+    },
+    {
+      "startedAt": "2026-11-25T09:52:44.057Z",
+      "at": "2026-11-25T09:52:44.197Z",
+      "className": "com.deepseekharness.app.ui.LaunchAccessAddressesTest",
+      "name": "generationChangeBlocksTheLanCopy",
+      "status": "SUCCESS",
+      "durationMs": 140
+    },
+    {
+      "startedAt": "2026-11-25T09:52:44.197Z",
+      "at": "2026-11-25T09:52:44.366Z",
+      "className": "com.deepseekharness.app.ui.LaunchAccessAddressesTest",
+      "name": "localCopyIsAvailableOnlyWhenALocalAddressExists",
+      "status": "SUCCESS",
+      "durationMs": 169
+    }
+  ],
+  "sourceOfFinalR6": "F:\\DSHA_RESTART\\artifacts\\build377-local\\windows-r6\\method-results.jsonl"
+}

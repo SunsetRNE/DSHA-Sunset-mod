@@ -1,0 +1,16 @@
+{
+  "started": "2026-11-25T14:46:37.956+08:00",
+  "command": [
+    "F:\\DSHA\\_toolchains\\jdk-17\\bin\\java.exe",
+    "@F:\\DSHA_RESTART\\artifacts\\build377-local\\screen\\before-r2\\junit.args"
+  ],
+  "cwd": "F:\\DSHA_RESTART\\source\\build376-local\\app",
+  "firstFinished": {
+    "at": "2026-11-25T14:46:43.507+08:00",
+    "elapsedSeconds": 5.551,
+    "line": "FINISH\t2026-11-25T06:46:43.505922800Z\tcom.deepseekharness.app.screen.Comparison.sameSyntheticSplitBitmap"
+  },
+  "finished": "2026-11-25T14:46:43.692+08:00",
+  "elapsedSeconds": 5.737,
+  "exitCode": 0
+}

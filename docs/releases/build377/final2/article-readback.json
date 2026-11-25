@@ -1,0 +1,34 @@
+{
+  "article": "${REFERENCE_ARTICLE}",
+  "articleSha256": "2b33e2eb0cae70b1e18eae404232a82dba01de79ecefca71bed6f9ee0d920833",
+  "commit": "5d952dafd13c3193f07e7efbc97b65c0c2c8bea7",
+  "apk": "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-retry\\dsha-0.2.2-rc.5.apk",
+  "apkSha256": "72917c42dee81df41e26f2d7977ba735b0e3c0c94a93803561272d6f6facbeaa",
+  "runtimeSha256": "2cbc3aba49cfb256a01afd9dd68eeb7b72e8c01f35d88745cdb2648ec6333bed",
+  "startedUtc": "2026-11-25T08:49:52.281750+00:00",
+  "finishedUtc": "2026-11-25T08:49:55.979044+00:00",
+  "firstApkIdentitySeconds": 0.218,
+  "totalSeconds": 3.687,
+  "sourceTextRoots": [
+    "app/src/main/java",
+    "app/src/main/kotlin",
+    "app/src/main/res",
+    "app/src/main/assets",
+    "app/build.gradle",
+    "gradle/libs.versions.toml"
+  ],
+  "sourceTextMatchingFiles": {
+    "live2d": [],
+    "cubism": [],
+    "voice[ _-]?clon": [],
+    "声音克隆|语音克隆": [],
+    "sillytavern|酒馆|角色卡": [],
+    "\\b(character|tavern)[ _-]?cards?\\b": []
+  },
+  "memberNamePattern": "live2d|cubism|sillytavern|酒馆|角色卡|声音克隆|语音克隆|\\b(?:character|tavern)[ _-]?cards?\\b|voice[ _-]?clon|\\.moc3$|\\.model3\\.json$",
+  "apkMemberCount": 1890,
+  "matchingApkNames": [],
+  "runtimeMemberCount": 21033,
+  "matchingRuntimeNames": [],
+  "scope": "Tracked nonbinary Android inputs and member names only. Excludes runtime-loaded plugins, remote services, content supplied by users, and renamed or embedded features."
+}

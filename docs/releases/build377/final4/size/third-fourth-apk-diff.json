@@ -1,0 +1,138 @@
+{
+  "priorApkSha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+  "finalApkSha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+  "unchanged": 1884,
+  "changedMembers": [
+    {
+      "path": "META-INF/ANDROIDD.RSA",
+      "prior": {
+        "path": "META-INF/ANDROIDD.RSA",
+        "method": "8",
+        "zipBytes": "1013",
+        "decodedBytes": "1167",
+        "sha256": "a03d15778003d99df639ef1c6f5ecf4c98ee6557c09624e188ac2bf7a07c9afb"
+      },
+      "final": {
+        "path": "META-INF/ANDROIDD.RSA",
+        "method": "8",
+        "zipBytes": "1014",
+        "decodedBytes": "1167",
+        "sha256": "c533eb469342518891e6c983ea6edde01c8bce7a1723e8449f839506681c108b"
+      },
+      "zipDelta": 1
+    },
+    {
+      "path": "META-INF/ANDROIDD.SF",
+      "prior": {
+        "path": "META-INF/ANDROIDD.SF",
+        "method": "8",
+        "zipBytes": "76992",
+        "decodedBytes": "193897",
+        "sha256": "7387dcd808f4b1e4c6682a9515a737182273114d6d02ffa62410536be947a5d3"
+      },
+      "final": {
+        "path": "META-INF/ANDROIDD.SF",
+        "method": "8",
+        "zipBytes": "76991",
+        "decodedBytes": "193897",
+        "sha256": "95b4e3434526e51b9e53ef799549d1ab4662689bcf56696287afc7de5983524e"
+      },
+      "zipDelta": -1
+    },
+    {
+      "path": "META-INF/MANIFEST.MF",
+      "prior": {
+        "path": "META-INF/MANIFEST.MF",
+        "method": "8",
+        "zipBytes": "74545",
+        "decodedBytes": "193770",
+        "sha256": "21d28f0773b694ce840231d54a251688b49c9f6576c234559a74d62c1373de5d"
+      },
+      "final": {
+        "path": "META-INF/MANIFEST.MF",
+        "method": "8",
+        "zipBytes": "74544",
+        "decodedBytes": "193770",
+        "sha256": "1fb8b68b2a863218011a2b6c9d90028313a0c994721ccf1ec0fc5cee1e0128b1"
+      },
+      "zipDelta": -1
+    },
+    {
+      "path": "assets/dexopt/baseline.prof",
+      "prior": {
+        "path": "assets/dexopt/baseline.prof",
+        "method": "0",
+        "zipBytes": "1779",
+        "decodedBytes": "1779",
+        "sha256": "ddc10b9a6c44f0bc33167eb7a8136b95980ab1e742288f0d2031cf15c687ba45"
+      },
+      "final": {
+        "path": "assets/dexopt/baseline.prof",
+        "method": "0",
+        "zipBytes": "1776",
+        "decodedBytes": "1776",
+        "sha256": "a6b35f164a3bea711ae712b18e1570f58786110550b75ea524c33635126c1083"
+      },
+      "zipDelta": -3
+    },
+    {
+      "path": "assets/rust-native-receipt.json",
+      "prior": {
+        "path": "assets/rust-native-receipt.json",
+        "method": "8",
+        "zipBytes": "42989",
+        "decodedBytes": "163778",
+        "sha256": "146e1e61b9123f4c133ba4f71f3832cabbf86e8c2d385a1393d5ebe51979e1d6"
+      },
+      "final": {
+        "path": "assets/rust-native-receipt.json",
+        "method": "8",
+        "zipBytes": "42989",
+        "decodedBytes": "163778",
+        "sha256": "6e4c3b16f2c9f2a0864879cfc524f4368ca113a358c7602fc805b134ece9e16f"
+      },
+      "zipDelta": 0
+    },
+    {
+      "path": "classes.dex",
+      "prior": {
+        "path": "classes.dex",
+        "method": "8",
+        "zipBytes": "5864969",
+        "decodedBytes": "15059036",
+        "sha256": "e35f35d8e273750ff975c307e36ac8c91b3954e9a845cd1f8497ad2f653b6336"
+      },
+      "final": {
+        "path": "classes.dex",
+        "method": "8",
+        "zipBytes": "5865385",
+        "decodedBytes": "15059280",
+        "sha256": "6e1ed778ad2db9695a65f2b7ee36dec116cc387a9fa8bec92e0488337c9526b8"
+      },
+      "zipDelta": 416
+    }
+  ],
+  "totals": {
+    "members": {
+      "prior": 1890,
+      "final": 1890,
+      "delta": 0
+    },
+    "logicalBytes": {
+      "prior": 255587176,
+      "final": 255591272,
+      "delta": 4096
+    },
+    "payloadZipBytes": {
+      "prior": 255323024,
+      "final": 255323436,
+      "delta": 412
+    },
+    "zipOtherBytes": {
+      "prior": 264152,
+      "final": 267836,
+      "delta": 3684
+    }
+  },
+  "otherBytesDefinition": "Entire APK size less all ZIP compressed/stored member sizes combined."
+}

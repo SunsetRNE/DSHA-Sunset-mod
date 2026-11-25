@@ -1,0 +1,107 @@
+{
+  "confirmedAtEpochSeconds": 1795596595.0087323,
+  "samples": [
+    {
+      "secondsSinceConfirmation": 24.789,
+      "extract_pill": "2 / 8",
+      "extract_status": "Update runtime environment",
+      "extract_stage_line": "Step 2 of 8 · Extract Ubuntu and Node"
+    },
+    {
+      "secondsSinceConfirmation": 29.53,
+      "extract_pill": "2 / 8",
+      "extract_status": "Update runtime environment",
+      "extract_stage_line": "Step 2 of 8 · Extract Ubuntu and Node"
+    },
+    {
+      "secondsSinceConfirmation": 34.272,
+      "extract_pill": "2 / 8",
+      "extract_status": "Update runtime environment",
+      "extract_stage_line": "Step 2 of 8 · Extract Ubuntu and Node"
+    },
+    {
+      "secondsSinceConfirmation": 39.022,
+      "extract_pill": "2 / 8",
+      "extract_status": "Update runtime environment",
+      "extract_stage_line": "Step 2 of 8 · Extract Ubuntu and Node"
+    },
+    {
+      "secondsSinceConfirmation": 43.781,
+      "extract_pill": "2 / 8",
+      "extract_status": "Update runtime environment",
+      "extract_stage_line": "Step 2 of 8 · Extract Ubuntu and Node"
+    },
+    {
+      "secondsSinceConfirmation": 48.476,
+      "extract_pill": "2 / 8",
+      "extract_status": "Update runtime environment",
+      "extract_stage_line": "Step 2 of 8 · Extract Ubuntu and Node"
+    },
+    {
+      "secondsSinceConfirmation": 53.348,
+      "extract_pill": "5 / 8",
+      "extract_status": "Update runtime environment",
+      "extract_stage_line": "Step 5 of 8 · Prepare app tools"
+    },
+    {
+      "secondsSinceConfirmation": 58.083,
+      "extract_pill": "6 / 8",
+      "extract_status": "Update runtime environment",
+      "extract_stage_line": "Step 6 of 8 · Install offline curl, git and certificates"
+    },
+    {
+      "secondsSinceConfirmation": 62.861,
+      "extract_pill": "6 / 8",
+      "extract_status": "Update runtime environment",
+      "extract_stage_line": "Step 6 of 8 · Install offline curl, git and certificates"
+    },
+    {
+      "secondsSinceConfirmation": 67.742,
+      "extract_pill": "6 / 8",
+      "extract_status": "Update runtime environment",
+      "extract_stage_line": "Step 6 of 8 · Install offline curl, git and certificates"
+    },
+    {
+      "secondsSinceConfirmation": 72.483,
+      "extract_pill": "6 / 8",
+      "extract_status": "Update runtime environment",
+      "extract_stage_line": "Step 6 of 8 · Install offline curl, git and certificates"
+    },
+    {
+      "secondsSinceConfirmation": 77.331,
+      "extract_pill": "6 / 8",
+      "extract_status": "Update runtime environment",
+      "extract_stage_line": "Step 6 of 8 · Install offline curl, git and certificates"
+    },
+    {
+      "secondsSinceConfirmation": 82.152,
+      "extract_pill": "6 / 8",
+      "extract_status": "Update runtime environment",
+      "extract_stage_line": "Step 6 of 8 · Install offline curl, git and certificates"
+    },
+    {
+      "secondsSinceConfirmation": 86.957,
+      "extract_pill": "6 / 8",
+      "extract_status": "Update runtime environment",
+      "extract_stage_line": "Step 6 of 8 · Install offline curl, git and certificates"
+    },
+    {
+      "secondsSinceConfirmation": 91.669,
+      "extract_pill": "6 / 8",
+      "extract_status": "Update runtime environment",
+      "extract_stage_line": "Step 6 of 8 · Install offline curl, git and certificates"
+    },
+    {
+      "secondsSinceConfirmation": 96.412,
+      "extract_pill": "6 / 8",
+      "extract_status": "Update runtime environment",
+      "extract_stage_line": "Step 6 of 8 · Install offline curl, git and certificates"
+    },
+    {
+      "secondsSinceConfirmation": 101.042,
+      "extract_pill": "Incomplete",
+      "extract_status": "Deployment incomplete",
+      "extract_stage_line": "Could not send the start confirmation. The installation supervisor exited with code 137. This Android system uses x86. This build supports ARM64 Android. Diagnostics are available in Settings."
+    }
+  ]
+}

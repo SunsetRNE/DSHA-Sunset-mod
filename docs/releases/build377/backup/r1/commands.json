@@ -1,0 +1,138 @@
+[
+  {
+    "stage": "compile-377",
+    "seconds": 2.0320000000065193,
+    "exit_code": 0,
+    "argv": [
+      "F:\\DSHA_RESTART\\toolchains\\current\\jdk-17\\bin\\javac.exe",
+      "--release",
+      "17",
+      "-encoding",
+      "UTF-8",
+      "-classpath",
+      "F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\javac\\standardDebug\\compileStandardDebugJavaWithJavac\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\javac\\standardDebugUnitTest\\compileStandardDebugUnitTestJavaWithJavac\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\built_in_kotlinc\\standardDebug\\compileStandardDebugKotlin\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\src\\test\\resources;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.bouncycastle\\bcprov-jdk15to18\\1.85.2\\bd0166262cfa3836d469437b6f800e7409f78cc8\\bcprov-jdk15to18-1.85.2.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlin\\kotlin-stdlib\\2.2.10\\30de6faa127a4a012db8e71bf1b9c0a99b1402b2\\kotlin-stdlib-2.2.10.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\com.google.code.gson\\gson\\2.13.1\\853ce06c11316b33a8eae5e9095da096a9528b8f\\gson-2.13.1.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\junit\\junit\\4.13.2\\8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12\\junit-4.13.2.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.hamcrest\\hamcrest-core\\1.3\\42a25dc3219429f0e5d060061f71acb49bf010a0\\hamcrest-core-1.3.jar",
+      "-d",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\r1\\classes",
+      "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\BackupArchive.java",
+      "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\PortableBackupCrypto.java",
+      "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\PortableBackupEnvelope.java",
+      "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\PasswordFreeBackupExport.java",
+      "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\backup\\RestoreStaging.java",
+      "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\backup\\PasswordFreeBackupExportTest.java",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\BackupReplay.java"
+    ]
+  },
+  {
+    "stage": "export-376",
+    "seconds": 1.8900000000139698,
+    "exit_code": 0,
+    "argv": [
+      "F:\\DSHA_RESTART\\toolchains\\current\\jdk-17\\bin\\java.exe",
+      "-Xmx32m",
+      "-cp",
+      "F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\javac\\standardDebug\\compileStandardDebugJavaWithJavac\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\javac\\standardDebugUnitTest\\compileStandardDebugUnitTestJavaWithJavac\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\built_in_kotlinc\\standardDebug\\compileStandardDebugKotlin\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\src\\test\\resources;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.bouncycastle\\bcprov-jdk15to18\\1.85.2\\bd0166262cfa3836d469437b6f800e7409f78cc8\\bcprov-jdk15to18-1.85.2.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlin\\kotlin-stdlib\\2.2.10\\30de6faa127a4a012db8e71bf1b9c0a99b1402b2\\kotlin-stdlib-2.2.10.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\com.google.code.gson\\gson\\2.13.1\\853ce06c11316b33a8eae5e9095da096a9528b8f\\gson-2.13.1.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\junit\\junit\\4.13.2\\8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12\\junit-4.13.2.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.hamcrest\\hamcrest-core\\1.3\\42a25dc3219429f0e5d060061f71acb49bf010a0\\hamcrest-core-1.3.jar;F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\r1\\classes",
+      "com.deepseekharness.app.backup.BackupReplay",
+      "create",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\r1\\source-376",
+      "false"
+    ]
+  },
+  {
+    "stage": "export-377",
+    "seconds": 3.469000000040978,
+    "exit_code": 0,
+    "argv": [
+      "F:\\DSHA_RESTART\\toolchains\\current\\jdk-17\\bin\\java.exe",
+      "-Xmx32m",
+      "-cp",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\r1\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\javac\\standardDebug\\compileStandardDebugJavaWithJavac\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\javac\\standardDebugUnitTest\\compileStandardDebugUnitTestJavaWithJavac\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\built_in_kotlinc\\standardDebug\\compileStandardDebugKotlin\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\src\\test\\resources;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.bouncycastle\\bcprov-jdk15to18\\1.85.2\\bd0166262cfa3836d469437b6f800e7409f78cc8\\bcprov-jdk15to18-1.85.2.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlin\\kotlin-stdlib\\2.2.10\\30de6faa127a4a012db8e71bf1b9c0a99b1402b2\\kotlin-stdlib-2.2.10.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\com.google.code.gson\\gson\\2.13.1\\853ce06c11316b33a8eae5e9095da096a9528b8f\\gson-2.13.1.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\junit\\junit\\4.13.2\\8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12\\junit-4.13.2.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.hamcrest\\hamcrest-core\\1.3\\42a25dc3219429f0e5d060061f71acb49bf010a0\\hamcrest-core-1.3.jar",
+      "com.deepseekharness.app.backup.BackupReplay",
+      "create",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\r1\\source-377",
+      "true"
+    ]
+  },
+  {
+    "stage": "restore-377-from-376",
+    "seconds": 0.7189999999827705,
+    "exit_code": 0,
+    "argv": [
+      "F:\\DSHA_RESTART\\toolchains\\current\\jdk-17\\bin\\java.exe",
+      "-Xmx32m",
+      "-cp",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\r1\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\javac\\standardDebug\\compileStandardDebugJavaWithJavac\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\javac\\standardDebugUnitTest\\compileStandardDebugUnitTestJavaWithJavac\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\built_in_kotlinc\\standardDebug\\compileStandardDebugKotlin\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\src\\test\\resources;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.bouncycastle\\bcprov-jdk15to18\\1.85.2\\bd0166262cfa3836d469437b6f800e7409f78cc8\\bcprov-jdk15to18-1.85.2.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlin\\kotlin-stdlib\\2.2.10\\30de6faa127a4a012db8e71bf1b9c0a99b1402b2\\kotlin-stdlib-2.2.10.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\com.google.code.gson\\gson\\2.13.1\\853ce06c11316b33a8eae5e9095da096a9528b8f\\gson-2.13.1.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\junit\\junit\\4.13.2\\8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12\\junit-4.13.2.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.hamcrest\\hamcrest-core\\1.3\\42a25dc3219429f0e5d060061f71acb49bf010a0\\hamcrest-core-1.3.jar",
+      "com.deepseekharness.app.backup.BackupReplay",
+      "read",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\r1\\restore-377-from-376",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\r1\\source-376\\export.tar.gz",
+      "false",
+      "false"
+    ]
+  },
+  {
+    "stage": "restore-377-from-377",
+    "seconds": 2.9839999999967404,
+    "exit_code": 0,
+    "argv": [
+      "F:\\DSHA_RESTART\\toolchains\\current\\jdk-17\\bin\\java.exe",
+      "-Xmx32m",
+      "-cp",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\r1\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\javac\\standardDebug\\compileStandardDebugJavaWithJavac\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\javac\\standardDebugUnitTest\\compileStandardDebugUnitTestJavaWithJavac\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\built_in_kotlinc\\standardDebug\\compileStandardDebugKotlin\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\src\\test\\resources;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.bouncycastle\\bcprov-jdk15to18\\1.85.2\\bd0166262cfa3836d469437b6f800e7409f78cc8\\bcprov-jdk15to18-1.85.2.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlin\\kotlin-stdlib\\2.2.10\\30de6faa127a4a012db8e71bf1b9c0a99b1402b2\\kotlin-stdlib-2.2.10.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\com.google.code.gson\\gson\\2.13.1\\853ce06c11316b33a8eae5e9095da096a9528b8f\\gson-2.13.1.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\junit\\junit\\4.13.2\\8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12\\junit-4.13.2.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.hamcrest\\hamcrest-core\\1.3\\42a25dc3219429f0e5d060061f71acb49bf010a0\\hamcrest-core-1.3.jar",
+      "com.deepseekharness.app.backup.BackupReplay",
+      "read",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\r1\\restore-377-from-377",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\r1\\source-377\\export.tar.gz",
+      "true",
+      "false"
+    ]
+  },
+  {
+    "stage": "restore-376-from-377",
+    "seconds": 1.437000000034459,
+    "exit_code": 0,
+    "argv": [
+      "F:\\DSHA_RESTART\\toolchains\\current\\jdk-17\\bin\\java.exe",
+      "-Xmx32m",
+      "-cp",
+      "F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\javac\\standardDebug\\compileStandardDebugJavaWithJavac\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\javac\\standardDebugUnitTest\\compileStandardDebugUnitTestJavaWithJavac\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\built_in_kotlinc\\standardDebug\\compileStandardDebugKotlin\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\src\\test\\resources;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.bouncycastle\\bcprov-jdk15to18\\1.85.2\\bd0166262cfa3836d469437b6f800e7409f78cc8\\bcprov-jdk15to18-1.85.2.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlin\\kotlin-stdlib\\2.2.10\\30de6faa127a4a012db8e71bf1b9c0a99b1402b2\\kotlin-stdlib-2.2.10.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\com.google.code.gson\\gson\\2.13.1\\853ce06c11316b33a8eae5e9095da096a9528b8f\\gson-2.13.1.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\junit\\junit\\4.13.2\\8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12\\junit-4.13.2.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.hamcrest\\hamcrest-core\\1.3\\42a25dc3219429f0e5d060061f71acb49bf010a0\\hamcrest-core-1.3.jar;F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\r1\\classes",
+      "com.deepseekharness.app.backup.BackupReplay",
+      "read",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\r1\\restore-376-from-377",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\r1\\source-377\\export.tar.gz",
+      "true",
+      "true"
+    ]
+  },
+  {
+    "stage": "junit-376",
+    "seconds": 8.48399999999674,
+    "exit_code": 0,
+    "argv": [
+      "F:\\DSHA_RESTART\\toolchains\\current\\jdk-17\\bin\\java.exe",
+      "-Xmx128m",
+      "-cp",
+      "F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\javac\\standardDebug\\compileStandardDebugJavaWithJavac\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\javac\\standardDebugUnitTest\\compileStandardDebugUnitTestJavaWithJavac\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\built_in_kotlinc\\standardDebug\\compileStandardDebugKotlin\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\src\\test\\resources;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.bouncycastle\\bcprov-jdk15to18\\1.85.2\\bd0166262cfa3836d469437b6f800e7409f78cc8\\bcprov-jdk15to18-1.85.2.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlin\\kotlin-stdlib\\2.2.10\\30de6faa127a4a012db8e71bf1b9c0a99b1402b2\\kotlin-stdlib-2.2.10.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\com.google.code.gson\\gson\\2.13.1\\853ce06c11316b33a8eae5e9095da096a9528b8f\\gson-2.13.1.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\junit\\junit\\4.13.2\\8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12\\junit-4.13.2.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.hamcrest\\hamcrest-core\\1.3\\42a25dc3219429f0e5d060061f71acb49bf010a0\\hamcrest-core-1.3.jar;F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\r1\\classes",
+      "org.junit.runner.JUnitCore",
+      "com.deepseekharness.app.backup.PortableBackupCryptoTest",
+      "com.deepseekharness.app.backup.PortableBackupEnvelopeTest",
+      "com.deepseekharness.app.backup.PasswordFreeBackupExportTest",
+      "com.deepseekharness.app.backup.BackupArchiveTest"
+    ]
+  },
+  {
+    "stage": "junit-377",
+    "seconds": 12.76600000000326,
+    "exit_code": 0,
+    "argv": [
+      "F:\\DSHA_RESTART\\toolchains\\current\\jdk-17\\bin\\java.exe",
+      "-Xmx128m",
+      "-cp",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\r1\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\javac\\standardDebug\\compileStandardDebugJavaWithJavac\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\javac\\standardDebugUnitTest\\compileStandardDebugUnitTestJavaWithJavac\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\intermediates\\built_in_kotlinc\\standardDebug\\compileStandardDebugKotlin\\classes;F:\\DSHA_RESTART\\source\\build376-local\\app\\src\\test\\resources;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.bouncycastle\\bcprov-jdk15to18\\1.85.2\\bd0166262cfa3836d469437b6f800e7409f78cc8\\bcprov-jdk15to18-1.85.2.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlin\\kotlin-stdlib\\2.2.10\\30de6faa127a4a012db8e71bf1b9c0a99b1402b2\\kotlin-stdlib-2.2.10.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\com.google.code.gson\\gson\\2.13.1\\853ce06c11316b33a8eae5e9095da096a9528b8f\\gson-2.13.1.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\junit\\junit\\4.13.2\\8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12\\junit-4.13.2.jar;F:\\DSHA_RESTART\\toolchains\\current\\gradle-user-home\\caches\\modules-2\\files-2.1\\org.hamcrest\\hamcrest-core\\1.3\\42a25dc3219429f0e5d060061f71acb49bf010a0\\hamcrest-core-1.3.jar",
+      "org.junit.runner.JUnitCore",
+      "com.deepseekharness.app.backup.PortableBackupCryptoTest",
+      "com.deepseekharness.app.backup.PortableBackupEnvelopeTest",
+      "com.deepseekharness.app.backup.PasswordFreeBackupExportTest",
+      "com.deepseekharness.app.backup.BackupArchiveTest"
+    ]
+  }
+]

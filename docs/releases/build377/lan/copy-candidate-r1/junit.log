@@ -1,0 +1,6 @@
+START	2026-11-25T07:06:31.244060600Z	com.deepseekharness.app.ui.LaunchAccessAddressesTest.retiredLanCopyButtonNeverCopiesTheLocalAuthUrl
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+FINISH	2026-11-25T07:06:34.886067300Z	com.deepseekharness.app.ui.LaunchAccessAddressesTest.retiredLanCopyButtonNeverCopiesTheLocalAuthUrl
+CASE	PASS	com.deepseekharness.app.ui.LaunchAccessAddressesTest.retiredLanCopyButtonNeverCopiesTheLocalAuthUrl
+TOTAL	1	0	0	0

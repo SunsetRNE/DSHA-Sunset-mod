@@ -1,0 +1,73 @@
+{
+  "atUtc": "2026-11-25T08:30:58.982768+00:00",
+  "sourceCommit": "15e7fcc285121d67efdfad11ce688fc0a81dd392",
+  "signedApk": {
+    "input": "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed\\dsha-0.2.2-rc.5.apk",
+    "sha256": "2e6f0324ebe4b52b143dcb2bf04800b1ce73c106a53b567de1afdafca5dba3d9",
+    "logicalBytes": 255587176
+  },
+  "environment": {
+    "avd": "DSHA_build377_lan_api30_x86",
+    "serial": "emulator-5684",
+    "privateAdbPort": 5078,
+    "androidApi": 30,
+    "abi": "x86_64 with ARM64 translation",
+    "device": "isolated synthetic AVD"
+  },
+  "upgrade": {
+    "before": {
+      "sha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+      "fields": "primaryCpuAbi=arm64-v8a\n    versionCode=376 minSdk=30 targetSdk=37\n    versionName=0.2.2-rc.5-20261125.0003-dsh0.2.2-rc.5\n    firstInstallTime=2026-11-25 06:58:28\n    lastUpdateTime=2026-11-25 06:58:28",
+      "versionCode": 376,
+      "firstInstallTime": "2026-11-25 06:58:28",
+      "fileStat": "257781425 503488"
+    },
+    "after": {
+      "sha256": "2e6f0324ebe4b52b143dcb2bf04800b1ce73c106a53b567de1afdafca5dba3d9",
+      "fields": "primaryCpuAbi=arm64-v8a\n    versionCode=377 minSdk=30 targetSdk=37\n    versionName=0.2.2-rc.5-20261125.1442-dsh0.2.2-rc.5\n    firstInstallTime=2026-11-25 06:58:28\n    lastUpdateTime=2026-11-25 08:12:50",
+      "versionCode": 377,
+      "firstInstallTime": "2026-11-25 06:58:28",
+      "fileStat": "255587176 499208"
+    },
+    "firstInstallTimePreserved": true,
+    "installResponseSeconds": 10.531,
+    "completeVerificationSeconds": 12.109,
+    "baselineReceipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\apk-baseline-1795589912.json",
+    "receipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\apk-upgrade-1795594378.json"
+  },
+  "nativeLaunch": {
+    "component": "dsh.android.client/com.deepseekharness.app.ui.MainActivity",
+    "amStart": "Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=dsh.android.client/com.deepseekharness.app.ui.MainActivity }\nStatus: ok\nLaunchState: WARM\nActivity: dsh.android.client/com.deepseekharness.app.ui.OnboardingActivity\nTotalTime: 884\nWaitTime: 886\nComplete",
+    "firstReplySeconds": 0.953,
+    "nativeHierarchyVerifiedSeconds": 2.828,
+    "receipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\native-open-377-1795594381.json"
+  },
+  "installedDex": {
+    "appUid": "independent ordinary instrumentation fixture",
+    "measurements": {
+      "TLSv1.2": "endpoint checked, exact fingerprint, duplex=7/11",
+      "TLSv1.3": "endpoint checked, exact fingerprint, duplex=7/11",
+      "actual_base_sha256": "2e6f0324ebe4b52b143dcb2bf04800b1ce73c106a53b567de1afdafca5dba3d9",
+      "certificate": "non-exportable EC, stable after reopen, reissued for new IPv4",
+      "finite_response": "length and terminal trailer preserved over loopback",
+      "fixture_uid": "10172",
+      "ws_ticket": "cookie scoped to port=__Host-dsha_lan_49318, consumed once, upstream app.echo only"
+    },
+    "receipt": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\exact-full-final-1795594382.log"
+  },
+  "backupPicker": {
+    "ordinary": {
+      "actualCreateDocument": true,
+      "returnedToNativeAfterCancel": true
+    },
+    "rescue": {
+      "actualCreateDocument": true,
+      "returnedToNativeAfterCancel": true
+    },
+    "savedUri": false,
+    "stepsFile": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\backup-picker-steps.jsonl",
+    "scopeNote": "R1 实测使用独立 Android 11 x86_64 AVD。普通导出在默认 720×1280/320dpi、系统默认字号下从 Application data and recovery 的可见 Export application data 行进入。填两处 24 字符合成密码，实际打开系统 ACTION_CREATE_DOCUMENT，按返回回到 NativeDataActivity，没有确认保存。Workspace 上的 Custom export 快捷行另因环境维护未完成而灰显。救援导出在同一默认显示条件下填完两处合成密码、键盘已隐藏并滚动到底，窗口仍裁掉正负按钮。仅把测试 AVD 密度改为 260dpi 后，救援按钮完整显示，重新填写合成密码后打开系统 ACTION_CREATE_DOCUMENT，返回 NativeDataActivity。已恢复默认 320dpi。两条流程均未采集用户正文或提交备份作业。\n\n首次部署另外留有三轮失败记录。默认 PROOT 两轮、在可见设置中显式保存 PROROOT 后一轮，均已到离线 curl/git/证书的第 6 阶段、记录实际所选运行时 EXEC，随后报告 java.io.IOException: Stream closed。产品导出的维护记录无完整异常栈及原进程退出码。同一 x86 ARM 转译 AVD 的独立观察见 cold-stream：归档可完整校验；源级 native 观察探针捕捉到 ARM 转译子进程 SIGSEGV 11、随后按策略清组，x86_64 本机对照可正常退出。这不是对实际 ARM64 Android 整机的故障复现或唯一根因判定。\n"
+  },
+  "browserSchemeFromSignedApk": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\web-scheme-signed-r1.json",
+  "report": "F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\局域网专项验收.md"
+}

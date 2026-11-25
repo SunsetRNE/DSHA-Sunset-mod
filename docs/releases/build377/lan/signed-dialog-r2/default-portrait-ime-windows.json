@@ -1,0 +1,60 @@
+{
+  "atUtc": "2026-11-25T08:54:06.114321+00:00",
+  "display": [
+    "mRotation=0 mDeferredRotationPauseCount=0",
+    "InsetsSource type=ITYPE_IME frame=[0,686][720,1280] visibleFrame=[0,686][720,1280] visible=true",
+    "mSource=    InsetsSource type=ITYPE_IME frame=[0,686][720,1280] visibleFrame=[0,686][720,1280] visible=true"
+  ],
+  "ime": "mShowRequested=true mShowExplicitlyRequested=true mShowForced=false mInputShown=true\n  mInFullscreenMode=false",
+  "windows": [
+    [
+      "Window #5 Window{4fb40e7 u0 InputMethod}:",
+      "mAttrs={(0,0)(fillxfill) gr=BOTTOM CENTER_VERTICAL sim={adjust=pan} ty=INPUT_METHOD fmt=TRANSPARENT wanim=0x1030056",
+      "fl=NOT_FOCUSABLE LAYOUT_IN_SCREEN SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS",
+      "pfl=FIT_INSETS_CONTROLLED",
+      "fitTypes=STATUS_BARS NAVIGATION_BARS",
+      "Requested w=720 h=1232 mLayoutSeq=5414",
+      "mViewVisibility=0x0 mHaveFrame=true mObscured=false",
+      "mGivenContentInsets=[0,638][0,0] mGivenVisibleInsets=[0,638][0,0]",
+      "mTouchableInsets=3 mGivenInsetsPending=false",
+      "Frames: containing=[0,48][720,1280] parent=[0,48][720,1280]",
+      "display=[0,48][720,1280]",
+      "content=[0,48][720,1184] visible=[0,48][720,1184]",
+      "mFrame=[0,48][720,1280] last=[0,48][720,1280]",
+      "Cur insets: content=[0,0][0,96] visible=[0,0][0,96] stable=[0,0][0,96]    Lst insets: content=[0,0][0,96] visible=[0,0][0,96] stable=[0,0][0,96]",
+      "surface=[0,0][0,0]"
+    ],
+    [
+      "Window #6 Window{280d189 u0 dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity}:",
+      "mAttrs={(0,0)(720x1088) gr=CENTER sim={adjust=resize} ty=APPLICATION fmt=TRANSLUCENT wanim=0x7f120006 surfaceInsets=Rect(24, 24 - 24, 24)",
+      "fl=DIM_BEHIND SPLIT_TOUCH HARDWARE_ACCELERATED",
+      "pfl=",
+      "fitTypes=STATUS_BARS NAVIGATION_BARS CAPTION_BAR IME}",
+      "Requested w=720 h=1088 mLayoutSeq=5414",
+      "mViewVisibility=0x0 mHaveFrame=true mObscured=false",
+      "mGivenContentInsets=[0,0][0,0] mGivenVisibleInsets=[0,0][0,0]",
+      "Frames: containing=[0,48][720,686] parent=[0,48][720,686]",
+      "display=[0,48][720,686]",
+      "content=[0,48][720,686] visible=[0,48][720,686]",
+      "mFrame=[0,48][720,686] last=[0,48][720,686]",
+      "Cur insets: content=[0,0][0,0] visible=[0,0][0,0] stable=[0,0][0,0]    Lst insets: content=[0,0][0,0] visible=[0,0][0,0] stable=[0,0][0,0]",
+      "surface=[24,24][24,24]",
+      "mRequestedInsetsState: InsetsState: {mDisplayFrame=Rect(0, 0 - 0, 0), mSources= { InsetsSource: {mType=ITYPE_STATUS_BAR, mFrame=[0,0][720,48], mVisible=true}, InsetsSource: {mType=ITYPE_NAVIGATION_BAR, mFrame=[0,1184][720,1280], mVisible=true}, InsetsSource: {mType=ITYPE_IME, mFrame=[0,686][720,1280], mVisible=true} }"
+    ],
+    [
+      "Window #7 Window{7ab9afc u0 dsh.android.client/com.deepseekharness.app.ui.NativeDataActivity}:",
+      "mAttrs={(0,0)(fillxfill) sim={adjust=resize forwardNavigation} ty=BASE_APPLICATION wanim=0x7f120005",
+      "fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS",
+      "pfl=FORCE_DRAW_STATUS_BAR_BACKGROUND APPEARANCE_CONTROLLED FIT_INSETS_CONTROLLED",
+      "Requested w=720 h=1280 mLayoutSeq=5414",
+      "mViewVisibility=0x0 mHaveFrame=true mObscured=false",
+      "mGivenContentInsets=[0,0][0,0] mGivenVisibleInsets=[0,0][0,0]",
+      "Frames: containing=[0,0][720,1280] parent=[0,0][720,1280]",
+      "display=[0,0][720,1280]",
+      "content=[0,48][720,686] visible=[0,48][720,686]",
+      "mFrame=[0,0][720,1280] last=[0,0][720,1280]",
+      "Cur insets: content=[0,48][0,594] visible=[0,48][0,594] stable=[0,48][0,96]    Lst insets: content=[0,48][0,594] visible=[0,48][0,594] stable=[0,48][0,96]",
+      "surface=[0,0][0,0]"
+    ]
+  ]
+}

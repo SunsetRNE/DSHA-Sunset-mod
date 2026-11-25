@@ -1,0 +1,7 @@
+INSTRUMENTATION_RESULT: case0=returned 0 SYNTHETIC
+INSTRUMENTATION_RESULT: case137=returned 137 SYNTHETIC
+INSTRUMENTATION_RESULT: close0=verified
+INSTRUMENTATION_RESULT: close137=verified
+INSTRUMENTATION_RESULT: signed-arm64=stdin=flushed natural_wait=true waited_ms=100 harness_force=false exit=137 shell_marker=true shell_entered_before_write=true guest_marker_before_write=false guest_marker_after_write=true diagnostics=birth-line|SHELL_ENTER|MARK_DSHA_START|
+INSTRUMENTATION_RESULT: system-shell=stdin=flushed natural_wait=true waited_ms=102 harness_force=false exit=0 shell_marker=true shell_entered_before_write=true guest_marker_before_write=false guest_marker_after_write=true diagnostics=SHELL_ENTER|MARK_DSHA_START|
+INSTRUMENTATION_CODE: -1

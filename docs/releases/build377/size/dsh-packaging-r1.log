@@ -1,0 +1,39 @@
+..EEF.
+======================================================================
+ERROR: test_real_archive_keeps_dsh_and_hooks_while_policy_comes_from_exact_signed_installs (__main__.DshRuntimePackaging.test_real_archive_keeps_dsh_and_hooks_while_policy_comes_from_exact_signed_installs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\test-dsh-runtime-packaging.py", line 59, in test_real_archive_keeps_dsh_and_hooks_while_policy_comes_from_exact_signed_installs
+    report = builder.build(modules, archive, version)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\build-dsh-runtime.py", line 826, in build
+    raise ValueError('WEB_BRAND_FILE_MISSING: ' + ','.join(sorted(set(WEB_BRAND_INPUTS) - seen_icons)))
+ValueError: WEB_BRAND_FILE_MISSING: @deepseek-ai/dsh-web-frontend/dist/apple-touch-icon.png,@deepseek-ai/dsh-web-frontend/dist/favicon-dark.svg,@deepseek-ai/dsh-web-frontend/dist/favicon.svg,@deepseek-ai/dsh-web-frontend/dist/icon-192.png,@deepseek-ai/dsh-web-frontend/dist/icon-512.png,@deepseek-ai/dsh-web-frontend/dist/icon-maskable-512.png
+
+======================================================================
+ERROR: test_receipt_uses_start_snapshot_without_a_post_publication_input_read (__main__.DshRuntimePackaging.test_receipt_uses_start_snapshot_without_a_post_publication_input_read)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\test-dsh-runtime-packaging.py", line 158, in test_receipt_uses_start_snapshot_without_a_post_publication_input_read
+    report = builder.build(modules, archive, version)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\build-dsh-runtime.py", line 826, in build
+    raise ValueError('WEB_BRAND_FILE_MISSING: ' + ','.join(sorted(set(WEB_BRAND_INPUTS) - seen_icons)))
+ValueError: WEB_BRAND_FILE_MISSING: @deepseek-ai/dsh-web-frontend/dist/apple-touch-icon.png,@deepseek-ai/dsh-web-frontend/dist/favicon-dark.svg,@deepseek-ai/dsh-web-frontend/dist/favicon.svg,@deepseek-ai/dsh-web-frontend/dist/icon-192.png,@deepseek-ai/dsh-web-frontend/dist/icon-512.png,@deepseek-ai/dsh-web-frontend/dist/icon-maskable-512.png
+
+======================================================================
+FAIL: test_recipe_edit_during_real_gzip_keeps_previous_archive_and_receipt (__main__.DshRuntimePackaging.test_recipe_edit_during_real_gzip_keeps_previous_archive_and_receipt)
+----------------------------------------------------------------------
+ValueError: WEB_BRAND_FILE_MISSING: @deepseek-ai/dsh-web-frontend/dist/apple-touch-icon.png,@deepseek-ai/dsh-web-frontend/dist/favicon-dark.svg,@deepseek-ai/dsh-web-frontend/dist/favicon.svg,@deepseek-ai/dsh-web-frontend/dist/icon-192.png,@deepseek-ai/dsh-web-frontend/dist/icon-512.png,@deepseek-ai/dsh-web-frontend/dist/icon-maskable-512.png
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\test-dsh-runtime-packaging.py", line 146, in test_recipe_edit_during_real_gzip_keeps_previous_archive_and_receipt
+    with self.assertRaisesRegex(ValueError, 'DSH_BUILD_INPUTS_CHANGED_DURING_BUILD'):
+AssertionError: "DSH_BUILD_INPUTS_CHANGED_DURING_BUILD" does not match "WEB_BRAND_FILE_MISSING: @deepseek-ai/dsh-web-frontend/dist/apple-touch-icon.png,@deepseek-ai/dsh-web-frontend/dist/favicon-dark.svg,@deepseek-ai/dsh-web-frontend/dist/favicon.svg,@deepseek-ai/dsh-web-frontend/dist/icon-192.png,@deepseek-ai/dsh-web-frontend/dist/icon-512.png,@deepseek-ai/dsh-web-frontend/dist/icon-maskable-512.png"
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.269s
+
+FAILED (failures=1, errors=2)

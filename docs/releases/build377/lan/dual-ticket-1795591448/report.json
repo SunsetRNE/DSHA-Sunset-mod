@@ -1,0 +1,69 @@
+{
+  "phase": "ticket",
+  "inputProxySha256": "dae8675034937ec0989534759eb87c707bacc0fae19deac69b665a6b8a9962f4",
+  "browsers": {
+    "chromium": {
+      "version": "156.0.8078.4",
+      "afterLoginNames": [
+        "__Host-dsha_lan_3082",
+        "__Host-dsha_lan_55638"
+      ],
+      "wssAfterBothLogins": [
+        true,
+        true
+      ],
+      "alternateReloads": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "wssAfterReloads": [
+        true,
+        true
+      ]
+    },
+    "firefox": {
+      "version": "153.0",
+      "afterLoginNames": [
+        "__Host-dsha_lan_3082",
+        "__Host-dsha_lan_55638"
+      ],
+      "wssAfterBothLogins": [
+        true,
+        true
+      ],
+      "alternateReloads": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "wssAfterReloads": [
+        true,
+        true
+      ]
+    },
+    "webkit": {
+      "version": "26.5",
+      "afterLoginNames": [
+        "__Host-dsha_lan_3082",
+        "__Host-dsha_lan_55638"
+      ],
+      "wssAfterBothLogins": [
+        true,
+        true
+      ],
+      "alternateReloads": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "wssAfterReloads": [
+        true,
+        true
+      ]
+    }
+  }
+}

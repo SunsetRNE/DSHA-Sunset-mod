@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\prepare-test-runtime.py", line 129, in <module>
+    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--platform',choices=['host','linux-arm64'],default='host');ap.add_argument('--offline',action='store_true');ap.add_argument('--cache',type=Path);ap.add_argument('--allow-stale-archive',action='store_true');ap.add_argument('--archive',type=Path,help='Explicit candidate archive for development fixtures; does not alter APK assets');prepare(ap.parse_args())
+                                                                                                                                                                                                                                                                                                                                                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\DSHA_RESTART\source\build377-local\tools\prepare-test-runtime.py", line 57, in prepare
+    if not archive_current and not args.allow_stale_archive:raise ValueError('ARCHIVE_INPUTS_STALE: 请先由发布执行者生成当前归档；开发夹具可明确 --allow-stale-archive')
+                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: ARCHIVE_INPUTS_STALE: 请先由发布执行者生成当前归档；开发夹具可明确 --allow-stale-archive

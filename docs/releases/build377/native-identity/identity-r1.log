@@ -1,0 +1,15 @@
+test_identity_fields_drive_package_name_suffix_alias_and_certificate (__main__.GradleContract.test_identity_fields_drive_package_name_suffix_alias_and_certificate) ... ok
+test_rebirth_candidate_switch_and_isolated_signing (__main__.GradleContract.test_rebirth_candidate_switch_and_isolated_signing) ... ok
+test_same_names_default_and_unknown_failure (__main__.GradleContract.test_same_names_default_and_unknown_failure) ... ok
+test_version_fields_are_recorded_per_identity_and_match_gradle (__main__.GradleContract.test_version_fields_are_recorded_per_identity_and_match_gradle) ... ok
+test_check_rejects_drift_and_mixed_identity (__main__.Resolution.test_check_rejects_drift_and_mixed_identity) ... ok
+test_default_is_mod (__main__.Resolution.test_default_is_mod) ... ok
+test_identities_never_share_signing_or_package (__main__.Resolution.test_identities_never_share_signing_or_package) ... ok
+test_rebirth_branch_is_isolated_candidate_identity (__main__.Resolution.test_rebirth_branch_is_isolated_candidate_identity) ... ok
+test_unknown_value_is_rejected_without_fallback (__main__.Resolution.test_unknown_value_is_rejected_without_fallback) ... ok
+test_upstream_branch (__main__.Resolution.test_upstream_branch) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.157s
+
+OK

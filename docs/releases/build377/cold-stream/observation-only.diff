@@ -1,0 +1,29 @@
+--- production/session-launcher.c
++++ probe/observed-launcher.c
+@@ -61,13 +61,17 @@
+         if (printf("DSHA_SESSION_STAT_V1 %s", stat) < 0 || fflush(stdout) != 0) return 125;
+     }
+ 
++    dprintf(2,"OBS_PRE_FORK p=%d\n",getpid());
+     pid_t child = fork();
++    if(child>0)dprintf(2,"OBS_PARENT_FORK child=%d\n",child);
+     if (child < 0) { perror("DSHA_SESSION_FORK"); return 125; }
+     if (child == 0) {
++        (void)!write(2,"OBS_CHILD_ENTER\n",16);
+         struct sigaction ordinary = {0};
+         ordinary.sa_handler = SIG_DFL;
+         sigemptyset(&ordinary.sa_mask);
+         sigaction(SIGTERM, &ordinary, NULL);
++        (void)!write(2,"OBS_CHILD_PRE_EXEC\n",19);
+         execvp(argv[command], argv + command);
+         int error = errno;
+         perror("DSHA_SESSION_EXEC");
+@@ -76,7 +80,7 @@
+ 
+     int status;
+     for (;;) {
+-        if (waitpid(child, &status, 0) == child) break;
++        if (waitpid(child, &status, 0) == child) { dprintf(2,"OBS_WAIT raw=%d exited=%d code=%d signaled=%d signal=%d\n",status,WIFEXITED(status),WIFEXITED(status)?WEXITSTATUS(status):-1,WIFSIGNALED(status),WIFSIGNALED(status)?WTERMSIG(status):-1); break; }
+         if (errno == EINTR) continue;
+         perror("DSHA_SESSION_WAIT");
+         break;

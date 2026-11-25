@@ -1,0 +1,90 @@
+{
+  "sampleUtc": "2026-11-25T08:50:41.480427+00:00",
+  "oldApkSha256": "2e6f0324ebe4b52b143dcb2bf04800b1ce73c106a53b567de1afdafca5dba3d9",
+  "newApkSha256": "72917c42dee81df41e26f2d7977ba735b0e3c0c94a93803561272d6f6facbeaa",
+  "unchanged": 1882,
+  "changed": [
+    {
+      "path": "assets/dexopt/baseline.prof",
+      "oldSha256": "cf6feb263c6b5a99c356c6682f567870d70385ccf56051a9a538c0f24bccb9d3",
+      "newSha256": "16c72650976d94ab752ea5b9db079ad7314a6499bdccaecd6d8f83cc2b70e42f",
+      "oldZipBytes": 1580,
+      "newZipBytes": 1776,
+      "deltaZipBytes": 196
+    },
+    {
+      "path": "assets/dexopt/baseline.profm",
+      "oldSha256": "8ff5e90d97817e88aa961c3fbbb027354a017e7d97c99039b41cc27676288455",
+      "newSha256": "0a5415d8f90524f3971ace937c6d5c34196e56211b0109e3639dfc2cdb9039e4",
+      "oldZipBytes": 187,
+      "newZipBytes": 187,
+      "deltaZipBytes": 0
+    },
+    {
+      "path": "classes.dex",
+      "oldSha256": "e9bab39e67e1fbcfa534451b13660f4fdf7c1287a92ed38d8d0f7f4cc92c92af",
+      "newSha256": "b9a84322477977fb8428c300424534770ca0620a77a84de64ed66f231ba4061e",
+      "oldZipBytes": 5863482,
+      "newZipBytes": 5864669,
+      "deltaZipBytes": 1187
+    },
+    {
+      "path": "assets/runtime-descriptor.json",
+      "oldSha256": "d3988fde5e8486a9b99089fcac0998ccf1a8f3ce88833be9b71d65d9471cf9c1",
+      "newSha256": "c8d67c976b36d7a1a7909da7e143bed62fb718c31bf5228e1b746d7bc109f703",
+      "oldZipBytes": 39815,
+      "newZipBytes": 39815,
+      "deltaZipBytes": 0
+    },
+    {
+      "path": "assets/rust-native-receipt.json",
+      "oldSha256": "9fdbf1032589c609c1a61337d8d45d548d97d85d0684714cc8a69442d7c37ff0",
+      "newSha256": "922b9946c90744cc3ad1f240b4f6d31bd6e47de889c34dc3f700bd6091cf10a3",
+      "oldZipBytes": 42990,
+      "newZipBytes": 42989,
+      "deltaZipBytes": -1
+    },
+    {
+      "path": "META-INF/ANDROIDD.SF",
+      "oldSha256": "5c1bdb0a90dd3105355f9bc814728c5e11f065aa6204e9a03a004be859af0ed9",
+      "newSha256": "b045b4e04032a0c1ef036272d39e12f66783620ceccda9331c687654adc6792f",
+      "oldZipBytes": 76985,
+      "newZipBytes": 76993,
+      "deltaZipBytes": 8
+    },
+    {
+      "path": "META-INF/ANDROIDD.RSA",
+      "oldSha256": "288bbe6ac86f2395fa1602c7394f4112b47fd15a0014f55b8b245d05b19664b7",
+      "newSha256": "9f7e7f5ecf7938af1f3882ffb6191588345d2377f71965f2d203a1b82a022a80",
+      "oldZipBytes": 1013,
+      "newZipBytes": 1013,
+      "deltaZipBytes": 0
+    },
+    {
+      "path": "META-INF/MANIFEST.MF",
+      "oldSha256": "4c72f8469804a52354072b7861a0462857aaf8556db970691605027366eee140",
+      "newSha256": "0690f057b71b8711c52a950de47b951280e8c48681ce663b3dad04ccea44b8ad",
+      "oldZipBytes": 74548,
+      "newZipBytes": 74547,
+      "deltaZipBytes": -1
+    }
+  ],
+  "metrics": {
+    "logicalBytes": {
+      "first": 255587176,
+      "second": 255587176,
+      "delta": 0
+    },
+    "payloadZipBytes": {
+      "first": 255321335,
+      "second": 255322724,
+      "delta": 1389
+    },
+    "zipOtherBytes": {
+      "first": 265841,
+      "second": 264452,
+      "delta": -1389
+    }
+  },
+  "remainingDefinition": "APK file byte length minus the sum of ZIP central directory compressed sizes for all entries; includes headers, central directory, padding, APK signing block and any other non-member bytes as one measured residual."
+}

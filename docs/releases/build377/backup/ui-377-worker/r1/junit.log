@@ -1,0 +1,72 @@
+JUnit version 4.13.2
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+E.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+E.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+E.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+E.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+E
+Time: 6.438
+There were 5 failures:
+1) cancellingPickerWipesPasswordAndCompatibilityRequiresExplicitCheckbox(com.deepseekharness.app.ui.NativeDataChoicesTest)
+java.lang.AssertionError: actual array was null
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.internal.ComparisonCriteria.arrayEquals(ComparisonCriteria.java:49)
+	at org.junit.internal.ComparisonCriteria.arrayEquals(ComparisonCriteria.java:28)
+	at org.junit.Assert.internalArrayEquals(Assert.java:534)
+	at org.junit.Assert.assertArrayEquals(Assert.java:368)
+	at org.junit.Assert.assertArrayEquals(Assert.java:379)
+	at com.deepseekharness.app.ui.NativeDataChoicesTest.confirmExport(NativeDataChoicesTest.java:222)
+	at com.deepseekharness.app.ui.NativeDataChoicesTest.cancellingPickerWipesPasswordAndCompatibilityRequiresExplicitCheckbox(NativeDataChoicesTest.java:353)
+	Suppressed: org.robolectric.android.internal.AndroidTestEnvironment$UnExecutedRunnablesException: Main looper has queued unexecuted runnables. This might be the cause of the test failure. You might need a shadowOf(Looper.getMainLooper()).idle() call.
+2) losingTheProcessDuringSafNeverFallsBackToPlaintext(com.deepseekharness.app.ui.NativeDataChoicesTest)
+java.lang.AssertionError: actual array was null
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.internal.ComparisonCriteria.arrayEquals(ComparisonCriteria.java:49)
+	at org.junit.internal.ComparisonCriteria.arrayEquals(ComparisonCriteria.java:28)
+	at org.junit.Assert.internalArrayEquals(Assert.java:534)
+	at org.junit.Assert.assertArrayEquals(Assert.java:368)
+	at org.junit.Assert.assertArrayEquals(Assert.java:379)
+	at com.deepseekharness.app.ui.NativeDataChoicesTest.confirmExport(NativeDataChoicesTest.java:222)
+	at com.deepseekharness.app.ui.NativeDataChoicesTest.losingTheProcessDuringSafNeverFallsBackToPlaintext(NativeDataChoicesTest.java:388)
+3) safResultAfterRotationUsesProtectedOperationAndWipesPendingPassword(com.deepseekharness.app.ui.NativeDataChoicesTest)
+java.lang.AssertionError: actual array was null
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.internal.ComparisonCriteria.arrayEquals(ComparisonCriteria.java:49)
+	at org.junit.internal.ComparisonCriteria.arrayEquals(ComparisonCriteria.java:28)
+	at org.junit.Assert.internalArrayEquals(Assert.java:534)
+	at org.junit.Assert.assertArrayEquals(Assert.java:368)
+	at org.junit.Assert.assertArrayEquals(Assert.java:379)
+	at com.deepseekharness.app.ui.NativeDataChoicesTest.confirmExport(NativeDataChoicesTest.java:222)
+	at com.deepseekharness.app.ui.NativeDataChoicesTest.safResultAfterRotationUsesProtectedOperationAndWipesPendingPassword(NativeDataChoicesTest.java:324)
+	Suppressed: org.robolectric.android.internal.AndroidTestEnvironment$UnExecutedRunnablesException: Main looper has queued unexecuted runnables. This might be the cause of the test failure. You might need a shadowOf(Looper.getMainLooper()).idle() call.
+4) rotationDuringFilenameLookupBindsNewPageAndFreshOwnerRestoresOnlyChoices(com.deepseekharness.app.ui.NativeDataChoicesTest)
+java.lang.AssertionError: actual array was null
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.internal.ComparisonCriteria.arrayEquals(ComparisonCriteria.java:49)
+	at org.junit.internal.ComparisonCriteria.arrayEquals(ComparisonCriteria.java:28)
+	at org.junit.Assert.internalArrayEquals(Assert.java:534)
+	at org.junit.Assert.assertArrayEquals(Assert.java:368)
+	at org.junit.Assert.assertArrayEquals(Assert.java:379)
+	at com.deepseekharness.app.ui.NativeDataChoicesTest.confirmExport(NativeDataChoicesTest.java:222)
+	at com.deepseekharness.app.ui.NativeDataChoicesTest.rotationDuringFilenameLookupBindsNewPageAndFreshOwnerRestoresOnlyChoices(NativeDataChoicesTest.java:311)
+	Suppressed: org.robolectric.android.internal.AndroidTestEnvironment$UnExecutedRunnablesException: Main looper has queued unexecuted runnables. This might be the cause of the test failure. You might need a shadowOf(Looper.getMainLooper()).idle() call.
+5) displayedScopesChooseIndependentJobArguments(com.deepseekharness.app.ui.NativeDataChoicesTest)
+java.lang.AssertionError: actual array was null
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.internal.ComparisonCriteria.arrayEquals(ComparisonCriteria.java:49)
+	at org.junit.internal.ComparisonCriteria.arrayEquals(ComparisonCriteria.java:28)
+	at org.junit.Assert.internalArrayEquals(Assert.java:534)
+	at org.junit.Assert.assertArrayEquals(Assert.java:368)
+	at org.junit.Assert.assertArrayEquals(Assert.java:379)
+	at com.deepseekharness.app.ui.NativeDataChoicesTest.confirmExport(NativeDataChoicesTest.java:222)
+	at com.deepseekharness.app.ui.NativeDataChoicesTest.displayedScopesChooseIndependentJobArguments(NativeDataChoicesTest.java:256)
+	Suppressed: org.robolectric.android.internal.AndroidTestEnvironment$UnExecutedRunnablesException: Main looper has queued unexecuted runnables. This might be the cause of the test failure. You might need a shadowOf(Looper.getMainLooper()).idle() call.
+
+FAILURES!!!
+Tests run: 5,  Failures: 5
+

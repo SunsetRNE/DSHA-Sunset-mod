@@ -1,0 +1,99 @@
+[
+  {
+    "name": "checker-tests",
+    "command": [
+      "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "-X",
+      "utf8",
+      "-B",
+      "tools/test-ui-i18n.py"
+    ],
+    "startedUtc": "2026-11-25T07:11:40.312990+00:00",
+    "finishedUtc": "2026-11-25T07:11:40.460067+00:00",
+    "ms": 141,
+    "exit": 0
+  },
+  {
+    "name": "xml-consistency",
+    "command": [
+      "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "-X",
+      "utf8",
+      "-B",
+      "tools/localize-android-ui.py",
+      "--check"
+    ],
+    "startedUtc": "2026-11-25T07:11:40.460067+00:00",
+    "finishedUtc": "2026-11-25T07:11:40.640538+00:00",
+    "ms": 187,
+    "exit": 0
+  },
+  {
+    "name": "catalog-tests",
+    "command": [
+      "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "-X",
+      "utf8",
+      "-B",
+      "tools/test-ui-language-catalog.py"
+    ],
+    "startedUtc": "2026-11-25T07:11:40.641714+00:00",
+    "finishedUtc": "2026-11-25T07:11:41.108416+00:00",
+    "ms": 469,
+    "exit": 0
+  },
+  {
+    "name": "generate",
+    "command": [
+      "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "-X",
+      "utf8",
+      "-B",
+      "tools/prepare-ui-languages.py",
+      "--output",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\settings\\i18n-check\\r2\\generated"
+    ],
+    "startedUtc": "2026-11-25T07:11:41.108416+00:00",
+    "finishedUtc": "2026-11-25T07:11:41.347454+00:00",
+    "ms": 234,
+    "exit": 0
+  },
+  {
+    "name": "compile",
+    "command": [
+      "F:\\DSHA\\_toolchains\\jdk-17\\bin\\javac.exe",
+      "@F:\\DSHA_RESTART\\artifacts\\build377-local\\settings\\i18n-check\\r2\\compile.args"
+    ],
+    "startedUtc": "2026-11-25T07:11:41.350627+00:00",
+    "finishedUtc": "2026-11-25T07:11:43.960891+00:00",
+    "ms": 2610,
+    "exit": 0
+  },
+  {
+    "name": "messages",
+    "command": [
+      "F:\\DSHA\\_toolchains\\jdk-17\\bin\\java.exe",
+      "@F:\\DSHA_RESTART\\artifacts\\build377-local\\settings\\i18n-check\\r2\\messages.args"
+    ],
+    "startedUtc": "2026-11-25T07:11:44.042159+00:00",
+    "finishedUtc": "2026-11-25T07:11:44.523966+00:00",
+    "ms": 484,
+    "exit": 0
+  },
+  {
+    "name": "source-inventory",
+    "command": [
+      "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "-X",
+      "utf8",
+      "-B",
+      "tools/check-ui-i18n.py",
+      "--report",
+      "F:\\DSHA_RESTART\\artifacts\\build377-local\\settings\\i18n-check\\r2\\after-377.json"
+    ],
+    "startedUtc": "2026-11-25T07:11:44.524933+00:00",
+    "finishedUtc": "2026-11-25T07:11:53.906620+00:00",
+    "ms": 9391,
+    "exit": 0
+  }
+]

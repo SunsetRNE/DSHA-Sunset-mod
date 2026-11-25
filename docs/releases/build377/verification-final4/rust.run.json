@@ -1,0 +1,22 @@
+{
+  "command": [
+    "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+    "-B",
+    "tools/check-rust-native-apk.py",
+    "--mode",
+    "prebuilt",
+    "--commit",
+    "365719301ebf8c35f87edc24bdce4edb503c46d5",
+    "--artifact-dir",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\final4\\rust-arm64",
+    "--apk",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\local-release\\dsha-0.2.2-rc.5.apk",
+    "--output",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\verification-final4\\rust.json"
+  ],
+  "startedAt": "2026-11-25T09:56:40.370982+00:00",
+  "finishedAt": "2026-11-25T09:56:41.513060+00:00",
+  "elapsedSeconds": 1.141,
+  "exitCode": 0,
+  "logSha256": "e4377ee09a46f235d7269ade7478c8a61953c13b3f168a9143f53c84fcd60f48"
+}

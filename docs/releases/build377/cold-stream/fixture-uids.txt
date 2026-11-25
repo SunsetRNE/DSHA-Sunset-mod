@@ -1,0 +1,8 @@
+package:org.dsha.fixture.exactcoldobservearmr1 uid:10178
+package:org.dsha.fixture.exactcoldobservex86r1 uid:10177
+package:org.dsha.fixture.exactcoldspawnarmr1 uid:10179
+package:org.dsha.fixture.exactcoldspawnx86r1 uid:10180
+package:org.dsha.fixture.exactcoldr1 uid:10173
+package:org.dsha.fixture.exactcoldprocessr2 uid:10174
+package:org.dsha.fixture.exactcoldprocessr3 uid:10175
+package:org.dsha.fixture.exactcoldprocessr4 uid:10176

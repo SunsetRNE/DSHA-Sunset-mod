@@ -1,0 +1,100 @@
+proot-5.1.107.91/src/loader/loader.c:253:5: warning: inline asm clobber list contains reserved registers: SP [-Winline-asm]
+                                BRANCH(stmt->start.stack_pointer, stmt->start.entry_point);
+                                ^
+proot-5.1.107.91/src/loader/assembly-arm64.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+proot-5.1.107.91/src/loader/loader.c:253:5: note: Reserved registers on the clobber list may not be preserved across the asm statement, and clobbering them may lead to undefined behaviour.
+proot-5.1.107.91/src/loader/assembly-arm64.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+1 warning generated.
+proot-5.1.107.91/src/loader/loader.c:253:5: warning: inline asm clobber list contains reserved registers: SP, PC [-Winline-asm]
+                                BRANCH(stmt->start.stack_pointer, stmt->start.entry_point);
+                                ^
+proot-5.1.107.91/src/loader/assembly-arm.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+proot-5.1.107.91/src/loader/loader.c:253:5: note: Reserved registers on the clobber list may not be preserved across the asm statement, and clobbering them may lead to undefined behaviour.
+proot-5.1.107.91/src/loader/assembly-arm.h:32:3: note: expanded from macro 'BRANCH'
+                "// Restore initial stack pointer.      \n\t"   \
+                ^
+1 warning generated.
+proot-5.1.107.91/src/path/glue.c:76:14: warning: 'talloc_autofree_context' is deprecated [-Wdeprecated-declarations]
+        autofreed = talloc_autofree_context();
+                    ^
+./talloc.h:1084:46: note: 'talloc_autofree_context' has been explicitly marked deprecated here
+_PUBLIC_ void *talloc_autofree_context(void) _DEPRECATED_;
+                                             ^
+./talloc.h:119:38: note: expanded from macro '_DEPRECATED_'
+#define _DEPRECATED_ __attribute__ ((deprecated))
+                                     ^
+1 warning generated.
+proot-5.1.107.91/src/path/temp.c:37:33: warning: 'talloc_autofree_context' is deprecated [-Wdeprecated-declarations]
+        temp_directory = talloc_strdup(talloc_autofree_context(), tmp);
+                                       ^
+./talloc.h:1084:46: note: 'talloc_autofree_context' has been explicitly marked deprecated here
+_PUBLIC_ void *talloc_autofree_context(void) _DEPRECATED_;
+                                             ^
+./talloc.h:119:38: note: expanded from macro '_DEPRECATED_'
+#define _DEPRECATED_ __attribute__ ((deprecated))
+                                     ^
+proot-5.1.107.91/src/path/temp.c:273:13: warning: 'talloc_autofree_context' is deprecated [-Wdeprecated-declarations]
+                context = talloc_autofree_context();
+                          ^
+./talloc.h:1084:46: note: 'talloc_autofree_context' has been explicitly marked deprecated here
+_PUBLIC_ void *talloc_autofree_context(void) _DEPRECATED_;
+                                             ^
+./talloc.h:119:38: note: expanded from macro '_DEPRECATED_'
+#define _DEPRECATED_ __attribute__ ((deprecated))
+                                     ^
+2 warnings generated.
+proot-5.1.107.91/src/syscall/socket.c:123:10: warning: 'mktemp' is deprecated: mktemp is unsafe, use mkstemp or tmpfile instead [-Wdeprecated-declarations]
+                (void) mktemp(shorter_host_path);
+                       ^
+F:/DSHA/_toolchains/android-sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/windows-x86_64/bin/../sysroot/usr/include/stdlib.h:68:66: note: 'mktemp' has been explicitly marked deprecated here
+char* _Nullable mktemp(char* _Nonnull __template) __attribute__((deprecated("mktemp is unsafe, use mkstemp or tmpfile instead")));
+                                                                 ^
+1 warning generated.
+proot-5.1.107.91/src/extension/fake_id0/chroot.c:54:2: warning: ignoring return value of function declared with 'warn_unused_result' attribute [-Wunused-result]
+        realpath(path, path_host_absolute);
+        ^~~~~~~~ ~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
+proot-5.1.107.91/src/extension/port_switch/port_switch.c:174:100: warning: sizeof on array function parameter will return size of 'long *' instead of 'long[]' [-Wsizeof-array-argument]
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                                                                                                   ^
+proot-5.1.107.91/src/extension/port_switch/port_switch.c:145:121: note: declared here
+void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, struct sockaddr_storage *my_sockaddr, long socketcall_arg2[]) {   
+                                                                                                                        ^
+proot-5.1.107.91/src/extension/port_switch/port_switch.c:182:100: warning: sizeof on array function parameter will return size of 'long *' instead of 'long[]' [-Wsizeof-array-argument]
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                                                                                                   ^
+proot-5.1.107.91/src/extension/port_switch/port_switch.c:145:121: note: declared here
+void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, struct sockaddr_storage *my_sockaddr, long socketcall_arg2[]) {   
+                                                                                                                        ^
+proot-5.1.107.91/src/extension/port_switch/port_switch.c:204:100: warning: sizeof on array function parameter will return size of 'long *' instead of 'long[]' [-Wsizeof-array-argument]
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                                                                                                   ^
+proot-5.1.107.91/src/extension/port_switch/port_switch.c:145:121: note: declared here
+void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, struct sockaddr_storage *my_sockaddr, long socketcall_arg2[]) {   
+                                                                                                                        ^
+proot-5.1.107.91/src/extension/port_switch/port_switch.c:212:100: warning: sizeof on array function parameter will return size of 'long *' instead of 'long[]' [-Wsizeof-array-argument]
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                                                                                                   ^
+proot-5.1.107.91/src/extension/port_switch/port_switch.c:145:121: note: declared here
+void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, struct sockaddr_storage *my_sockaddr, long socketcall_arg2[]) {   
+                                                                                                                        ^
+4 warnings generated.
+proot-5.1.107.91/src/extension/sysvipc/sysvipc_shm.c:814:10: warning: 'mktemp' is deprecated: mktemp is unsafe, use mkstemp or tmpfile instead [-Wdeprecated-declarations]
+                (void) mktemp(path);
+                       ^
+F:/DSHA/_toolchains/android-sdk/ndk/26.3.11579264/toolchains/llvm/prebuilt/windows-x86_64/bin/../sysroot/usr/include/stdlib.h:68:66: note: 'mktemp' has been explicitly marked deprecated here
+char* _Nullable mktemp(char* _Nonnull __template) __attribute__((deprecated("mktemp is unsafe, use mkstemp or tmpfile instead")));
+                                                                 ^
+1 warning generated.
+{
+  "libproot.so": "c16957450ab9a1da67d4784cf0667b90ad786e7939aa46aeb9796d7d384b7692",
+  "libprootloader.so": "004c1de722687a59052bf472207f99536849a911b5135fe5937bfa1711a69f10",
+  "libprootloader32.so": "a781049d8437fc3a48bd2014e924259babd2610f15979bdba27251278d57a7be",
+  "libtalloc.so": "718d7e738d7fbad261a4c73bc8f947633380c57136ccacf8b49f3d3661413ef0"
+}

@@ -1,0 +1,42 @@
+JUnit version 4.13.2
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+E
+Time: 18.247
+There was 1 failure:
+1) compactStandardAndRescueFormsKeepBothActionsWithinTheViewport(com.deepseekharness.app.ui.NativeDataChoicesTest)
+java.lang.AssertionError: [normal font 1.3 312x384dp Cancel Rect(377, 704 - 576, 812), panel height 768, normal font 1.3 312x248dp Cancel Rect(377, 432 - 576, 540), panel height 496, rescue font 1.3 312x384dp Cancel Rect(377, 704 - 576, 812), panel height 768, rescue font 1.3 312x248dp Cancel Rect(377, 432 - 576, 540), panel height 496]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at com.deepseekharness.app.ui.NativeDataChoicesTest.compactStandardAndRescueFormsKeepBothActionsWithinTheViewport(NativeDataChoicesTest.java:511)
+	Suppressed: org.robolectric.android.internal.AndroidTestEnvironment$UnExecutedRunnablesException: Main looper has queued unexecuted runnables. This might be the cause of the test failure. You might need a shadowOf(Looper.getMainLooper()).idle() call.
+
+FAILURES!!!
+Tests run: 6,  Failures: 1
+

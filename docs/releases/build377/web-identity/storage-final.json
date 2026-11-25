@@ -1,0 +1,38 @@
+{
+  "at": "2026-11-25T06:52:45.180721+00:00",
+  "volume": "F:\\",
+  "totalBytes": 959067451392,
+  "availableBytes": 351627808768,
+  "files": [
+    {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\web-identity\\distribution\\final\\@deepseek-ai\\dsh-web-frontend\\dist\\apple-touch-icon.png",
+      "logicalBytes": 4662,
+      "allocatedBytes": 8192
+    },
+    {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\web-identity\\distribution\\final\\@deepseek-ai\\dsh-web-frontend\\dist\\favicon-dark.svg",
+      "logicalBytes": 255,
+      "allocatedBytes": 256
+    },
+    {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\web-identity\\distribution\\final\\@deepseek-ai\\dsh-web-frontend\\dist\\favicon.svg",
+      "logicalBytes": 255,
+      "allocatedBytes": 256
+    },
+    {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\web-identity\\distribution\\final\\@deepseek-ai\\dsh-web-frontend\\dist\\icon-192.png",
+      "logicalBytes": 6116,
+      "allocatedBytes": 8192
+    },
+    {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\web-identity\\distribution\\final\\@deepseek-ai\\dsh-web-frontend\\dist\\icon-512.png",
+      "logicalBytes": 18517,
+      "allocatedBytes": 20480
+    },
+    {
+      "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\web-identity\\distribution\\final\\@deepseek-ai\\dsh-web-frontend\\dist\\icon-maskable-512.png",
+      "logicalBytes": 14354,
+      "allocatedBytes": 16384
+    }
+  ]
+}

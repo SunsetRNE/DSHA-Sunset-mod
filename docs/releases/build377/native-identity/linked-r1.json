@@ -1,0 +1,322 @@
+{
+  "status": "PASS",
+  "scope": "AAPT2 linked resource sample",
+  "startedUtc": "2026-11-25T06:44:30.970384+00:00",
+  "beforeApk": "F:\\DSHA_RESTART\\artifacts\\build376-formal-20261125\\signed\\dsha-0.2.2-rc.5.apk",
+  "afterApk": null,
+  "beforeApkSha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+  "inspectedApkSha256": "e7d1b5c1560e1f71e15fe9abc229761bd4edf208270f280d25cbe9b049da1ceb",
+  "firstResultSeconds": 0.4782238000188954,
+  "inputHead": "12efafd7d3530b412d48ccb66fb657c6bd7cc8ac",
+  "generatorSha256": "4fa2ac8a14fad612875090da522f0f1d622f1960ba18b92d18d33f2f82d3cd6c",
+  "sourceFilesSha256": {
+    "drawable-nodpi/dsha_brand.webp": "c7cc0862d00ea73e17bbe8e44401f253588f3882ff3132d62e52960ae1299056",
+    "mipmap-mdpi/ic_launcher.webp": "c0f0fc4d88ad786094b09aa5c563e2ab7568a26495496ca6d032194032513aa8",
+    "mipmap-hdpi/ic_launcher.webp": "51b808d8ca39e808e63629203af22f3dc9aaa70c73bbfddcea3f445162b5f36c",
+    "mipmap-xhdpi/ic_launcher.webp": "3c27ec69b3ae8752085351ef29626725689b6e082654a5bd45afdaac82493f59",
+    "mipmap-xxhdpi/ic_launcher.webp": "b973c03a2934766a94bf4bd87157f9cb466d02c6d6906028e5a5276255806d04",
+    "mipmap-xxxhdpi/ic_launcher.webp": "c0acd571b8ab5f0d2efc7be90c0db45f8dcb3f87bd2b85e52447bedac2466cbb",
+    "drawable/ic_dsha_mark.xml": "179f0f14495cdbc8d032509daa55cec639b451b7c6b4a3cdf6bbe37ba35cb976",
+    "drawable/dsha_launcher_foreground.xml": "72412d7f2272aac819fbefd5f6f159f4cb9f977f4403f207ff37b2d11baa182e",
+    "mipmap-anydpi-v26/ic_launcher.xml": "b811036ea80099b411ac32ce75402231321cf22d65d98f15ebce19e0dee1fa5b",
+    "mipmap-anydpi-v33/ic_launcher.xml": "827aad8c40be25345837fa0d9c775d4b7206cecc29f0d5e845450f3cc6e304cb",
+    "values/launcher_icon.xml": "9b64f6242af2732341a190524d2a05ebf3e4ddcc58653af0c5606ee3196c04ac"
+  },
+  "apiMin": 30,
+  "apiCompile": 37,
+  "python": "3.11.9",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "pillow": "12.3.0",
+  "webp": "1.6.0",
+  "aapt2": "",
+  "sdk": "F:\\DSHA_RESTART\\toolchains\\current\\android-sdk",
+  "rows": [
+    {
+      "resource": "drawable/dsha_brand",
+      "density": "nodpi",
+      "source": "drawable-nodpi/dsha_brand.webp",
+      "generated": {
+        "size": [
+          512,
+          512
+        ],
+        "pixels": "7e7936b95c6f0614b49e8d081752dde7f2f697dca6b728f6a6c334c440359699",
+        "alpha": [
+          0,
+          255
+        ]
+      },
+      "before": {
+        "member": "res/hE.webp",
+        "logicalBytes": 245218,
+        "zipBytes": 245218,
+        "sha256": "74811c09ddbd414484196114ad3de081240ec133dfb66f5d492f38ec2ac7df30",
+        "size": [
+          512,
+          512
+        ],
+        "pixels": "eb1742fedf8b50fb235f372ddd85c9df8ad77c7ce3fa997ff47fd80ec6abccfb",
+        "alpha": [
+          255,
+          255
+        ]
+      },
+      "after": {
+        "member": "res/drawable-nodpi-v4/dsha_brand.webp",
+        "logicalBytes": 5452,
+        "zipBytes": 5452,
+        "sha256": "c7cc0862d00ea73e17bbe8e44401f253588f3882ff3132d62e52960ae1299056",
+        "size": [
+          512,
+          512
+        ],
+        "pixels": "7e7936b95c6f0614b49e8d081752dde7f2f697dca6b728f6a6c334c440359699",
+        "alpha": [
+          0,
+          255
+        ]
+      }
+    },
+    {
+      "resource": "mipmap/ic_launcher",
+      "density": "mdpi",
+      "source": "mipmap-mdpi/ic_launcher.webp",
+      "generated": {
+        "size": [
+          48,
+          48
+        ],
+        "pixels": "c3af948091348b64828ee062f68a2423547ca44c6b23efb931aabbf9e35ba9d7",
+        "alpha": [
+          0,
+          255
+        ]
+      },
+      "before": {
+        "member": "res/d2.webp",
+        "logicalBytes": 5070,
+        "zipBytes": 5070,
+        "sha256": "727eb568d893d7da91a8504fadb852ba5e7adabdda267ba4b070c43a506a7d18",
+        "size": [
+          48,
+          48
+        ],
+        "pixels": "948900bc1da1269e9861e988439bc3c68c5f318bbd52124482f4e8bd3c278eb3",
+        "alpha": [
+          255,
+          255
+        ]
+      },
+      "after": {
+        "member": "res/mipmap-mdpi-v4/ic_launcher.webp",
+        "logicalBytes": 766,
+        "zipBytes": 766,
+        "sha256": "c0f0fc4d88ad786094b09aa5c563e2ab7568a26495496ca6d032194032513aa8",
+        "size": [
+          48,
+          48
+        ],
+        "pixels": "c3af948091348b64828ee062f68a2423547ca44c6b23efb931aabbf9e35ba9d7",
+        "alpha": [
+          0,
+          255
+        ]
+      }
+    },
+    {
+      "resource": "mipmap/ic_launcher",
+      "density": "hdpi",
+      "source": "mipmap-hdpi/ic_launcher.webp",
+      "generated": {
+        "size": [
+          72,
+          72
+        ],
+        "pixels": "d8473a20e2b379dd61a7093a78e860f1ddb9b51a505e07eddfe0b01f525332d9",
+        "alpha": [
+          0,
+          255
+        ]
+      },
+      "before": {
+        "member": "res/MO.webp",
+        "logicalBytes": 10140,
+        "zipBytes": 10140,
+        "sha256": "d7a0e8da2ccd0066ccaca381fd104f4c28bd18824f2dd80604ad5acdba445029",
+        "size": [
+          72,
+          72
+        ],
+        "pixels": "21bb44c6fcdb4b90f4dd2b9846c42e6c22eb70fdbc100351239ce3fc9bd33c96",
+        "alpha": [
+          255,
+          255
+        ]
+      },
+      "after": {
+        "member": "res/mipmap-hdpi-v4/ic_launcher.webp",
+        "logicalBytes": 950,
+        "zipBytes": 950,
+        "sha256": "51b808d8ca39e808e63629203af22f3dc9aaa70c73bbfddcea3f445162b5f36c",
+        "size": [
+          72,
+          72
+        ],
+        "pixels": "d8473a20e2b379dd61a7093a78e860f1ddb9b51a505e07eddfe0b01f525332d9",
+        "alpha": [
+          0,
+          255
+        ]
+      }
+    },
+    {
+      "resource": "mipmap/ic_launcher",
+      "density": "xhdpi",
+      "source": "mipmap-xhdpi/ic_launcher.webp",
+      "generated": {
+        "size": [
+          96,
+          96
+        ],
+        "pixels": "ea7bdb8485018e4a9a1fd2fdde84e7142ecad1cc8d03963170685c11a9a43b2e",
+        "alpha": [
+          0,
+          255
+        ]
+      },
+      "before": {
+        "member": "res/qs.webp",
+        "logicalBytes": 16380,
+        "zipBytes": 16380,
+        "sha256": "6963a7adbf70185f661f44590e39845772f9e9162ccf395781ca22f24e92c4fa",
+        "size": [
+          96,
+          96
+        ],
+        "pixels": "71394fe37ec6945a481c274bc8f0904229d1568baceda04848ba7791eec69275",
+        "alpha": [
+          255,
+          255
+        ]
+      },
+      "after": {
+        "member": "res/mipmap-xhdpi-v4/ic_launcher.webp",
+        "logicalBytes": 1210,
+        "zipBytes": 1210,
+        "sha256": "3c27ec69b3ae8752085351ef29626725689b6e082654a5bd45afdaac82493f59",
+        "size": [
+          96,
+          96
+        ],
+        "pixels": "ea7bdb8485018e4a9a1fd2fdde84e7142ecad1cc8d03963170685c11a9a43b2e",
+        "alpha": [
+          0,
+          255
+        ]
+      }
+    },
+    {
+      "resource": "mipmap/ic_launcher",
+      "density": "xxhdpi",
+      "source": "mipmap-xxhdpi/ic_launcher.webp",
+      "generated": {
+        "size": [
+          144,
+          144
+        ],
+        "pixels": "8ea410ae608148773b757a9dde7bf5d78c9c87ac75673783abd1b1aa06b26600",
+        "alpha": [
+          0,
+          255
+        ]
+      },
+      "before": {
+        "member": "res/Sn.webp",
+        "logicalBytes": 31978,
+        "zipBytes": 31978,
+        "sha256": "e89cbfcf6ad8396438c2f9585586abbb14415c5d64bfc22231c7f45b2919b74a",
+        "size": [
+          144,
+          144
+        ],
+        "pixels": "3bfb1476ba9db5cb9469d4689244b5cac4f75feaba195e01dcf0d77c7ca18652",
+        "alpha": [
+          255,
+          255
+        ]
+      },
+      "after": {
+        "member": "res/mipmap-xxhdpi-v4/ic_launcher.webp",
+        "logicalBytes": 1620,
+        "zipBytes": 1620,
+        "sha256": "b973c03a2934766a94bf4bd87157f9cb466d02c6d6906028e5a5276255806d04",
+        "size": [
+          144,
+          144
+        ],
+        "pixels": "8ea410ae608148773b757a9dde7bf5d78c9c87ac75673783abd1b1aa06b26600",
+        "alpha": [
+          0,
+          255
+        ]
+      }
+    },
+    {
+      "resource": "mipmap/ic_launcher",
+      "density": "xxxhdpi",
+      "source": "mipmap-xxxhdpi/ic_launcher.webp",
+      "generated": {
+        "size": [
+          192,
+          192
+        ],
+        "pixels": "5b913f67856274899eb05fad8c146b12531bd77c2086cd14d73ec89fc065b314",
+        "alpha": [
+          0,
+          255
+        ]
+      },
+      "before": {
+        "member": "res/sK.webp",
+        "logicalBytes": 50950,
+        "zipBytes": 50950,
+        "sha256": "8ea4f4fbe6a7e84d40ca1c332dc5636b8bdd74d2a87e5d22bad0e125f599fd07",
+        "size": [
+          192,
+          192
+        ],
+        "pixels": "0a248d09763d9de133a217f859b02610efa18253a5bc89cba4d390b68bae118b",
+        "alpha": [
+          255,
+          255
+        ]
+      },
+      "after": {
+        "member": "res/mipmap-xxxhdpi-v4/ic_launcher.webp",
+        "logicalBytes": 1956,
+        "zipBytes": 1956,
+        "sha256": "c0acd571b8ab5f0d2efc7be90c0db45f8dcb3f87bd2b85e52447bedac2466cbb",
+        "size": [
+          192,
+          192
+        ],
+        "pixels": "5b913f67856274899eb05fad8c146b12531bd77c2086cd14d73ec89fc065b314",
+        "alpha": [
+          0,
+          255
+        ]
+      }
+    }
+  ],
+  "binaryXml": {
+    "manifest": "        A: http://schemas.android.com/apk/res/android:icon(0x01010002)=@0x7f030002\n        A: http://schemas.android.com/apk/res/android:roundIcon(0x0101052c)=@0x7f030001",
+    "drawable/ic_dsha_mark": "N: android=http://schemas.android.com/apk/res/android (line=3)\n  E: vector (line=3)\n    A: http://schemas.android.com/apk/res/android:height(0x01010155)=24.000000dp\n    A: http://schemas.android.com/apk/res/android:width(0x01010159)=24.000000dp\n    A: http://schemas.android.com/apk/res/android:viewportWidth(0x01010402)=24\n    A: http://schemas.android.com/apk/res/android:viewportHeight(0x01010403)=24\n      E: path (line=6)\n        A: http://schemas.android.com/apk/res/android:pathData(0x01010405)=\"M6,6 L14,12 L6,18 M13,18 L20,18\" (Raw: \"M6,6 L14,12 L6,18 M13,18 L20,18\")\n        A: http://schemas.android.com/apk/res/android:strokeColor(0x01010406)=#ffffffff\n        A: http://schemas.android.com/apk/res/android:strokeWidth(0x01010407)=2.4\n        A: http://schemas.android.com/apk/res/android:strokeLineCap(0x0101040b)=1\n        A: http://schemas.android.com/apk/res/android:strokeLineJoin(0x0101040c)=1",
+    "drawable/dsha_launcher_foreground": "N: android=http://schemas.android.com/apk/res/android (line=1)\n  E: inset (line=1)\n    A: http://schemas.android.com/apk/res/android:drawable(0x01010199)=@0x7f020002\n    A: http://schemas.android.com/apk/res/android:inset(0x010104b5)=0.180000%",
+    "mipmap/ic_launcher anydpi": "N: android=http://schemas.android.com/apk/res/android (line=1)\n  E: adaptive-icon (line=1)\n      E: background (line=2)\n        A: http://schemas.android.com/apk/res/android:drawable(0x01010199)=@0x7f010000\n      E: foreground (line=3)\n        A: http://schemas.android.com/apk/res/android:drawable(0x01010199)=@0x7f020001",
+    "mipmap/ic_launcher anydpi-v33": "N: android=http://schemas.android.com/apk/res/android (line=1)\n  E: adaptive-icon (line=1)\n      E: background (line=2)\n        A: http://schemas.android.com/apk/res/android:drawable(0x01010199)=@0x7f010000\n      E: foreground (line=3)\n        A: http://schemas.android.com/apk/res/android:drawable(0x01010199)=@0x7f020001\n      E: monochrome (line=4)\n        A: http://schemas.android.com/apk/res/android:drawable(0x01010199)=@0x7f020001"
+  },
+  "oldExactResMemberMatches": [],
+  "beforeZipBytes": 359736,
+  "afterZipBytes": 11954,
+  "finishedSeconds": 1.3063680999912322
+}

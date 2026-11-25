@@ -1,0 +1,1 @@
+candidate2 [('version', True), ('bionic-shell-compat', True), ('static-64-compat', True), ('static-32-compat', True), ('bionic-shell-normal', True), ('static-64-normal', True), ('static-32-normal', True), ('missing-64-loader', True), ('missing-32-loader', True)]

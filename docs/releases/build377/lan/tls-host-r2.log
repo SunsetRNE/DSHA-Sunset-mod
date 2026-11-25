@@ -1,0 +1,9 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.language=en -Duser.country=US -Dfile.encoding=UTF-8
+Picked up JAVA_TOOL_OPTIONS: -Duser.language=en -Duser.country=US -Dfile.encoding=UTF-8
+JUnit version 4.13.2
+.....................................................................................
+Time: 4.594
+
+OK (85 tests)
+
+PASS production TLS listener/leaf, HTTP, auth and dispatch over loopback. AndroidKeyStore custody, Android network and context are host stubs.

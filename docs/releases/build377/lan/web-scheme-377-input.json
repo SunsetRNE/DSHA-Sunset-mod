@@ -1,0 +1,15 @@
+{
+  "member": "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-api-gateway/lib/client.browser.js",
+  "memberSha256": "3b505de5bca1cd96de580895ce752384e572eb4ffefbe1684f0c65b1c6ade7c8",
+  "evaluated": [
+    "const REMOTE_STREAM_MUX_PATH=`/api/remote.mux`;",
+    "function remoteStreamUrl(){const globals=globalThis;const url=new URL(REMOTE_STREAM_MUX_PATH.slice(1),globals.__DSH_TRANSPORT__?.streamBaseUrl??document.baseURI);url.protocol=url.protocol===`https:`?`wss:`:`ws:`;return url.href}"
+  ],
+  "resolved": [
+    "wss://192.168.15.7:49318/api/remote.mux",
+    "ws://127.0.0.1:3080/api/remote.mux"
+  ],
+  "input": "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\assets\\dsh-runtime.bin",
+  "inputSha256": "ac087ee46389c4c4716245478c4d3becd91cc3ce50a1f4488a96a974e735f458",
+  "networkRequests": 0
+}

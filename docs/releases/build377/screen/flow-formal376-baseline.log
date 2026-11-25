@@ -1,0 +1,400 @@
+JUnit version 4.13.2
+.E.E.E.E.E.E.E.E.E.E.E.E.E.E.E.E.E.E.E.E.E.E.E.E.E.E
+Time: 2.499
+There were 26 failures:
+1) registeredViewInsidePaddedWindowMasksWholeWindowAndLayoutChangeConsumesFrame(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 27 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 29 more
+2) cancellationWinningAClaimRaceCannotAdmitTheLatePermit(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 27 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 29 more
+3) physicalPixelObservationCannotSupplyEitherPartOfANodeLease(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 27 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 29 more
+4) pauseFencesBoundNativeRequestAndFreshResumeCannotReuseItsFrame(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 27 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 29 more
+5) insidePixelAndWindowGeometryChangesRefuseWithoutDispatch(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 27 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 29 more
+6) missingPixelObservationNeverBorrowsForeignFieldsOrTheLatestStoredScreenshot(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 27 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 29 more
+7) cancelledDoubleTapIsPartialAndNeverAutomaticallyRepeated(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 27 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 29 more
+8) semanticExceptionAfterDispatchIsUnknownAndNodeCannotReplay(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 27 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 29 more
+9) zeroHeightTextIsSemanticOnlyAndHasNoTouchCenterHint(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 27 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 29 more
+10) reconnectFencesOldAuthorityButNewRequestCanObtainANewObservation(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 27 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 29 more
+11) blockedPreclaimCallReturnsButKeepsTheWorkerUntilActualExit(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 27 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 29 more
+12) unusedForeignCredentialFieldsDoNotChangeValidPhysicalRequests(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 27 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 29 more
+13) newestReturnedObservationAllowsOutsidePixelChangeAtFiftyMillis(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 27 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 29 more
+14) productionMcpNodeCallTraversesHttpIntoRealSemanticExecutorWithoutGestureFallback(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 27 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 29 more
+15) semanticWebViewAcknowledgementDoesNotClaimDomEffectOrFallback(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 27 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 29 more
+16) exactOwnedCompactOverlayIsMaskedWhileForeignOverlayStillRefusesCoordinates(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 27 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 29 more
+17) api23GestureRefusesBeforeObservationOrPlatformAccess(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 26 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 28 more
+18) treeAdvertisesRealScrollActionsAndDispatchesOneFreshNodeWithoutTouchFallback(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 26 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 28 more
+19) actualBridgeHelpExplainsCredentialAndEffectBoundaries(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 26 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 28 more
+20) treeNodeFrameAndAnchorIdsCannotImpersonatePhysicalPixelObservation(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 26 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 28 more
+21) observationCannotCrossPolicyRuntimeWindowOrPackageIdentity(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 26 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 28 more
+22) dumpCannotAuthorizeCoordinatesButReturnedScreenshotCan(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 26 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 28 more
+23) tapDoubleTapLongPressAndSwipeEachDispatchOneBoundedGesture(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 26 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 28 more
+24) alreadyEnteredPlatformActionTimesOutUnknownAndNeverReplays(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 26 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 28 more
+25) scrollAllowsPartlyVisibleContainerButRejectsForeignOrFullyCoveredContainer(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 26 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 28 more
+26) expiredOccludedOutsideAndInvalidGesturesHaveZeroDispatch(com.deepseekharness.app.screen.PhysicalScreenFlowTest)
+java.lang.AssertionError: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1111)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.setUp(PhysicalScreenFlowTest.java:128)
+	... 26 trimmed
+Caused by: java.nio.file.NoSuchFileException: F:\DSHA_RESTART\artifacts\build377-local\screen\flow-formal376-baseline\classes\com\deepseekharness\app\capabilities\CapabilityBroker.class
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:236)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:380)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:432)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3288)
+	at com.deepseekharness.app.screen.PhysicalScreenFlowTest.assertProductionOrigin(PhysicalScreenFlowTest.java:1107)
+	... 28 more
+
+FAILURES!!!
+Tests run: 26,  Failures: 26
+
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。

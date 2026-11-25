@@ -1,0 +1,21 @@
+{
+  "variant": "after",
+  "start": "2026-11-25T06:56:21.717372+00:00",
+  "inputs": {
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\saf\\after-r6\\WebDownloadModel.java": "150a69834f4942041804b111e75a1768feb288e8d8496b5166d60ae644ade06c",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\saf\\after-r6\\WorkspaceFileExports.java": "e8455f86ce570c2a08092e21b53f970c39f820eaeeaca1796061d8d81b07c34e",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\saf\\after-r6\\DownloadsExport.java": "9734b929443028ef728ac310595541a3a8b98290a3bc6d331a9df281681f78dc",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\saf\\after-r6\\DocumentStreams.java": "e7ff52edde668186950447e5868e3374513a3972e3fd258031859fd10e12e38a",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\saf\\after-r6\\SelectedDocumentSave.java": "8e7d51ed4dd79f6890bc7f29dad2ece243097e0ca9043ad08684b2ea4547e776",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\ui\\WebDownloadSaveTest.java": "3324f94d9a16f10a2fbd2250794da334e6ab4fbdacb1db1b90704ccfe9dd195f",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\backup\\BackupDownloadsPublicationTest.java": "d6fa8818a3a7ecbb41015881031a43aea57d77c2a9f80d48a3dc28732f9c77b5",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\transfer\\TransferBehaviorTestSupport.java": "b67813ae470ffdd04914c3700ceee0eefe9b642e3a93dc67b26ce8c8c28770dc",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\transfer\\DownloadEngineBehaviorTest.java": "21dca2db39ddcd83bf4d8ac801139a10d0cd22c15850e38780e24d6c636ba5ba",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\data\\WorkspaceFileDestinationTest.java": "d8c36ad58878bad9a0886e0fad5585c3adf0ba4f57a272813fcf56a13a504853",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\saf\\SafTestRun.java": "5602ac90987011f4fdafb276dc44472301b759775a954086f543a96edf441dcb",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\transfer\\TransferPublisher.kt": "35bc06a3a927c8007402f97be2983e465d7fc429f95b87050e03c67574c150db",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\java\\com\\deepseekharness\\app\\transfer\\DownloadEngine.kt": "9aa5428ba9d2698bb3ec2c8789def316911d2522807757def1f7d6dd7eb04992"
+  },
+  "end": "2026-11-25T06:56:46.333561+00:00",
+  "exitCode": 0
+}

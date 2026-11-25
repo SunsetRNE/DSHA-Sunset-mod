@@ -1,0 +1,27 @@
+{
+  "phase": "after",
+  "inputProxySha256": "fad9a2abb64306862773ffd0589d7f81572d946e132f0022f780a23439ff11ba",
+  "browsers": {
+    "webkit": {
+      "version": "26.5",
+      "afterLoginNames": [
+        "__Host-dsha_lan_3082",
+        "__Host-dsha_lan_57368"
+      ],
+      "wssAfterBothLogins": [
+        false,
+        false
+      ],
+      "alternateReloads": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "wssAfterReloads": [
+        false,
+        false
+      ]
+    }
+  }
+}

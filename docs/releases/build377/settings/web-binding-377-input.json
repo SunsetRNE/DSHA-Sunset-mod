@@ -1,0 +1,100 @@
+{
+  "input": "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\main\\assets\\dsh-runtime.bin",
+  "inputSha256": "ac087ee46389c4c4716245478c4d3becd91cc3ce50a1f4488a96a974e735f458",
+  "inputBytes": 141564262,
+  "modules": [
+    {
+      "name": "dsh-client-locale/lib/client.js",
+      "packageSha256": "8524ea44290df3aee37a20c90aab39019bdff269d205afce70819bd05ed9b68f",
+      "hostFile": "F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\managed-d7f3d3e45b1f\\node_modules\\@deepseek-ai\\dsh-client-locale\\lib\\client.js",
+      "hostSha256": "8524ea44290df3aee37a20c90aab39019bdff269d205afce70819bd05ed9b68f",
+      "equal": true
+    },
+    {
+      "name": "dsh-client-ui-agent-preset/lib/client.js",
+      "packageSha256": "f1596727ba72280f221c1e3262e560a69abded32649434792c5e245f4447f7ff",
+      "hostFile": "F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\managed-d7f3d3e45b1f\\node_modules\\@deepseek-ai\\dsh-client-ui-agent-preset\\lib\\client.js",
+      "hostSha256": "f1596727ba72280f221c1e3262e560a69abded32649434792c5e245f4447f7ff",
+      "equal": true
+    },
+    {
+      "name": "dsh-client-ui-settings-account/lib/client.js",
+      "packageSha256": "5ff855a00af0793239857e3ec65af3f82b33696484cf46cb9bda04f0bc1a9f6a",
+      "hostFile": "F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\managed-d7f3d3e45b1f\\node_modules\\@deepseek-ai\\dsh-client-ui-settings-account\\lib\\client.js",
+      "hostSha256": "5ff855a00af0793239857e3ec65af3f82b33696484cf46cb9bda04f0bc1a9f6a",
+      "equal": true
+    },
+    {
+      "name": "dsh-client-ui-settings-general/lib/client.js",
+      "packageSha256": "1186a640a88b60acc4decb63eb59be5328d768c234db91a05c69f2539d8e210a",
+      "hostFile": "F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\managed-d7f3d3e45b1f\\node_modules\\@deepseek-ai\\dsh-client-ui-settings-general\\lib\\client.js",
+      "hostSha256": "1186a640a88b60acc4decb63eb59be5328d768c234db91a05c69f2539d8e210a",
+      "equal": true
+    },
+    {
+      "name": "dsh-client-ui-settings-models/lib/client.js",
+      "packageSha256": "7029001a9fbf00952ea7cb639dba361ad4af74812b3bfe70dbf14cefb630e43b",
+      "hostFile": "F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\managed-d7f3d3e45b1f\\node_modules\\@deepseek-ai\\dsh-client-ui-settings-models\\lib\\client.js",
+      "hostSha256": "7029001a9fbf00952ea7cb639dba361ad4af74812b3bfe70dbf14cefb630e43b",
+      "equal": true
+    },
+    {
+      "name": "dsh-client-ui-settings-plugin-inventory/lib/client.js",
+      "packageSha256": "37e5a7fa782425d0428f09792c7186b535415757c52fddcdb83a9ed75c29e9fe",
+      "hostFile": "F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\managed-d7f3d3e45b1f\\node_modules\\@deepseek-ai\\dsh-client-ui-settings-plugin-inventory\\lib\\client.js",
+      "hostSha256": "37e5a7fa782425d0428f09792c7186b535415757c52fddcdb83a9ed75c29e9fe",
+      "equal": true
+    },
+    {
+      "name": "dsh-client-ui-settings-plugins/lib/client.js",
+      "packageSha256": "2cdf81c221ef81dbc1856f13c7b246222174ee3405b1d14e6dadcde8b5f5caea",
+      "hostFile": "F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\managed-d7f3d3e45b1f\\node_modules\\@deepseek-ai\\dsh-client-ui-settings-plugins\\lib\\client.js",
+      "hostSha256": "2cdf81c221ef81dbc1856f13c7b246222174ee3405b1d14e6dadcde8b5f5caea",
+      "equal": true
+    },
+    {
+      "name": "dsh-web-app/presets/cordis.patch.yml",
+      "packageSha256": "6be896c3d4885f395bf1856753f454cf725709ffdddcc57f1e6b8d8c07181f34",
+      "hostFile": "F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\managed-d7f3d3e45b1f\\node_modules\\@deepseek-ai\\dsh-web-app\\presets\\cordis.patch.yml",
+      "hostSha256": "6be896c3d4885f395bf1856753f454cf725709ffdddcc57f1e6b8d8c07181f34",
+      "equal": true
+    },
+    {
+      "name": "dsh-client-ui-primitives/lib/index.js",
+      "packageSha256": "6e20e8f324651a2f3133c9a60baa60bfb6cc20a92fae1324540f318f62e3b15c",
+      "hostFile": "F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\managed-d7f3d3e45b1f\\node_modules\\@deepseek-ai\\dsh-client-ui-primitives\\lib\\index.js",
+      "hostSha256": "6e20e8f324651a2f3133c9a60baa60bfb6cc20a92fae1324540f318f62e3b15c",
+      "equal": true
+    },
+    {
+      "name": "dsh-host-plugin-inventory/lib/index.js",
+      "packageSha256": "241760bb5a7024d9908426cd32ab3b12e4347fb648a0fce59b734c59f5c1b7cc",
+      "hostFile": "F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\managed-d7f3d3e45b1f\\node_modules\\@deepseek-ai\\dsh-host-plugin-inventory\\lib\\index.js",
+      "hostSha256": "241760bb5a7024d9908426cd32ab3b12e4347fb648a0fce59b734c59f5c1b7cc",
+      "equal": true
+    },
+    {
+      "name": "dsh-web-app/presets/minimal.patch.yml",
+      "packageSha256": "a2a9ba1c9c392a45466708f18bc0aefbf300577f9b544dc06049f73a8a5b3267",
+      "hostFile": "F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\managed-d7f3d3e45b1f\\node_modules\\@deepseek-ai\\dsh-web-app\\presets\\minimal.patch.yml",
+      "hostSha256": "a2a9ba1c9c392a45466708f18bc0aefbf300577f9b544dc06049f73a8a5b3267",
+      "equal": true
+    },
+    {
+      "name": "dsh-web-app/presets/ptc.patch.yml",
+      "packageSha256": "838665e063dc8bcab4caf24e41ec848373c434df4262feb981306944e1cec7fd",
+      "hostFile": "F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\managed-d7f3d3e45b1f\\node_modules\\@deepseek-ai\\dsh-web-app\\presets\\ptc.patch.yml",
+      "hostSha256": "838665e063dc8bcab4caf24e41ec848373c434df4262feb981306944e1cec7fd",
+      "equal": true
+    },
+    {
+      "name": "dsh-web-app/presets/standard.patch.yml",
+      "packageSha256": "e40bb192ed3b835312c2acd2ccd64d3bc4b85f80a7bc95b132cb18fbee190b5d",
+      "hostFile": "F:\\DSHA_RESTART\\source\\build376-local\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\managed-d7f3d3e45b1f\\node_modules\\@deepseek-ai\\dsh-web-app\\presets\\standard.patch.yml",
+      "hostSha256": "e40bb192ed3b835312c2acd2ccd64d3bc4b85f80a7bc95b132cb18fbee190b5d",
+      "equal": true
+    }
+  ],
+  "matched": 13,
+  "total": 13
+}

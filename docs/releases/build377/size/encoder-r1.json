@@ -1,0 +1,205 @@
+{
+  "startedUtc": "2026-11-25T06:43:57.493790+00:00",
+  "sourceCommit": "12efafd7d3530b412d48ccb66fb657c6bd7cc8ac",
+  "apk": "F:\\DSHA_RESTART\\release\\0.2.2-rc.5\\dsha-0.2.2-rc.5.apk",
+  "sha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "python": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+  "command": [
+    "artifacts/build377-local/size/compare_tool_encoding.py",
+    "release/0.2.2-rc.5/dsha-0.2.2-rc.5.apk",
+    "artifacts/build377-local/size/encoder-r1.json"
+  ],
+  "volumeFree": 355932737536,
+  "original": {
+    "gh-cli.bin": {
+      "bytes": 9592508,
+      "tarBytes": 38727680,
+      "sha256": "80c8f97512689a81261ad9e6f45c54798b188a00a255b55082a0d13bfd10fa20",
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51"
+    },
+    "glibc-python.bin": {
+      "bytes": 4774024,
+      "tarBytes": 24289280,
+      "sha256": "f627e3d6ac38703a7ff9c9c5a733c6d628bfd1866c32660873c661a670613882",
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd"
+    }
+  },
+  "trials": [
+    {
+      "name": "gh-cli.bin",
+      "option": "aligned1",
+      "options": {
+        "lc": 3,
+        "lp": 1
+      },
+      "tarBytes": 38727680,
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51",
+      "encodedBytes": 9544180,
+      "encodedSha256": "06120fb677b8666c98b70c93e37f4d0dc2564a0f01d02433471abf039b978a13",
+      "encodedSeconds": 10.3963,
+      "decodeSeconds": 0.5555,
+      "utcFinished": "2026-11-25T06:44:09.026906+00:00"
+    },
+    {
+      "name": "gh-cli.bin",
+      "option": "base",
+      "options": {},
+      "tarBytes": 38727680,
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51",
+      "encodedBytes": 9592508,
+      "encodedSha256": "80c8f97512689a81261ad9e6f45c54798b188a00a255b55082a0d13bfd10fa20",
+      "encodedSeconds": 10.4219,
+      "decodeSeconds": 0.5588,
+      "utcFinished": "2026-11-25T06:44:09.053933+00:00"
+    },
+    {
+      "name": "gh-cli.bin",
+      "option": "aligned2",
+      "options": {
+        "lc": 2,
+        "lp": 2
+      },
+      "tarBytes": 38727680,
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51",
+      "encodedBytes": 9516188,
+      "encodedSha256": "555df99fe461665a093fa184bf379e6e76d9f988f83617f4b6b2e3e0cfd11a94",
+      "encodedSeconds": 10.4284,
+      "decodeSeconds": 0.5643,
+      "utcFinished": "2026-11-25T06:44:09.066876+00:00"
+    },
+    {
+      "name": "gh-cli.bin",
+      "option": "text",
+      "options": {
+        "lc": 4,
+        "lp": 0,
+        "pb": 0
+      },
+      "tarBytes": 38727680,
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51",
+      "encodedBytes": 9792120,
+      "encodedSha256": "cc53c8b8b2326e23b8a0a1daddf01bc5a634d473cb036ce337085f5eb69922dc",
+      "encodedSeconds": 10.5352,
+      "decodeSeconds": 0.5876,
+      "utcFinished": "2026-11-25T06:44:20.153672+00:00"
+    },
+    {
+      "name": "gh-cli.bin",
+      "option": "2MiB",
+      "options": {
+        "dict_size": 2097152
+      },
+      "tarBytes": 38727680,
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51",
+      "encodedBytes": 9454108,
+      "encodedSha256": "249536b36ff6fb1f3bf313b91cb1aa6d2bf73d07aa633ad53142ecd144e9ce4b",
+      "encodedSeconds": 12.4459,
+      "decodeSeconds": 0.5647,
+      "utcFinished": "2026-11-25T06:44:22.068512+00:00"
+    },
+    {
+      "name": "gh-cli.bin",
+      "option": "4MiB",
+      "options": {
+        "dict_size": 4194304
+      },
+      "tarBytes": 38727680,
+      "tarSha256": "94856e601f41ed5a3f74e59713b8476aac55d9dcf707f26c7fdb2787c6c6be51",
+      "encodedBytes": 9358972,
+      "encodedSha256": "35e74ba25a2bffacf21b4817b496325e88b69b0db22a104a8f13242e012b313c",
+      "encodedSeconds": 13.4317,
+      "decodeSeconds": 0.5185,
+      "utcFinished": "2026-11-25T06:44:23.020530+00:00"
+    },
+    {
+      "name": "glibc-python.bin",
+      "option": "base",
+      "options": {},
+      "tarBytes": 24289280,
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd",
+      "encodedBytes": 4774024,
+      "encodedSha256": "f627e3d6ac38703a7ff9c9c5a733c6d628bfd1866c32660873c661a670613882",
+      "encodedSeconds": 6.4159,
+      "decodeSeconds": 0.2709,
+      "utcFinished": "2026-11-25T06:44:26.844813+00:00"
+    },
+    {
+      "name": "glibc-python.bin",
+      "option": "aligned2",
+      "options": {
+        "lc": 2,
+        "lp": 2
+      },
+      "tarBytes": 24289280,
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd",
+      "encodedBytes": 4748448,
+      "encodedSha256": "c74f239e9b2a4ab88d38f89beaaa2be39d35866c8680d17197dbd9335e5d5084",
+      "encodedSeconds": 5.9178,
+      "decodeSeconds": 0.2714,
+      "utcFinished": "2026-11-25T06:44:28.260585+00:00"
+    },
+    {
+      "name": "glibc-python.bin",
+      "option": "aligned1",
+      "options": {
+        "lc": 3,
+        "lp": 1
+      },
+      "tarBytes": 24289280,
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd",
+      "encodedBytes": 4757124,
+      "encodedSha256": "1670fecf552054c452c12733e980a792ce0ae383a7dd1242e816b1250df34814",
+      "encodedSeconds": 5.7579,
+      "decodeSeconds": 0.2673,
+      "utcFinished": "2026-11-25T06:44:29.051586+00:00"
+    },
+    {
+      "name": "glibc-python.bin",
+      "option": "text",
+      "options": {
+        "lc": 4,
+        "lp": 0,
+        "pb": 0
+      },
+      "tarBytes": 24289280,
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd",
+      "encodedBytes": 4831504,
+      "encodedSha256": "15b2401a7aef62343eb9083a9f0edfd530c01588633fb3777f5ec118fafc227c",
+      "encodedSeconds": 5.9822,
+      "decodeSeconds": 0.2592,
+      "utcFinished": "2026-11-25T06:44:33.087932+00:00"
+    },
+    {
+      "name": "glibc-python.bin",
+      "option": "2MiB",
+      "options": {
+        "dict_size": 2097152
+      },
+      "tarBytes": 24289280,
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd",
+      "encodedBytes": 4639996,
+      "encodedSha256": "fff7b6bea123ff56b83529575506ee2b166e7914a13a7acd5223a5816794471d",
+      "encodedSeconds": 6.3802,
+      "decodeSeconds": 0.2715,
+      "utcFinished": "2026-11-25T06:44:34.913942+00:00"
+    },
+    {
+      "name": "glibc-python.bin",
+      "option": "4MiB",
+      "options": {
+        "dict_size": 4194304
+      },
+      "tarBytes": 24289280,
+      "tarSha256": "77bb8db21f80faf17b8ea551756f1684b30ef73bb3c0b0c07fe2f4712935c5fd",
+      "encodedBytes": 4595716,
+      "encodedSha256": "67101646f644cf8c124c4c75bc77ddc69e02dcfadd80acd1109c79986a2d9d4f",
+      "encodedSeconds": 6.8225,
+      "decodeSeconds": 0.2521,
+      "utcFinished": "2026-11-25T06:44:36.127892+00:00"
+    }
+  ],
+  "firstUsableSeconds": 11.5394,
+  "finishedUtc": "2026-11-25T06:44:36.131016+00:00",
+  "completedSeconds": 38.637
+}

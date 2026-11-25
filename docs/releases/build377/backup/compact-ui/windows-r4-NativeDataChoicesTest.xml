@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.deepseekharness.app.ui.NativeDataChoicesTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-25T08:44:54.637Z" hostname="DESKTOP-AP3I92F" time="12.242">
+  <properties/>
+  <testcase name="cancellingPickerWipesPasswordAndCompatibilityRequiresExplicitCheckbox" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="2.519"/>
+  <testcase name="losingTheProcessDuringSafNeverFallsBackToPlaintext" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="0.409"/>
+  <testcase name="safResultAfterRotationUsesProtectedOperationAndWipesPendingPassword" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="0.371"/>
+  <testcase name="rotationDuringFilenameLookupBindsNewPageAndFreshOwnerRestoresOnlyChoices" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="0.71"/>
+  <testcase name="displayedScopesChooseIndependentJobArguments" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="0.222"/>
+  <testcase name="compactStandardAndRescueFormsKeepBothActionsWithinTheViewport" classname="com.deepseekharness.app.ui.NativeDataChoicesTest" time="7.816"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+]]></system-err>
+</testsuite>

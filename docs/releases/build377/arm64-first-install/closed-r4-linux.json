@@ -1,0 +1,44 @@
+{
+  "pid": 56,
+  "namespace": "net:[4026532220]",
+  "time": 1795595377.8549125,
+  "check": [
+    {
+      "argv": [
+        "emu",
+        "avd",
+        "name"
+      ],
+      "status": 0,
+      "out": "DSHA_build377_deploy_linux_arm64\nOK"
+    },
+    {
+      "argv": [
+        "get-state"
+      ],
+      "status": 1,
+      "out": "error: device offline"
+    },
+    {
+      "argv": [
+        "shell",
+        "getprop sys.boot_completed; service check package"
+      ],
+      "status": 1,
+      "out": "adb: device offline"
+    }
+  ],
+  "stop": {
+    "argv": [
+      "emu",
+      "kill"
+    ],
+    "status": 0,
+    "out": "OK: killing emulator, bye bye\nOK"
+  },
+  "localListenersAfter": {
+    "5676": false,
+    "5677": false,
+    "5079": false
+  }
+}

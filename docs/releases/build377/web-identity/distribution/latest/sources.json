@@ -1,0 +1,117 @@
+{
+  "archive": "F:\\DSHA_RESTART\\artifacts\\build377-local\\runtime\\r4\\npm-arm64-a\\dsh-runtime.bin",
+  "archiveSha256": "2cbc3aba49cfb256a01afd9dd68eeb7b72e8c01f35d88745cdb2648ec6333bed",
+  "seconds": 1.9768331000232138,
+  "rows": {
+    "@deepseek-ai/dsh-web-frontend/LICENSE": {
+      "bytes": 1065,
+      "sha256": "ebb4f09972aee8608be255debaf78451a68e95c290f55c240dec2ecfa16ea6be",
+      "ms": 154
+    },
+    "@deepseek-ai/dsh-web-frontend/dist/apple-touch-icon.png": {
+      "bytes": 4662,
+      "sha256": "e3326e0590a7101270116b89093cbdfcb1b42ff5d9677f0eb7168b231e98c06e",
+      "ms": 293
+    },
+    "@deepseek-ai/dsh-api-gateway/lib/client.browser.js": {
+      "bytes": 53725,
+      "sha256": "af20d759251310e5d5afb3426267c7b9a88e5ab613dcec976e0fe21ca9b31d37",
+      "ms": 338
+    },
+    "@deepseek-ai/dsh-client-connection/lib/client.browser.js": {
+      "bytes": 46730,
+      "sha256": "316ee0d5f90a353b902700f1674fb52d8ad328f6fbd78b7b113948d21f60420e",
+      "ms": 339
+    },
+    "@deepseek-ai/dsh-client-ui-brand-official/lib/client.js": {
+      "bytes": 10728,
+      "sha256": "82e08f6b52d68109913b009759f14e5d988134b9bdcf48095aac506b8a967ea9",
+      "ms": 357
+    },
+    "@deepseek-ai/dsh-client-ui-chat/lib/client.js": {
+      "bytes": 511523,
+      "sha256": "a449c51f1fcc78485832f65a64980490104d1b246df4c11e2bfcf76108d4e290",
+      "ms": 359
+    },
+    "@deepseek-ai/dsh-client-ui-layout/lib/client.js": {
+      "bytes": 25871,
+      "sha256": "07604b966fb289980a2ab6fb2a86b1d406ba1da26ef12847258b34e2bd9bd168",
+      "ms": 363
+    },
+    "@deepseek-ai/dsh-client-ui-sidebar/lib/client.js": {
+      "bytes": 41953,
+      "sha256": "7930ccef18b7c13560fbc2c20c50e24c8b21d33ab743637c5020fdba2a5254a9",
+      "ms": 369
+    },
+    "@deepseek-ai/dsh-experimental-liveshare/lib/client.js": {
+      "bytes": 295271,
+      "sha256": "2c1dc53fb2d8bcb08bafcac4e3103693e3c776e0d94446da9d5835e56d96ecb1",
+      "ms": 378
+    },
+    "@deepseek-ai/dsh-web-app/cordis.patch.yml": {
+      "bytes": 24195,
+      "sha256": "d18d48f44f8d11c513f7eb27d092aa7212386a9cd7197931d740efade3c7838a",
+      "ms": 447
+    },
+    "@deepseek-ai/dsh-web-frontend/dist/favicon-dark.svg": {
+      "bytes": 255,
+      "sha256": "5e964861a1d1099c8c60de1fcb06dff3f71c8c1d6dadbadd2a8d936dded12a86",
+      "ms": 1063
+    },
+    "@deepseek-ai/dsh-web-frontend/dist/favicon.svg": {
+      "bytes": 255,
+      "sha256": "5e964861a1d1099c8c60de1fcb06dff3f71c8c1d6dadbadd2a8d936dded12a86",
+      "ms": 1063
+    },
+    "@deepseek-ai/dsh-web-frontend/dist/icon-192.png": {
+      "bytes": 6116,
+      "sha256": "78220e55f1c06975ee062a99f39a6d165c4e754c21ca12bc589387786d3bce93",
+      "ms": 1127
+    },
+    "@deepseek-ai/dsh-web-frontend/dist/icon-512.png": {
+      "bytes": 18517,
+      "sha256": "2bec0ccb55508f03f83c789a9c0a6989eccd1567db15c59fc648d66674373f4c",
+      "ms": 1128
+    },
+    "@deepseek-ai/dsh-web-frontend/dist/icon-maskable-512.png": {
+      "bytes": 14354,
+      "sha256": "32e6d1b7119c0a956992b5170908fabde96a92ddb1e2d57c5979a6856ec351b2",
+      "ms": 1128
+    },
+    "@deepseek-ai/dsh-web-frontend/dist/index.html": {
+      "bytes": 1037,
+      "sha256": "99eed3e44249fcb4b5a35f4f70d55dd655d9ae9e31fa1a65f581b4283b48637c",
+      "ms": 1149
+    },
+    "@deepseek-ai/dsh-app-boot/lib/index.js": {
+      "bytes": 226420,
+      "sha256": "2dccc759ad0245b78591dc84c803dd0236893738641dc1dd153ef7a4c97f12e6",
+      "ms": 1159
+    },
+    "@deepseek-ai/dsh-client-modules/lib/index.js": {
+      "bytes": 47794,
+      "sha256": "0e58baac3b355f1e58834084264e682c09e6ca505ca54b695a6f893a982e915f",
+      "ms": 1161
+    },
+    "@deepseek-ai/dsh-host-frontend-static/lib/index.js": {
+      "bytes": 8100,
+      "sha256": "dc93f01607c2c074e5e215b4e4417e35ce0cb86dfdc01b8f2b8850d6fd47f322",
+      "ms": 1175
+    },
+    "@deepseek-ai/dsh-llm-deepseek/lib/index.js": {
+      "bytes": 133171,
+      "sha256": "ac00249972676e2cbc6c8a553d32efa67aeb60110a7b876a69e50986ac867351",
+      "ms": 1177
+    },
+    "@deepseek-ai/dsh-llm-pi-ai/lib/index.js": {
+      "bytes": 139216,
+      "sha256": "a9904a44425022f093253cb7feae384b43b8de1a18ebd21de9aa32fe3f9d529b",
+      "ms": 1178
+    },
+    "@deepseek-ai/dsh-web-frontend/dist/manifest.webmanifest": {
+      "bytes": 595,
+      "sha256": "5d8dde9bf3d84d966ec068e50480d9f08a2380165f9f4e64129bf631759b1633",
+      "ms": 1608
+    }
+  }
+}

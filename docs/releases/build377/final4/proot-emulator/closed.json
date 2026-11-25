@@ -1,0 +1,15 @@
+{
+  "at": "2026-11-25T09:56:08.408148+00:00",
+  "status": "PASS",
+  "method": "No emulator launched for identical R4 inputs",
+  "priorClose": "../../final3/proot-emulator/closed.json",
+  "priorApkSha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+  "apkSha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+  "avd": "DSHA_build377_aosp_r02_arm64",
+  "localListenersAfter": {
+    "5668": false,
+    "5669": false,
+    "5080": false
+  },
+  "dedicatedEmulatorProcesses": 0
+}

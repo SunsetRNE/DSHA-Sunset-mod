@@ -1,0 +1,13 @@
+{
+  "command": [
+    "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+    "-B",
+    "tools/verify-apk-managed-assets.py",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\local-release\\dsha-0.2.2-rc.5.apk"
+  ],
+  "startedAt": "2026-11-25T09:56:29.276763+00:00",
+  "finishedAt": "2026-11-25T09:56:31.337104+00:00",
+  "elapsedSeconds": 2.063,
+  "exitCode": 0,
+  "logSha256": "f422d1a597cbd4710e819edb57566adb912ea7ea7797e51173d65e39d71db15a"
+}

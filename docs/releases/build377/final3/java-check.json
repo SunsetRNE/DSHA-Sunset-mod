@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "tool": "google-java-format",
+  "version": "1.22.0",
+  "artifactSha256": "16b2a1ee938686c8b1d88abf19eb83dfd0d623cee9de6fc6d09980214f816d3f",
+  "javaVersion": "openjdk version \"17.0.20.1\" 2026-08-18\r\nOpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)\r\nOpenJDK 64-Bit Server VM Temurin-17.0.20.1+1 (build 17.0.20.1+1, mixed mode, sharing)",
+  "mode": "check",
+  "files": [
+    {
+      "file": "app/src/main/java/com/deepseekharness/app/ui/NativeDataActivity.java",
+      "beforeSha256": "a7dfd9c98d47cfb274d97a72595a0021b7d8e84d57d524d8e9f8f57048307dcc",
+      "formattedSha256": "a7dfd9c98d47cfb274d97a72595a0021b7d8e84d57d524d8e9f8f57048307dcc",
+      "javaTokenSha256": "a938578cfc951324478bcd4883d4fd5e214587a6f700344c80da3b6ac7f8a0b8",
+      "needsFormatting": false,
+      "diff": ""
+    },
+    {
+      "file": "app/src/main/java/com/deepseekharness/app/ui/DshaDialogBuilder.java",
+      "beforeSha256": "643d0fa0fc8d532c39f50162700cff942097b9aef09640b2f914ba7b80e1bb48",
+      "formattedSha256": "643d0fa0fc8d532c39f50162700cff942097b9aef09640b2f914ba7b80e1bb48",
+      "javaTokenSha256": "fe684516260ce8574473130cfdfef66b05a2903499384f559669705878e189a3",
+      "needsFormatting": false,
+      "diff": ""
+    },
+    {
+      "file": "app/src/main/java/com/deepseekharness/app/ui/PortablePasswordFields.java",
+      "beforeSha256": "50ae2a4071fac55adce41037bf3bd74de81a5f0688fb4c87bf3f37549747ecfb",
+      "formattedSha256": "50ae2a4071fac55adce41037bf3bd74de81a5f0688fb4c87bf3f37549747ecfb",
+      "javaTokenSha256": "04c5f746b4315a79fb67b1f0e9667d20a2852c8bd3cfcdda7221c014da2a2536",
+      "needsFormatting": false,
+      "diff": ""
+    },
+    {
+      "file": "app/src/test/java/com/deepseekharness/app/ui/NativeDataChoicesTest.java",
+      "beforeSha256": "19446740ccaeb8b9f038ff7b0d00a501971953b6a207406f8b3f55dfa0875598",
+      "formattedSha256": "19446740ccaeb8b9f038ff7b0d00a501971953b6a207406f8b3f55dfa0875598",
+      "javaTokenSha256": "5bccb40010be9ecc60a6377e4dd3b10914bd01fbec238cfdb3f6aec3d6363bca",
+      "needsFormatting": false,
+      "diff": ""
+    }
+  ]
+}

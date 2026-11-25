@@ -1,0 +1,8 @@
+INSTRUMENTATION_RESULT: TLSv1.2=endpoint checked, exact fingerprint, duplex=7/11
+INSTRUMENTATION_RESULT: TLSv1.3=endpoint checked, exact fingerprint, duplex=7/11
+INSTRUMENTATION_RESULT: actual_base_sha256=f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2
+INSTRUMENTATION_RESULT: certificate=non-exportable EC, stable after reopen, reissued for new IPv4
+INSTRUMENTATION_RESULT: finite_response=length and terminal trailer preserved over loopback
+INSTRUMENTATION_RESULT: fixture_uid=10172
+INSTRUMENTATION_RESULT: ws_ticket=cookie scoped to port=__Host-dsha_lan_49318, consumed once, upstream app.echo only
+INSTRUMENTATION_CODE: -1

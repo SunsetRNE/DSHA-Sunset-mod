@@ -1,0 +1,15 @@
+{
+  "baseApkSha256": "292f89da4d199c7364aba77b441370f7c75e276d65f11ecc82c29a6f60a45ba8",
+  "fixtureApkSha256": "0cb59e991b79a5fef76a2a3b6c0f3be3513019c433da976f5b671bbc3f1aae7d",
+  "inputs": {
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\landscape-device\\compact-r3\\NativeDataImeBefore.java": "d990684f921ce91b461c927f2e9588241bda86fd0fbb38fe47ba31aa1342667d",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\landscape-device\\compact-r3\\NativeDataImeAfter.java": "34f8c1f87c51fec584358d7c16488fa3fdfa9f3ae11e475328ac1bc37d7866bf",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\landscape-device\\compact-r3\\ImeProbeDialogBuilder.java": "214fb2c03e7433351c23e4051f268a18992fd96073f7fdc9a2479a8dad50d14a",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\landscape-device\\compact-r3\\ShortProbe.java": "948d97826e4368ba41a8f7ce075aac9392970bc9c4ce0f8e74e8b36476d611a4",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\backup\\landscape-device\\compact-r3\\ImeFixtureApp.java": "5cb5baf0cd81eb405b0390a8287320a30efc139a0baf93de25fee2ea2bab7dae"
+  },
+  "sourceHash": "85c4c01b9498607db9efcfc2b06a3fd7e23ed62c90b54a1d606836dc74a733df",
+  "helperHash": "643d0fa0fc8d532c39f50162700cff942097b9aef09640b2f914ba7b80e1bb48",
+  "package": "org.dsha.fixture.shortbackup",
+  "additionalDex": "fae881f18cf149dd483e0deb35d056a76720f84dc7c3369450ad69d8f56b50ff"
+}

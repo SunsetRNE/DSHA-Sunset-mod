@@ -1,0 +1,16 @@
+{
+  "command": [
+    "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+    "-B",
+    "tools/verify-apk-size.py",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\local-release\\dsha-0.2.2-rc.5.apk",
+    "--baseline",
+    "F:\\DSHA_RESTART\\artifacts\\build376-formal-20261125\\signed\\dsha-0.2.2-rc.5.apk",
+    "--require-shared-recovery"
+  ],
+  "startedAt": "2026-11-25T09:56:29.230166+00:00",
+  "finishedAt": "2026-11-25T09:56:30.983353+00:00",
+  "elapsedSeconds": 1.75,
+  "exitCode": 0,
+  "logSha256": "7ee534d4ffa6ebdb88f54bc829ad91525238cfce0c36b9638a47b0473170ddf0"
+}

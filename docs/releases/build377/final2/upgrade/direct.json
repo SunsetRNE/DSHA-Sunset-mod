@@ -1,0 +1,452 @@
+{
+  "status": "PASS",
+  "created": "2026-11-25T16:36:23.779+08:00",
+  "hostBefore": {
+    "at": "2026-11-25T16:36:23.789+08:00",
+    "freeRamBytes": 7715356672,
+    "totalRamBytes": 33483382784,
+    "FfreeBytes": 323549745152
+  },
+  "avd": "DSHA_377_direct_upgrade_API30_x86_64",
+  "serial": "emulator-5692",
+  "privateAdbPort": 5091,
+  "consolePort": 5692,
+  "transportPort": 5693,
+  "work": "F:\\DSHA_RESTART\\cache\\build377-direct-upgrade-final2",
+  "ramMiB": 2048,
+  "cpuCores": 2,
+  "configSha256": "a512a9155bc7d3359a5617ec88064a14fcb730c5e265a90799498fcb60c9d239",
+  "systemImage": "Pkg.Desc=System Image x86_64 with Google APIs.\nPkg.Revision=16\nPkg.Dependencies=emulator#30.8.0\nAndroidVersion.ApiLevel=30\nSystemImage.Abi=x86_64\nSystemImage.TagId=google_apis\nSystemImage.TagDisplay=Google APIs\nSystemImage.GpuSupport=true\nAddon.VendorId=google\nAddon.VendorDisplay=Google Inc.",
+  "baselineExpected": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+  "stages": {
+    "baseline": {
+      "phase": "baseline",
+      "started": "2026-11-25T16:37:30.363+08:00",
+      "input": {
+        "path": "F:\\DSHA_RESTART\\artifacts\\build376-formal-20261125\\signed\\dsha-0.2.2-rc.5.apk",
+        "sha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+        "logicalBytes": 257781425,
+        "allocatedBytes": 257781760
+      },
+      "hostBefore": {
+        "at": "2026-11-25T16:37:30.374+08:00",
+        "freeRamBytes": 3575255040,
+        "totalRamBytes": 33483382784,
+        "FfreeBytes": 320538574848
+      },
+      "guestSpaceBefore": {
+        "availableBytes": 6005841920,
+        "filesystem": "/dev/block/dm-5",
+        "blockBytes": 1024
+      },
+      "before": null,
+      "installResponse": "Performing Streamed Install\r\nSuccess",
+      "usableAt": "2026-11-25T16:38:16.729+08:00",
+      "firstPackageManagerSuccessSeconds": 44.312,
+      "after": {
+        "observed": "2026-11-25T16:38:22.735+08:00",
+        "versionCode": 376,
+        "versionName": "0.2.2-rc.5-20261125.0003-dsh0.2.2-rc.5",
+        "applicationUid": 10167,
+        "firstInstallTime": "2026-11-25 08:37:42",
+        "lastUpdateTime": "2026-11-25 08:37:42",
+        "abi": "arm64-v8a",
+        "path": "/data/app/~~RD21ceRGeKzJPbJ9SNboRw==/dsh.android.client-FnalGbA4zkRMdI_Dc78rGQ==/base.apk",
+        "onDeviceSha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+        "logicalBytes": 257781425,
+        "allocatedBytes": 257785856,
+        "statBlockBytes": 512
+      },
+      "hostReadback": {
+        "command": [
+          "F:\\DSHA_RESTART\\cache\\build372-android-jni\\sdk\\platform-tools\\adb.exe",
+          "-H",
+          "127.0.0.1",
+          "-P",
+          "5091",
+          "-s",
+          "emulator-5692",
+          "exec-out",
+          "cat",
+          "/data/app/~~RD21ceRGeKzJPbJ9SNboRw==/dsh.android.client-FnalGbA4zkRMdI_Dc78rGQ==/base.apk"
+        ],
+        "sha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+        "bytes": 257781425,
+        "firstMiBSeconds": 0.109,
+        "completeSeconds": 3.859,
+        "exit": 0
+      },
+      "markersAfter": {
+        "appOpBefore": "No operations.\r\nDefault mode: allow",
+        "appOp": "VIBRATE: ignore",
+        "fixtureWriteError": "['-H', '127.0.0.1', '-P', '5091', '-s', 'emulator-5692', 'shell', 'mkdir', '-p', '/sdcard/Android/data/dsh.android.client/files'] failed 1: mkdir: '/sdcard/Android/data/dsh.android.client': Permission denied",
+        "markerPath": "/sdcard/Android/data/dsh.android.client/files/direct-upgrade-fixture.txt",
+        "markerSha256": null,
+        "sharedMediaFixturePath": "/sdcard/Android/media/dsh.android.client/direct-upgrade-fixture.txt",
+        "sharedMediaFixtureSha256": "fff27782ae0f9bd13bf1a24a68b4398dbfd45f279dbb8e270dde6aad0fbaf7bc"
+      },
+      "guestSpaceAfter": {
+        "availableBytes": 5703770112,
+        "filesystem": "/dev/block/dm-5",
+        "blockBytes": 1024
+      },
+      "hostAfter": {
+        "at": "2026-11-25T16:38:27.004+08:00",
+        "freeRamBytes": 3442839552,
+        "totalRamBytes": 33483382784,
+        "FfreeBytes": 319942148096
+      },
+      "completedAt": "2026-11-25T16:38:27.004+08:00",
+      "completedSecondsFromInstall": 54.593,
+      "completedSecondsFromPhaseStart": 56.64,
+      "ok": true,
+      "supplementedFixtureAt": "2026-11-25T16:39:03.868+08:00",
+      "sourceCommit": "12efafd7d3530b412d48ccb66fb657c6bd7cc8ac",
+      "signingEvidence": {
+        "report": "F:\\DSHA_RESTART\\artifacts\\build376-formal-20261125\\signed\\apk-signing.json",
+        "signingCertificateSha256": "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5",
+        "packageName": "dsh.android.client",
+        "versionCode": 376,
+        "reportSha256": "b1964f172be84a380b48fc29b3c164a4b4eb85df9bebc9e719db1cf716fd1c70"
+      }
+    },
+    "upgrade": {
+      "phase": "upgrade",
+      "started": "2026-11-25T16:52:29.312+08:00",
+      "input": {
+        "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-retry\\dsha-0.2.2-rc.5.apk",
+        "sha256": "72917c42dee81df41e26f2d7977ba735b0e3c0c94a93803561272d6f6facbeaa",
+        "logicalBytes": 255587176,
+        "allocatedBytes": 255590400
+      },
+      "hostBefore": {
+        "at": "2026-11-25T16:52:29.312+08:00",
+        "freeRamBytes": 11028549632,
+        "totalRamBytes": 33483382784,
+        "FfreeBytes": 316336758784
+      },
+      "guestSpaceBefore": {
+        "availableBytes": 5703405568,
+        "filesystem": "/dev/block/dm-5",
+        "blockBytes": 1024
+      },
+      "before": {
+        "observed": "2026-11-25T16:52:30.294+08:00",
+        "versionCode": 376,
+        "versionName": "0.2.2-rc.5-20261125.0003-dsh0.2.2-rc.5",
+        "applicationUid": 10167,
+        "firstInstallTime": "2026-11-25 08:37:42",
+        "lastUpdateTime": "2026-11-25 08:37:42",
+        "abi": "arm64-v8a",
+        "path": "/data/app/~~RD21ceRGeKzJPbJ9SNboRw==/dsh.android.client-FnalGbA4zkRMdI_Dc78rGQ==/base.apk",
+        "onDeviceSha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+        "logicalBytes": 257781425,
+        "allocatedBytes": 257785856,
+        "statBlockBytes": 512
+      },
+      "markersBefore": {
+        "appOp": "VIBRATE: ignore",
+        "markerPath": "/sdcard/Android/data/dsh.android.client/files/direct-upgrade-fixture.txt",
+        "markerSha256": null,
+        "sharedMediaFixturePath": "/sdcard/Android/media/dsh.android.client/direct-upgrade-fixture.txt",
+        "sharedMediaFixtureSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sharedMediaOriginallySeededExpected": "fff27782ae0f9bd13bf1a24a68b4398dbfd45f279dbb8e270dde6aad0fbaf7bc",
+        "syncedFixturePath": "/sdcard/Android/media/dsh.android.client/direct-upgrade-synced-r2.txt",
+        "syncedFixtureSha256": "7f6551314d9feb8e7f6e58a1e16ccac81980aecd2c989f956c78710b69af6102"
+      },
+      "installResponse": "Performing Streamed Install\r\nSuccess",
+      "usableAt": "2026-11-25T16:52:38.891+08:00",
+      "firstPackageManagerSuccessSeconds": 8.391,
+      "after": {
+        "observed": "2026-11-25T16:52:40.377+08:00",
+        "versionCode": 377,
+        "versionName": "0.2.2-rc.5-20261125.1442-dsh0.2.2-rc.5",
+        "applicationUid": 10167,
+        "firstInstallTime": "2026-11-25 08:37:42",
+        "lastUpdateTime": "2026-11-25 08:52:33",
+        "abi": "arm64-v8a",
+        "path": "/data/app/~~9Q2D0Z2X_zlu_ZTZQppMlw==/dsh.android.client-G_JT3cqV2rF7SNr8bPgAuQ==/base.apk",
+        "onDeviceSha256": "72917c42dee81df41e26f2d7977ba735b0e3c0c94a93803561272d6f6facbeaa",
+        "logicalBytes": 255587176,
+        "allocatedBytes": 255594496,
+        "statBlockBytes": 512
+      },
+      "hostReadback": {
+        "command": [
+          "F:\\DSHA_RESTART\\cache\\build372-android-jni\\sdk\\platform-tools\\adb.exe",
+          "-H",
+          "127.0.0.1",
+          "-P",
+          "5091",
+          "-s",
+          "emulator-5692",
+          "exec-out",
+          "cat",
+          "/data/app/~~9Q2D0Z2X_zlu_ZTZQppMlw==/dsh.android.client-G_JT3cqV2rF7SNr8bPgAuQ==/base.apk"
+        ],
+        "sha256": "72917c42dee81df41e26f2d7977ba735b0e3c0c94a93803561272d6f6facbeaa",
+        "bytes": 255587176,
+        "firstMiBSeconds": 0.063,
+        "completeSeconds": 2.266,
+        "exit": 0
+      },
+      "markersAfter": {
+        "appOp": "VIBRATE: ignore",
+        "markerPath": "/sdcard/Android/data/dsh.android.client/files/direct-upgrade-fixture.txt",
+        "markerSha256": null,
+        "sharedMediaFixturePath": "/sdcard/Android/media/dsh.android.client/direct-upgrade-fixture.txt",
+        "sharedMediaFixtureSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sharedMediaOriginallySeededExpected": "fff27782ae0f9bd13bf1a24a68b4398dbfd45f279dbb8e270dde6aad0fbaf7bc",
+        "syncedFixturePath": "/sdcard/Android/media/dsh.android.client/direct-upgrade-synced-r2.txt",
+        "syncedFixtureSha256": "7f6551314d9feb8e7f6e58a1e16ccac81980aecd2c989f956c78710b69af6102"
+      },
+      "guestSpaceAfter": {
+        "availableBytes": 5705457664,
+        "filesystem": "/dev/block/dm-5",
+        "blockBytes": 1024
+      },
+      "hostAfter": {
+        "at": "2026-11-25T16:52:42.987+08:00",
+        "freeRamBytes": 10688753664,
+        "totalRamBytes": 33483382784,
+        "FfreeBytes": 316052533248
+      },
+      "completedAt": "2026-11-25T16:52:42.987+08:00",
+      "completedSecondsFromInstall": 12.485,
+      "completedSecondsFromPhaseStart": 13.672,
+      "ok": true,
+      "sourceCommit": "5d952dafd13c3193f07e7efbc97b65c0c2c8bea7",
+      "signingEvidence": {
+        "report": "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-retry\\apk-signing.json",
+        "signingCertificateSha256": "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5",
+        "packageName": "dsh.android.client",
+        "versionCode": 377,
+        "reportSha256": "6a22a3c71c7e49db2c4a7f601b87f38bd1eff3937ea63904bd3994ddafbbb35f"
+      }
+    }
+  },
+  "launched": "2026-11-25T16:36:26.304+08:00",
+  "pid": 64280,
+  "launchArgs": [
+    "F:\\DSHA_RESTART\\cache\\build372-android-jni\\stable\\emulator\\qemu\\windows-x86_64\\qemu-system-x86_64-headless.exe",
+    "-avd",
+    "DSHA_377_direct_upgrade_API30_x86_64",
+    "-port",
+    "5692",
+    "-no-window",
+    "-no-audio",
+    "-no-boot-anim",
+    "-no-snapshot",
+    "-no-metrics",
+    "-gpu",
+    "swiftshader_indirect",
+    "-feature",
+    "-Vulkan",
+    "-accel",
+    "auto",
+    "-cores",
+    "2",
+    "-memory",
+    "2048",
+    "-dns-server",
+    "127.0.0.1"
+  ],
+  "environment": {
+    "ro.kernel.qemu": "1",
+    "ro.boot.qemu": "",
+    "ro.build.version.sdk": "30",
+    "ro.product.cpu.abi": "x86_64",
+    "ro.product.cpu.abilist": "x86_64,x86,arm64-v8a,armeabi-v7a,armeabi",
+    "ro.dalvik.vm.native.bridge": "libndk_translation.so",
+    "ro.build.fingerprint": "google/sdk_gphone_x86_64/generic_x86_64_arm64:11/RSR1.240422.006/12134477:userdebug/dev-keys"
+  },
+  "bootVerified": "2026-11-25T16:37:31.839+08:00",
+  "bootCompletedObservedSecondsSinceLaunch": 65.535,
+  "bootWaitThisProcessSeconds": 1.469,
+  "initialGuestAndroidIdHash": "0f19c53501ff7f406726d347411e6213bb712e1d11c969becca3cc1670e6895b",
+  "shutdowns": [
+    {
+      "at": "2026-11-25T16:39:04.210+08:00",
+      "name": "DSHA_377_direct_upgrade_API30_x86_64",
+      "serial": "emulator-5692",
+      "guestAndroidIdSha256": "0f19c53501ff7f406726d347411e6213bb712e1d11c969becca3cc1670e6895b",
+      "hostBefore": {
+        "at": "2026-11-25T16:39:04.210+08:00",
+        "freeRamBytes": 2980233216,
+        "totalRamBytes": 33483382784,
+        "FfreeBytes": 319939743744
+      },
+      "purpose": "free-RAM-and-preserve-baseline",
+      "guestShutdown": "OK: killing emulator, bye bye\r\r\nOK",
+      "serverShutdown": "",
+      "listeningAfter": {
+        "5692": false,
+        "5693": false,
+        "5091": false
+      },
+      "completed": "2026-11-25T16:39:07.702+08:00",
+      "seconds": 3.5,
+      "hostAfter": {
+        "at": "2026-11-25T16:39:07.702+08:00",
+        "freeRamBytes": 6403284992,
+        "totalRamBytes": 33483382784,
+        "FfreeBytes": 319939715072
+      },
+      "privateAvdStorage": {
+        "fileCount": 28,
+        "logicalBytes": 9305995889,
+        "allocatedBytes": 2907790440,
+        "sameVolumeFreeBytes": 319939715072,
+        "allocationRemeasuredAt": "2026-11-25T16:39:50.080+08:00",
+        "remeasureVolumeFreeBytes": 319796772864
+      }
+    },
+    {
+      "at": "2026-11-25T16:52:43.296+08:00",
+      "name": "DSHA_377_direct_upgrade_API30_x86_64",
+      "serial": "emulator-5692",
+      "guestAndroidIdSha256": "0f19c53501ff7f406726d347411e6213bb712e1d11c969becca3cc1670e6895b",
+      "hostBefore": {
+        "at": "2026-11-25T16:52:43.296+08:00",
+        "freeRamBytes": 10693795840,
+        "totalRamBytes": 33483382784,
+        "FfreeBytes": 316052578304
+      },
+      "purpose": "close-after-upgrade",
+      "guestShutdown": "OK: killing emulator, bye bye\r\r\nOK",
+      "serverShutdown": "",
+      "listeningAfter": {
+        "5692": false,
+        "5693": false,
+        "5091": false
+      },
+      "completed": "2026-11-25T16:52:46.194+08:00",
+      "seconds": 2.891,
+      "hostAfter": {
+        "at": "2026-11-25T16:52:46.194+08:00",
+        "freeRamBytes": 13903425536,
+        "totalRamBytes": 33483382784,
+        "FfreeBytes": 316052992000
+      },
+      "privateAvdStorage": {
+        "fileCount": 32,
+        "logicalBytes": 9603006142,
+        "allocatedBytes": 3204803544,
+        "sameVolumeFreeBytes": 316052992000
+      }
+    }
+  ],
+  "measurementCorrection": {
+    "reason": "Host allocation counts use FILE_STANDARD_INFO.AllocationSize, matching the formal release. The previous GetCompressedFileSizeW count can equal EOF for ordinary files. Same retained files re-read after guest shutdown.",
+    "at": "2026-11-25T16:39:49.821+08:00",
+    "initialCompressedSizeApiValues": {
+      "apk": 257781425,
+      "avdTotal": 2907716209
+    }
+  },
+  "earlierAttempt": {
+    "path": "baseline-r1-report.json",
+    "result": "First AVD identity parser counted a blank console line before OK; exact AVD name matched after ignoring blank lines. No package installed on that attempt."
+  },
+  "configOnResume": {
+    "at": "2026-11-25T16:50:22.400+08:00",
+    "path": "F:\\DSHA_RESTART\\cache\\build377-direct-upgrade-final2\\avd\\DSHA_377_direct_upgrade_API30_x86_64.avd\\config.ini",
+    "initialSha256": "a512a9155bc7d3359a5617ec88064a14fcb730c5e265a90799498fcb60c9d239",
+    "activeSha256": "32fcb99ce9c6ddeed863b3d6b3bb6e1c77ca5bf9befb0767c973d26aab8acc89",
+    "propertiesChangedByEmulator": {
+      "disk.dataPartition.size": [
+        "4G",
+        "6442450944"
+      ]
+    },
+    "note": "Raw equality check initially stopped before restarting. The emulator rewrote spacing and its data partition size. All other values match; the recorded size matches the original retained userdata file."
+  },
+  "restart": {
+    "status": "READY",
+    "pid": 47016,
+    "launched": "2026-11-25T16:50:24.984+08:00",
+    "hostAtStart": {
+      "at": "2026-11-25T16:50:24.984+08:00",
+      "freeRamBytes": 8509235200,
+      "totalRamBytes": 33483382784,
+      "FfreeBytes": 318382075904
+    },
+    "environment": {
+      "ro.kernel.qemu": "1",
+      "ro.boot.qemu": "",
+      "ro.build.version.sdk": "30",
+      "ro.product.cpu.abi": "x86_64",
+      "ro.product.cpu.abilist": "x86_64,x86,arm64-v8a,armeabi-v7a,armeabi",
+      "ro.dalvik.vm.native.bridge": "libndk_translation.so",
+      "ro.build.fingerprint": "google/sdk_gphone_x86_64/generic_x86_64_arm64:11/RSR1.240422.006/12134477:userdebug/dev-keys"
+    },
+    "bootVerified": "2026-11-25T16:51:05.215+08:00",
+    "bootCompletedObservedSecondsSinceLaunch": 40.231,
+    "bootWaitThisProcessSeconds": 40.234,
+    "sameAndroidIdSha256": "0f19c53501ff7f406726d347411e6213bb712e1d11c969becca3cc1670e6895b"
+  },
+  "verifiedPreUpgradeMarkers": {
+    "appOp": "VIBRATE: ignore",
+    "markerPath": "/sdcard/Android/data/dsh.android.client/files/direct-upgrade-fixture.txt",
+    "markerSha256": null,
+    "sharedMediaFixturePath": "/sdcard/Android/media/dsh.android.client/direct-upgrade-fixture.txt",
+    "sharedMediaFixtureSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sharedMediaOriginallySeededExpected": "fff27782ae0f9bd13bf1a24a68b4398dbfd45f279dbb8e270dde6aad0fbaf7bc",
+    "syncedFixturePath": "/sdcard/Android/media/dsh.android.client/direct-upgrade-synced-r2.txt",
+    "syncedFixtureSha256": "7f6551314d9feb8e7f6e58a1e16ccac81980aecd2c989f956c78710b69af6102"
+  },
+  "verifiedPreUpgradeMarkersAt": "2026-11-25T16:52:28.990+08:00",
+  "preUpgradeMarkerObservation": {
+    "stage": "original 376 after guest restart and before any 377 installation",
+    "firstMediaHashBeforeGuestShutdown": "fff27782ae0f9bd13bf1a24a68b4398dbfd45f279dbb8e270dde6aad0fbaf7bc",
+    "firstMediaHashAfterGuestRestart": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "firstFileBytesAfterGuestRestart": 0,
+    "appOpBeforeAndAfterGuestRestart": "VIBRATE: ignore",
+    "newFile": "/sdcard/Android/media/dsh.android.client/direct-upgrade-synced-r2.txt",
+    "syncedContentBytes": 41,
+    "syncedSha256": "7f6551314d9feb8e7f6e58a1e16ccac81980aecd2c989f956c78710b69af6102",
+    "note": "First file retained verbatim at zero bytes after restart. Second independent file was written under the still-installed 376, synced explicitly and re-read before the single direct upgrade. Cause of the first empty file is unverified."
+  },
+  "checks": {
+    "samePackage": "dsh.android.client",
+    "versionCodeTransition": [
+      376,
+      377
+    ],
+    "matchingBaselineAndFinalDigests": true,
+    "uidPreserved": true,
+    "firstInstallTimePreserved": true,
+    "packageAppOpPreserved": true,
+    "externalAppMarkerPreserved": null,
+    "sharedMediaFixturePreserved": true,
+    "firstMarkerSurvivedGuestRestart": false,
+    "syncedMarkerPreservedAcrossUpgrade": true,
+    "lastUpdateTimeAdvanced": true,
+    "installCount": 2
+  },
+  "verifiedInstallCommands": [
+    {
+      "at": "2026-11-25T16:38:16.729+08:00",
+      "options": [
+        "emulator-5692",
+        "install",
+        "--no-incremental"
+      ],
+      "apk": "F:\\DSHA_RESTART\\artifacts\\build376-formal-20261125\\signed\\dsha-0.2.2-rc.5.apk",
+      "response": "Performing Streamed Install\r\nSuccess",
+      "seconds": 44.312
+    },
+    {
+      "at": "2026-11-25T16:52:38.891+08:00",
+      "options": [
+        "emulator-5692",
+        "install",
+        "--no-incremental",
+        "-r"
+      ],
+      "apk": "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed-retry\\dsha-0.2.2-rc.5.apk",
+      "response": "Performing Streamed Install\r\nSuccess",
+      "seconds": 8.375
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "version": "candidate",
+  "rounds": [
+    {
+      "step": "compile",
+      "command": [
+        "F:\\DSHA\\_toolchains\\jdk-17\\bin\\javac.exe",
+        "@F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\android-listener-final\\compile.args"
+      ],
+      "startedUtc": "2026-11-25T07:43:19.058000+00:00",
+      "completedUtc": "2026-11-25T07:43:20.931202+00:00",
+      "durationMs": 1875,
+      "exit": 0
+    },
+    {
+      "step": "junit",
+      "command": [
+        "F:\\DSHA\\_toolchains\\jdk-17\\bin\\java.exe",
+        "@F:\\DSHA_RESTART\\artifacts\\build377-local\\lan\\android-listener-final\\junit.args"
+      ],
+      "startedUtc": "2026-11-25T07:43:20.932442+00:00",
+      "completedUtc": "2026-11-25T07:43:25.407488+00:00",
+      "durationMs": 4485,
+      "exit": 0
+    }
+  ],
+  "files": {
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\LanListenerFailureTest.java": "90d065eb649a404ebc6cf27498759883f131fab578364f33a29ecc87767f5089",
+    "F:\\DSHA_RESTART\\artifacts\\build375-local\\tests\\MatrixJUnit.java": "b3d9c1c20b64773fbe2d5420ae9d0eb5454703948fd1c93239d4d2931ec579b7"
+  }
+}

@@ -1,0 +1,41 @@
+INSTRUMENTATION_RESULT: case0=start java.lang.reflect.InvocationTargetException
+	at java.lang.reflect.Method.invoke(Native Method)
+	at org.dsha.fixture.exactcold.ProcessCold.onStart(ProcessCold.java:23)
+	at android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2205)
+Caused by: java.io.IOException: 发送启动确认失败。安装监督进程已退出（退出码 137）。 当前 Android 系统为 x86，此版本支持 ARM64 Android。可在设置中查看诊断。
+	at com.deepseekharness.app.runtime.IsolatedInstallProcess.confirmStart(IsolatedInstallProcess.java:198)
+	at com.deepseekharness.app.runtime.IsolatedInstallProcess.start(IsolatedInstallProcess.java:129)
+	at com.deepseekharness.app.runtime.IsolatedInstallProcess.start(IsolatedInstallProcess.java:64)
+	... 3 more
+Caused by: java.io.IOException: Stream closed
+	at java.lang.ProcessBuilder$NullOutputStream.write(ProcessBuilder.java:433)
+	at java.io.OutputStream.write(OutputStream.java:116)
+	at java.io.BufferedOutputStream.flushBuffer(BufferedOutputStream.java:82)
+	at java.io.BufferedOutputStream.flush(BufferedOutputStream.java:140)
+	at com.deepseekharness.app.runtime.IsolatedInstallProcess.confirmStart(IsolatedInstallProcess.java:178)
+	... 5 more
+
+INSTRUMENTATION_RESULT: case137=start java.lang.reflect.InvocationTargetException
+	at java.lang.reflect.Method.invoke(Native Method)
+	at org.dsha.fixture.exactcold.ProcessCold.onStart(ProcessCold.java:23)
+	at android.app.Instrumentation$InstrumentationThread.run(Instrumentation.java:2205)
+Caused by: java.io.IOException: Could not send the start confirmation. The installation supervisor exited with code 137. This Android system uses x86. This build supports ARM64 Android. Diagnostics are available in Settings.
+	at com.deepseekharness.app.runtime.IsolatedInstallProcess.confirmStart(IsolatedInstallProcess.java:198)
+	at com.deepseekharness.app.runtime.IsolatedInstallProcess.start(IsolatedInstallProcess.java:129)
+	at com.deepseekharness.app.runtime.IsolatedInstallProcess.start(IsolatedInstallProcess.java:64)
+	... 3 more
+Caused by: java.io.IOException: Stream closed
+	at java.lang.ProcessBuilder$NullOutputStream.write(ProcessBuilder.java:433)
+	at java.io.OutputStream.write(OutputStream.java:116)
+	at java.io.BufferedOutputStream.flushBuffer(BufferedOutputStream.java:82)
+	at java.io.BufferedOutputStream.flush(BufferedOutputStream.java:140)
+	at com.deepseekharness.app.runtime.IsolatedInstallProcess.confirmStart(IsolatedInstallProcess.java:178)
+	... 5 more
+
+INSTRUMENTATION_RESULT: launcher_sha256=12ace2a08056105a663f0ebc492e568d8322a6b252550a16bc05668ed9a58ed5
+INSTRUMENTATION_RESULT: production_apk=2e6f0324ebe4b52b143dcb2bf04800b1ce73c106a53b567de1afdafca5dba3d9
+INSTRUMENTATION_RESULT: signed-arm64=stdin=flushed natural_wait=true waited_ms=101 harness_force=false exit=137 shell_marker=false shell_entered_before_write=false guest_marker_before_write=false guest_marker_after_write=false diagnostics=birth-line|
+INSTRUMENTATION_RESULT: source_overlay=true
+INSTRUMENTATION_RESULT: system-shell=stdin=flushed natural_wait=true waited_ms=102 harness_force=false exit=0 shell_marker=true shell_entered_before_write=true guest_marker_before_write=false guest_marker_after_write=true diagnostics=SHELL_ENTER|MARK_DSHA_START|
+INSTRUMENTATION_RESULT: uid=10182
+INSTRUMENTATION_CODE: -1

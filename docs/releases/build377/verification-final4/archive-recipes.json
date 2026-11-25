@@ -1,0 +1,650 @@
+{
+  "status": "PASS",
+  "version": "0.2.2-rc.5",
+  "artifact": "/mnt/f/DSHA_RESTART/artifacts/build377-local/local-release/dsha-0.2.2-rc.5.apk",
+  "npmTree": "/root/dsha-build374-runtime/npm-arm64-a",
+  "lockSha256": "bcf258eee8e339b720006d05ec3156e07d80a93cab26f3afbc1f956c0c9f7a0e",
+  "registrySha256": "8ab29fd976c88a5f19f045b8bcfb749291645c88759b07d6b4607409657905f7",
+  "fromApk": true,
+  "recipeInputs": 107,
+  "moduleCount": 67,
+  "mismatches": [],
+  "modules": {
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-web-fetch-http/lib/index.js": {
+      "module": "@deepseek-ai/dsh-web-fetch-http/lib/index.js",
+      "recipes": [
+        "web-fetch-http-surrogate-patch.json"
+      ],
+      "rawSha256": "cdc3113ead633e628ecddf806d4bba9a1173692238558cd34e5bc944a8439575",
+      "expectedSha256": "28667b81d05a691cf5da708b33f6a1819b93b4e616837f36f04ec5562318146d",
+      "observedSha256": "28667b81d05a691cf5da708b33f6a1819b93b4e616837f36f04ec5562318146d"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-tool-web/lib/index.js": {
+      "module": "@deepseek-ai/dsh-tool-web/lib/index.js",
+      "recipes": [
+        "web-fetch-output-surrogate-patch.json"
+      ],
+      "rawSha256": "e66b23e37fe4e33c5ac4f1ce65ce0faf808eedb4f5e8c7e7baf5b7a233ffe77b",
+      "expectedSha256": "a0c8dab9f26f232b83b1d9ade617199ce78f34a2ba03c7ac40a6fa9c1f37cdce",
+      "observedSha256": "a0c8dab9f26f232b83b1d9ade617199ce78f34a2ba03c7ac40a6fa9c1f37cdce"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-permission-presets/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-permission-presets/lib/client.js",
+      "recipes": [
+        "permission-full-access-patch.json"
+      ],
+      "rawSha256": "977cfa1952a2f270d4f408358f9abce1140cc1a69226bfdf38aa318a93979baa",
+      "expectedSha256": "f4a73219da4b9791beaf08683b1eae2542c5d03bd50af5b24d9bf96c03213ce9",
+      "observedSha256": "f4a73219da4b9791beaf08683b1eae2542c5d03bd50af5b24d9bf96c03213ce9"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-permission-presets/lib/index.js": {
+      "module": "@deepseek-ai/dsh-permission-presets/lib/index.js",
+      "recipes": [
+        "retire-guarded-preset-patch.json"
+      ],
+      "rawSha256": "08f06dac668d2639e963753c127230ec8818b47be72e5aed7f5bf637c9f6c16e",
+      "expectedSha256": "7c45eedcdafeffec9134ab4cee2c01a390e905be21b40df932025ce56fcce480",
+      "observedSha256": "7c45eedcdafeffec9134ab4cee2c01a390e905be21b40df932025ce56fcce480"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-mcp-client/lib/index.js": {
+      "module": "@deepseek-ai/dsh-mcp-client/lib/index.js",
+      "recipes": [
+        "startup-mcp-timing-patch.json",
+        "mcp-image-base64-patch.json",
+        "mcp-version-negotiation-patch.json"
+      ],
+      "rawSha256": "879b2364e28563626697dd5e3dcf64dcae61dd215dc8f21b283cb7616a672bde",
+      "expectedSha256": "64092736d6aa313e5e4235ec1585cf4eab8332a31d215ed13e02f0117861f5e9",
+      "observedSha256": "64092736d6aa313e5e4235ec1585cf4eab8332a31d215ed13e02f0117861f5e9"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-settings-models/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-settings-models/lib/client.js",
+      "recipes": [
+        "welcome-notice-patch.json",
+        "model-provider-delete-patch.json",
+        "provider-retry-mode-inheritance-patch.json"
+      ],
+      "rawSha256": "74b45c32a08a6aa367be684bf89212e0a3b7a2c3de1cc95ccbfe82045533ae31",
+      "expectedSha256": "7029001a9fbf00952ea7cb639dba361ad4af74812b3bfe70dbf14cefb630e43b",
+      "observedSha256": "7029001a9fbf00952ea7cb639dba361ad4af74812b3bfe70dbf14cefb630e43b"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-conversation/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-conversation/lib/client.js",
+      "recipes": [
+        "composer-enter-patch.json",
+        "queue-dock-patch.json"
+      ],
+      "rawSha256": "3d166eab312749bf8c528dd7d26d95340df75a27fec668b3510e4558fe9b343b",
+      "expectedSha256": "082f1c0ff1677baa88ea4b261376377da34923ebe3ee5805ece5ec35a4b23f64",
+      "observedSha256": "082f1c0ff1677baa88ea4b261376377da34923ebe3ee5805ece5ec35a4b23f64"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-timeout/lib/index.js": {
+      "module": "@deepseek-ai/dsh-timeout/lib/index.js",
+      "recipes": [
+        "conversation-stream-cancel-patch.json"
+      ],
+      "rawSha256": "f9a79fd5194bb4d6321e6d2d5b5eb72f99c683452e1defbb75fad52f76aed667",
+      "expectedSha256": "735e750fe1a41a6ebecd66559abfc2bce4683507ba976f79a2286feda91585d7",
+      "observedSha256": "735e750fe1a41a6ebecd66559abfc2bce4683507ba976f79a2286feda91585d7"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-llm-deepseek/lib/index.js": {
+      "module": "@deepseek-ai/dsh-llm-deepseek/lib/index.js",
+      "recipes": [
+        "deepseek-stream-cancel-patch.json",
+        "deepseek-messages-compat-patch.json",
+        "tool-messages-history-patch.json"
+      ],
+      "rawSha256": "aa4de6cf5136d17534ee7c2c0cc43d9b17b2f1e0c9dc250c2b44a7f694d26258",
+      "expectedSha256": "ac00249972676e2cbc6c8a553d32efa67aeb60110a7b876a69e50986ac867351",
+      "observedSha256": "ac00249972676e2cbc6c8a553d32efa67aeb60110a7b876a69e50986ac867351"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-workspace/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-workspace/lib/client.js",
+      "recipes": [
+        "session-interaction-patch.json"
+      ],
+      "rawSha256": "3ff4116dc91b7dc5cc57e7672e0d7935f992b339be3444a7a72992df218765ba",
+      "expectedSha256": "55893451f5f000b4007bb11df50e2916087bdf03960768a09535afc8cc2c0dd4",
+      "observedSha256": "55893451f5f000b4007bb11df50e2916087bdf03960768a09535afc8cc2c0dd4"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-api-session-controller/lib/index.js": {
+      "module": "@deepseek-ai/dsh-api-session-controller/lib/index.js",
+      "recipes": [
+        "queue-agent-patch.json"
+      ],
+      "rawSha256": "c6ce8f8014d943c8f2dceaf7a9b184a56b2de757de6097938646549d2d2a9087",
+      "expectedSha256": "b5debf5af6492c5e0236f7e0712391cc5c097e2cf91c8e5390eba448a966664d",
+      "observedSha256": "b5debf5af6492c5e0236f7e0712391cc5c097e2cf91c8e5390eba448a966664d"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-persona/lib/index.js": {
+      "module": "@deepseek-ai/dsh-persona/lib/index.js",
+      "recipes": [
+        "persona-compat-patch.json"
+      ],
+      "rawSha256": "1e9dd7f0dfd87cbff6486b7ca043d2e1b863a2a56b99106a4bf74831591266d5",
+      "expectedSha256": "b24e3e2ff707d4fb21c7e0c7ca6af52e28263fdfb634d56fcb22b86933f340b2",
+      "observedSha256": "b24e3e2ff707d4fb21c7e0c7ca6af52e28263fdfb634d56fcb22b86933f340b2"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-subagent/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-subagent/lib/client.js",
+      "recipes": [
+        "subagent-navigation-patch.json"
+      ],
+      "rawSha256": "2930a2c5636f84faea27c0a768d5451169ef9576b4e94d88671134eda81f89a4",
+      "expectedSha256": "649738837e42d727a79bc1b75680659ba825ede514c11ef2dac9d589138df8d8",
+      "observedSha256": "649738837e42d727a79bc1b75680659ba825ede514c11ef2dac9d589138df8d8"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-plugin-manager/lib/index.js": {
+      "module": "@deepseek-ai/dsh-plugin-manager/lib/index.js",
+      "recipes": [
+        "plugin-manager-policy-patch.json",
+        "plugin-pnpm-argv-patch.json",
+        "retired-market-catalog-patch.json",
+        "auto-review-native-disabled-patch.json",
+        "plugin-manager-web-update-rollback-patch.json",
+        "plugin-manager-entries-patch.json",
+        "plugin-bundle-proof-workers-patch.json",
+        "plugin-manager-shell-integrations-patch.json"
+      ],
+      "rawSha256": "33cbad2bdce9679a9f4fbebe072db87ecbb162e0ceb93237f6a627de07d3ab74",
+      "expectedSha256": "dff406e5ad35c485f6d3d9b7e37e7d83a433e33c25b70ebd5c3f4c5a2544f2fa",
+      "observedSha256": "dff406e5ad35c485f6d3d9b7e37e7d83a433e33c25b70ebd5c3f4c5a2544f2fa"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-plugin-manager/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-plugin-manager/lib/client.js",
+      "recipes": [
+        "plugin-manager-auto-enable-patch.json",
+        "plugin-manager-pending-patch.json",
+        "plugin-manager-web-update-status-patch.json",
+        "plugin-manager-management-probe-patch.json"
+      ],
+      "rawSha256": "ec1e18683032730be2f97e76847fc1638e59f86df937af727e9b885991983064",
+      "expectedSha256": "20ce8029f940d0b9996b831f6c5f5847527e4a87709638c61dfc0f074d42edc0",
+      "observedSha256": "20ce8029f940d0b9996b831f6c5f5847527e4a87709638c61dfc0f074d42edc0"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/libreoffice-kit/lib/index.js": {
+      "module": "@deepseek-ai/libreoffice-kit/lib/index.js",
+      "recipes": [
+        "office-fonts-patch.json"
+      ],
+      "rawSha256": "8e8003c76fde812d90f64e486f2e9d7b40370def6c2bcb305996f0e316cec50b",
+      "expectedSha256": "627427f952c5a4f00c0d2749ab495f4533782ee2769ebfa3fcc3c5b536e3f97f",
+      "observedSha256": "627427f952c5a4f00c0d2749ab495f4533782ee2769ebfa3fcc3c5b536e3f97f"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-settings/lib/index.js": {
+      "module": "@deepseek-ai/dsh-settings/lib/index.js",
+      "recipes": [
+        "rc1-settings-migration-patch.json",
+        "config-field-settings-patch.json"
+      ],
+      "rawSha256": "041a2682ed77a7025ceb9bf659b80db8b788c338cd1aa644f0bcc6bc122a4091",
+      "expectedSha256": "13d3856c0e5de56c80faf50337b9668919aa82609ed2b73f3e731cb4929a1e7a",
+      "observedSha256": "13d3856c0e5de56c80faf50337b9668919aa82609ed2b73f3e731cb4929a1e7a"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-locale/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-locale/lib/client.js",
+      "recipes": [
+        "language-patch.json"
+      ],
+      "rawSha256": "c0b7e8edd44cfbe9f10d17ade90aee2a2d36e1e4f2c2cbb86a79660494673196",
+      "expectedSha256": "8524ea44290df3aee37a20c90aab39019bdff269d205afce70819bd05ed9b68f",
+      "observedSha256": "8524ea44290df3aee37a20c90aab39019bdff269d205afce70819bd05ed9b68f"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-host-frontend-static/lib/index.js": {
+      "module": "@deepseek-ai/dsh-host-frontend-static/lib/index.js",
+      "recipes": [
+        "frontend-static-cache-patch.json"
+      ],
+      "rawSha256": "6bb17c239f48fc26d4cf990af3139e7b64ae9f06fc5249bce7b58a3130edaed4",
+      "expectedSha256": "dc93f01607c2c074e5e215b4e4417e35ce0cb86dfdc01b8f2b8850d6fd47f322",
+      "observedSha256": "dc93f01607c2c074e5e215b4e4417e35ce0cb86dfdc01b8f2b8850d6fd47f322"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-sidebar-right/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-sidebar-right/lib/client.js",
+      "recipes": [
+        "sidebar-layout-recovery-patch.json"
+      ],
+      "rawSha256": "8d46bbd47ad345dd485c984b7d299d6d401797089548137ecf958e3dd1b007bc",
+      "expectedSha256": "23357b74ec876a0036b39fbcd25e1addfc158c40b4dc211f723ec821c9f5cd78",
+      "observedSha256": "23357b74ec876a0036b39fbcd25e1addfc158c40b4dc211f723ec821c9f5cd78"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-llm-pi-ai/lib/index.js": {
+      "module": "@deepseek-ai/dsh-llm-pi-ai/lib/index.js",
+      "recipes": [
+        "tool-stream-identity-patch.json",
+        "api-provider-auth-policy-patch.json"
+      ],
+      "rawSha256": "e956da3d7300e1426e13e14f47e6f981dd1ca345633a406568ee5058ad93e9d8",
+      "expectedSha256": "a9904a44425022f093253cb7feae384b43b8de1a18ebd21de9aa32fe3f9d529b",
+      "observedSha256": "a9904a44425022f093253cb7feae384b43b8de1a18ebd21de9aa32fe3f9d529b"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-llm/lib/types/assembler.js": {
+      "module": "@deepseek-ai/dsh-llm/lib/types/assembler.js",
+      "recipes": [
+        "tool-block-identity-patch.json"
+      ],
+      "rawSha256": "35a4754ab854055942b9142934c595c3e6358a717947daa2d8d89847aef988f7",
+      "expectedSha256": "4044ce5d36fe6675e17cbbc34158687da095c8ee050e2ffcecd5fc013f169320",
+      "observedSha256": "4044ce5d36fe6675e17cbbc34158687da095c8ee050e2ffcecd5fc013f169320"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js": {
+      "module": "@deepseek-ai/dsh-agent-loop/lib/index.js",
+      "recipes": [
+        "tool-dispatch-validation-patch.json"
+      ],
+      "rawSha256": "f09f60814d4e96a880f41b9fc3832f33c56a28f954f48810d8439ce83ad6ffa8",
+      "expectedSha256": "499201a636c5dd4e197d5b5544ccf2dc7ae188748787ed48d2cc4317bf5a7860",
+      "observedSha256": "499201a636c5dd4e197d5b5544ccf2dc7ae188748787ed48d2cc4317bf5a7860"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-tools/lib/pipeline.js": {
+      "module": "@deepseek-ai/dsh-tools/lib/pipeline.js",
+      "recipes": [
+        "tool-dispatch-validation-pipeline-patch.json",
+        "guard-tools-pipeline-patch.json"
+      ],
+      "rawSha256": "679072e59502fc211ac2336f5b3146a96c98636b30846ec70433db42d82a7abb",
+      "expectedSha256": "6b6e34dd237ef3f3b52e97b5ce504081f45d9d10a737cf1c141e9ac76b224db1",
+      "observedSha256": "6b6e34dd237ef3f3b52e97b5ce504081f45d9d10a737cf1c141e9ac76b224db1"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-tool/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-tool/lib/client.js",
+      "recipes": [
+        "tool-history-display-patch.json"
+      ],
+      "rawSha256": "f3de614452e676d2afde6c8e5305f17e1f8784f672c3208a5366c8bf132d667b",
+      "expectedSha256": "85912901149fbe734973cdc2cc1e69c09d5664ca24e63650d557e5e9fc868b10",
+      "observedSha256": "85912901149fbe734973cdc2cc1e69c09d5664ca24e63650d557e5e9fc868b10"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-chat/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-chat/lib/client.js",
+      "recipes": [
+        "tool-history-projection-identity-patch.json",
+        "chat-render-performance-patch.json",
+        "chat-viewport-performance-patch.json",
+        "web-brand-run-indicator-patch.json"
+      ],
+      "rawSha256": "eef53e82b8cd584d2f0e543a4a93395f9d90df3bba1218891bd99d07d788de5c",
+      "expectedSha256": "a449c51f1fcc78485832f65a64980490104d1b246df4c11e2bfcf76108d4e290",
+      "observedSha256": "a449c51f1fcc78485832f65a64980490104d1b246df4c11e2bfcf76108d4e290"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-tools/lib/index.js": {
+      "module": "@deepseek-ai/dsh-tools/lib/index.js",
+      "recipes": [
+        "guard-tools-patch.json"
+      ],
+      "rawSha256": "bf71a6ce1e95c5dfba06be7f69827bab19c5d2d9cf272875d92013ba2a8dadb0",
+      "expectedSha256": "49ec1c850fcef507801e7e59ca94faec85dd681b244af833bdbb3565cdafc548",
+      "observedSha256": "49ec1c850fcef507801e7e59ca94faec85dd681b244af833bdbb3565cdafc548"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-tool-bash/lib/index.js": {
+      "module": "@deepseek-ai/dsh-tool-bash/lib/index.js",
+      "recipes": [
+        "guard-bash-patch.json"
+      ],
+      "rawSha256": "8fb836a65eb633f85aa8b1b079fb306866e597fe8f4987c2205b5c4482df57de",
+      "expectedSha256": "0260b593c70f88e4a89d3e8426be793d540ab73573d59bc855fb50094ced0eb8",
+      "observedSha256": "0260b593c70f88e4a89d3e8426be793d540ab73573d59bc855fb50094ced0eb8"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-tool-fs/lib/index.js": {
+      "module": "@deepseek-ai/dsh-tool-fs/lib/index.js",
+      "recipes": [
+        "guard-fs-patch.json"
+      ],
+      "rawSha256": "f27783bf0d89391ed775b65df47acb6b52adf526f4b9d849a0eeb3937a80d6c1",
+      "expectedSha256": "3610160c2b9b59f614e767f4121e0135abd343f039ce055500c534f8c295f955",
+      "observedSha256": "3610160c2b9b59f614e767f4121e0135abd343f039ce055500c534f8c295f955"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-tool-str-replace-editor/lib/index.js": {
+      "module": "@deepseek-ai/dsh-tool-str-replace-editor/lib/index.js",
+      "recipes": [
+        "guard-editor-patch.json"
+      ],
+      "rawSha256": "d400e702c4606d4d94986174409a351bec9b3061a4a6d6d4c9f0493bf0acb3f9",
+      "expectedSha256": "c10857ffac653457411a3be0ffb7db78f567dde033b12209473366eea18883af",
+      "observedSha256": "c10857ffac653457411a3be0ffb7db78f567dde033b12209473366eea18883af"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-official-bundles/lib/index.js": {
+      "module": "@deepseek-ai/dsh-official-bundles/lib/index.js",
+      "recipes": [
+        "retired-market-optional-patch.json"
+      ],
+      "rawSha256": "8ab7b656752709ea805c186f19b85219e974655a8d61b07146ff9d38aa0ae4c0",
+      "expectedSha256": "a9d7ca7ba0e00429bf126645ea157fc40cebbc75e63d938f46b75213d86e920f",
+      "observedSha256": "a9d7ca7ba0e00429bf126645ea157fc40cebbc75e63d938f46b75213d86e920f"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-settings-account/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-settings-account/lib/client.js",
+      "recipes": [
+        "deepseek-native-oauth-patch.json",
+        "deepseek-account-client-diagnostic-patch.json"
+      ],
+      "rawSha256": "cca3d74cad33dba9947f94046bd91afb0de7d2e48b775a314dcb8a7776d21013",
+      "expectedSha256": "5ff855a00af0793239857e3ec65af3f82b33696484cf46cb9bda04f0bc1a9f6a",
+      "observedSha256": "5ff855a00af0793239857e3ec65af3f82b33696484cf46cb9bda04f0bc1a9f6a"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-api-workspace-controller/lib/index.js": {
+      "module": "@deepseek-ai/dsh-api-workspace-controller/lib/index.js",
+      "recipes": [
+        "directory-picker-service-patch.json"
+      ],
+      "rawSha256": "257848af0e4bacb15265660a3750c7909bb4002ab02a1c2a3188045f882ee39e",
+      "expectedSha256": "9847aab20d8bef72d88ef96e49c0e627e654b43a65c38d3b45d0208c6d87c334",
+      "observedSha256": "9847aab20d8bef72d88ef96e49c0e627e654b43a65c38d3b45d0208c6d87c334"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-config-editor/lib/index.js": {
+      "module": "@deepseek-ai/dsh-config-editor/lib/index.js",
+      "recipes": [
+        "config-editor-lock-order-patch.json",
+        "config-field-editor-patch.json",
+        "config-field-compound-delete-patch.json"
+      ],
+      "rawSha256": "17e953c5ef913d368b288e3d64e952276ea08a46967bfdd430534b69b9d0c039",
+      "expectedSha256": "8fdcf7d3db35f760b59ef8b73896deff9c79b62e14aff985d02f6eea670aaf04",
+      "observedSha256": "8fdcf7d3db35f760b59ef8b73896deff9c79b62e14aff985d02f6eea670aaf04"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-agent-preset/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-agent-preset/lib/client.js",
+      "recipes": [
+        "agent-preset-pending-patch.json"
+      ],
+      "rawSha256": "29af5e7ebb096e0befaedf77bd42523063c5cca5a328bf450f6c095dd2a6d3a3",
+      "expectedSha256": "f1596727ba72280f221c1e3262e560a69abded32649434792c5e245f4447f7ff",
+      "observedSha256": "f1596727ba72280f221c1e3262e560a69abded32649434792c5e245f4447f7ff"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-host-plugin-inventory/lib/index.js": {
+      "module": "@deepseek-ai/dsh-host-plugin-inventory/lib/index.js",
+      "recipes": [
+        "plugin-inventory-entries-patch.json",
+        "plugin-inventory-management-patch.json",
+        "plugin-inventory-shell-integrations-patch.json"
+      ],
+      "rawSha256": "4dbacd5d35857b9682a8a4cc46500a7f2594fbb642c0df66d693e0eeeef75a92",
+      "expectedSha256": "241760bb5a7024d9908426cd32ab3b12e4347fb648a0fce59b734c59f5c1b7cc",
+      "observedSha256": "241760bb5a7024d9908426cd32ab3b12e4347fb648a0fce59b734c59f5c1b7cc"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-host-plugin-inventory/lib/typert.host.js": {
+      "module": "@deepseek-ai/dsh-host-plugin-inventory/lib/typert.host.js",
+      "recipes": [
+        "plugin-inventory-management-host-codec-patch.json"
+      ],
+      "rawSha256": "9f9553cde998132628af4152b6d29b43ac6a3a119bea19084e5ec1748215037c",
+      "expectedSha256": "ca6c51758ea9532692cbb2b553e155ee872d66a99b5bf6a0c29c003a74ad38da",
+      "observedSha256": "ca6c51758ea9532692cbb2b553e155ee872d66a99b5bf6a0c29c003a74ad38da"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-host-plugin-inventory/lib/typert.remote-client.js": {
+      "module": "@deepseek-ai/dsh-host-plugin-inventory/lib/typert.remote-client.js",
+      "recipes": [
+        "plugin-inventory-management-remote-codec-patch.json"
+      ],
+      "rawSha256": "21ae89a753b4cf37acdd3c60c2e2966b0d7e1b35fe4fd9b6b72fd30832d3681e",
+      "expectedSha256": "70ddb17fd8aa1aeb4d860b39adbd60b438a9538c96a375e5b5a0cc96267abaa0",
+      "observedSha256": "70ddb17fd8aa1aeb4d860b39adbd60b438a9538c96a375e5b5a0cc96267abaa0"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-api-remotes/lib/client.js": {
+      "module": "@deepseek-ai/dsh-api-remotes/lib/client.js",
+      "recipes": [
+        "plugin-inventory-management-api-codec-patch.json"
+      ],
+      "rawSha256": "6a81888db9a95237e2ec87f148c8db24ff4fc6eee1daef9918cbda2172395ef7",
+      "expectedSha256": "7db51b4cd320e87c94c40780e2ec07144e46b0a496fc71a7b31ff47a3315ab0d",
+      "observedSha256": "7db51b4cd320e87c94c40780e2ec07144e46b0a496fc71a7b31ff47a3315ab0d"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-deepseek-account/lib/index.js": {
+      "module": "@deepseek-ai/dsh-deepseek-account/lib/index.js",
+      "recipes": [
+        "deepseek-account-requests-patch.json"
+      ],
+      "rawSha256": "de9da454098b7e8cf9f91e40304de26fbdfce976b470365ff69822a3c610c620",
+      "expectedSha256": "fd5716b249c06e56546482befaac1555f1be7be69fbdf4d5804ca03bff4c943b",
+      "observedSha256": "fd5716b249c06e56546482befaac1555f1be7be69fbdf4d5804ca03bff4c943b"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-web-search-deepseek/lib/index.js": {
+      "module": "@deepseek-ai/dsh-web-search-deepseek/lib/index.js",
+      "recipes": [
+        "deepseek-web-search-headers-patch.json"
+      ],
+      "rawSha256": "f7a40239f12e8185ce28bb1ee3411881d05592ccab70835da7d5f94a31601e42",
+      "expectedSha256": "107fe23352d49f0bb7f8e1cef5ee0e08b0b291609a9d95b9e97bb8d48655b96c",
+      "observedSha256": "107fe23352d49f0bb7f8e1cef5ee0e08b0b291609a9d95b9e97bb8d48655b96c"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-file-upload/lib/index.js": {
+      "module": "@deepseek-ai/dsh-client-file-upload/lib/index.js",
+      "recipes": [
+        "file-upload-capacity-patch.json"
+      ],
+      "rawSha256": "b17e3621ce127ceb4f68919acdeeac64c54cf64c5d42429be8a7a65b5d20bbfe",
+      "expectedSha256": "1d5d5cacc5bb92597d52a9473ca30230be2e1921ed28fe1085a398291d09da90",
+      "observedSha256": "1d5d5cacc5bb92597d52a9473ca30230be2e1921ed28fe1085a398291d09da90"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-file-upload/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-file-upload/lib/client.js",
+      "recipes": [
+        "file-upload-binary-client-patch.json"
+      ],
+      "rawSha256": "57e8b8c03c98f1a59b03a0a7b9c8fd0b70d48724961dd68a4aef49c4bf860b96",
+      "expectedSha256": "1e039fd1d6e1b90c51aac2f2f472029dc4ff45f64bc7435d830bc6843e3c78fd",
+      "observedSha256": "1e039fd1d6e1b90c51aac2f2f472029dc4ff45f64bc7435d830bc6843e3c78fd"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-deliverables/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-deliverables/lib/client.js",
+      "recipes": [
+        "file-deliverables-patch.json"
+      ],
+      "rawSha256": "aa7a30171ad0ba3b5c49df3d42e9bf6e5530a3b94c96d7a3c269dbc3278919c9",
+      "expectedSha256": "28c98b0198293de7f6e12090061b45fdb27517321b327b1203cb88396cbd80bd",
+      "observedSha256": "28c98b0198293de7f6e12090061b45fdb27517321b327b1203cb88396cbd80bd"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-file-actions/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-file-actions/lib/client.js",
+      "recipes": [
+        "file-image-actions-patch.json"
+      ],
+      "rawSha256": "07282fee83c22e8d87112799680afe73f1203ed5910730e89b22d83c4ea2d9d3",
+      "expectedSha256": "9b15e032f36fc42f7d7ba8d313befb422cbc4f7b2d052c0aebd6beac14e643b7",
+      "observedSha256": "9b15e032f36fc42f7d7ba8d313befb422cbc4f7b2d052c0aebd6beac14e643b7"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-tool-skill/lib/index.js": {
+      "module": "@deepseek-ai/dsh-tool-skill/lib/index.js",
+      "recipes": [
+        "user-only-skill-approval-patch.json"
+      ],
+      "rawSha256": "f7d83b1a4b7a3ac67766b36758edabdbc719cf995f085da6a0699af99b2eb1da",
+      "expectedSha256": "084e5499464637654f55f9b96161eedfe7c36115bc569ef3a7a451c85c4b7dae",
+      "observedSha256": "084e5499464637654f55f9b96161eedfe7c36115bc569ef3a7a451c85c4b7dae"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-settings-general/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-settings-general/lib/client.js",
+      "recipes": [
+        "first-connect-indicator-patch.json"
+      ],
+      "rawSha256": "8afa93d21c3c695eb0b3a33672eaa72042a4052e5084f79ab221b4ac82052a51",
+      "expectedSha256": "1186a640a88b60acc4decb63eb59be5328d768c234db91a05c69f2539d8e210a",
+      "observedSha256": "1186a640a88b60acc4decb63eb59be5328d768c234db91a05c69f2539d8e210a"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js": {
+      "module": "@deepseek-ai/dsh-app-boot/lib/index.js",
+      "recipes": [
+        "startup-resolution-patch.json",
+        "config-field-boot-patch.json",
+        "local-feedback-policy-patch.json"
+      ],
+      "rawSha256": "a8d2138bb274bd982079df14a615f6c0d5d7589c9faeae81973128a72293b6de",
+      "expectedSha256": "2dccc759ad0245b78591dc84c803dd0236893738641dc1dd153ef7a4c97f12e6",
+      "observedSha256": "2dccc759ad0245b78591dc84c803dd0236893738641dc1dd153ef7a4c97f12e6"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/cordis-plugin-include/lib/index.js": {
+      "module": "@deepseek-ai/cordis-plugin-include/lib/index.js",
+      "recipes": [
+        "config-field-include-patch.json"
+      ],
+      "rawSha256": "067dbc75da6d18e243b9ec72ce1d12a36c1a03663f48e58eee85036ee8568594",
+      "expectedSha256": "27b8b8806b2ad86bf836037eb6664c9b16f60f5bdb7035c14d96ced4ca94cd62",
+      "observedSha256": "27b8b8806b2ad86bf836037eb6664c9b16f60f5bdb7035c14d96ced4ca94cd62"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-settings-subagent/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-settings-subagent/lib/client.js",
+      "recipes": [
+        "subagent-model-selection-fields-patch.json"
+      ],
+      "rawSha256": "a3801959cd4f58f4ac824aa1c49bc2fefcddf549f3e5dcc0167b1b81bb584426",
+      "expectedSha256": "33da4d71d0c799692ae81886602391a86a0334337d301d6e4d06607a79ad13d0",
+      "observedSha256": "33da4d71d0c799692ae81886602391a86a0334337d301d6e4d06607a79ad13d0"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-api-workspace-files/lib/index.js": {
+      "module": "@deepseek-ai/dsh-api-workspace-files/lib/index.js",
+      "recipes": [
+        "workspace-change-feed-bounded-patch.json",
+        "workspace-directory-prefix-patch.json"
+      ],
+      "rawSha256": "6d9795e9e5a89c18e4e036e01d257ba8e6efb7ed9f7cf5cd9142ada174e0c319",
+      "expectedSha256": "10ea5f78f63f5e23764faba2b2daf9cb33aaba64f307bb9d5fbd902e964c69da",
+      "observedSha256": "10ea5f78f63f5e23764faba2b2daf9cb33aaba64f307bb9d5fbd902e964c69da"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-fs-local/lib/index.js": {
+      "module": "@deepseek-ai/dsh-fs-local/lib/index.js",
+      "recipes": [
+        "local-directory-prefix-patch.json",
+        "local-directory-watch-patch.json"
+      ],
+      "rawSha256": "610a3ba3658e55adaa3d8d21e017eb6787860adf317e889fb361e8802c8f5a13",
+      "expectedSha256": "c8d25725cef4b6ed647a6ccb556377e5e9cef2f5098397784ac78fc1e37aa9a2",
+      "observedSha256": "c8d25725cef4b6ed647a6ccb556377e5e9cef2f5098397784ac78fc1e37aa9a2"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-sidebar-files/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-sidebar-files/lib/client.js",
+      "recipes": [
+        "files-list-rejection-patch.json"
+      ],
+      "rawSha256": "b33da4c36cfe673e4eb83b330da538a9d336c6189d9b1ce06364d739ebdfd453",
+      "expectedSha256": "c8678fdd2b5754b4ac0ecc6719469a2dd8c212a40d1cbe85db90006d71491ff0",
+      "observedSha256": "c8678fdd2b5754b4ac0ecc6719469a2dd8c212a40d1cbe85db90006d71491ff0"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-sidebar-documentpreview/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-sidebar-documentpreview/lib/client.js",
+      "recipes": [
+        "text-page-rejection-patch.json"
+      ],
+      "rawSha256": "f4c84ba525e3593c3f9ad1fc19f821fce3ff381320f9e27746fc441d12ce25fd",
+      "expectedSha256": "1b8073a29cc0e81742670dbc4d0dcdbe0cd55b0b5af0d3a27b1cde6767ab16bf",
+      "observedSha256": "1b8073a29cc0e81742670dbc4d0dcdbe0cd55b0b5af0d3a27b1cde6767ab16bf"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/openai/core/streaming.mjs": {
+      "module": "openai/core/streaming.mjs",
+      "recipes": [
+        "openai-sse-esm-patch.json"
+      ],
+      "rawSha256": "1b8fa8338dc28913351993382187962082f0af42c5274a009060de3263579842",
+      "expectedSha256": "19609aa0d3fb4b62e808937d8a766731a28366fae5730d4137d3b4a181dd0840",
+      "observedSha256": "19609aa0d3fb4b62e808937d8a766731a28366fae5730d4137d3b4a181dd0840"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/openai/core/streaming.js": {
+      "module": "openai/core/streaming.js",
+      "recipes": [
+        "openai-sse-cjs-patch.json"
+      ],
+      "rawSha256": "9230a5e7579c7a26aaf973626ef1e90174925ee1ed9f76204ec02a4c4d07d862",
+      "expectedSha256": "bb4a9cbd8b3d2e6e3cc32603edfca2fbfde0238f392d8ef62b31aff7c4c5ff8c",
+      "observedSha256": "bb4a9cbd8b3d2e6e3cc32603edfca2fbfde0238f392d8ef62b31aff7c4c5ff8c"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-connection/lib/client.browser.js": {
+      "module": "@deepseek-ai/dsh-client-connection/lib/client.browser.js",
+      "recipes": [
+        "literal-loopback-online-patch.json",
+        "lan-mux-authorization-patch.json"
+      ],
+      "rawSha256": "5f6107953fa764c80b6c06aa161be318ffa0b71e565ac81536fc4267d5d62412",
+      "expectedSha256": "316ee0d5f90a353b902700f1674fb52d8ad328f6fbd78b7b113948d21f60420e",
+      "observedSha256": "316ee0d5f90a353b902700f1674fb52d8ad328f6fbd78b7b113948d21f60420e"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-cordis-host-runner/lib/index.js": {
+      "module": "@deepseek-ai/dsh-cordis-host-runner/lib/index.js",
+      "recipes": [
+        "temporary-plugin-host-remove-patch.json"
+      ],
+      "rawSha256": "99720110b1cfa96fd102243004d4f1166750cd301ee5e3cd3dd773a9cd5b1d6d",
+      "expectedSha256": "5033bc04a8f4f61e018c859e1f4d02593911a86a3826c4ed7964b87450e1ebd4",
+      "observedSha256": "5033bc04a8f4f61e018c859e1f4d02593911a86a3826c4ed7964b87450e1ebd4"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-cordis/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-cordis/lib/client.js",
+      "recipes": [
+        "temporary-plugin-ui-remove-patch.json"
+      ],
+      "rawSha256": "2de0e6f09d0e34b847ac3ae29cbbb59c657396c07cfcd8f373cbed580fbd052e",
+      "expectedSha256": "ba09d43308d0ea67d411750e4c6785ff70ddb14fb5f19d22f225fb6f021a4b97",
+      "observedSha256": "ba09d43308d0ea67d411750e4c6785ff70ddb14fb5f19d22f225fb6f021a4b97"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-session/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-session/lib/client.js",
+      "recipes": [
+        "session-status-scale-patch.json"
+      ],
+      "rawSha256": "2a0b092022faad187c871408ea795b5cbabd828d9581105ba8fedc058ad4d66c",
+      "expectedSha256": "d7d0f12707bfed94f95bdd5d0f411288d739fcd78143ff11d91ea90bb822e246",
+      "observedSha256": "d7d0f12707bfed94f95bdd5d0f411288d739fcd78143ff11d91ea90bb822e246"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-web-app/cordis.patch.yml": {
+      "module": "@deepseek-ai/dsh-web-app/cordis.patch.yml",
+      "recipes": [
+        "web-default-brand-patch.json"
+      ],
+      "rawSha256": "58dffac57b73cd06b84fb81e6adcfcf3ba7175952e607c0753b5535712388afe",
+      "expectedSha256": "d18d48f44f8d11c513f7eb27d092aa7212386a9cd7197931d740efade3c7838a",
+      "observedSha256": "d18d48f44f8d11c513f7eb27d092aa7212386a9cd7197931d740efade3c7838a"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-web-frontend/dist/index.html": {
+      "module": "@deepseek-ai/dsh-web-frontend/dist/index.html",
+      "recipes": [
+        "web-brand-entry-patch.json"
+      ],
+      "rawSha256": "271698ef62d4cc9a10a5f0aa28d0f4f6cd5e16fe04734908c3eab477a8da0ec1",
+      "expectedSha256": "99eed3e44249fcb4b5a35f4f70d55dd655d9ae9e31fa1a65f581b4283b48637c",
+      "observedSha256": "99eed3e44249fcb4b5a35f4f70d55dd655d9ae9e31fa1a65f581b4283b48637c"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-web-frontend/dist/manifest.webmanifest": {
+      "module": "@deepseek-ai/dsh-web-frontend/dist/manifest.webmanifest",
+      "recipes": [
+        "web-brand-manifest-patch.json"
+      ],
+      "rawSha256": "0684508930a5e3b36e43afc1dc89252a95893a3d66cdfaccb453cc675012715b",
+      "expectedSha256": "5d8dde9bf3d84d966ec068e50480d9f08a2380165f9f4e64129bf631759b1633",
+      "observedSha256": "5d8dde9bf3d84d966ec068e50480d9f08a2380165f9f4e64129bf631759b1633"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-layout/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-layout/lib/client.js",
+      "recipes": [
+        "web-brand-title-patch.json"
+      ],
+      "rawSha256": "dfbc793b4147fd695fdb2a57c0982d73c668e57493f609945d5d04fb36fdd48e",
+      "expectedSha256": "07604b966fb289980a2ab6fb2a86b1d406ba1da26ef12847258b34e2bd9bd168",
+      "observedSha256": "07604b966fb289980a2ab6fb2a86b1d406ba1da26ef12847258b34e2bd9bd168"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-sidebar/lib/client.js": {
+      "module": "@deepseek-ai/dsh-client-ui-sidebar/lib/client.js",
+      "recipes": [
+        "web-brand-sidebar-patch.json"
+      ],
+      "rawSha256": "4fa43eb1a1166a5cae250a9e77a8c5bae4dc08a19daeb9ac6704dbe1fd617061",
+      "expectedSha256": "7930ccef18b7c13560fbc2c20c50e24c8b21d33ab743637c5020fdba2a5254a9",
+      "observedSha256": "7930ccef18b7c13560fbc2c20c50e24c8b21d33ab743637c5020fdba2a5254a9"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-experimental-liveshare/lib/client.js": {
+      "module": "@deepseek-ai/dsh-experimental-liveshare/lib/client.js",
+      "recipes": [
+        "web-brand-viewer-patch.json"
+      ],
+      "rawSha256": "47acd0ffa52510e88d120c8233355f5ba1b4c0890dc9c76c6e8e045ad4cd1e1f",
+      "expectedSha256": "2c1dc53fb2d8bcb08bafcac4e3103693e3c776e0d94446da9d5835e56d96ecb1",
+      "observedSha256": "2c1dc53fb2d8bcb08bafcac4e3103693e3c776e0d94446da9d5835e56d96ecb1"
+    },
+    "usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-api-gateway/lib/client.browser.js": {
+      "module": "@deepseek-ai/dsh-api-gateway/lib/client.browser.js",
+      "recipes": [
+        "lan-mux-client-patch.json"
+      ],
+      "rawSha256": "3b505de5bca1cd96de580895ce752384e572eb4ffefbe1684f0c65b1c6ade7c8",
+      "expectedSha256": "af20d759251310e5d5afb3426267c7b9a88e5ab613dcec976e0fe21ca9b31d37",
+      "observedSha256": "af20d759251310e5d5afb3426267c7b9a88e5ab613dcec976e0fe21ca9b31d37"
+    }
+  }
+}

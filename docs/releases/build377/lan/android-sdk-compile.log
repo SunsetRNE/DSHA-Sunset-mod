@@ -1,0 +1,6 @@
+app\src\main\java\com\deepseekharness\app\util\AppIdentity.java:12: ����: �Ҳ�������
+    return com.deepseekharness.app.BuildConfig.APPLICATION_ID;
+                                  ^
+  ����:   �� BuildConfig
+  λ��: ����� com.deepseekharness.app
+1 ������

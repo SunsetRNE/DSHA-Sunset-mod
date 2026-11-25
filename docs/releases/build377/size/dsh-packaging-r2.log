@@ -1,0 +1,32 @@
+...F...
+======================================================================
+FAIL: test_real_archive_keeps_dsh_and_hooks_while_policy_comes_from_exact_signed_installs (__main__.DshRuntimePackaging.test_real_archive_keeps_dsh_and_hooks_while_policy_comes_from_exact_signed_installs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\source\build377-local\tools\test-dsh-runtime-packaging.py", line 86, in test_real_archive_keeps_dsh_and_hooks_while_policy_comes_from_exact_signed_installs
+    self.assertEqual([name[len(prefix):] for name in names if name.startswith(prefix)],
+AssertionError: Lists differ: ['A-first.js', 'Z-last.js', 'bin.js', 'alpha/child.js', '[22 chars].js'] != ['A-first.js', 'alpha/child.js', 'bin.js', 'middle.js', '[22 chars].js']
+
+First differing element 1:
+'Z-last.js'
+'alpha/child.js'
+
+  ['A-first.js',
++  'alpha/child.js',
++  'bin.js',
++  'middle.js',
+   'Z-last.js',
+-  'bin.js',
+-  'alpha/child.js',
+-  'Zoo/child.js',
+?                ^
+
++  'Zoo/child.js']
+?                ^
+
+-  'middle.js']
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.355s
+
+FAILED (failures=1)

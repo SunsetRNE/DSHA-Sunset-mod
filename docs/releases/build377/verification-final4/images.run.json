@@ -1,0 +1,22 @@
+{
+  "command": [
+    "${USERPROFILE}/AppData/Local/Programs/Python/Python311/python.exe",
+    "-B",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\native-identity\\verify_brand.py",
+    "--source",
+    "F:\\DSHA_RESTART\\source\\build377-local",
+    "--before",
+    "F:\\DSHA_RESTART\\artifacts\\build376-formal-20261125\\signed\\dsha-0.2.2-rc.5.apk",
+    "--after",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\local-release\\dsha-0.2.2-rc.5.apk",
+    "--sdk",
+    "F:\\DSHA_RESTART\\toolchains\\current\\android-sdk",
+    "--output",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\verification-final4\\images.json"
+  ],
+  "startedAt": "2026-11-25T09:56:40.892628+00:00",
+  "finishedAt": "2026-11-25T09:56:42.925485+00:00",
+  "elapsedSeconds": 2.031,
+  "exitCode": 0,
+  "logSha256": "429b879b55c94ab26f094385e0e506e1fc16885be2fc7d7b2d86283ae39323a6"
+}

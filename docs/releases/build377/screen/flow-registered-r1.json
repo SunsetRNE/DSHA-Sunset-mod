@@ -1,0 +1,31 @@
+{
+  "started": "2026-11-25T15:19:28.954+08:00",
+  "waitedForClassesSeconds": 350.09,
+  "cwd": "F:\\DSHA_RESTART\\source\\build377-local",
+  "argv": [
+    "${USERPROFILE}\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+    "F:\\DSHA_RESTART\\source\\build377-local\\tools\\test-physical-screen-flow.py",
+    "--dependency-reference",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\screen\\flow-deps.json",
+    "--production-classes",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\build\\intermediates\\javac\\standardDebug\\compileStandardDebugJavaWithJavac\\classes",
+    "--resource-jar",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\build\\intermediates\\compile_and_runtime_r_class_jar\\standardDebug\\processStandardDebugResources\\R.jar",
+    "--kotlin-classes",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\build\\intermediates\\built_in_kotlinc\\standardDebug\\compileStandardDebugKotlin\\classes",
+    "--android-jar",
+    "F:\\DSHA\\_toolchains\\android-sdk\\platforms\\android-37.0\\android.jar",
+    "--out",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\screen\\flow-registered-r1",
+    "--junit-timeout",
+    "150"
+  ],
+  "firstTestArtifact": {
+    "at": "2026-11-25T15:19:37.659+08:00",
+    "artifact": "mcp-node-chain.json",
+    "elapsedSeconds": 8.703
+  },
+  "finished": "2026-11-25T15:19:39.573+08:00",
+  "elapsedSeconds": 10.609,
+  "exitCode": 0
+}

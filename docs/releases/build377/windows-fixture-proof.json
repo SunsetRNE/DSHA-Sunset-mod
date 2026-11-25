@@ -1,0 +1,28 @@
+{
+  "commit": "15e7fcc285121d67efdfad11ce688fc0a81dd392",
+  "archiveSha256": "2cbc3aba49cfb256a01afd9dd68eeb7b72e8c01f35d88745cdb2648ec6333bed",
+  "lockSha256": "bcf258eee8e339b720006d05ec3156e07d80a93cab26f3afbc1f956c0c9f7a0e",
+  "pointerSha256": "708dda9aaa7571245da3d55e270accdeb79164a7b10e020ddff5802886d709d2",
+  "fixtures": {
+    "raw": {
+      "root": "F:\\DSHA_RESTART\\source\\build377-local\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\raw",
+      "marker": "F:\\DSHA_RESTART\\source\\build377-local\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\raw\\dsha-test-runtime.json",
+      "markerSha256": "fdc1e817a634a559effa87eb7f267ae0db7168d60be2de8a42012120fbea0a36",
+      "entries": 48609,
+      "files": 43498,
+      "logicalFileBytes": 847117948,
+      "contentDigest": "f47c024ff6215fed72ab71571734e9a668b4fd49872e98f4c3251a7186104e54",
+      "overlayInputs": 0
+    },
+    "managed": {
+      "root": "F:\\DSHA_RESTART\\source\\build377-local\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\managed-298b379fc7a5",
+      "marker": "F:\\DSHA_RESTART\\source\\build377-local\\app\\build\\test-runtimes\\0.2.2-rc.5-win32-x64-bcf258eee8e3\\managed-298b379fc7a5\\dsha-test-runtime.json",
+      "markerSha256": "48d29d552d3df146257225efd5462cc380b3a2825e925b1222dce2c797fc1e5d",
+      "entries": 48623,
+      "files": 43508,
+      "logicalFileBytes": 847819849,
+      "contentDigest": "54dae21b14ead921ee64d121120ac9d3ff5a573c5212f9fdffc0b9e12392d0b9",
+      "overlayInputs": 110
+    }
+  }
+}

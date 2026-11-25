@@ -1,0 +1,163 @@
+{
+  "sourceAtReport": "e9c96aad423b449427f0bbb233e0730994b39077",
+  "archiveSha256": "2cbc3aba49cfb256a01afd9dd68eeb7b72e8c01f35d88745cdb2648ec6333bed",
+  "original18Unchanged": 18,
+  "actualR4OverlayMembers": 35,
+  "environment": "Windows-11-10.0.26200-SP0",
+  "node": "v24.18.0",
+  "browserRuns": {
+    "chromium": {
+      "browserVersion": "156.0.8078.4",
+      "sections": 10,
+      "presetRows": [
+        29,
+        30,
+        9,
+        29
+      ],
+      "filterCounts": [
+        12,
+        0,
+        29
+      ],
+      "languages": [
+        "中文",
+        "日本語",
+        "Español",
+        "Français",
+        "Deutsch",
+        "Русский",
+        "Português",
+        "繁體中文",
+        "한국어",
+        "العربية",
+        "Latina",
+        "English"
+      ],
+      "reloadLanguages": [
+        "中文",
+        "English"
+      ],
+      "bothBridgeRetriesHttp502": true,
+      "ordinaryLoopback": true,
+      "r4BrowserResponses": {
+        "dsh-client-connection": {
+          "status": 200,
+          "path": "/plugins/",
+          "servedSha256": "6b5a2d6c98899b3c2ce6111c06f098277b130905905d9df26b2157bd6efb304d",
+          "archiveSha256": "316ee0d5f90a353b902700f1674fb52d8ad328f6fbd78b7b113948d21f60420e",
+          "exact": false,
+          "r4Marker": true
+        },
+        "dsh-api-gateway": {
+          "status": 200,
+          "path": "/plugins/",
+          "servedSha256": "f8ae7243d277ed870f38e0d75b69c15ec034d32052678b89cb08b43f5a1a7389",
+          "archiveSha256": "af20d759251310e5d5afb3426267c7b9a88e5ab613dcec976e0fe21ca9b31d37",
+          "exact": false,
+          "r4Marker": true
+        }
+      },
+      "hostReads": [
+        {
+          "name": "dsh-api-gateway",
+          "method": "readFileSync",
+          "utc": "2026-11-25T07:29:30.566Z"
+        },
+        {
+          "name": "dsh-client-connection",
+          "method": "readFileSync",
+          "utc": "2026-11-25T07:29:31.221Z"
+        }
+      ],
+      "timesMs": {
+        "loopback-ready": 3494,
+        "shell-ready": 5700,
+        "read-only-profile-unchanged": 14035,
+        "checks-finished": 21019,
+        "complete": 21151
+      },
+      "rawLogSha256": "075fc08de9b0781bbc16a2b4279a26fcf842a926d765b3d1065b3bd040bbcd49"
+    },
+    "webkit": {
+      "browserVersion": "26.5",
+      "sections": 10,
+      "presetRows": [
+        29,
+        30,
+        9,
+        29
+      ],
+      "filterCounts": [
+        12,
+        0,
+        29
+      ],
+      "languages": [
+        "中文",
+        "日本語",
+        "Español",
+        "Français",
+        "Deutsch",
+        "Русский",
+        "Português",
+        "繁體中文",
+        "한국어",
+        "العربية",
+        "Latina",
+        "English"
+      ],
+      "reloadLanguages": [
+        "中文",
+        "English"
+      ],
+      "bothBridgeRetriesHttp502": true,
+      "ordinaryLoopback": true,
+      "r4BrowserResponses": {
+        "dsh-client-connection": {
+          "status": 200,
+          "path": "/plugins/",
+          "servedSha256": "6b5a2d6c98899b3c2ce6111c06f098277b130905905d9df26b2157bd6efb304d",
+          "archiveSha256": "316ee0d5f90a353b902700f1674fb52d8ad328f6fbd78b7b113948d21f60420e",
+          "exact": false,
+          "r4Marker": true
+        },
+        "dsh-api-gateway": {
+          "status": 200,
+          "path": "/plugins/",
+          "servedSha256": "f8ae7243d277ed870f38e0d75b69c15ec034d32052678b89cb08b43f5a1a7389",
+          "archiveSha256": "af20d759251310e5d5afb3426267c7b9a88e5ab613dcec976e0fe21ca9b31d37",
+          "exact": false,
+          "r4Marker": true
+        }
+      },
+      "hostReads": [
+        {
+          "name": "dsh-api-gateway",
+          "method": "readFileSync",
+          "utc": "2026-11-25T07:29:30.563Z"
+        },
+        {
+          "name": "dsh-client-connection",
+          "method": "readFileSync",
+          "utc": "2026-11-25T07:29:31.220Z"
+        }
+      ],
+      "timesMs": {
+        "loopback-ready": 3493,
+        "shell-ready": 6632,
+        "read-only-profile-unchanged": 19813,
+        "checks-finished": 38289,
+        "complete": 38468
+      },
+      "rawLogSha256": "a9c67259f64ecc72ca6783ffaa5adfef2154782c445701dca720e01083b9059e"
+    }
+  },
+  "runnersSha256": {
+    "artifacts\\build377-local\\settings\\r4\\bind.py": "c6eb1b040227f7af375e4174c5e64392037028fbc4eddece2d409f988dad3a3f",
+    "artifacts\\build377-local\\settings\\r4\\bind_signed.py": "af46983e262db97cdaa31ddb815a44d15d1c67cac0f9ec97b8160b132a6da54f",
+    "artifacts\\build377-local\\settings\\r4\\preload.mjs": "2432f24cdff9be1b4d880bb194ad7978658414e87d6988d63d499c3d0ea99a8b",
+    "artifacts\\build377-local\\settings\\web_probe_r4.mjs": "acf2762a7f2bab1ddacb35e8a0a51612fdb03a83ad6dbfa5e8af9c3c3d3a5bbc",
+    "artifacts\\build377-local\\web-identity\\preload.mjs": "554acccfc1d654ec94101b6c1cf5e5ff10cb301eb1115fe1c16f2d77c72e35cf"
+  }
+}

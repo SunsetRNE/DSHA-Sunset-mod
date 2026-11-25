@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "F:\DSHA_RESTART\artifacts\build377-local\proot-emulator\run_cases.py", line 122, in <module>
+    main()
+  File "F:\DSHA_RESTART\artifacts\build377-local\proot-emulator\run_cases.py", line 49, in main
+    assert avd == ['DSHA_build377_proot_api30_arm64','OK'], avd
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ['DSHA_build377_proot_api30_arm64', '', 'OK']

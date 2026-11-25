@@ -1,0 +1,26 @@
+{
+  "commit": "365719301ebf8c35f87edc24bdce4edb503c46d5",
+  "tree": "d074ba67a971f2e16697483b5fb345e661e946e9",
+  "sourceRuntimeSha256": "2cbc3aba49cfb256a01afd9dd68eeb7b72e8c01f35d88745cdb2648ec6333bed",
+  "rustSha256": "65aea50e7d34b8adfda28836248b2486b4d5481abb55d7bb80037a8adb459c6d",
+  "rustReceiptSha256": "6e4c3b16f2c9f2a0864879cfc524f4368ca113a358c7602fc805b134ece9e16f",
+  "fVolumeAvailableBytes": 307991511040,
+  "startedAt": "2026-11-25T09:53:56.3938352+00:00",
+  "gradle": [
+    "--offline",
+    "--no-daemon",
+    "--no-build-cache",
+    "--console=plain",
+    "--max-workers=2",
+    "-Pdsha.identity=upstream",
+    "-Pdsha.unsignedPackage=true",
+    "-Pdsha.sourceOnlyTests=false",
+    "-Pdsha.rust.mode=prebuilt",
+    "-Pdsha.rust.artifactDir=F:/DSHA_RESTART/artifacts/build377-local/final4/rust-arm64",
+    "-Pkotlin.compiler.execution.strategy=in-process",
+    ":app:assembleStandardRelease"
+  ],
+  "finishedAt": "2026-11-25T09:55:26.1017265+00:00",
+  "exitCode": 0,
+  "finishedFVolumeAvailableBytes": 307981799424
+}

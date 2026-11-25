@@ -1,0 +1,71 @@
+{
+  "startedUtc": "2026-11-25T08:12:58.705634+00:00",
+  "sourceCommit": "15e7fcc285121d67efdfad11ce688fc0a81dd392",
+  "apkSha256": "2e6f0324ebe4b52b143dcb2bf04800b1ce73c106a53b567de1afdafca5dba3d9",
+  "baselineSha256": "b9ec7b9a45b1c3463b5ea820cd36b9a32d4aa0228f372fee96080714fc3397cc",
+  "baseline": {
+    "path": "F:\\DSHA_RESTART\\artifacts\\build376-formal-20261125\\signed\\dsha-0.2.2-rc.5.apk",
+    "logicalBytes": 257781425,
+    "allocatedBytes": 257781760
+  },
+  "candidate": {
+    "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\signed\\dsha-0.2.2-rc.5.apk",
+    "logicalBytes": 255587176,
+    "allocatedBytes": 255590400
+  },
+  "availableBytes": 337512456192,
+  "beforeCount": 1875,
+  "afterCount": 1890,
+  "verifiedMembers": {
+    "dsh-runtime.bin": {
+      "beforeZipBytes": 143385698,
+      "afterZipBytes": 141562350,
+      "sha256": "2cbc3aba49cfb256a01afd9dd68eeb7b72e8c01f35d88745cdb2648ec6333bed"
+    },
+    "gh-cli.bin": {
+      "beforeZipBytes": 9592508,
+      "afterZipBytes": 9516188,
+      "sha256": "555df99fe461665a093fa184bf379e6e76d9f988f83617f4b6b2e3e0cfd11a94"
+    },
+    "glibc-python.bin": {
+      "beforeZipBytes": 4774024,
+      "afterZipBytes": 4748448,
+      "sha256": "c74f239e9b2a4ab88d38f89beaaa2be39d35866c8680d17197dbd9335e5d5084"
+    }
+  },
+  "rescueMapping": {
+    "asset": "recovery-dsh-runtime.bin",
+    "source": "dsh-runtime.bin",
+    "sha256": "2cbc3aba49cfb256a01afd9dd68eeb7b72e8c01f35d88745cdb2648ec6333bed"
+  },
+  "verifiedRuntimeRound": {
+    "round": "r4",
+    "acceptedPath": "F:\\DSHA_RESTART\\artifacts\\build377-local\\runtime\\r4\\accepted.json",
+    "acceptedSha256": "21a8a263b986d26e1b974d95c8a0ff76374c21a29ff7fba8214e239b296d46be",
+    "hashes": {
+      "dsh-runtime.bin": "2cbc3aba49cfb256a01afd9dd68eeb7b72e8c01f35d88745cdb2648ec6333bed",
+      "dsh-runtime.inputs.json": "c9542a6b826190525f38360bda60961240c9327968e9e68460008b39487c48e8"
+    },
+    "builds": [
+      {
+        "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\runtime\\r4\\npm-arm64-a\\dsh-runtime.bin",
+        "bytes": 141562350,
+        "hashes": {
+          "dsh-runtime.bin": "2cbc3aba49cfb256a01afd9dd68eeb7b72e8c01f35d88745cdb2648ec6333bed",
+          "dsh-runtime.inputs.json": "c9542a6b826190525f38360bda60961240c9327968e9e68460008b39487c48e8"
+        }
+      },
+      {
+        "path": "F:\\DSHA_RESTART\\artifacts\\build377-local\\runtime\\r4\\npm-arm64-b\\dsh-runtime.bin",
+        "bytes": 141562350,
+        "hashes": {
+          "dsh-runtime.bin": "2cbc3aba49cfb256a01afd9dd68eeb7b72e8c01f35d88745cdb2648ec6333bed",
+          "dsh-runtime.inputs.json": "c9542a6b826190525f38360bda60961240c9327968e9e68460008b39487c48e8"
+        }
+      }
+    ]
+  },
+  "firstVerifiedSetSeconds": 0.9875823000329547,
+  "completeSeconds": 1.1682322000269778,
+  "finishedUtc": "2026-11-25T08:12:59.874077+00:00"
+}

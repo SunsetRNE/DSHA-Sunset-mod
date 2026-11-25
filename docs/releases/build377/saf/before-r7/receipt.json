@@ -1,0 +1,18 @@
+{
+  "variant": "before",
+  "start": "2026-11-25T06:56:21.875438+00:00",
+  "inputs": {
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\saf\\before-r7\\WebDownloadModel.java": "c4f28437d7d0d7395ce5792e76f3d3dc2a63e1c30837738613e6878b1f2b10df",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\saf\\before-r7\\WorkspaceFileExports.java": "1e126852e035f0aa7c70e5c187d8e385aa52b89bf785c02618f789fb8b120dbc",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\saf\\before-r7\\DownloadsExport.java": "c544d4ac19658dc7aca082d63036daf05ad7c2211cfffeebe5f8ddb2da5ad788",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\saf\\before-r7\\DocumentStreams.java": "1cdffac71de7c7cb98b7d7f8ee4d27f0798dd30058e11431e9a0d20cf0063067",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\ui\\WebDownloadSaveTest.java": "3324f94d9a16f10a2fbd2250794da334e6ab4fbdacb1db1b90704ccfe9dd195f",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\backup\\BackupDownloadsPublicationTest.java": "d6fa8818a3a7ecbb41015881031a43aea57d77c2a9f80d48a3dc28732f9c77b5",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\transfer\\TransferBehaviorTestSupport.java": "b67813ae470ffdd04914c3700ceee0eefe9b642e3a93dc67b26ce8c8c28770dc",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\transfer\\DownloadEngineBehaviorTest.java": "21dca2db39ddcd83bf4d8ac801139a10d0cd22c15850e38780e24d6c636ba5ba",
+    "F:\\DSHA_RESTART\\source\\build377-local\\app\\src\\test\\java\\com\\deepseekharness\\app\\data\\WorkspaceFileDestinationTest.java": "d8c36ad58878bad9a0886e0fad5585c3adf0ba4f57a272813fcf56a13a504853",
+    "F:\\DSHA_RESTART\\artifacts\\build377-local\\saf\\SafTestRun.java": "5602ac90987011f4fdafb276dc44472301b759775a954086f543a96edf441dcb"
+  },
+  "end": "2026-11-25T06:56:37.685023+00:00",
+  "exitCode": 1
+}

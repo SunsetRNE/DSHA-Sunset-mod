@@ -1,0 +1,206 @@
+[
+  {
+    "label": "shown",
+    "seconds": 7.375,
+    "ime": null,
+    "screenshotSha256": "d7ddc4574eaff8620505685a927fbf44f56ba92749f84af350f6d3027c0c9496",
+    "choose": {
+      "ink": 1729,
+      "rows": 21,
+      "maskSha256": "777f7e72cc1abc500dddf6353dd33ce843d9b673c434da803a01a1727fa58e28",
+      "inkTop": 584,
+      "inkBottom": 605,
+      "full": [
+        730,
+        547,
+        1056,
+        644
+      ],
+      "visible": [
+        730,
+        547,
+        1056,
+        644
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 97,
+      "sameInk": true,
+      "percentInk": 100.0
+    },
+    "cancel": {
+      "ink": 618,
+      "rows": 21,
+      "maskSha256": "5d95c225f6b37e412174a7eb9856c4936aacddefc1285088587baee0510a490c",
+      "inkTop": 584,
+      "inkBottom": 605,
+      "full": [
+        546,
+        547,
+        714,
+        644
+      ],
+      "visible": [
+        546,
+        547,
+        714,
+        644
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 97,
+      "sameInk": true,
+      "percentInk": 100.0
+    }
+  },
+  {
+    "label": "first-ime",
+    "seconds": 15.046,
+    "ime": [
+      0,
+      320,
+      1184,
+      720
+    ],
+    "screenshotSha256": "ee6439347374622644db544f96dbd0e08c6a70f64329ea7d98f3ed3b1ac742ce",
+    "choose": {
+      "ink": 1184,
+      "rows": 16,
+      "maskSha256": "ff0d0a15c82b45910de0e9f77a2baff8eeebac3e307433b53b1577ee7220a6dc",
+      "inkTop": 256,
+      "inkBottom": 272,
+      "full": [
+        730,
+        219,
+        1056,
+        316
+      ],
+      "visible": [
+        730,
+        219,
+        1056,
+        272
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 53,
+      "sameInk": false,
+      "percentInk": 68.48
+    },
+    "cancel": {
+      "ink": 414,
+      "rows": 16,
+      "maskSha256": "629b3937bc5ddb3696f5fc072e0162085defc244e1fe236efc001ea10e5b303e",
+      "inkTop": 256,
+      "inkBottom": 272,
+      "full": [
+        546,
+        219,
+        714,
+        316
+      ],
+      "visible": [
+        546,
+        219,
+        714,
+        272
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 53,
+      "sameInk": false,
+      "percentInk": 66.99
+    },
+    "focus": {
+      "hint": "Backup password",
+      "length": 24,
+      "full": [
+        120,
+        191,
+        1064,
+        282
+      ],
+      "visible": [
+        120,
+        191,
+        984,
+        91
+      ],
+      "visibleArea": 0,
+      "area": 85904,
+      "baseline": 250
+    }
+  },
+  {
+    "label": "second-ime",
+    "seconds": 23.421,
+    "ime": [
+      0,
+      320,
+      1184,
+      720
+    ],
+    "screenshotSha256": "cdc1749d429f7a1b1849b3540fc230c25ebded1975e140144044e5cf9047944d",
+    "choose": {
+      "ink": 1184,
+      "rows": 16,
+      "maskSha256": "ff0d0a15c82b45910de0e9f77a2baff8eeebac3e307433b53b1577ee7220a6dc",
+      "inkTop": 256,
+      "inkBottom": 272,
+      "full": [
+        730,
+        219,
+        1056,
+        316
+      ],
+      "visible": [
+        730,
+        219,
+        1056,
+        272
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 53,
+      "sameInk": false,
+      "percentInk": 68.48
+    },
+    "cancel": {
+      "ink": 414,
+      "rows": 16,
+      "maskSha256": "629b3937bc5ddb3696f5fc072e0162085defc244e1fe236efc001ea10e5b303e",
+      "inkTop": 256,
+      "inkBottom": 272,
+      "full": [
+        546,
+        219,
+        714,
+        316
+      ],
+      "visible": [
+        546,
+        219,
+        714,
+        272
+      ],
+      "fullHeight": 97,
+      "visibleHeight": 53,
+      "sameInk": false,
+      "percentInk": 66.99
+    },
+    "focus": {
+      "hint": "Confirm backup password",
+      "length": 24,
+      "full": [
+        120,
+        191,
+        1064,
+        282
+      ],
+      "visible": [
+        120,
+        191,
+        984,
+        91
+      ],
+      "visibleArea": 0,
+      "area": 85904,
+      "baseline": 250
+    }
+  }
+]

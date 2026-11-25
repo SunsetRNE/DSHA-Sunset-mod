@@ -1,0 +1,71 @@
+{
+  "commit": "5d952dafd13c3193f07e7efbc97b65c0c2c8bea7",
+  "windows": {
+    "methods": 5843,
+    "counts": {
+      "SUCCESS": 5843
+    },
+    "raw": "F:\\DSHA_RESTART\\artifacts\\build377-local\\windows-r4\\method-results.jsonl",
+    "firstResult": {
+      "startedAt": "2026-11-25T08:35:58.301Z",
+      "at": "2026-11-25T08:35:58.326Z",
+      "className": "com.deepseekharness.app.backup.AutomaticBackupApiGoldenTest",
+      "name": "automaticBackupsRetainsItsJavaStaticSurface",
+      "status": "SUCCESS",
+      "durationMs": 25
+    },
+    "firstPass": {
+      "startedAt": "2026-11-25T08:35:58.301Z",
+      "at": "2026-11-25T08:35:58.326Z",
+      "className": "com.deepseekharness.app.backup.AutomaticBackupApiGoldenTest",
+      "name": "automaticBackupsRetainsItsJavaStaticSurface",
+      "status": "SUCCESS",
+      "durationMs": 25
+    },
+    "gradleElapsedSeconds": 828.738,
+    "gradleExitCode": 0,
+    "firstRunFailures": [],
+    "retryResolved": {},
+    "failures": [],
+    "passedAfterRetries": 5843,
+    "skipped": []
+  },
+  "lint": {
+    "severity": {
+      "Warning": 649,
+      "Hint": 30
+    },
+    "report": "F:\\DSHA_RESTART\\artifacts\\build377-local\\windows-r4\\lint-results-standardRelease.xml",
+    "errors": 0
+  },
+  "linux": {
+    "methods": 144,
+    "counts": {
+      "PASS": 144
+    },
+    "windowsOverlap": [],
+    "raw": "F:\\DSHA_RESTART\\artifacts\\build377-local\\linux-tools\\linux-r4\\summary.json",
+    "batches": {
+      "posix": {
+        "firstResult": {
+          "finishedAt": "2026-11-25T08:38:41.288873562Z",
+          "method": "com.deepseekharness.app.ExternalDeviceImportRootTest.leafSymlinkStillRejected"
+        },
+        "durationSeconds": 48.217,
+        "finishedAt": "2026-11-25T08:39:01.008059+00:00",
+        "exitCode": 0
+      },
+      "native": {
+        "firstResult": {
+          "finishedAt": "2026-11-25T08:39:09.167825973Z",
+          "method": "com.deepseekharness.app.util.PlanViewDifferentialTest.reEncodedViewsGiveTheSameVerdictOnBothImplementations"
+        },
+        "durationSeconds": 13.767,
+        "finishedAt": "2026-11-25T08:39:14.780664+00:00",
+        "exitCode": 0
+      }
+    }
+  },
+  "distinctMethods": 5987,
+  "status": "PASS"
+}

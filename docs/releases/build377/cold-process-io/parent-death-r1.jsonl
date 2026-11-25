@@ -1,0 +1,8 @@
+{"api": "fork", "owner_uid": 65534, "round": 1, "phase": "before", "owner_exited": true, "leader_and_child_nonexecuting": true, "guest_marker": false, "external_signal": false}
+{"api": "fork", "owner_uid": 65534, "round": 2, "phase": "before", "owner_exited": true, "leader_and_child_nonexecuting": true, "guest_marker": false, "external_signal": false}
+{"api": "fork", "owner_uid": 65534, "round": 1, "phase": "after", "owner_exited": true, "leader_and_child_nonexecuting": true, "guest_marker": true, "external_signal": false}
+{"api": "fork", "owner_uid": 65534, "round": 2, "phase": "after", "owner_exited": true, "leader_and_child_nonexecuting": true, "guest_marker": true, "external_signal": false}
+{"api": "spawn", "owner_uid": 65534, "round": 1, "phase": "before", "owner_exited": true, "leader_and_child_nonexecuting": true, "guest_marker": false, "external_signal": false}
+{"api": "spawn", "owner_uid": 65534, "round": 2, "phase": "before", "owner_exited": true, "leader_and_child_nonexecuting": true, "guest_marker": false, "external_signal": false}
+{"api": "spawn", "owner_uid": 65534, "round": 1, "phase": "after", "owner_exited": true, "leader_and_child_nonexecuting": true, "guest_marker": true, "external_signal": false}
+{"api": "spawn", "owner_uid": 65534, "round": 2, "phase": "after", "owner_exited": true, "leader_and_child_nonexecuting": true, "guest_marker": true, "external_signal": false}

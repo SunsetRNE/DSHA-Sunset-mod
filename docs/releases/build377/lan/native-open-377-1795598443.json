@@ -1,0 +1,47 @@
+{
+  "apkVersionCode": 377,
+  "component": "dsh.android.client/com.deepseekharness.app.ui.MainActivity",
+  "startUtc": "2026-11-25T09:20:40.349490+00:00",
+  "attempts": [
+    {
+      "round": 1,
+      "nodeCount": 43,
+      "classes": {
+        "android.widget.FrameLayout": 9,
+        "android.widget.LinearLayout": 16,
+        "android.widget.ScrollView": 1,
+        "android.widget.TextView": 9,
+        "android.view.View": 2,
+        "android.widget.ImageView": 1,
+        "android.widget.Button": 5
+      },
+      "resourceIds": [
+        "action_bar_root",
+        "extract_actions",
+        "extract_columns",
+        "extract_content",
+        "extract_copy_support",
+        "extract_emergency",
+        "extract_enter",
+        "extract_footer",
+        "extract_lead",
+        "extract_links",
+        "extract_logs",
+        "extract_pill",
+        "extract_retry",
+        "extract_scroll",
+        "extract_segments",
+        "extract_stage_card",
+        "extract_stage_line",
+        "extract_stages",
+        "extract_status",
+        "extract_title"
+      ]
+    }
+  ],
+  "launch": "Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=dsh.android.client/com.deepseekharness.app.ui.MainActivity }\nStatus: ok\nLaunchState: WARM\nActivity: dsh.android.client/com.deepseekharness.app.ui.MainActivity\nTotalTime: 835\nWaitTime: 837\nComplete",
+  "startReplySeconds": 0.906,
+  "verifiedNativeSeconds": 3.485,
+  "ok": true,
+  "endUtc": "2026-11-25T09:20:43.828936+00:00"
+}

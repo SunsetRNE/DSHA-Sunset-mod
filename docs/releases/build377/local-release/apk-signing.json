@@ -1,0 +1,20 @@
+{
+  "alias": "androiddebugkey",
+  "certificateSha256": "e7e3a31a75946f2669194c972b3dd0c9aea3fc7c50a8b885d2dee710b22a53f5",
+  "kind": "dsha-release-signed-apk",
+  "apkFile": "dsha-0.2.2-rc.5.apk",
+  "apkSize": 255591272,
+  "apkSha256": "f6b7f9ecf53e71a20bebf4ce23d3c8cf643311a7cee5435ad281d2dec70235f2",
+  "unsignedSha256": "676788c67c38b4b13861f50dea418cb9eadffd6f6c86e3c866451deeeee55f75",
+  "packageName": "dsh.android.client",
+  "versionCode": 377,
+  "versionName": "0.2.2-rc.5-20261125.1442-dsh0.2.2-rc.5",
+  "schemes": {
+    "v1": true,
+    "v2": true,
+    "v3": true,
+    "v3.1": false,
+    "v4": false
+  },
+  "payloadMembers": 1839
+}
